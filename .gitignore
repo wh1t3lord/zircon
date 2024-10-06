@@ -1,0 +1,37 @@
+# exclude all dot files except .git, appveyor and travis files
+.*
+!.clang-format
+!.git*
+!.appveyor*
+!.travis.yml
+
+[Xx]64/
+[Bb]uild/
+[Bb]uild*/
+
+
+!deps/shaderc/lib/
+
+# exclude binaries and temporary files
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+bin*/
+!deps/vld/bin/
+intermediate/
+intermediate_plugs/
+out/
+CMakeFiles/
+*.aps
+*.user
+*.PVS-Studio.*
+*.gch
+*.so
+*.a
+*.o
+*.cache
+# exclude doxygen output
+doc/doxygen/html/*
+user_data/
+
+imgui.ini

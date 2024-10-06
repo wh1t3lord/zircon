@@ -1,0 +1,39 @@
+#pragma once
+
+#include "zircon_command_definitions.h"
+
+class zircon_factory_game;
+class zircon_command_history;
+class zircon_scene;
+
+// TODO: implement streaming of json size of 30k+ while we are limited in our
+// storage
+class zircon_command_delete_entity : public Kotek::Core::ktkISDKRedoUndo
+{
+public:
+	zircon_command_delete_entity(zircon_command_history* p_history,
+		zircon_scene* p_scene, zircon_factory_game* p_factory,
+		Kotek::ktk::entity_t entity_to_delete);
+
+	~zircon_command_delete_entity();
+
+	void Execute(void) override;
+	void Undo(void) override;
+	const char* GetName() override;
+
+	Kotek::ktk::entity_t GetEntityID(void) const noexcept override;
+	void SetEntityID(Kotek::ktk::entity_t id) noexcept override;
+
+	Kotek::ktk::enum_base_t GetCommandType() noexcept override;
+	Kotek::ktk::size_t Serialize(Kotek::ktk::uint32_t resource_handle_id,
+		Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept override;
+
+private:
+	zircon_command_history* m_p_history;
+	zircon_scene* m_p_scene;
+	zircon_factory_game* m_p_factory;
+	Kotek::ktk::entity_t m_entity_to_delete;
+	Kotek::ktk::entity_t m_entity_previous_id;
+	unsigned char
+		m_p_placement_new_memory[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
+};

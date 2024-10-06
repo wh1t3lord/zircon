@@ -1,0 +1,7 @@
+{
+    "UserCallbackForGameLibrary_Initialize" : "InitializeModule_Game",
+    "UserCallbackForGameLibrary_Shutdown" : "ShutdownModule_Game",
+    "UserCallbackForGameLibrary_Update" : "UpdateModule_Game",
+    "UserCallbackForGameLibrary_Initialize_Render" : "InitializeModule_Render",
+    "UserGameLibraryName" : "game.ktk"
+}
