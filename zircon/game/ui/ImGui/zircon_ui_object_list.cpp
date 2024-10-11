@@ -4,6 +4,8 @@
 #include "../../zircon_scene_manager.h"
 #include "../../../core/zircon_sdk_ui.h"
 
+namespace kotek = Kotek;
+
 zircon_sdk_ui_object_list::zircon_sdk_ui_object_list(void) :
 	m_selected_entity_id{}
 {
@@ -56,10 +58,14 @@ void zircon_sdk_ui_object_list::Draw(
 
 			if (p_wrapper_imgui->BeginTable("", 1))
 			{
-				p_wrapper_imgui->TableSetupColumn(
-					"Entity ID", ImGuiTableColumnFlags_WidthStretch);
-				p_wrapper_imgui->TableHeadersRow();
+				char table_column_name[32]{};
+				kotek::ktk::sprintf(table_column_name,
+					sizeof(table_column_name), "Entity ID [%d]", ids.size());
 
+				p_wrapper_imgui->TableSetupColumn(
+					table_column_name, ImGuiTableColumnFlags_WidthStretch);
+				p_wrapper_imgui->TableHeadersRow();
+				
 				for (auto id : ids)
 				{
 					p_wrapper_imgui->TableNextRow();
