@@ -4,8 +4,6 @@
 #include "../../zircon_scene_manager.h"
 #include "../../../core/zircon_sdk_ui.h"
 
-namespace kotek = Kotek;
-
 zircon_sdk_ui_object_list::zircon_sdk_ui_object_list(void) :
 	m_selected_entity_id{}
 {

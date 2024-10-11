@@ -52,8 +52,9 @@ void zircon_command_history::initialize(
 	this->m_p_scene_manager = p_scene_manager;
 	this->m_p_resource_manager = p_resource_manager;
 
-	ktk_filesystem_path path_to_file = this->m_p_filesystem->GetFolderByEnum(
-		Kotek::Core::eFolderIndex::kFolderIndex_UserData_SDK_Scenes);
+	kotek::ktk::filesystem::static_path<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
+		path_to_file = this->m_p_filesystem->GetFolderByEnum(
+			Kotek::Core::eFolderIndex::kFolderIndex_UserData_SDK_Scenes);
 	path_to_file /= "current";
 
 	this->m_path_to_streaming_folder.append(
@@ -1122,8 +1123,8 @@ void zircon_command_history::insert_content(Kotek::ktk::size_t from_offset,
 }
 
 bool zircon_command_history::is_contain_control_character(const char* p_buffer,
-	Kotek::ktk::size_t& how_much_time_control_character_repeats,
-	Kotek::ktk::size_t size_of_buffer, char control_character)
+	kotek::ktk::size_t& how_much_time_control_character_repeats,
+	kotek::ktk::size_t size_of_buffer, char control_character)
 {
 	KOTEK_ASSERT(p_buffer, "you passed an invalid buffer!");
 	KOTEK_ASSERT(size_of_buffer,
@@ -1154,13 +1155,13 @@ bool zircon_command_history::is_contain_control_character(const char* p_buffer,
 	return result;
 }
 
-ktk_filesystem_path zircon_command_history::get_full_path_of_file(
+kotek::static_path_t zircon_command_history::get_full_path_of_file(
 	const char* filename_with_extension)
 {
 	KOTEK_ASSERT(this->m_path_to_streaming_folder.empty() == false,
 		"early calling you should intialize the path of streaming folder!");
-
-	return ktk_filesystem_path(this->m_path_to_streaming_folder) /
+	return kotek::static_path_t(
+			   this->m_path_to_streaming_folder) /
 		filename_with_extension;
 }
 
