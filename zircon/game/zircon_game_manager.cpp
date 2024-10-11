@@ -731,7 +731,7 @@ void zircon_manager_game::Update(void) noexcept
 
 	if (p_current_session)
 	{
-		p_current_session->Update();
+		p_current_session->update();
 	}
 }
 
@@ -1598,7 +1598,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			{
 				if (this->GetSession_Editor())
 				{
-					this->GetSession_Editor()->Shutdown();
+					this->GetSession_Editor()->shutdown();
 					this->GetConsole()->PushCommand(
 						static_cast<Kotek::ktk::enum_base_t>(
 							Kotek::Core::eConsoleCommandIndex::
@@ -1678,7 +1678,7 @@ void zircon_manager_game::Initialize_Session(void) noexcept
 		KOTEK_ASSERT(this->m_p_scene_manager->GetCurrentScene(),
 			"you must initialize scene");
 
-		this->m_p_session_editor->Initialize(
+		this->m_p_session_editor->initialize(
 			this->m_p_scene_manager->GetCurrentScene(), this);
 	}
 	else
@@ -1697,13 +1697,13 @@ void zircon_manager_game::Destroy_Session(void) noexcept
 	{
 		if (this->m_p_session_editor)
 		{
-			this->m_p_session_editor->Shutdown();
+			this->m_p_session_editor->shutdown();
 			delete this->m_p_session_editor;
 			this->m_p_session_editor = nullptr;
 
 			if (this->m_p_session_game)
 			{
-				this->m_p_session_game->Shutdown();
+				this->m_p_session_game->shutdown();
 				delete this->m_p_session_game;
 				this->m_p_session_game = nullptr;
 			}
@@ -1717,7 +1717,7 @@ void zircon_manager_game::Destroy_Session(void) noexcept
 
 		if (this->m_p_session_game)
 		{
-			this->m_p_session_game->Shutdown();
+			this->m_p_session_game->shutdown();
 			delete this->m_p_session_game;
 			this->m_p_session_game = nullptr;
 		}

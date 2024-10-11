@@ -13,7 +13,7 @@ zircon_session_editor::zircon_session_editor(void) :
 
 zircon_session_editor::~zircon_session_editor(void) {}
 
-void zircon_session_editor::Initialize(
+void zircon_session_editor::initialize(
 	zircon_scene* p_current_scene, zircon_manager_game* p_game_manager)
 {
 	KOTEK_ASSERT(p_current_scene, "you can't pass an invalid scene");
@@ -24,7 +24,7 @@ void zircon_session_editor::Initialize(
 	this->m_p_main_manager = p_game_manager->GetMainManager();
 }
 
-void zircon_session_editor::Shutdown(void)
+void zircon_session_editor::shutdown(void)
 {
 	if (this->m_p_scene)
 	{
@@ -37,7 +37,7 @@ void zircon_session_editor::Shutdown(void)
 	}
 }
 
-void zircon_session_editor::Update(void)
+void zircon_session_editor::update(void)
 {
 	this->update_editing_status();
 

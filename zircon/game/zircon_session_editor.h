@@ -19,10 +19,10 @@ public:
 	zircon_session_editor(void);
 	~zircon_session_editor(void);
 
-	void Initialize(
+	void initialize(
 		zircon_scene* p_current_scene, zircon_manager_game* p_game_manager);
-	void Shutdown(void) override;
-	void Update(void) override;
+	void shutdown(void) override;
+	void update(void) override;
 
 	void Serialize(
 		const ktk_filesystem_path& full_path_to_file) noexcept;

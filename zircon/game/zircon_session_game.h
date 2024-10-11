@@ -11,9 +11,9 @@ public:
 	zircon_session_game(void);
 	~zircon_session_game(void);
 
-	void Initialize(const Kotek::ktk::ustring& scene_name);
-	void Shutdown(void) override;
-	void Update(void) override;
+	void initialize(const Kotek::ktk::ustring& scene_name);
+	void shutdown(void) override;
+	void update(void) override;
 
 private:
 	zircon_manager_game* m_p_game_manager;
