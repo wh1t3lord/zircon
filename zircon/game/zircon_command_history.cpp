@@ -9,7 +9,7 @@ constexpr const char* _kTempFileName = "temp";
 constexpr const char* _kExchangeFileName = "exchange";
 
 zircon_command_history::zircon_command_history(void) :
-	m_is_changed{}, m_is_first_serialize_happened{},
+	m_is_changed{}, m_is_first_serialize_happened{}, m_is_action_issued{},
 	m_file_resource_handle_id{}, m_file_exchange_resource_handle_id{},
 	m_p_filesystem{}, m_p_scene_manager{}, m_p_resource_manager{}, m_index{},
 	m_cursor_index{-1}, m_max_index{}, m_file_index{}, m_current_file_offset{},
@@ -40,9 +40,9 @@ zircon_command_history::zircon_command_history(void) :
 zircon_command_history::~zircon_command_history(void) {}
 
 void zircon_command_history::initialize(
-	Kotek::Core::ktkIFileSystem* p_filesystem,
+	kotek::core::ktkIFileSystem* p_filesystem,
 	zircon_scene_manager* p_scene_manager,
-	Kotek::Core::ktkIResourceManager* p_resource_manager)
+	kotek::core::ktkIResourceManager* p_resource_manager)
 {
 	KOTEK_ASSERT(p_filesystem, "you must pass a valid pointer!");
 	KOTEK_ASSERT(p_scene_manager, "you must pass a valid pointer!");
@@ -54,7 +54,7 @@ void zircon_command_history::initialize(
 
 	kotek::ktk::filesystem::static_path<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
 		path_to_file = this->m_p_filesystem->GetFolderByEnum(
-			Kotek::Core::eFolderIndex::kFolderIndex_UserData_SDK_Scenes);
+			kotek::core::eFolderIndex::kFolderIndex_UserData_SDK_Scenes);
 	path_to_file /= "current";
 
 	this->m_path_to_streaming_folder.append(
@@ -68,7 +68,7 @@ void zircon_command_history::initialize(
 	{
 		this->m_p_filesystem->Create_Directory(
 			this->m_path_to_streaming_folder.c_str(),
-			Kotek::Core::eFolderVisibilityType::kVisible);
+			kotek::core::eFolderVisibilityType::kVisible);
 	}
 
 	if (this->m_p_resource_manager)
@@ -76,10 +76,10 @@ void zircon_command_history::initialize(
 		this->m_file_resource_handle_id =
 			this->m_p_resource_manager->GenerateFileID();
 
-		Kotek::Core::ktkResourceWritingRequest request;
+		kotek::core::ktkResourceWritingRequest request;
 		request.Set_Path(path_to_file / _kTempFileNameWithExtension);
 		request.Set_ID(this->m_file_resource_handle_id);
-		request.Set_ResourceType(Kotek::Core::eResourceWritingType::kText);
+		request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
 
 		this->m_p_resource_manager->Open(request);
 
@@ -97,15 +97,15 @@ void zircon_command_history::shutdown(void)
 {
 	this->m_p_resource_manager->Close(this->m_file_resource_handle_id);
 	this->m_p_resource_manager->Close(this->m_file_exchange_resource_handle_id);
-	for (const auto& path_file : Kotek::ktk::filesystem::directory_iterator(
+	for (const auto& path_file : kotek::ktk::filesystem::directory_iterator(
 			 this->m_path_to_streaming_folder.c_str()))
 	{
-		Kotek::ktk::filesystem::remove(path_file);
+		kotek::ktk::filesystem::remove(path_file);
 	}
 }
 
 void zircon_command_history::ExecuteCommand(
-	Kotek::Core::ktkISDKRedoUndo* p_command)
+	kotek::core::ktkISDKRedoUndo* p_command)
 {
 	KOTEK_ASSERT(p_command, "you can't send an invalid command here");
 
@@ -149,7 +149,7 @@ void zircon_command_history::Undo()
 					this->m_p_resource_manager->Seekg(
 						this->m_file_resource_handle_id,
 						this->m_before_frame_file_offset,
-						Kotek::Core::eFileSeekDirectionType::
+						kotek::core::eFileSeekDirectionType::
 							kSeekDirectionBegin);
 
 					auto file_size = this->m_p_resource_manager->Tellg(
@@ -200,7 +200,7 @@ void zircon_command_history::Undo()
 
 					this->m_p_resource_manager->Seekg(
 						this->m_file_resource_handle_id, 0,
-						Kotek::Core::eFileSeekDirectionType::kSeekDirectionEnd);
+						kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
 
 					auto file_size_after_serialize =
 						this->m_p_resource_manager->Tellg(
@@ -208,7 +208,7 @@ void zircon_command_history::Undo()
 
 					this->m_p_resource_manager->Seekg(
 						this->m_file_exchange_resource_handle_id, 0,
-						Kotek::Core::eFileSeekDirectionType::kSeekDirectionEnd);
+						kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
 
 					auto file_size_of_exchange =
 						this->m_p_resource_manager->Tellg(
@@ -229,7 +229,7 @@ void zircon_command_history::Undo()
 						this->m_p_resource_manager->Seekg(
 							this->m_file_resource_handle_id,
 							this->m_current_file_offset,
-							Kotek::Core::eFileSeekDirectionType::
+							kotek::core::eFileSeekDirectionType::
 								kSeekDirectionBegin);
 
 						this->m_p_resource_manager->Read(
@@ -247,7 +247,7 @@ void zircon_command_history::Undo()
 							this->m_p_resource_manager->Seekg(
 								this->m_file_resource_handle_id,
 								this->m_current_file_offset,
-								Kotek::Core::eFileSeekDirectionType::
+								kotek::core::eFileSeekDirectionType::
 									kSeekDirectionBegin);
 
 							this->m_p_resource_manager->Read(
@@ -273,11 +273,11 @@ void zircon_command_history::Undo()
 						this->m_p_resource_manager->Seekg(
 							this->m_file_resource_handle_id,
 							this->m_current_file_offset,
-							Kotek::Core::eFileSeekDirectionType::
+							kotek::core::eFileSeekDirectionType::
 								kSeekDirectionBegin);
 
-						Kotek::ktk::json::stream_parser parser;
-						Kotek::ktk::json::static_resource storage_ptr(
+						kotek::json::stream_parser parser;
+						kotek::json::static_resource storage_ptr(
 							this->m_p_memory_for_stack_parser);
 						parser.reset(&storage_ptr);
 
@@ -300,7 +300,7 @@ void zircon_command_history::Undo()
 									this->m_p_resource_manager->Seekg(
 										this->m_file_resource_handle_id,
 										this->m_current_file_offset,
-										Kotek::Core::eFileSeekDirectionType::
+										kotek::core::eFileSeekDirectionType::
 											kSeekDirectionBegin);
 								}
 								else
@@ -353,7 +353,7 @@ void zircon_command_history::Undo()
 								status, "must be valid json in stream buffer!");
 						}
 
-						Kotek::ktk::json::value json_data = parser.release();
+						kotek::json::value json_data = parser.release();
 
 						KOTEK_ASSERT(json_data.is_object(), "must be object!");
 
@@ -363,13 +363,13 @@ void zircon_command_history::Undo()
 							"must exist a such key, because we can't "
 							"understand which command we need to restore!");
 
-						Kotek::Core::eConsoleCommandIndex type =
-							static_cast<Kotek::Core::eConsoleCommandIndex>(
+						kotek::core::eConsoleCommandIndex type =
+							static_cast<kotek::core::eConsoleCommandIndex>(
 								json.at("command").as_int64());
 
 						switch (type)
 						{
-						case Kotek::Core::eConsoleCommandIndex::
+						case kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_CreateEntity:
 						{
 							auto placement_storage =
@@ -460,7 +460,7 @@ void zircon_command_history::Redo()
 				this->m_p_resource_manager->Seekg(
 					this->m_file_resource_handle_id,
 					this->m_before_frame_file_offset,
-					Kotek::Core::eFileSeekDirectionType::kSeekDirectionBegin);
+					kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 
 				auto file_size = this->m_p_resource_manager->Tellg(
 					this->m_file_resource_handle_id);
@@ -499,7 +499,7 @@ void zircon_command_history::Redo()
 
 				this->m_p_resource_manager->Seekg(
 					this->m_file_resource_handle_id, 0,
-					Kotek::Core::eFileSeekDirectionType::kSeekDirectionEnd);
+					kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
 
 				auto file_size_after_serialize =
 					this->m_p_resource_manager->Tellg(
@@ -507,7 +507,7 @@ void zircon_command_history::Redo()
 
 				this->m_p_resource_manager->Seekg(
 					this->m_file_exchange_resource_handle_id, 0,
-					Kotek::Core::eFileSeekDirectionType::kSeekDirectionEnd);
+					kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
 
 				auto file_size_of_exchange = this->m_p_resource_manager->Tellg(
 					this->m_file_exchange_resource_handle_id);
@@ -526,7 +526,7 @@ void zircon_command_history::Redo()
 					this->m_p_resource_manager->Seekg(
 						this->m_file_resource_handle_id,
 						this->m_current_file_offset,
-						Kotek::Core::eFileSeekDirectionType::
+						kotek::core::eFileSeekDirectionType::
 							kSeekDirectionBegin);
 					this->m_p_resource_manager->Read(
 						this->m_file_resource_handle_id, buffer,
@@ -541,7 +541,7 @@ void zircon_command_history::Redo()
 
 						this->m_p_resource_manager->Seekg(
 							this->m_file_resource_handle_id, 0,
-							Kotek::Core::eFileSeekDirectionType::
+							kotek::core::eFileSeekDirectionType::
 								kSeekDirectionEnd);
 
 						auto file_size = this->m_p_resource_manager->Tellg(
@@ -556,7 +556,7 @@ void zircon_command_history::Redo()
 							this->m_p_resource_manager->Seekg(
 								this->m_file_resource_handle_id,
 								this->m_current_file_offset,
-								Kotek::Core::eFileSeekDirectionType::
+								kotek::core::eFileSeekDirectionType::
 									kSeekDirectionBegin);
 							this->m_current_file_offset -= sizeof(buffer);
 
@@ -569,7 +569,7 @@ void zircon_command_history::Redo()
 							this->m_p_resource_manager->Seekg(
 								this->m_file_resource_handle_id,
 								this->m_current_file_offset,
-								Kotek::Core::eFileSeekDirectionType::
+								kotek::core::eFileSeekDirectionType::
 									kSeekDirectionBegin);
 
 							this->m_p_resource_manager->Read(
@@ -602,11 +602,11 @@ void zircon_command_history::Redo()
 					this->m_p_resource_manager->Seekg(
 						this->m_file_resource_handle_id,
 						this->m_current_file_offset,
-						Kotek::Core::eFileSeekDirectionType::
+						kotek::core::eFileSeekDirectionType::
 							kSeekDirectionBegin);
 
-					Kotek::ktk::json::stream_parser parser;
-					Kotek::ktk::json::static_resource storage_ptr(
+					kotek::json::stream_parser parser;
+					kotek::json::static_resource storage_ptr(
 						this->m_p_memory_for_stack_parser);
 					parser.reset(&storage_ptr);
 
@@ -629,7 +629,7 @@ void zircon_command_history::Redo()
 								this->m_p_resource_manager->Seekg(
 									this->m_file_resource_handle_id,
 									this->m_current_file_offset,
-									Kotek::Core::eFileSeekDirectionType::
+									kotek::core::eFileSeekDirectionType::
 										kSeekDirectionBegin);
 							}
 							else
@@ -688,7 +688,7 @@ void zircon_command_history::Redo()
 							status, "must be valid json in stream buffer!");
 					}
 
-					Kotek::ktk::json::value json_data = parser.release();
+					kotek::json::value json_data = parser.release();
 
 					KOTEK_ASSERT(json_data.is_object(), "must be object!");
 
@@ -698,13 +698,13 @@ void zircon_command_history::Redo()
 						"must exist a such key, because we can't "
 						"understand which command we need to restore!");
 
-					Kotek::Core::eConsoleCommandIndex type =
-						static_cast<Kotek::Core::eConsoleCommandIndex>(
+					kotek::core::eConsoleCommandIndex type =
+						static_cast<kotek::core::eConsoleCommandIndex>(
 							json.at("command").as_int64());
 
 					switch (type)
 					{
-					case Kotek::Core::eConsoleCommandIndex::
+					case kotek::core::eConsoleCommandIndex::
 						kConsoleCommand_SDK_CreateEntity:
 					{
 						auto placement_storage = this->m_storage[i];
@@ -760,7 +760,7 @@ bool zircon_command_history::is_changed() const noexcept
 	return this->m_is_changed;
 }
 
-const Kotek::ktk::array<Kotek::Core::ktkISDKRedoUndo*,
+const kotek::array_t<kotek::core::ktkISDKRedoUndo*,
 	zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
 zircon_command_history::GetCommands(void) const noexcept
 {
@@ -768,8 +768,8 @@ zircon_command_history::GetCommands(void) const noexcept
 }
 
 void zircon_command_history::update_dependent_commands(
-	Kotek::ktk::entity_t id_what_will_be_deleted,
-	Kotek::ktk::entity_t id_that_replaces_what_will_be_deleted) noexcept
+	kotek::entity_t id_what_will_be_deleted,
+	kotek::entity_t id_that_replaces_what_will_be_deleted) noexcept
 {
 	for (auto* p_command : this->m_commands)
 	{
@@ -784,9 +784,9 @@ void zircon_command_history::update_dependent_commands(
 }
 
 unsigned char* zircon_command_history::allocate_memory_for_command(
-	Kotek::ktk::size_t size_of_class) noexcept
+	kotek::size_t size_of_class) noexcept
 {
-	KOTEK_ASSERT(size_of_class != 0 && size_of_class != Kotek::ktk::size_t(-1),
+	KOTEK_ASSERT(size_of_class != 0 && size_of_class != kotek::size_t(-1),
 		"you can't pass a invalid size!");
 	KOTEK_ASSERT(size_of_class <= zircon_DEF_MAXIMUM_COMMAND_SIZE,
 		"you passed size larger than standard we can't allocate!");
@@ -885,8 +885,8 @@ void zircon_command_history::unload_content_before()
 {
 	this->m_p_resource_manager->Close(this->m_file_exchange_resource_handle_id);
 
-	Kotek::Core::ktkResourceWritingRequest request;
-	request.Set_ResourceType(Kotek::Core::eResourceWritingType::kText);
+	kotek::core::ktkResourceWritingRequest request;
+	request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
 
 	const auto& path_to_exchange =
 		this->get_full_path_of_file(_kExchangeFileNameWithExtension);
@@ -899,11 +899,11 @@ void zircon_command_history::unload_content_before()
 	auto file_size = this->m_before_frame_file_offset;
 
 	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id, 0,
-		Kotek::Core::eFileSeekDirectionType::kSeekDirectionBegin);
+		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 
-	Kotek::ktk::size_t current_size{};
-	Kotek::ktk::size_t size_reading{};
-	Kotek::ktk::size_t size_writing{};
+	kotek::size_t current_size{};
+	kotek::size_t size_reading{};
+	kotek::size_t size_writing{};
 
 	while (current_size < file_size)
 	{
@@ -925,7 +925,7 @@ void zircon_command_history::unload_content_before()
 
 		// control character is '\n' because FILE interprets is as a complex
 		// char so it is two values not one as we write in code
-		Kotek::ktk::size_t control_character_amount_of_repetitions{};
+		kotek::size_t control_character_amount_of_repetitions{};
 		bool is_contain_control_character = this->is_contain_control_character(
 			buffer, control_character_amount_of_repetitions, size_reading);
 
@@ -941,18 +941,18 @@ void zircon_command_history::unload_content_before()
 			this->m_file_exchange_resource_handle_id, buffer, size_writing);
 		this->m_p_resource_manager->Write(
 			this->m_file_exchange_resource_handle_id,
-			Kotek::Core::eFileWritingControlCharacterType::kFlush);
+			kotek::core::eFileWritingControlCharacterType::kFlush);
 
 		current_size += zircon_DEF_STREAM_JSON_STACK_SIZE +
 			control_character_amount_of_repetitions;
 
 		this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
 			current_size,
-			Kotek::Core::eFileSeekDirectionType::kSeekDirectionBegin);
+			kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 	}
 
 	this->m_p_resource_manager->Seekg(this->m_file_exchange_resource_handle_id,
-		0, Kotek::Core::eFileSeekDirectionType::kSeekDirectionEnd);
+		0, kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
 
 	this->m_exchange_file_offset_after = this->m_p_resource_manager->Tellg(
 		this->m_file_exchange_resource_handle_id);
@@ -973,8 +973,8 @@ void zircon_command_history::unload_content_after(bool is_need_to_reopen)
 		this->m_p_resource_manager->Close(
 			this->m_file_exchange_resource_handle_id);
 
-		Kotek::Core::ktkResourceWritingRequest request;
-		request.Set_ResourceType(Kotek::Core::eResourceWritingType::kText);
+		kotek::core::ktkResourceWritingRequest request;
+		request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
 
 		const auto& path_to_exchange =
 			this->get_full_path_of_file(_kExchangeFileNameWithExtension);
@@ -989,18 +989,18 @@ void zircon_command_history::unload_content_after(bool is_need_to_reopen)
 			this->m_file_exchange_resource_handle_id))
 	{
 		this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id, 0,
-			Kotek::Core::eFileSeekDirectionType::kSeekDirectionEnd);
+			kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
 
-		Kotek::ktk::size_t file_size =
+		kotek::size_t file_size =
 			this->m_p_resource_manager->Tellg(this->m_file_resource_handle_id);
 
 		this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
 			this->m_after_frame_file_offset,
-			Kotek::Core::eFileSeekDirectionType::kSeekDirectionBegin);
+			kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 
-		Kotek::ktk::size_t current_size{this->m_after_frame_file_offset};
-		Kotek::ktk::size_t size_reading{};
-		Kotek::ktk::size_t size_writing{};
+		kotek::size_t current_size{this->m_after_frame_file_offset};
+		kotek::size_t size_reading{};
+		kotek::size_t size_writing{};
 
 		while (current_size < file_size)
 		{
@@ -1022,7 +1022,7 @@ void zircon_command_history::unload_content_after(bool is_need_to_reopen)
 
 			// control character is '\n' because FILE interprets is as a complex
 			// char so it is two values not one as we write in code
-			Kotek::ktk::size_t control_character_amount_of_repetitions{};
+			kotek::size_t control_character_amount_of_repetitions{};
 			bool is_contain_control_character =
 				this->is_contain_control_character(buffer,
 					control_character_amount_of_repetitions, size_reading);
@@ -1039,20 +1039,20 @@ void zircon_command_history::unload_content_after(bool is_need_to_reopen)
 				this->m_file_exchange_resource_handle_id, buffer, size_writing);
 			this->m_p_resource_manager->Write(
 				this->m_file_exchange_resource_handle_id,
-				Kotek::Core::eFileWritingControlCharacterType::kFlush);
+				kotek::core::eFileWritingControlCharacterType::kFlush);
 
 			current_size += zircon_DEF_STREAM_JSON_STACK_SIZE +
 				control_character_amount_of_repetitions;
 
 			this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
 				current_size,
-				Kotek::Core::eFileSeekDirectionType::kSeekDirectionBegin);
+				kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 		}
 	}
 }
 
-void zircon_command_history::insert_content(Kotek::ktk::size_t from_offset,
-	Kotek::ktk::size_t to_offset, Kotek::ktk::size_t cursor_offset_current)
+void zircon_command_history::insert_content(kotek::size_t from_offset,
+	kotek::size_t to_offset, kotek::size_t cursor_offset_current)
 {
 	if (to_offset == size_t(-1))
 		return;
@@ -1061,18 +1061,18 @@ void zircon_command_history::insert_content(Kotek::ktk::size_t from_offset,
 		return;
 
 	this->m_p_resource_manager->Seekg(this->m_file_exchange_resource_handle_id,
-		0, Kotek::Core::eFileSeekDirectionType::kSeekDirectionEnd);
+		0, kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
 
-	Kotek::ktk::size_t current_file_exchange_size{from_offset};
-	Kotek::ktk::size_t current_file_current_size{cursor_offset_current};
+	kotek::size_t current_file_exchange_size{from_offset};
+	kotek::size_t current_file_current_size{cursor_offset_current};
 
 	// потому что мы очистили наш файл путем его "переоткрытия"
 	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
 		cursor_offset_current,
-		Kotek::Core::eFileSeekDirectionType::kSeekDirectionBegin);
+		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 
-	Kotek::ktk::size_t size_writing{};
-	Kotek::ktk::size_t size_reading{};
+	kotek::size_t size_writing{};
+	kotek::size_t size_reading{};
 
 	while (current_file_exchange_size < to_offset)
 	{
@@ -1093,12 +1093,12 @@ void zircon_command_history::insert_content(Kotek::ktk::size_t from_offset,
 		this->m_p_resource_manager->Seekg(
 			this->m_file_exchange_resource_handle_id,
 			current_file_exchange_size,
-			Kotek::Core::eFileSeekDirectionType::kSeekDirectionBegin);
+			kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 
 		this->m_p_resource_manager->Read(
 			this->m_file_exchange_resource_handle_id, buffer, size_reading);
 
-		Kotek::ktk::size_t amount_of_repeats{};
+		kotek::size_t amount_of_repeats{};
 		bool is_contain_control_character = this->is_contain_control_character(
 			buffer, amount_of_repeats, size_reading);
 
@@ -1115,7 +1115,7 @@ void zircon_command_history::insert_content(Kotek::ktk::size_t from_offset,
 		this->m_p_resource_manager->Write(
 			this->m_file_resource_handle_id, buffer, size_writing);
 		this->m_p_resource_manager->Write(this->m_file_resource_handle_id,
-			Kotek::Core::eFileWritingControlCharacterType::kFlush);
+			kotek::core::eFileWritingControlCharacterType::kFlush);
 
 		current_file_exchange_size +=
 			zircon_DEF_STREAM_JSON_STACK_SIZE + amount_of_repeats;
@@ -1133,7 +1133,7 @@ bool zircon_command_history::is_contain_control_character(const char* p_buffer,
 	bool result{};
 	how_much_time_control_character_repeats = 0;
 
-	for (Kotek::ktk::size_t i = 0; i < size_of_buffer; ++i)
+	for (kotek::size_t i = 0; i < size_of_buffer; ++i)
 	{
 		if (p_buffer[i] == control_character)
 		{
@@ -1160,12 +1160,11 @@ kotek::static_path_t zircon_command_history::get_full_path_of_file(
 {
 	KOTEK_ASSERT(this->m_path_to_streaming_folder.empty() == false,
 		"early calling you should intialize the path of streaming folder!");
-	return kotek::static_path_t(
-			   this->m_path_to_streaming_folder) /
+	return kotek::static_path_t(this->m_path_to_streaming_folder) /
 		filename_with_extension;
 }
 
-void zircon_command_history::reopen_current_file(Kotek::ktk::uint32_t file_id)
+void zircon_command_history::reopen_current_file(kotek::uint32_t file_id)
 {
 	KOTEK_ASSERT(
 		this->m_p_resource_manager, "resource manager must be initialized");
@@ -1174,8 +1173,8 @@ void zircon_command_history::reopen_current_file(Kotek::ktk::uint32_t file_id)
 	{
 		this->m_p_resource_manager->Close(file_id);
 
-		Kotek::Core::ktkResourceWritingRequest request;
-		request.Set_ResourceType(Kotek::Core::eResourceWritingType::kText);
+		kotek::core::ktkResourceWritingRequest request;
+		request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
 
 		const auto& path_to_exchange =
 			this->get_full_path_of_file(_kTempFileNameWithExtension);
@@ -1187,7 +1186,7 @@ void zircon_command_history::reopen_current_file(Kotek::ktk::uint32_t file_id)
 	}
 }
 
-void zircon_command_history::reopen_exchange_file(Kotek::ktk::uint32_t file_id)
+void zircon_command_history::reopen_exchange_file(kotek::uint32_t file_id)
 {
 	KOTEK_ASSERT(
 		this->m_p_resource_manager, "resource manager must be initialized!");
@@ -1196,8 +1195,8 @@ void zircon_command_history::reopen_exchange_file(Kotek::ktk::uint32_t file_id)
 	{
 		this->m_p_resource_manager->Close(file_id);
 
-		Kotek::Core::ktkResourceWritingRequest request;
-		request.Set_ResourceType(Kotek::Core::eResourceWritingType::kText);
+		kotek::core::ktkResourceWritingRequest request;
+		request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
 
 		const auto& path_to_exchange =
 			this->get_full_path_of_file(_kExchangeFileNameWithExtension);
