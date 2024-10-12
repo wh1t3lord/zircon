@@ -4,18 +4,18 @@
 
 class zircon_scene_manager;
 
-class zircon_command_history : public Kotek::Core::ktkISDKCommandHistoryManager
+class zircon_command_history : public kotek::core::ktkISDKCommandHistoryManager
 {
 public:
 	zircon_command_history(void);
 	~zircon_command_history(void);
 
-	void initialize(Kotek::Core::ktkIFileSystem* p_filesystem,
+	void initialize(kotek::core::ktkIFileSystem* p_filesystem,
 		zircon_scene_manager* p_scene_manager,
-		Kotek::Core::ktkIResourceManager* p_resource_manager);
+		kotek::core::ktkIResourceManager* p_resource_manager);
 	void shutdown(void);
 
-	void ExecuteCommand(Kotek::Core::ktkISDKRedoUndo* p_command) override;
+	void ExecuteCommand(kotek::core::ktkISDKRedoUndo* p_command) override;
 
 	void Undo() override;
 	void Redo() override;
@@ -23,7 +23,7 @@ public:
 	void set_changed(bool status) noexcept;
 	bool is_changed() const noexcept;
 
-	const kotek::array_t<Kotek::Core::ktkISDKRedoUndo*,
+	const kotek::array_t<kotek::core::ktkISDKRedoUndo*,
 		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
 	GetCommands(void) const noexcept;
 
@@ -47,6 +47,13 @@ private:
 
 	void reopen_current_file(kotek::uint32_t file_id);
 	void reopen_exchange_file(kotek::uint32_t file_id);
+
+	void clear_content_when_action_issued();
+	kotek::size_t get_offset_of_current_index_in_file();
+	kotek::size_t get_count_of_commands_in_file(kotek::size_t start_offset);
+	void move_content_from_file_to_exchange(kotek::size_t start_offset_in_file, kotek::size_t end_offset_in_file);
+	void move_content_from_exchange_to_file(
+		kotek::size_t start_offset_in_file, kotek::size_t end_offset_in_file);
 
 private:
 	bool m_is_changed;
