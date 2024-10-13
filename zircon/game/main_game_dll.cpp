@@ -16,8 +16,7 @@ constexpr const char* kUserInfoField_RendererFallbackVersion =
 bool SerializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 {
 	auto* p_casted =
-		dynamic_cast<zircon_manager_game*>(
-			p_main_manager->GetGameManager());
+		dynamic_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
 	KOTEK_ASSERT(p_casted, "you must get valid instance here after casting");
 
@@ -40,8 +39,7 @@ bool DeserializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 		"engine must pass a valid pointer to ktkMainManager instance!");
 
 	auto* p_casted =
-		dynamic_cast<zircon_manager_game*>(
-			p_main_manager->GetGameManager());
+		dynamic_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
 	KOTEK_ASSERT(p_casted, "you must get valid instance here after casting");
 
@@ -63,6 +61,13 @@ bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 #endif
 
 	p_main_manager->SetGameManager(&g_main_manager);
+
+#ifdef KOTEK_USE_DEVELOPMENT_TYPE_SHARED
+	kotek::Set_LoggerMain(
+		p_main_manager->Get_Logger()->Get(kotek::kLoggerMainName));
+	kotek::Set_LoggerMsvcOutput(
+		p_main_manager->Get_Logger()->Get(kotek::kLoggerMsvcOutputWindowName));
+#endif
 
 	if (p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
@@ -144,8 +149,7 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 			p_main_manager->GetGameManager()->GetConsole();
 
 		auto* p_game_manager =
-			static_cast<zircon_manager_game*>(
-				p_main_manager->GetGameManager());
+			static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
 		Kotek::Core::ktkIWindowManager* p_window_manager =
 			p_main_manager->Get_WindowManager();

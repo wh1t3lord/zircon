@@ -1006,6 +1006,9 @@ void zircon_command_history::unload_content_after(bool is_need_to_reopen)
 			this->m_after_frame_file_offset,
 			kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
 
+		if (file_size == kotek::size_t(-1))
+			return;
+
 		kotek::size_t current_size{this->m_after_frame_file_offset};
 		kotek::size_t size_reading{};
 		kotek::size_t size_writing{};
@@ -1282,7 +1285,7 @@ void zircon_command_history::clear_content_when_action_issued()
 
 			KOTEK_ASSERT(command_count_from_file > 0 ||
 					(command_count_from_file == 0 &&
-						this->m_cursor_index > 0) ||
+						this->m_cursor_index >= 0) ||
 					(command_count_from_file == 0 && this->m_cursor_index < 0),
 				"if you make a diff between you will get a negative value and "
 				"casted to size_t will cause overflow!!! So that means "
@@ -1304,6 +1307,11 @@ void zircon_command_history::clear_content_when_action_issued()
 
 			this->m_max_index -= (diff);
 
+			KOTEK_TRACE(
+				"clear: max_index {} c_from_file {} c_from_buffer {} diff {}",
+				this->m_max_index, command_count_from_file,
+				command_count_from_buffer, diff);
+
 			if (delete_from_offset > 0)
 			{
 				if (this->m_max_index > 0)
@@ -1321,6 +1329,9 @@ void zircon_command_history::clear_content_when_action_issued()
 				}
 			}
 		}
+
+		KOTEK_ASSERT(this->m_max_index > this->m_cursor_index,
+			"can't be! max_index is always bigger than cursor!");
 
 		this->m_is_action_issued = false;
 	}
