@@ -854,6 +854,11 @@ unsigned char* zircon_command_history::allocate_memory_for_command(
 	return pResultPlacementNewBuffer;
 }
 
+kotek::size_t zircon_command_history::get_current_index(void) const
+{
+	return this->m_index;
+}
+
 void zircon_command_history::unload_content()
 {
 	// я нахожусь между первым и последним фреймом

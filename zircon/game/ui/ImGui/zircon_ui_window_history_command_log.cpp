@@ -38,11 +38,40 @@ void zircon_ui_window_history_command_log::Draw(
 				{
 					const auto& commands = p_history->GetCommands();
 
+					/*
 					for (auto p_command : commands)
 					{
 						if (p_command)
 						{
 							p_wrapper_imgui->Selectable(p_command->GetName());
+						}
+					}
+					*/
+
+					char button_name[32]{};
+					for (int i = 0;
+						 i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
+					{
+						auto* p_command = commands[i];
+
+						if (p_command)
+						{
+							kotek::ktk::sprintf(button_name,
+								sizeof(button_name), "[%d] %s", i,
+								p_command->GetName());
+
+							bool selected{};
+
+							auto current_index = p_history->get_current_index();
+							selected = i == current_index;
+
+							if (i > current_index)
+								p_wrapper_imgui->BeginDisabled();
+
+							p_wrapper_imgui->Selectable(button_name, &selected);
+
+							if (i > current_index)
+								p_wrapper_imgui->EndDisabled();
 						}
 					}
 				}

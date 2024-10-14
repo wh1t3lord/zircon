@@ -33,6 +33,8 @@ public:
 	unsigned char* allocate_memory_for_command(
 		kotek::size_t size_of_class) noexcept;
 
+	kotek::size_t get_current_index(void) const;
+
 private:
 
 	void unload_content();
