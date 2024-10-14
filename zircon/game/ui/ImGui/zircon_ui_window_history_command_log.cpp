@@ -52,7 +52,7 @@ void zircon_ui_window_history_command_log::Draw(
 
 							bool selected{};
 
-							auto current_index = p_history->get_current_index();
+							auto current_index = p_history->get_cursor_index() % zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
 							selected = i == current_index;
 
 							if (i > current_index)

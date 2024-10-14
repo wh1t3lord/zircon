@@ -859,6 +859,11 @@ kotek::size_t zircon_command_history::get_current_index(void) const
 	return this->m_index;
 }
 
+kotek::ptrdiff_t zircon_command_history::get_cursor_index(void) const
+{
+	return this->m_cursor_index;
+}
+
 void zircon_command_history::unload_content()
 {
 	// я нахожусь между первым и последним фреймом

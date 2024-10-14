@@ -34,6 +34,7 @@ public:
 		kotek::size_t size_of_class) noexcept;
 
 	kotek::size_t get_current_index(void) const;
+	kotek::ptrdiff_t get_cursor_index(void) const;
 
 private:
 
