@@ -38,16 +38,6 @@ void zircon_ui_window_history_command_log::Draw(
 				{
 					const auto& commands = p_history->GetCommands();
 
-					/*
-					for (auto p_command : commands)
-					{
-						if (p_command)
-						{
-							p_wrapper_imgui->Selectable(p_command->GetName());
-						}
-					}
-					*/
-
 					char button_name[32]{};
 					for (int i = 0;
 						 i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
