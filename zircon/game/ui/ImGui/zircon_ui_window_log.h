@@ -8,7 +8,7 @@ class ktkMainManager;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
-class zircon_sdk_ui_window_log : public Kotek::Core::kotek_sdk_ui_element
+class zircon_sdk_ui_window_log : public Kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_sdk_ui_window_log();

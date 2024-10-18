@@ -5,7 +5,7 @@
 
 zircon_command_delete_entity::zircon_command_delete_entity(
 	zircon_command_history* p_history, zircon_scene* p_scene,
-	zircon_factory_game* p_factory, Kotek::ktk::entity_t entity_to_delete) :
+	zircon_factory_game* p_factory, entt::entity entity_to_delete) :
 	m_p_history{p_history},
 	m_p_scene{p_scene}, m_p_factory{p_factory},
 	m_entity_to_delete{entity_to_delete}, m_entity_previous_id{entt::null}
@@ -29,7 +29,7 @@ void zircon_command_delete_entity::Execute(void)
 
 		this->m_entity_previous_id = this->m_entity_to_delete;
 
-		KOTEK_MESSAGE("[history] removed entity: {}", this->m_entity_to_delete);
+		KOTEK_MESSAGE("[history] removed entity: {}", static_cast<kotek::uint32_t>(this->m_entity_to_delete));
 	}
 }
 
@@ -54,7 +54,7 @@ void zircon_command_delete_entity::Undo(void)
 		}
 
 		KOTEK_MESSAGE(
-			"[history][undo] created entity: {}", this->m_entity_to_delete);
+			"[history][undo] created entity: {}", static_cast<kotek::uint32_t>(this->m_entity_to_delete));
 	}
 }
 
@@ -63,15 +63,15 @@ const char* zircon_command_delete_entity::GetName()
 	return "delete entity";
 }
 
-Kotek::ktk::entity_t zircon_command_delete_entity::GetEntityID(
+kotek::uint32_t zircon_command_delete_entity::GetEntityID(
 	void) const noexcept
 {
-	return this->m_entity_to_delete;
+	return static_cast<kotek::uint32_t>(this->m_entity_to_delete);
 }
 
-void zircon_command_delete_entity::SetEntityID(Kotek::ktk::entity_t id) noexcept
+void zircon_command_delete_entity::SetEntityID(kotek::uint32_t id) noexcept
 {
-	this->m_entity_to_delete = id;
+	this->m_entity_to_delete = static_cast<entt::entity>(id);
 }
 
 Kotek::ktk::enum_base_t zircon_command_delete_entity::GetCommandType() noexcept

@@ -27,8 +27,8 @@ public:
 		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
 	GetCommands(void) const noexcept;
 
-	void update_dependent_commands(kotek::entity_t id_what_will_be_deleted,
-		kotek::entity_t id_that_replaces_what_will_be_deleted) noexcept;
+	void update_dependent_commands(entt::entity id_what_will_be_deleted,
+		entt::entity id_that_replaces_what_will_be_deleted) noexcept;
 
 	unsigned char* allocate_memory_for_command(
 		kotek::size_t size_of_class) noexcept;

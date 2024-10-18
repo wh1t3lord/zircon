@@ -27,7 +27,7 @@ public:
 	~zircon_renderer_gles3(void);
 
 	void Initialize(
-		const Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>&
+		const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>&
 			ui_elements);
 
 	void Shutdown(void) override;
@@ -44,7 +44,7 @@ private:
 
 	void Destroy_RenderGraph(void) noexcept;
 	void Create_RenderGraph(
-		const Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>&
+		const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>&
 			imgui_elements) noexcept;
 
 	void Destroy_ImGuiUIElements(void) noexcept;
@@ -53,7 +53,7 @@ private:
 	Kotek::Core::ktkMainManager* m_p_main_manager;
 	Kotek::Render::gl::ktkRenderDevice* m_p_render_device;
 	Kotek::Render::gl::ktkRenderResourceManager* m_p_render_resource_manager;
-	Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*> m_imgui_ui_elements;
+	Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*> m_imgui_ui_elements;
 	Kotek::Render::gl::ktkRenderGraphSimplified m_render_graph_simplified;
 	Kotek::Render::gl::ktkRenderGraphSimplifiedResourceManager
 		m_render_graph_simplified_resource_manager;

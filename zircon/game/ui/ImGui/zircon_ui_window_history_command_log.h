@@ -3,7 +3,7 @@
 class zircon_command_history;
 
 class zircon_ui_window_history_command_log
-	: public Kotek::Core::kotek_sdk_ui_element
+	: public Kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_ui_window_history_command_log(

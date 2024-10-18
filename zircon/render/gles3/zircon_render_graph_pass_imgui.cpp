@@ -3,7 +3,7 @@
 
 zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
 	Kotek::Core::ktkMainManager* p_main_manager,
-	const Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>& ui_elements) :
+	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements) :
 	m_p_main_manager{p_main_manager},
 	m_p_imgui_wrapper{p_main_manager->Get_ImguiWrapper()},
 	m_p_imgui_ui_elements{&ui_elements}

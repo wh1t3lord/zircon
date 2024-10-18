@@ -24,7 +24,7 @@ void zircon_factory_game::Initialize(
 void zircon_factory_game::Shutdown(void) {}
 
 bool zircon_factory_game::HasRequiredComponentsForCreation(
-	Kotek::ktk::entity_t id, entt::id_type component_hash_id) noexcept
+	entt::entity id, entt::id_type component_hash_id) noexcept
 {
 	bool result{true};
 
@@ -46,7 +46,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 				{
 					bool is_enabled = this->m_p_config->is_feature_enabled(
 						eZirconSDKFeatures::
-							kFeature_AddRequiredComponents_Automatically);
+							kSDK_Feature_AddRequiredComponents_Automatically);
 
 					if (is_enabled)
 					{
@@ -54,7 +54,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 							static_cast<Kotek::ktk::enum_base_t>(
 								Kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntity),
-							{{this->m_component_id_to_name.at(hash_id)}, {id}});
+							{{this->m_component_id_to_name.at(hash_id)}, {static_cast<kotek::uint32_t>(id)}});
 						result = is_enabled;
 
 						continue;
@@ -70,7 +70,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 }
 
 bool zircon_factory_game::HasRequiredComponentsForCreation(
-	Kotek::ktk::entity_t id, const Kotek::ktk::cstring& component_name) noexcept
+	entt::entity id, const Kotek::ktk::cstring& component_name) noexcept
 {
 	bool result{};
 

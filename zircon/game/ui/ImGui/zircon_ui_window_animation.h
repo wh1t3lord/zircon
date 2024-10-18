@@ -1,6 +1,6 @@
 #pragma once
 
-class zircon_sdk_ui_window_animation : public Kotek::Core::kotek_sdk_ui_element
+class zircon_sdk_ui_window_animation : public Kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_sdk_ui_window_animation(void);

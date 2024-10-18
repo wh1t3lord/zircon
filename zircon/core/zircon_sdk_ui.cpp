@@ -24,7 +24,7 @@ zircon_manager_sdk_ui::zircon_manager_sdk_ui(
 zircon_manager_sdk_ui::~zircon_manager_sdk_ui(void) {}
 
 void zircon_manager_sdk_ui::AddObjectToSceneList(
-	Kotek::ktk::entity_t id) noexcept
+	entt::entity id) noexcept
 {
 	if (this->m_is_use_sdk_imgui)
 	{
@@ -32,7 +32,7 @@ void zircon_manager_sdk_ui::AddObjectToSceneList(
 }
 
 void zircon_manager_sdk_ui::DeleteObjectFromSceneList(
-	Kotek::ktk::entity_t id) noexcept
+	entt::entity id) noexcept
 {
 #ifdef KOTEK_USE_SDK
 	if (this->m_is_use_sdk)
@@ -47,12 +47,12 @@ void zircon_manager_sdk_ui::DeleteObjectFromSceneList(
 }
 
 void zircon_manager_sdk_ui::imgui_SetSelectedEntity(
-	Kotek::ktk::entity_t* id) noexcept
+	entt::entity* id) noexcept
 {
 	this->m_p_view_selected_entity = id;
 }
 
-Kotek::ktk::entity_t* zircon_manager_sdk_ui::imgui_GetSelectedEntity(
+entt::entity* zircon_manager_sdk_ui::imgui_GetSelectedEntity(
 	void) noexcept
 {
 	return this->m_p_view_selected_entity;

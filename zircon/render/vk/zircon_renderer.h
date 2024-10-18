@@ -37,7 +37,7 @@ namespace zircon
 				~zircon_Renderer(void);
 
 				void Initialize(const Kotek::ktk::vector<
-					Kotek::Core::kotek_sdk_ui_element*>& ui_elements);
+					Kotek::Core::ktkISDKUIElement*>& ui_elements);
 				void Shutdown(void) override;
 
 				void draw() override;
@@ -55,7 +55,7 @@ namespace zircon
 				// TODO: Specify render graph for different API version callings
 				// function
 				void CreateRenderGraph(const Kotek::ktk::vector<
-					Kotek::Core::kotek_sdk_ui_element*>&
+					Kotek::Core::ktkISDKUIElement*>&
 						imgui_elements) noexcept;
 
 			private:
@@ -63,7 +63,7 @@ namespace zircon
 				Kotek::Render::vk::ktkRenderResourceManager*
 					m_p_resource_manager;
 				Kotek::Core::ktkMainManager* m_p_main_manager;
-				Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>
+				Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>
 					m_imgui_elements;
 				Kotek::Render::vk::ktkRenderGraph m_render_graph;
 				Kotek::Render::vk::ktkRenderGraphResourceManager

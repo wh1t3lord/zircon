@@ -819,7 +819,7 @@ zircon_manager_sdk_ui* zircon_manager_game::GetSDKUI(void) const noexcept
 	return this->m_p_sdk_ui_manager;
 }
 
-Kotek::ktk::entity_t zircon_manager_game::Initialize_Actor(void) noexcept
+entt::entity zircon_manager_game::Initialize_Actor(void) noexcept
 {
 	auto actor_id = this->m_p_factory->CreateEntity();
 
@@ -839,7 +839,7 @@ Kotek::ktk::entity_t zircon_manager_game::Initialize_Actor(void) noexcept
 void zircon_manager_game::Initialize_Renderer(void) noexcept
 {
 	// TODO: think about ImGui preprocessor...
-	Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*> elements;
+	Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*> elements;
 	elements.push_back(new zircon_sdk_ui_object_list());
 	elements.push_back(new zircon_sdk_ui_top_bar());
 	elements.push_back(new zircon_sdk_ui_window_prefab());
@@ -859,9 +859,9 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 	// TODO: add initialization with appropriate gl version of we have
 	// the 4.6 for example we have to initialize with according version
 	if (p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_OpenGL_Latest) ||
+				kEngine_Feature_Renderer_OpenGL_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_OpenGL_SpecifiedByUser))
+				kEngine_Feature_Renderer_OpenGL_SpecifiedByUser))
 	{
 		switch (p_engine_config->GetRendererVersionEnum())
 		{
@@ -872,9 +872,9 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 Kotek::Core::eEngineFeatureRenderer::
-					 kEngine_Render_Renderer_Vulkan_Latest) ||
+					 kEngine_Feature_Renderer_Vulkan_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_Vulkan_SpecifiedByUser))
+				kEngine_Feature_Renderer_Vulkan_SpecifiedByUser))
 	{
 #ifdef KOTEK_USE_RENDER_VULKAN
 		this->m_p_renderer_vk =
@@ -886,17 +886,17 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 Kotek::Core::eEngineFeatureRenderer::
-					 kEngine_Render_Renderer_DirectX_Latest) ||
+					 kEngine_Feature_Renderer_DirectX_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_DirectX_SpecifiedByUser))
+				kEngine_Feature_Renderer_DirectX_SpecifiedByUser))
 	{
 		KOTEK_ASSERT(false, "not supported");
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 Kotek::Core::eEngineFeatureRenderer::
-					 kEngine_Render_Renderer_OpenGLES_Latest) ||
+					 kEngine_Feature_Renderer_OpenGLES_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_OpenGLES_SpecifiedByUser))
+				kEngine_Feature_Renderer_OpenGLES_SpecifiedByUser))
 	{
 		switch (p_engine_config->GetRendererVersionEnum())
 		{
@@ -915,7 +915,7 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 		}
 	}
 	else if (p_engine_config->IsFeatureEnabled(Kotek::Core::
-					 eEngineFeatureRenderer::kEngine_Render_Renderer_Software))
+					 eEngineFeatureRenderer::kEngine_Feature_Renderer_Software))
 	{
 		KOTEK_ASSERT(false, "not implemented yet");
 	}
@@ -936,9 +936,9 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 	auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
 
 	if (p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_OpenGL_Latest) ||
+				kEngine_Feature_Renderer_OpenGL_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_OpenGL_SpecifiedByUser))
+				kEngine_Feature_Renderer_OpenGL_SpecifiedByUser))
 	{
 		switch (p_engine_config->GetRendererVersionEnum())
 		{
@@ -949,9 +949,9 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 Kotek::Core::eEngineFeatureRenderer::
-					 kEngine_Render_Renderer_Vulkan_Latest) ||
+					 kEngine_Feature_Renderer_Vulkan_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_Vulkan_SpecifiedByUser))
+				kEngine_Feature_Renderer_Vulkan_SpecifiedByUser))
 	{
 #ifdef KOTEK_USE_RENDER_VULKAN
 		KOTEK_ASSERT(this->m_p_renderer_vk, "must be valid");
@@ -962,17 +962,17 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 Kotek::Core::eEngineFeatureRenderer::
-					 kEngine_Render_Renderer_DirectX_Latest) ||
+					 kEngine_Feature_Renderer_DirectX_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_DirectX_SpecifiedByUser))
+				kEngine_Feature_Renderer_DirectX_SpecifiedByUser))
 	{
 		KOTEK_ASSERT(false, "not implemented yet");
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 Kotek::Core::eEngineFeatureRenderer::
-					 kEngine_Render_Renderer_OpenGLES_Latest) ||
+					 kEngine_Feature_Renderer_OpenGLES_Latest) ||
 		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
-				kEngine_Render_Renderer_OpenGLES_SpecifiedByUser))
+				kEngine_Feature_Renderer_OpenGLES_SpecifiedByUser))
 	{
 		KOTEK_ASSERT(this->m_p_renderer_gles3, "must be valid");
 
@@ -980,7 +980,7 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 		this->m_p_renderer_gles3 = nullptr;
 	}
 	else if (p_engine_config->IsFeatureEnabled(Kotek::Core::
-					 eEngineFeatureRenderer::kEngine_Render_Renderer_Software))
+					 eEngineFeatureRenderer::kEngine_Feature_Renderer_Software))
 	{
 		KOTEK_ASSERT(false, "not implemented yet");
 	}
@@ -1169,7 +1169,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 				auto bounding_type =
 					static_cast<Kotek::Core::eRenderBoundingPrimitiveType>(
 						std::get<Kotek::ktk::enum_base_t>(args[1]));
-				auto entity_id = std::get<Kotek::ktk::entity_t>(args[2]);
+				auto entity_id = static_cast<entt::entity>(std::get<kotek::uint32_t>(args[2]));
 
 				auto status_geometry =
 					p_factory->HasComponent<zircon_component_geometry>(
@@ -1185,7 +1185,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 
 				switch (bounding_type)
 				{
-				case kn_kotek::kn_core::eRenderBoundingPrimitiveType::
+				case kotek::core::eRenderBoundingPrimitiveType::
 					kBoundingSphere:
 				{
 					auto status =
@@ -1196,12 +1196,12 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 					if (!status)
 					{
 						this->GetConsole()->Execute(
-							static_cast<kn_kotek::kn_ktk::enum_base_t>(
-								kn_kotek::kn_core::eConsoleCommandIndex::
+							static_cast<kotek::enum_base_t>(
+								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntity),
 							{zircon_component_bounding_sphere::
 									GetComponentName(),
-								entity_id});
+								static_cast<kotek::uint32_t>(entity_id)});
 					}
 
 					auto& component_bounding_sphere =
@@ -1467,8 +1467,8 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				KOTEK_ASSERT(p_history_manager,
 					"history manager in lambda is nullptr! can't be");
 
-				Kotek::ktk::entity_t id =
-					std::get<Kotek::ktk::entity_t>(args[0]);
+				entt::entity id =
+					static_cast<entt::entity>(std::get<kotek::uint32_t>(args[0]));
 
 				auto* p_placement_new_memory =
 					p_history_manager->allocate_memory_for_command(
@@ -1522,8 +1522,8 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				const auto& component_name =
 					std::get<Kotek::ktk::cstring>(args[0]);
 
-				Kotek::ktk::entity_t id =
-					std::get<Kotek::ktk::entity_t>(args[1]);
+				entt::entity id =
+					static_cast<entt::entity>(std::get<kotek::uint32_t>(args[1]));
 
 				if (this->get_factory_game()->GetComponentByName(
 						id, component_name) == nullptr)
@@ -1535,7 +1535,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 						KOTEK_MESSAGE("Can't create component [{}] for "
 									  "entity [{}] because it doesn't "
 									  "have required components!",
-							component_name, id);
+							component_name, static_cast<kotek::uint32_t>(id));
 
 						return true;
 					}
@@ -1573,8 +1573,8 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				const auto& component_name =
 					std::get<Kotek::ktk::cstring>(args[0]);
 
-				Kotek::ktk::entity_t id =
-					std::get<Kotek::ktk::entity_t>(args[1]);
+				entt::entity id =
+					static_cast<entt::entity>(std::get<kotek::uint32_t>(args[1]));
 
 				if (this->get_factory_game()->GetComponentByName(
 						id, component_name))

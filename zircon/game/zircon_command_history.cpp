@@ -774,16 +774,16 @@ zircon_command_history::GetCommands(void) const noexcept
 }
 
 void zircon_command_history::update_dependent_commands(
-	kotek::entity_t id_what_will_be_deleted,
-	kotek::entity_t id_that_replaces_what_will_be_deleted) noexcept
+	entt::entity id_what_will_be_deleted,
+	entt::entity id_that_replaces_what_will_be_deleted) noexcept
 {
 	for (auto* p_command : this->m_commands)
 	{
 		if (p_command)
 		{
-			if (p_command->GetEntityID() == id_what_will_be_deleted)
+			if (p_command->GetEntityID() == static_cast<kotek::uint32_t>(id_what_will_be_deleted))
 			{
-				p_command->SetEntityID(id_that_replaces_what_will_be_deleted);
+				p_command->SetEntityID(static_cast<kotek::uint32_t>(id_that_replaces_what_will_be_deleted));
 			}
 		}
 	}

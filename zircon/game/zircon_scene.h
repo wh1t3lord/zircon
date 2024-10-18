@@ -16,24 +16,24 @@ public:
 
 	void Shutdown(void) noexcept;
 
-	Kotek::ktk::entity_t CreateEntity(void);
+	entt::entity CreateEntity(void);
 
-	bool RemoveEntity(Kotek::ktk::entity_t id);
+	bool RemoveEntity(entt::entity id);
 
-	const Kotek::ktk::ustring& GetSceneName(void) const noexcept;
+	const kotek::ktk::ustring& GetSceneName(void) const noexcept;
 
-	void SetSceneName(const Kotek::ktk::ustring& scene_name) noexcept;
+	void SetSceneName(const kotek::ktk::ustring& scene_name) noexcept;
 
-	const Kotek::ktk::unordered_set<Kotek::ktk::entity_t>& GetEntities(
+	const kotek::view_entities_t& GetEntities(
 		void) const noexcept;
 
-	Kotek::ktk::entity_t GetActor(void) const noexcept;
-	void SetActor(Kotek::ktk::entity_t actor_id) noexcept;
+	entt::entity GetActor(void) const noexcept;
+	void SetActor(entt::entity actor_id) noexcept;
 
 private:
-	Kotek::ktk::entity_t m_actor_entity_id;
+	entt::entity m_actor_entity_id;
 	zircon_factory_game* m_p_game_factory;
 	zircon_manager_game* m_p_game_manager;
-	Kotek::ktk::unordered_set<Kotek::ktk::entity_t> m_entities;
-	Kotek::ktk::ustring m_scene_name;
+	// TODO: replace with static container pls
+	kotek::ktk::ustring m_scene_name;
 };

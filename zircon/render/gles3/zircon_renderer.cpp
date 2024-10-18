@@ -23,7 +23,7 @@ zircon_renderer_gles3::zircon_renderer_gles3(
 zircon_renderer_gles3::~zircon_renderer_gles3(void) {}
 
 void zircon_renderer_gles3::Initialize(
-	const Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>& ui_elements)
+	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements)
 {
 	this->m_imgui_ui_elements = ui_elements;
 
@@ -80,7 +80,7 @@ void zircon_renderer_gles3::Destroy_RenderGraph(void) noexcept
 }
 
 void zircon_renderer_gles3::Create_RenderGraph(
-	const Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>&
+	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>&
 		imgui_elements) noexcept
 {
 	KOTEK_ASSERT(

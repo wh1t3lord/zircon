@@ -31,36 +31,36 @@ void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
 						// required components
 						bool status = p_config->is_feature_enabled(
 							eZirconSDKFeatures::
-								kFeature_AddRequiredComponents_Automatically);
+								kSDK_Feature_AddRequiredComponents_Automatically);
 
 						if (p_wrapper_imgui->Checkbox(
 								translate_zircon_sdk_features(
 									eZirconSDKFeatures::
-										kFeature_AddRequiredComponents_Automatically)
+										kSDK_Feature_AddRequiredComponents_Automatically)
 									.c_str(),
 								&status))
 						{
 							p_config->set_feature(
 								eZirconSDKFeatures::
-									kFeature_AddRequiredComponents_Automatically,
+									kSDK_Feature_AddRequiredComponents_Automatically,
 								status);
 						}
 
 						// quality for sphere bounding box generation
 						status =
 							p_config->is_feature_enabled(eZirconSDKFeatures::
-									kFeature_SphereBoundingBox_Quality);
+									kSDK_Feature_SphereBoundingBox_Quality);
 
 						if (p_wrapper_imgui->Checkbox(
 								translate_zircon_sdk_features(
 									eZirconSDKFeatures::
-										kFeature_SphereBoundingBox_Quality)
+										kSDK_Feature_SphereBoundingBox_Quality)
 									.c_str(),
 								&status))
 						{
 							p_config->set_feature(
 								eZirconSDKFeatures::
-									kFeature_SphereBoundingBox_Quality,
+									kSDK_Feature_SphereBoundingBox_Quality,
 								status);
 						}
 
@@ -70,11 +70,11 @@ void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
 
 							if (p_config->is_feature_enabled(
 									eZirconSDKFeatures::
-										kFeature_SphereBoundingBox_Quality))
+										kSDK_Feature_SphereBoundingBox_Quality))
 							{
 								quality = p_config->get_feature<int>(
 									eZirconSDKFeatures::
-										kFeature_SphereBoundingBox_Quality);
+										kSDK_Feature_SphereBoundingBox_Quality);
 							}
 
 							if (quality == 0)
@@ -87,7 +87,7 @@ void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
 							{
 								p_config->set_feature(
 									eZirconSDKFeatures::
-										kFeature_SphereBoundingBox_Quality,
+										kSDK_Feature_SphereBoundingBox_Quality,
 									quality);
 							}
 						}

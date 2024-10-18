@@ -14,8 +14,8 @@ public:
 	void Undo() override;
 	const char* GetName() override;
 
-	Kotek::ktk::entity_t GetEntityID(void) const noexcept override;
-	void SetEntityID(Kotek::ktk::entity_t id) noexcept override;
+	kotek::uint32_t GetEntityID(void) const noexcept override;
+	void SetEntityID(kotek::uint32_t id) noexcept override;
 
 	Kotek::ktk::enum_base_t GetCommandType() noexcept override;
 
@@ -25,8 +25,8 @@ public:
 	void Deserialize(const Kotek::ktk::json::object& json_data) noexcept;
 
 private:
-	Kotek::ktk::entity_t m_created_entity;
-	Kotek::ktk::entity_t m_entity_previous_id;
+	entt::entity m_created_entity;
+	entt::entity m_entity_previous_id;
 	zircon_command_history* m_p_history;
 	zircon_scene* m_p_scene;
 	// json object to string

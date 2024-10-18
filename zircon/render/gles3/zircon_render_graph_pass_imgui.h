@@ -19,7 +19,7 @@ class zircon_render_graph_pass_imgui_gles3
 public:
 	zircon_render_graph_pass_imgui_gles3(
 		Kotek::Core::ktkMainManager* p_main_manager,
-		const Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>& elements);
+		const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& elements);
 	~zircon_render_graph_pass_imgui_gles3(void);
 
 	void OnSetupInput(
@@ -41,6 +41,6 @@ public:
 private:
 	Kotek::Core::ktkMainManager* m_p_main_manager;
 	Kotek::Core::ktkIImguiWrapper* m_p_imgui_wrapper;
-	const Kotek::ktk::vector<Kotek::Core::kotek_sdk_ui_element*>*
+	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>*
 		m_p_imgui_ui_elements;
 };

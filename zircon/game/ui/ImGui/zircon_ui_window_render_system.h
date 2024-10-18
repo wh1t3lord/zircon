@@ -1,6 +1,6 @@
 #pragma once
 
-class zircon_ui_window_render_system : public Kotek::Core::kotek_sdk_ui_element
+class zircon_ui_window_render_system : public Kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_ui_window_render_system();

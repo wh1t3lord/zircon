@@ -2,7 +2,7 @@
 #include "../ecs/components/zircon_factory.h"
 
 zircon_command_add_component_to_entity::zircon_command_add_component_to_entity(
-	zircon_factory_game* p_factory, Kotek::ktk::entity_t id,
+	zircon_factory_game* p_factory, entt::entity id,
 	const char* component_string) :
 	m_is_serialized{},
 	m_p_factory{p_factory}, m_id{id}, m_component_name{component_string}
@@ -35,7 +35,7 @@ void zircon_command_add_component_to_entity::Execute(void)
 			}
 
 			KOTEK_MESSAGE("[history] create component[{}] for entity[{}]",
-				this->m_component_name, this->m_id);
+				this->m_component_name, static_cast<kotek::uint32_t>(this->m_id));
 		}
 	}
 }
@@ -57,7 +57,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 				this->m_id, this->m_component_name);
 
 			KOTEK_MESSAGE("[history] removed component[{}] from entity[{}]",
-				this->m_component_name, this->m_id);
+				this->m_component_name, static_cast<kotek::uint32_t>(this->m_id));
 		}
 	}
 }
@@ -66,16 +66,16 @@ const char* zircon_command_add_component_to_entity::GetName()
 	return "add component to entity";
 }
 
-Kotek::ktk::entity_t zircon_command_add_component_to_entity::GetEntityID(
+kotek::uint32_t zircon_command_add_component_to_entity::GetEntityID(
 	void) const noexcept
 {
-	return this->m_id;
+	return static_cast<kotek::uint32_t>(this->m_id);
 }
 
 void zircon_command_add_component_to_entity::SetEntityID(
-	Kotek::ktk::entity_t id) noexcept
+	kotek::uint32_t id) noexcept
 {
-	this->m_id = id;
+	this->m_id = static_cast<entt::entity>(id);
 }
 
 Kotek::ktk::enum_base_t

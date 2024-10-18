@@ -78,7 +78,8 @@ void zircon_sdk_ui_component_inspector::Draw(
 						static_cast<Kotek::ktk::enum_base_t>(
 							Kotek::Core::eConsoleCommandIndex::
 								kConsoleCommand_SDK_CreateComponentForEntity),
-						{{this->m_combobox_current_item}, {real_entity_id}});
+						{{this->m_combobox_current_item},
+							{static_cast<kotek::uint32_t>(real_entity_id)}});
 				}
 
 				if (p_wrapper_imgui->Button("Delete component from list box"))
@@ -90,12 +91,12 @@ void zircon_sdk_ui_component_inspector::Draw(
 								Kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_DeleteComponentFromEntity),
 							{{this->m_list_selected_item_allocator},
-								{real_entity_id}});
+								{static_cast<kotek::uint32_t>(real_entity_id)}});
 					}
 				}
 
 				p_wrapper_imgui->Text(Kotek::ktk::format(
-					"Selected entity: {}", (*selected_entity))
+					"Selected entity: {}", static_cast<kotek::uint32_t>(*selected_entity))
 										  .c_str());
 
 				if (p_wrapper_imgui->BeginListBox("list"))
@@ -164,7 +165,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 
 bool zircon_sdk_ui_component_inspector::HasComponentByName(
 	const Kotek::ktk::cstring& component_name_from_preprocessor,
-	Kotek::ktk::entity_t id) noexcept
+	entt::entity id) noexcept
 {
 	bool result{};
 
@@ -176,7 +177,7 @@ bool zircon_sdk_ui_component_inspector::HasComponentByName(
 
 void zircon_sdk_ui_component_inspector::CreateComponentByName(
 	const Kotek::ktk::cstring& component_name_from_preprocessor,
-	Kotek::ktk::entity_t id) noexcept
+	entt::entity id) noexcept
 {
 	if (component_name_from_preprocessor ==
 		zircon_component_actor::GetComponentName())
@@ -250,7 +251,7 @@ void zircon_sdk_ui_component_inspector::CreateComponentByName(
 
 void zircon_sdk_ui_component_inspector::RemoveComponentByName(
 	const Kotek::ktk::cstring& component_name_from_preprocessor,
-	Kotek::ktk::entity_t id) noexcept
+	entt::entity id) noexcept
 {
 	if (component_name_from_preprocessor ==
 		zircon_component_actor::GetComponentName())

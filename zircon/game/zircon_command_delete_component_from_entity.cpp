@@ -4,7 +4,7 @@
 // TODO: remove all cstring to static_cstring containers!!!
 zircon_command_delete_component_from_entity::
 	zircon_command_delete_component_from_entity(zircon_factory_game* p_factory,
-		Kotek::ktk::entity_t id, Kotek::ktk::cstring component_string) :
+		entt::entity id, Kotek::ktk::cstring component_string) :
 	m_id{id},
 	m_p_factory{p_factory}
 {
@@ -44,7 +44,7 @@ void zircon_command_delete_component_from_entity::Execute(void)
 
 				KOTEK_MESSAGE("[history] removed component by name: {} "
 							  "in entity {}",
-					this->m_component_name.c_str(), this->m_id);
+					this->m_component_name.c_str(), static_cast<kotek::uint32_t>(this->m_id));
 			}
 		}
 	}
@@ -67,7 +67,7 @@ void zircon_command_delete_component_from_entity::Undo(void)
 
 				KOTEK_MESSAGE("[history][undo] restored component by "
 							  "name: {} for entity {}",
-					this->m_component_name.c_str(), this->m_id);
+					this->m_component_name.c_str(), static_cast<kotek::uint32_t>(this->m_id));
 			}
 		}
 	}
@@ -77,16 +77,16 @@ const char* zircon_command_delete_component_from_entity::GetName()
 	return "delete component from entity";
 }
 
-Kotek::ktk::entity_t zircon_command_delete_component_from_entity::GetEntityID(
+kotek::uint32_t zircon_command_delete_component_from_entity::GetEntityID(
 	void) const noexcept
 {
-	return this->m_id;
+	return static_cast<kotek::uint32_t>(this->m_id);
 }
 
 void zircon_command_delete_component_from_entity::SetEntityID(
-	Kotek::ktk::entity_t id) noexcept
+	kotek::uint32_t id) noexcept
 {
-	this->m_id = id;
+	this->m_id = static_cast<entt::entity>(id);
 }
 
 Kotek::ktk::enum_base_t

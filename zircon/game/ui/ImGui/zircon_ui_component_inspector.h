@@ -4,7 +4,7 @@ class zircon_factory_game;
 class zircon_manager_sdk_ui;
 
 class zircon_sdk_ui_component_inspector
-	: public Kotek::Core::kotek_sdk_ui_element
+	: public Kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_sdk_ui_component_inspector(
@@ -18,13 +18,13 @@ public:
 private:
 	bool HasComponentByName(
 		const Kotek::ktk::cstring& component_name_from_preprocessor,
-		Kotek::ktk::entity_t id) noexcept;
+		entt::entity id) noexcept;
 	void CreateComponentByName(
 		const Kotek::ktk::cstring& component_name_from_preprocessor,
-		Kotek::ktk::entity_t id) noexcept;
+		entt::entity id) noexcept;
 	void RemoveComponentByName(
 		const Kotek::ktk::cstring& component_name_from_preprocessor,
-		Kotek::ktk::entity_t id) noexcept;
+		entt::entity id) noexcept;
 
 private:
 	zircon_manager_sdk_ui* m_p_manager_sdk_ui;

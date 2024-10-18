@@ -128,7 +128,7 @@ void zircon_component_geometry::DrawImGui(
 													kWithoutCache,
 											Kotek::Core::eResourceLoadingType::
 												kModelStatic_Triangle,
-											"", *entity_id)});
+											"", static_cast<kotek::uint32_t>(*entity_id))});
 							}
 						}
 

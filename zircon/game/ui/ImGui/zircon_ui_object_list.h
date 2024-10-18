@@ -1,6 +1,6 @@
 #pragma once
 
-class zircon_sdk_ui_object_list : public Kotek::Core::kotek_sdk_ui_element
+class zircon_sdk_ui_object_list : public kotek::core::ktkISDKUIElement
 {
 public:
 	zircon_sdk_ui_object_list(void);
@@ -8,8 +8,8 @@ public:
 
 	void initialize(void) override;
 	void shutdown(void) override;
-	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
+	void Draw(kotek::core::ktkMainManager* main_manager) override;
 
 private:
-	Kotek::ktk::entity_t m_selected_entity_id;
+	entt::entity m_selected_entity_id;
 };

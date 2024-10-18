@@ -1,6 +1,6 @@
 #pragma once
 
-class zircon_sdk_ui_window_sound : public Kotek::Core::kotek_sdk_ui_element
+class zircon_sdk_ui_window_sound : public Kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_sdk_ui_window_sound(void);

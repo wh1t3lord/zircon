@@ -128,7 +128,7 @@ Kotek::ktk::any zircon_resource_manager::Load(
 							static_cast<Kotek::ktk::enum_base_t>(
 								Kotek::Core::eRenderBoundingPrimitiveType::
 									kBoundingSphere),
-							static_cast<Kotek::ktk::entity_t>(
+							static_cast<kotek::uint32_t>(
 								request.Get_EntityID())});
 				}
 			}

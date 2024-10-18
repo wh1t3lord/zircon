@@ -1,8 +1,8 @@
 #include "zircon_config.h"
 
 zircon_config::zircon_config(void) :
-	m_features_game{eZirconGameFeatures::kFeature_Unknown},
-	m_features_sdk{eZirconSDKFeatures::kFeature_Unknown}
+	m_features_game{eZirconGameFeatures::kGame_Feature_Unknown},
+	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_Unknown}
 {
 }
 
@@ -13,11 +13,11 @@ void zircon_config::set_feature(
 {
 	if (status)
 	{
-		this->m_features_sdk |= feature;
+		KOTEK_SET_FLAG(this->m_features_sdk,feature);
 	}
 	else
 	{
-		this->m_features_sdk &= ~feature;
+		KOTEK_REMOVE_FLAG(this->m_features_sdk,feature);
 	}
 }
 
@@ -35,11 +35,11 @@ void zircon_config::set_feature(
 {
 	if (status)
 	{
-		this->m_features_game |= feature;
+		KOTEK_SET_FLAG(this->m_features_game,feature);
 	}
 	else
 	{
-		this->m_features_game &= ~feature;
+		KOTEK_REMOVE_FLAG(this->m_features_game,feature);
 	}
 }
 
@@ -50,7 +50,7 @@ bool zircon_config::is_feature_enabled(eZirconSDKFeatures feature) const
 
 bool zircon_config::is_feature_enabled(eZirconGameFeatures feature) const
 {
-	return (this->m_features_game & feature) == feature;
+	return KOTEK_CHECK_FLAG(this->m_features_game,feature);
 }
 
 void zircon_config::serialize(Kotek::Core::ktkIFileSystem* p_filesystem,
@@ -79,15 +79,15 @@ void zircon_config::serialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 
 				config.Write(
 					translate_zircon_sdk_features(eZirconSDKFeatures::
-							kFeature_AddRequiredComponents_Automatically),
+							kSDK_Feature_AddRequiredComponents_Automatically),
 					this->is_feature_enabled(eZirconSDKFeatures::
-							kFeature_AddRequiredComponents_Automatically));
+							kSDK_Feature_AddRequiredComponents_Automatically));
 
 				config.Write(
 					translate_zircon_sdk_features(
-						eZirconSDKFeatures::kFeature_SphereBoundingBox_Quality),
+						eZirconSDKFeatures::kSDK_Feature_SphereBoundingBox_Quality),
 					this->get_feature<int>(eZirconSDKFeatures::
-							kFeature_SphereBoundingBox_Quality));
+							kSDK_Feature_SphereBoundingBox_Quality));
 
 				p_saver->Save(path_to_file, &config);
 			}
@@ -131,19 +131,19 @@ void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 
 					bool status = file.Get<bool>(
 						translate_zircon_sdk_features(eZirconSDKFeatures::
-								kFeature_AddRequiredComponents_Automatically));
+								kSDK_Feature_AddRequiredComponents_Automatically));
 
 					this->set_feature(
 						eZirconSDKFeatures::
-							kFeature_AddRequiredComponents_Automatically,
+							kSDK_Feature_AddRequiredComponents_Automatically,
 						status);
 
 					int quality = file.Get<int>(
 						translate_zircon_sdk_features(eZirconSDKFeatures::
-								kFeature_SphereBoundingBox_Quality));
+								kSDK_Feature_SphereBoundingBox_Quality));
 
 					this->set_feature(
-						eZirconSDKFeatures::kFeature_SphereBoundingBox_Quality,
+						eZirconSDKFeatures::kSDK_Feature_SphereBoundingBox_Quality,
 						quality);
 				}
 			}
@@ -154,25 +154,21 @@ void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 void zircon_config::initialize_default() noexcept
 {
 	this->set_feature(
-		eZirconSDKFeatures::kFeature_AddRequiredComponents_Automatically, true);
+		eZirconSDKFeatures::kSDK_Feature_AddRequiredComponents_Automatically, true);
 }
 
-Kotek::ktk::cstring translate_zircon_sdk_features(eZirconSDKFeatures features)
+kotek::cstring_t translate_zircon_sdk_features(eZirconSDKFeatures features)
 {
-	if ((features &
-			eZirconSDKFeatures::kFeature_AddRequiredComponents_Automatically) ==
-		eZirconSDKFeatures::kFeature_AddRequiredComponents_Automatically)
+	if (KOTEK_CHECK_FLAG(features,eZirconSDKFeatures::kSDK_Feature_AddRequiredComponents_Automatically))
 	{
 		return "add_required_components_automatically";
 	}
-	else if ((features &
-				 eZirconSDKFeatures::kFeature_SphereBoundingBox_Quality) ==
-		eZirconSDKFeatures::kFeature_SphereBoundingBox_Quality)
+	else if (KOTEK_CHECK_FLAG(features ,
+				 eZirconSDKFeatures::kSDK_Feature_SphereBoundingBox_Quality))
 	{
 		return "sphere_bounding_box_quality";
 	}
-	else if ((features & eZirconSDKFeatures::kFeature_Unknown) ==
-		eZirconSDKFeatures::kFeature_Unknown)
+	else if (KOTEK_CHECK_FLAG(features,eZirconSDKFeatures::kSDK_Feature_Unknown))
 	{
 		return "unknown";
 	}

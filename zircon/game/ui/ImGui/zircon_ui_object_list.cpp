@@ -16,7 +16,7 @@ void zircon_sdk_ui_object_list::initialize(void) {}
 void zircon_sdk_ui_object_list::shutdown(void) {}
 
 void zircon_sdk_ui_object_list::Draw(
-	Kotek::Core::ktkMainManager* p_main_manager)
+	kotek::core::ktkMainManager* p_main_manager)
 {
 	auto* p_game_manager =
 		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
@@ -26,7 +26,7 @@ void zircon_sdk_ui_object_list::Draw(
 	auto* p_current_scene =
 		p_game_manager->GetSceneManager()->GetCurrentScene();
 
-	Kotek::Core::ktkIImguiWrapper* p_wrapper_imgui =
+	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
 
 	if (p_wrapper_imgui)
@@ -38,8 +38,8 @@ void zircon_sdk_ui_object_list::Draw(
 			if (p_wrapper_imgui->Button("Add"))
 			{
 				p_game_manager->GetConsole()->Execute(
-					static_cast<Kotek::ktk::enum_base_t>(
-						Kotek::Core::eConsoleCommandIndex::
+					static_cast<kotek::ktk::enum_base_t>(
+						kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_CreateEntity));
 			}
 
@@ -48,17 +48,17 @@ void zircon_sdk_ui_object_list::Draw(
 			if (p_wrapper_imgui->Button("Delete"))
 			{
 				p_game_manager->GetConsole()->Execute(
-					static_cast<Kotek::ktk::enum_base_t>(
-						Kotek::Core::eConsoleCommandIndex::
+					static_cast<kotek::ktk::enum_base_t>(
+						kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_DeleteEntity),
-					{{this->m_selected_entity_id}});
+					{{static_cast<kotek::uint32_t>(this->m_selected_entity_id)}});
 			}
 
 			if (p_wrapper_imgui->BeginTable("", 1))
 			{
 				char table_column_name[32]{};
 				kotek::ktk::sprintf(table_column_name,
-					sizeof(table_column_name), "Entity ID [%d]", ids.size());
+					sizeof(table_column_name), "Entity ID [%d]", ids.size_hint());
 
 				p_wrapper_imgui->TableSetupColumn(
 					table_column_name, ImGuiTableColumnFlags_WidthStretch);
@@ -81,11 +81,11 @@ void zircon_sdk_ui_object_list::Draw(
 									zircon_component_sdk_scene_name>(id);
 
 						converted_id = Kotek::ktk::format(
-							"{} [{}]", id, component.GetName());
+							"{} [{}]", static_cast<kotek::uint32_t>(id), component.GetName());
 					}
 					else
 					{
-						converted_id = Kotek::ktk::format("{}", id);
+						converted_id = Kotek::ktk::format("{} {}",  static_cast<kotek::uint32_t>(id));
 					}
 
 					if (p_wrapper_imgui->Selectable(converted_id.c_str(),

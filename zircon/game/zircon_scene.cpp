@@ -26,59 +26,45 @@ void zircon_scene::Shutdown(void) noexcept
 {
 	// TODO: think about render resource manager and handling
 	// model,texture deallocation
-	for (auto id : this->m_entities)
-	{
-		this->m_p_game_factory->RemoveEntity(id);
-	}
-
-	this->m_entities.clear();
 }
 
-const Kotek::ktk::ustring& zircon_scene::GetSceneName(void) const noexcept
+const kotek::ktk::ustring& zircon_scene::GetSceneName(void) const noexcept
 {
 	return this->m_scene_name;
 }
 
-void zircon_scene::SetSceneName(const Kotek::ktk::ustring& scene_name) noexcept
+void zircon_scene::SetSceneName(const kotek::ktk::ustring& scene_name) noexcept
 {
 	this->m_scene_name = scene_name;
 }
 
-const Kotek::ktk::unordered_set<Kotek::ktk::entity_t>&
-zircon_scene::GetEntities(void) const noexcept
+const kotek::view_entities_t& zircon_scene::GetEntities(void) const noexcept
 {
-	return this->m_entities;
+	return this->m_p_game_factory->GetAllEntities();
 }
 
-Kotek::ktk::entity_t zircon_scene::GetActor(void) const noexcept
+entt::entity zircon_scene::GetActor(void) const noexcept
 {
 	return this->m_actor_entity_id;
 }
 
-void zircon_scene::SetActor(Kotek::ktk::entity_t actor_id) noexcept
+void zircon_scene::SetActor(entt::entity actor_id) noexcept
 {
 	this->m_actor_entity_id = actor_id;
 }
 
-Kotek::ktk::entity_t zircon_scene::CreateEntity(void)
+entt::entity zircon_scene::CreateEntity(void)
 {
 	auto result = this->m_p_game_factory->CreateEntity();
-
-	this->m_entities.insert(result);
 
 	this->m_p_game_manager->GetSDKUI()->AddObjectToSceneList(result);
 
 	return result;
 }
 
-bool zircon_scene::RemoveEntity(Kotek::ktk::entity_t id)
+bool zircon_scene::RemoveEntity(entt::entity id)
 {
 	auto result = this->m_p_game_factory->RemoveEntity(id);
-
-	auto iter = this->m_entities.find(id);
-	if (iter != this->m_entities.end())
-		this->m_entities.erase(iter);
-
 	this->m_p_game_manager->GetSDKUI()->DeleteObjectFromSceneList(id);
 
 	return result;

@@ -122,7 +122,7 @@ void zircon_render_graph_pass_model_static_gles3::render_sdk_camera(
 
 		const auto& component_camera =
 			this->m_p_factory->GetComponent<zircon_component_sdk_camera>(
-				static_cast<kn_kotek::kn_ktk::entity_t>(id));
+				id);
 
 		glBindBuffer(
 			buffer_camera.Get_BufferObjectType(), buffer_camera.Get_Buffer());

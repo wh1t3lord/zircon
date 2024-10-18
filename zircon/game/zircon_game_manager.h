@@ -23,8 +23,8 @@ namespace Kotek
 	} // namespace Core
 } // namespace Kotek
 
-enum class eZirconGameFeatures;
-enum class eZirconSDKFeatures;
+enum eZirconGameFeatures;
+enum eZirconSDKFeatures;
 
 class zircon_command_history;
 class zircon_renderer_gles3;
@@ -87,7 +87,7 @@ public:
 	zircon_config* get_config() const noexcept;
 
 private:
-	Kotek::ktk::entity_t Initialize_Actor(void) noexcept;
+	entt::entity Initialize_Actor(void) noexcept;
 
 	void Initialize_Renderer(void) noexcept;
 	void Destroy_Renderer(void) noexcept;

@@ -32,7 +32,7 @@ void zircon_command_create_entity::Execute()
 			}
 		}
 
-		KOTEK_MESSAGE("[history]: created entity: {}", this->m_created_entity);
+		KOTEK_MESSAGE("[history]: created entity: {}", static_cast<kotek::uint32_t>(this->m_created_entity));
 	}
 }
 
@@ -41,7 +41,7 @@ void zircon_command_create_entity::Undo()
 	if (this->m_p_scene)
 	{
 		KOTEK_MESSAGE(
-			"[history][undo]: removed entity {}", this->m_created_entity);
+			"[history][undo]: removed entity {}", static_cast<kotek::uint32_t>(this->m_created_entity));
 
 		this->m_entity_previous_id = this->m_created_entity;
 
@@ -52,14 +52,14 @@ const char* zircon_command_create_entity::GetName()
 {
 	return "create entity";
 }
-Kotek::ktk::entity_t zircon_command_create_entity::GetEntityID(
+kotek::uint32_t zircon_command_create_entity::GetEntityID(
 	void) const noexcept
 {
-	return this->m_created_entity;
+	return static_cast<kotek::uint32_t>(this->m_created_entity);
 }
-void zircon_command_create_entity::SetEntityID(Kotek::ktk::entity_t id) noexcept
+void zircon_command_create_entity::SetEntityID(kotek::uint32_t id) noexcept
 {
-	this->m_created_entity = id;
+	this->m_created_entity = static_cast<entt::entity>(id);
 }
 
 Kotek::ktk::enum_base_t zircon_command_create_entity::GetCommandType() noexcept
@@ -90,7 +90,7 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 	object["command"] = this->GetCommandType();
 
 #ifdef KOTEK_DEBUG
-	object["entity_id"] = this->m_created_entity;
+	object["entity_id"] = static_cast<kotek::uint32_t>(this->m_created_entity);
 #endif
 
 	Kotek::ktk::json::serializer sr;
@@ -178,6 +178,6 @@ void zircon_command_create_entity::Deserialize(
 		"it is not create entity command! Something is broken!");
 
 	this->m_created_entity =
-		json.at("entity_id").to_number<Kotek::ktk::entity_t>();
+		static_cast<entt::entity>(json.at("entity_id").to_number<kotek::uint32_t>());
 #endif
 }

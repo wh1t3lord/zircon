@@ -308,11 +308,11 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 
 				const auto& component_input =
 					p_game_factory->GetComponent<zircon_component_sdk_input>(
-						static_cast<Kotek::ktk::entity_t>(id));
+						static_cast<entt::entity>(id));
 
 				const auto& component_transform =
 					p_game_factory->GetComponent<zircon_component_transform>(
-						static_cast<Kotek::ktk::entity_t>(id));
+						static_cast<entt::entity>(id));
 
 				const auto& input = component_input.get_input();
 
