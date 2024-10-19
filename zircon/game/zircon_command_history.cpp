@@ -120,6 +120,8 @@ void zircon_command_history::ExecuteCommand(
 
 void zircon_command_history::Undo()
 {
+	KOTEK_TRACE("undo: {}", this->m_cursor_index);
+
 	if (this->m_cursor_index > -1)
 	{
 		KOTEK_ASSERT(this->m_commands[this->m_index], "something is wrong!");
@@ -422,6 +424,8 @@ void zircon_command_history::Redo()
 	    ++this->m_index;
 	}
 	*/
+
+	KOTEK_TRACE("redo: {}", this->m_cursor_index);
 
 	if (this->m_cursor_index < this->m_max_index - 1 ||
 		(this->m_cursor_index == -1 && this->m_max_index > 0))
@@ -740,19 +744,23 @@ void zircon_command_history::Redo()
 
 		// todo: think about this logical carefully, i think something is wrong
 		// here
-		if (this->m_max_index > 1)
+		if (this->m_cursor_index < kotek::ptrdiff_t(this->m_max_index) - 1)
 		{
 			++this->m_cursor_index;
 			this->m_index = this->m_cursor_index %
 				zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
+
+			KOTEK_ASSERT(this->m_commands[this->m_index], "something is wrong");
+			auto* p_command = this->m_commands[this->m_index];
+			if (p_command)
+				p_command->Execute();
+
+			set_changed(true);
 		}
-
-		KOTEK_ASSERT(this->m_commands[this->m_index], "something is wrong");
-		auto* p_command = this->m_commands[this->m_index];
-		if (p_command)
-			p_command->Execute();
-
-		set_changed(true);
+		else
+		{
+			int a = 0;
+		}
 	}
 }
 
@@ -781,9 +789,11 @@ void zircon_command_history::update_dependent_commands(
 	{
 		if (p_command)
 		{
-			if (p_command->GetEntityID() == static_cast<kotek::uint32_t>(id_what_will_be_deleted))
+			if (p_command->GetEntityID() ==
+				static_cast<kotek::uint32_t>(id_what_will_be_deleted))
 			{
-				p_command->SetEntityID(static_cast<kotek::uint32_t>(id_that_replaces_what_will_be_deleted));
+				p_command->SetEntityID(static_cast<kotek::uint32_t>(
+					id_that_replaces_what_will_be_deleted));
 			}
 		}
 	}
@@ -808,6 +818,8 @@ unsigned char* zircon_command_history::allocate_memory_for_command(
 
 	++this->m_cursor_index;
 	++this->m_max_index;
+	KOTEK_TRACE("command: {}", this->m_max_index);
+
 	this->m_index = this->m_cursor_index %
 		static_cast<size_t>(zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE);
 	// update new data
@@ -1276,18 +1288,27 @@ void zircon_command_history::clear_content_when_action_issued()
 				}
 			}
 
-			KOTEK_TRACE("before[max_index] = {}", this->m_max_index);
-			
+			KOTEK_TRACE("before[max_index] = {} before[cursor_index] = {}", this->m_max_index, this->m_cursor_index);
+
 			this->m_max_index -= command_count_from_buffer;
-			
-			KOTEK_TRACE("after[max_index] = {} c_from_buffer = {}",
-				this->m_max_index, command_count_from_buffer);
+
+			KOTEK_TRACE("after[max_index] = {} after[cursor_index] = {} c_from_buffer = {}",
+				this->m_max_index, this->m_cursor_index, command_count_from_buffer);
 
 			for (kotek::size_t i = index;
 				 i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
 			{
 				auto* p_ptr = this->m_storage[i];
 				std::memset(p_ptr, 0, sizeof(this->m_storage[0]));
+			}
+
+			if (is_need_to_file_clear)
+			{
+				if (this->m_cursor_index >
+					static_cast<kotek::ptrdiff_t>(this->m_max_index - 1))
+				{
+					is_need_to_file_clear = false;
+				}
 			}
 		}
 
@@ -1297,6 +1318,28 @@ void zircon_command_history::clear_content_when_action_issued()
 				this->get_offset_of_current_index_in_file();
 			kotek::size_t command_count_from_file =
 				this->get_count_of_commands_in_file(delete_from_offset);
+
+			kotek::ptrdiff_t expected_count =
+				this->m_max_index - this->m_cursor_index;
+
+			KOTEK_ASSERT(static_cast<kotek::ptrdiff_t>(
+							 command_count_from_file) <= expected_count,
+				"something is wrong!");
+
+#ifdef KOTEK_DEBUG
+			if (command_count_from_file > 0)
+			{
+				KOTEK_ASSERT(kotek::ptrdiff_t(this->m_max_index) -
+							(std::max(command_count_from_file,
+								 command_count_from_buffer) -
+								std::min(command_count_from_file,
+									command_count_from_buffer)) >=
+						this->m_cursor_index,
+					"something is wrong and it means we determined wrong like "
+					"cursor is not on position for deleting commands from "
+					"file!");
+			}
+#endif
 
 			KOTEK_ASSERT(command_count_from_file > 0 ||
 					(command_count_from_file == 0 &&
@@ -1313,18 +1356,56 @@ void zircon_command_history::clear_content_when_action_issued()
 			else if (command_count_from_file == 0 && this->m_cursor_index > 0)
 				diff = 0;
 			else
-				diff = command_count_from_file - command_count_from_buffer;
+			{
+				// it is good and it means we didn't serialize our data from
+				// current storage buffer
+				if (this->m_max_index - command_count_from_file ==
+					this->m_cursor_index + 1)
+				{
+					diff = command_count_from_file;
+				}
+				else if ((static_cast<kotek::ptrdiff_t>(this->m_max_index) -
+							 command_count_from_file) <= this->m_cursor_index &&
+					((this->m_cursor_index + 1) -
+							(static_cast<kotek::ptrdiff_t>(this->m_max_index) -
+								command_count_from_file) <=
+						zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE))
+				{
+					// the difference between cursor_index + 1 aand max_index -
+					// count_from_file tells us how many commands were
+					// serialized in command_count_from_buffer variable
+					diff = command_count_from_file -
+						((this->m_cursor_index + 1) -
+							(static_cast<kotek::ptrdiff_t>(this->m_max_index) -
+								command_count_from_file));
 
-			// это значит что мы уже отняли нужное количество через buffer и
-			// здесь уже ничего не отнимаем
-			if (command_count_from_file < command_count_from_buffer && this->m_cursor_index > -1)
-				diff = 0;
+					KOTEK_ASSERT(
+						this->m_max_index - diff == this->m_cursor_index + 1,
+						"can't be!");
+				}
+				else
+				{
+					diff = command_count_from_file - command_count_from_buffer;
+
+					KOTEK_ASSERT(
+						(this->m_max_index - 1) - diff == this->m_cursor_index,
+						"something is wrong and you should detail your "
+						"heusristic. it means that some part of "
+						"command_count_from_buffer has in "
+						"command_count_from_file and we need to understand "
+						"which buffers were serialized in file. So like "
+						"command_from_buffer = 5 but command_from_file = 12 "
+						"but suppose 3 were serialized from buffer and it "
+						"means real amount is only 2 not 5 and we should "
+						"command_from_file - 2 not 5");
+				}
+			}
 
 			this->m_max_index -= (diff);
 
 			KOTEK_TRACE(
-				"clear: max_index {} c_from_file {} c_from_buffer {} diff {}",
-				this->m_max_index, command_count_from_file,
+				"clear: max_index {} cursor_index {} c_from_file {} c_from_buffer {} diff {}",
+				this->m_max_index, this->m_cursor_index, command_count_from_file,
 				command_count_from_buffer, diff);
 
 			if (delete_from_offset > 0)
@@ -1620,7 +1701,13 @@ kotek::size_t zircon_command_history::get_count_of_commands_in_file(
 				return result;
 			}
 
-			for (int i = 0; i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
+			kotek::ptrdiff_t expected_count =
+				static_cast<kotek::ptrdiff_t>(this->m_max_index) -
+				this->m_cursor_index;
+
+			KOTEK_ASSERT(expected_count >= 0, "can't be negative!");
+
+			for (kotek::size_t i = 0; i < expected_count; ++i)
 			{
 				std::memset(buffer, 0, sizeof(buffer));
 				this->m_p_resource_manager->Seekg(
