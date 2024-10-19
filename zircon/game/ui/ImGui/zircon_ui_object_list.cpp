@@ -5,7 +5,7 @@
 #include "../../../core/zircon_sdk_ui.h"
 
 zircon_sdk_ui_object_list::zircon_sdk_ui_object_list(void) :
-	m_selected_entity_id{}
+	m_amount_of_entites{}, m_selected_entity_id{}
 {
 }
 
@@ -58,8 +58,7 @@ void zircon_sdk_ui_object_list::Draw(
 			{
 				char table_column_name[32]{};
 				kotek::ktk::sprintf(table_column_name,
-					sizeof(table_column_name), "Entity ID [%d]", ids.size_hint());
-
+					sizeof(table_column_name), "Entity ID [%zu]", this->m_amount_of_entites);
 				p_wrapper_imgui->TableSetupColumn(
 					table_column_name, ImGuiTableColumnFlags_WidthStretch);
 				p_wrapper_imgui->TableHeadersRow();
@@ -99,6 +98,7 @@ void zircon_sdk_ui_object_list::Draw(
 					++i;
 				}
 
+				this->m_amount_of_entites = i;
 				p_wrapper_imgui->EndTable();
 			}
 		}

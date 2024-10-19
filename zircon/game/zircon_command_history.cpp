@@ -1276,7 +1276,12 @@ void zircon_command_history::clear_content_when_action_issued()
 				}
 			}
 
+			KOTEK_TRACE("before[max_index] = {}", this->m_max_index);
+			
 			this->m_max_index -= command_count_from_buffer;
+			
+			KOTEK_TRACE("after[max_index] = {} c_from_buffer = {}",
+				this->m_max_index, command_count_from_buffer);
 
 			for (kotek::size_t i = index;
 				 i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
@@ -1312,7 +1317,7 @@ void zircon_command_history::clear_content_when_action_issued()
 
 			// это значит что мы уже отняли нужное количество через buffer и
 			// здесь уже ничего не отнимаем
-			if (command_count_from_file < command_count_from_buffer)
+			if (command_count_from_file < command_count_from_buffer && this->m_cursor_index > -1)
 				diff = 0;
 
 			this->m_max_index -= (diff);
@@ -1340,7 +1345,8 @@ void zircon_command_history::clear_content_when_action_issued()
 			}
 		}
 
-		KOTEK_ASSERT(this->m_max_index > this->m_cursor_index,
+		KOTEK_ASSERT((this->m_max_index == 0 && this->m_cursor_index < 0) ||
+				(this->m_max_index > this->m_cursor_index),
 			"can't be! max_index is always bigger than cursor!");
 
 		this->m_is_action_issued = false;

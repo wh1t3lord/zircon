@@ -11,5 +11,6 @@ public:
 	void Draw(kotek::core::ktkMainManager* main_manager) override;
 
 private:
+	kotek::size_t m_amount_of_entites;
 	entt::entity m_selected_entity_id;
 };
