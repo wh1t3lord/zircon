@@ -1326,21 +1326,6 @@ void zircon_command_history::clear_content_when_action_issued()
 							 command_count_from_file) <= expected_count,
 				"something is wrong!");
 
-#ifdef KOTEK_DEBUG
-			if (command_count_from_file > 0)
-			{
-				KOTEK_ASSERT(kotek::ptrdiff_t(this->m_max_index) -
-							(std::max(command_count_from_file,
-								 command_count_from_buffer) -
-								std::min(command_count_from_file,
-									command_count_from_buffer)) >=
-						this->m_cursor_index,
-					"something is wrong and it means we determined wrong like "
-					"cursor is not on position for deleting commands from "
-					"file!");
-			}
-#endif
-
 			KOTEK_ASSERT(command_count_from_file > 0 ||
 					(command_count_from_file == 0 &&
 						this->m_cursor_index >= 0) ||
@@ -1362,6 +1347,7 @@ void zircon_command_history::clear_content_when_action_issued()
 				if (this->m_max_index - command_count_from_file ==
 					this->m_cursor_index + 1)
 				{
+					KOTEK_TRACE("serialized commands: {}", command_count_from_file);
 					diff = command_count_from_file;
 				}
 				else if ((static_cast<kotek::ptrdiff_t>(this->m_max_index) -
@@ -1374,6 +1360,13 @@ void zircon_command_history::clear_content_when_action_issued()
 					// the difference between cursor_index + 1 aand max_index -
 					// count_from_file tells us how many commands were
 					// serialized in command_count_from_buffer variable
+					
+					KOTEK_TRACE(
+						"serialized commands in command_count_from_buffer: {}",
+						((this->m_cursor_index + 1) -
+							(static_cast<kotek::ptrdiff_t>(this->m_max_index) -
+								command_count_from_file)));
+
 					diff = command_count_from_file -
 						((this->m_cursor_index + 1) -
 							(static_cast<kotek::ptrdiff_t>(this->m_max_index) -
