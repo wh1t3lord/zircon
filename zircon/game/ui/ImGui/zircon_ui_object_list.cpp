@@ -64,6 +64,7 @@ void zircon_sdk_ui_object_list::Draw(
 					table_column_name, ImGuiTableColumnFlags_WidthStretch);
 				p_wrapper_imgui->TableHeadersRow();
 				
+				kotek::size_t i = 0;
 				for (auto id : ids)
 				{
 					p_wrapper_imgui->TableNextRow();
@@ -85,7 +86,7 @@ void zircon_sdk_ui_object_list::Draw(
 					}
 					else
 					{
-						converted_id = Kotek::ktk::format("{} {}",  static_cast<kotek::uint32_t>(id));
+						converted_id = Kotek::ktk::format("{} {}", i, static_cast<kotek::uint32_t>(id));
 					}
 
 					if (p_wrapper_imgui->Selectable(converted_id.c_str(),
@@ -95,6 +96,7 @@ void zircon_sdk_ui_object_list::Draw(
 						p_game_manager->GetSDKUI()->imgui_SetSelectedEntity(
 							&this->m_selected_entity_id);
 					}
+					++i;
 				}
 
 				p_wrapper_imgui->EndTable();

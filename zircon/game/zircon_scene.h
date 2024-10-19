@@ -24,7 +24,7 @@ public:
 
 	void SetSceneName(const kotek::ktk::ustring& scene_name) noexcept;
 
-	const kotek::view_entities_t& GetEntities(
+	kotek::view_entities_t GetEntities(
 		void) const noexcept;
 
 	entt::entity GetActor(void) const noexcept;

@@ -387,7 +387,7 @@ public:
 		return static_cast<entt::entity>(result);
 	}
 
-	const auto& GetAllEntities(void) const noexcept
+	auto GetAllEntities(void) const noexcept
 	{
 		return this->m_registry.view<entt::entity>();
 	}

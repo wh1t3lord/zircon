@@ -38,7 +38,7 @@ void zircon_scene::SetSceneName(const kotek::ktk::ustring& scene_name) noexcept
 	this->m_scene_name = scene_name;
 }
 
-const kotek::view_entities_t& zircon_scene::GetEntities(void) const noexcept
+kotek::view_entities_t zircon_scene::GetEntities(void) const noexcept
 {
 	return this->m_p_game_factory->GetAllEntities();
 }
