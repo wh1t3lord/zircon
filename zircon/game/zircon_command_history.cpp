@@ -8,6 +8,8 @@ constexpr const char* _kTempFileNameWithExtension = "temp.json";
 constexpr const char* _kTempFileName = "temp";
 constexpr const char* _kExchangeFileName = "exchange";
 
+#define ZIRCON_ENABLE_CH_TRACE
+
 zircon_command_history::zircon_command_history(void) :
 	m_is_changed{}, m_is_first_serialize_happened{}, m_is_action_issued{},
 	m_file_resource_handle_id{}, m_file_exchange_resource_handle_id{},
@@ -120,7 +122,9 @@ void zircon_command_history::ExecuteCommand(
 
 void zircon_command_history::Undo()
 {
+#ifdef ZIRCON_ENABLE_CH_TRACE
 	KOTEK_TRACE("undo: {}", this->m_cursor_index);
+#endif
 
 	if (this->m_cursor_index > -1)
 	{
@@ -425,7 +429,9 @@ void zircon_command_history::Redo()
 	}
 	*/
 
+#ifdef ZIRCON_ENABLE_CH_TRACE
 	KOTEK_TRACE("redo: {}", this->m_cursor_index);
+#endif
 
 	if (this->m_cursor_index < this->m_max_index - 1 ||
 		(this->m_cursor_index == -1 && this->m_max_index > 0))
@@ -797,6 +803,10 @@ void zircon_command_history::update_dependent_commands(
 			}
 		}
 	}
+
+	// update info in serialized commands
+	// also update offsets before and after
+	// and offsets for reading in file
 }
 
 unsigned char* zircon_command_history::allocate_memory_for_command(
@@ -818,7 +828,10 @@ unsigned char* zircon_command_history::allocate_memory_for_command(
 
 	++this->m_cursor_index;
 	++this->m_max_index;
+
+#ifdef ZIRCON_ENABLE_CH_TRACE
 	KOTEK_TRACE("command: {}", this->m_max_index);
+#endif
 
 	this->m_index = this->m_cursor_index %
 		static_cast<size_t>(zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE);
@@ -1288,12 +1301,19 @@ void zircon_command_history::clear_content_when_action_issued()
 				}
 			}
 
-			KOTEK_TRACE("before[max_index] = {} before[cursor_index] = {}", this->m_max_index, this->m_cursor_index);
+#ifdef ZIRCON_ENABLE_CH_TRACE
+			KOTEK_TRACE("before[max_index] = {} before[cursor_index] = {}",
+				this->m_max_index, this->m_cursor_index);
+#endif
 
 			this->m_max_index -= command_count_from_buffer;
 
-			KOTEK_TRACE("after[max_index] = {} after[cursor_index] = {} c_from_buffer = {}",
-				this->m_max_index, this->m_cursor_index, command_count_from_buffer);
+#ifdef ZIRCON_ENABLE_CH_TRACE
+			KOTEK_TRACE("after[max_index] = {} after[cursor_index] = {} "
+						"c_from_buffer = {}",
+				this->m_max_index, this->m_cursor_index,
+				command_count_from_buffer);
+#endif
 
 			for (kotek::size_t i = index;
 				 i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
@@ -1347,7 +1367,11 @@ void zircon_command_history::clear_content_when_action_issued()
 				if (this->m_max_index - command_count_from_file ==
 					this->m_cursor_index + 1)
 				{
-					KOTEK_TRACE("serialized commands: {}", command_count_from_file);
+#ifdef ZIRCON_ENABLE_CH_TRACE
+					KOTEK_TRACE(
+						"serialized commands: {}", command_count_from_file);
+#endif
+
 					diff = command_count_from_file;
 				}
 				else if ((static_cast<kotek::ptrdiff_t>(this->m_max_index) -
@@ -1360,12 +1384,14 @@ void zircon_command_history::clear_content_when_action_issued()
 					// the difference between cursor_index + 1 aand max_index -
 					// count_from_file tells us how many commands were
 					// serialized in command_count_from_buffer variable
-					
+
+#ifdef ZIRCON_ENABLE_CH_TRACE
 					KOTEK_TRACE(
 						"serialized commands in command_count_from_buffer: {}",
 						((this->m_cursor_index + 1) -
 							(static_cast<kotek::ptrdiff_t>(this->m_max_index) -
 								command_count_from_file)));
+#endif
 
 					diff = command_count_from_file -
 						((this->m_cursor_index + 1) -
@@ -1396,10 +1422,12 @@ void zircon_command_history::clear_content_when_action_issued()
 
 			this->m_max_index -= (diff);
 
-			KOTEK_TRACE(
-				"clear: max_index {} cursor_index {} c_from_file {} c_from_buffer {} diff {}",
-				this->m_max_index, this->m_cursor_index, command_count_from_file,
-				command_count_from_buffer, diff);
+#ifdef ZIRCON_ENABLE_CH_TRACE
+			KOTEK_TRACE("clear: max_index {} cursor_index {} c_from_file {} "
+						"c_from_buffer {} diff {}",
+				this->m_max_index, this->m_cursor_index,
+				command_count_from_file, command_count_from_buffer, diff);
+#endif
 
 			if (delete_from_offset > 0)
 			{
