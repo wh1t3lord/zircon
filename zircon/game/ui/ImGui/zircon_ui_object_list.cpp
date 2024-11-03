@@ -47,22 +47,37 @@ void zircon_sdk_ui_object_list::Draw(
 
 			if (p_wrapper_imgui->Button("Delete"))
 			{
-				p_game_manager->GetConsole()->Execute(
-					static_cast<kotek::ktk::enum_base_t>(
-						kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_DeleteEntity),
-					{{static_cast<kotek::uint32_t>(this->m_selected_entity_id)}});
+				if (p_game_manager)
+				{
+					zircon_factory_game* p_factory =
+						p_game_manager->get_factory_game();
+
+					if (p_factory)
+					{
+						if (p_factory->IsValidEntity(
+								this->m_selected_entity_id))
+						{
+							p_game_manager->GetConsole()->Execute(
+								static_cast<kotek::ktk::enum_base_t>(
+									kotek::core::eConsoleCommandIndex::
+										kConsoleCommand_SDK_DeleteEntity),
+								{{static_cast<kotek::uint32_t>(
+									this->m_selected_entity_id)}});
+						}
+					}
+				}
 			}
 
 			if (p_wrapper_imgui->BeginTable("", 1))
 			{
 				char table_column_name[32]{};
 				kotek::ktk::sprintf(table_column_name,
-					sizeof(table_column_name), "Entity ID [%zu]", this->m_amount_of_entites);
+					sizeof(table_column_name), "Entity ID [%zu]",
+					this->m_amount_of_entites);
 				p_wrapper_imgui->TableSetupColumn(
 					table_column_name, ImGuiTableColumnFlags_WidthStretch);
 				p_wrapper_imgui->TableHeadersRow();
-				
+
 				kotek::size_t i = 0;
 				for (auto id : ids)
 				{
@@ -80,12 +95,14 @@ void zircon_sdk_ui_object_list::Draw(
 
 									zircon_component_sdk_scene_name>(id);
 
-						converted_id = Kotek::ktk::format(
-							"{} [{}]", static_cast<kotek::uint32_t>(id), component.GetName());
+						converted_id = Kotek::ktk::format("{} [{}]",
+							static_cast<kotek::uint32_t>(id),
+							component.GetName());
 					}
 					else
 					{
-						converted_id = Kotek::ktk::format("{} {}", i, static_cast<kotek::uint32_t>(id));
+						converted_id = Kotek::ktk::format(
+							"{} {}", i, static_cast<kotek::uint32_t>(id));
 					}
 
 					if (p_wrapper_imgui->Selectable(converted_id.c_str(),

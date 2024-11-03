@@ -11,9 +11,9 @@ void zircon_sdk_ui_top_bar::initialize(void) {}
 
 void zircon_sdk_ui_top_bar::shutdown(void) {}
 
-void zircon_sdk_ui_top_bar::Draw(Kotek::Core::ktkMainManager* p_main_manager)
+void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 {
-	Kotek::Core::ktkIImguiWrapper* p_wrapper_imgui =
+	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
 
 	this->update_modals(p_main_manager);
@@ -46,7 +46,7 @@ void zircon_sdk_ui_top_bar::Draw(Kotek::Core::ktkMainManager* p_main_manager)
 					if (GetOpenFileName(&ofn) == TRUE)
 					{
 						const auto& utf8_path =
-							ktk_filesystem_path(ofn.lpstrFile).u8string();
+							kotek::static_path_t(ofn.lpstrFile).u8string();
 
 						const char* p_utf8_path =
 							reinterpret_cast<const char*>(utf8_path.c_str());
@@ -127,15 +127,15 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 		if (p_game_manager->GetSDKUI()
 				->imgui_GetShowModalSceneSaveAndCloseOrClose())
 		{
-			p_wrapper_imgui->OpenPopup("Modal_SaveAndCloseOrCloseScene");
+			p_wrapper_imgui->OpenPopup("Modal - Save Scene");
 		}
 
-		if (p_wrapper_imgui->BeginPopupModal("Modal_SaveAndCloseOrCloseScene",
+		if (p_wrapper_imgui->BeginPopupModal("Modal - Save Scene",
 				nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			p_wrapper_imgui->Text("Do you want to exit");
+			p_wrapper_imgui->Text("Do you want to save?");
 
-			if (p_wrapper_imgui->Button("Yes (Save Scene)"))
+			if (p_wrapper_imgui->Button("Yes"))
 			{
 				p_main_manager->GetGameManager()->GetConsole()->PushCommand(
 					static_cast<Kotek::ktk::enum_base_t>(
@@ -153,7 +153,7 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 
 			p_wrapper_imgui->SameLine();
 
-			if (p_wrapper_imgui->Button("No (Just to exist)"))
+			if (p_wrapper_imgui->Button("No"))
 			{
 				p_main_manager->GetGameManager()->GetConsole()->PushCommand(
 					static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::

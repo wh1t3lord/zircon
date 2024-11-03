@@ -32,7 +32,8 @@ void zircon_command_create_entity::Execute()
 			}
 		}
 
-		KOTEK_MESSAGE("[history]: created entity: {}", static_cast<kotek::uint32_t>(this->m_created_entity));
+		KOTEK_MESSAGE("[history]: created entity: {}",
+			static_cast<kotek::uint32_t>(this->m_created_entity));
 	}
 }
 
@@ -40,8 +41,8 @@ void zircon_command_create_entity::Undo()
 {
 	if (this->m_p_scene)
 	{
-		KOTEK_MESSAGE(
-			"[history][undo]: removed entity {}", static_cast<kotek::uint32_t>(this->m_created_entity));
+		KOTEK_MESSAGE("[history][undo]: removed entity {}",
+			static_cast<kotek::uint32_t>(this->m_created_entity));
 
 		this->m_entity_previous_id = this->m_created_entity;
 
@@ -52,8 +53,7 @@ const char* zircon_command_create_entity::GetName()
 {
 	return "create entity";
 }
-kotek::uint32_t zircon_command_create_entity::GetEntityID(
-	void) const noexcept
+kotek::uint32_t zircon_command_create_entity::GetEntityID(void) const noexcept
 {
 	return static_cast<kotek::uint32_t>(this->m_created_entity);
 }
@@ -88,10 +88,7 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 
 	auto& object = out.emplace_object();
 	object["command"] = this->GetCommandType();
-
-#ifdef KOTEK_DEBUG
 	object["entity_id"] = static_cast<kotek::uint32_t>(this->m_created_entity);
-#endif
 
 	Kotek::ktk::json::serializer sr;
 	sr.reset(&out);
@@ -109,18 +106,19 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 	}
 
 #ifdef KOTEK_DEBUG
-	KOTEK_MESSAGE("[history][create entity] serialized command: [{}] with size "
+	KOTEK_MESSAGE("[history][{}] serialized command: [{}] with size "
 				  "string: [{}] and total offset with endl symbol: [{}]",
-		this->m_serialize_json_string_storage, offset, offset + 2);
+		this->GetName(), this->m_serialize_json_string_storage, offset,
+		offset + 2);
 #endif
 
 	if (p_resource_manager)
 	{
 		char offset_string[sizeof(
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS)];
-		std::memset(offset_string, ' ', sizeof(offset_string));
+		kotek::ktk::memory::memset(offset_string, ' ', sizeof(offset_string));
 
-		auto null_symbol_index = std::sprintf(offset_string, "%zu", offset + 2);
+		auto null_symbol_index = kotek::ktk::sprintf(offset_string, sizeof(offset_string), "%zu", offset + 2);
 
 		KOTEK_ASSERT(null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
@@ -128,21 +126,22 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 			"memory!",
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS);
 
-		offset_string[null_symbol_index] = ' ';
+		kotek::ktk::memory::memset(offset_string + null_symbol_index, ' ',
+			sizeof(offset_string) - null_symbol_index);
 		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
 			' ';
 
 		p_resource_manager->Write(
 			resource_handle_id, offset_string, sizeof(offset_string));
 		p_resource_manager->Write(resource_handle_id,
-			Kotek::Core::eFileWritingControlCharacterType::kNewLine);
+			kotek::core::eFileWritingControlCharacterType::kNewLine);
 
 		p_resource_manager->Write(
 			resource_handle_id, this->m_serialize_json_string_storage);
 		p_resource_manager->Write(resource_handle_id,
-			Kotek::Core::eFileWritingControlCharacterType::kNewLine);
+			kotek::core::eFileWritingControlCharacterType::kNewLine);
 
-		null_symbol_index = std::sprintf(offset_string, "%zu", offset + 2);
+		null_symbol_index = kotek::ktk::sprintf(offset_string, sizeof(offset_string), "%zu", offset + 2);
 
 		KOTEK_ASSERT(null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
@@ -150,7 +149,8 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 			"memory!",
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS);
 
-		offset_string[null_symbol_index] = ' ';
+		kotek::ktk::memory::memset(offset_string + null_symbol_index, ' ',
+			sizeof(offset_string) - null_symbol_index);
 		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
 			zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
 
@@ -158,7 +158,7 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 		p_resource_manager->Write(
 			resource_handle_id, offset_string, sizeof(offset_string));
 		p_resource_manager->Write(resource_handle_id,
-			Kotek::Core::eFileWritingControlCharacterType::kFlush);
+			kotek::core::eFileWritingControlCharacterType::kFlush);
 	}
 
 	return offset;
@@ -170,14 +170,12 @@ void zircon_command_create_entity::Deserialize(
 	KOTEK_ASSERT(json.find("entity_id") != json.end(),
 		"must exist key entity_id! (is it create entity command at all?)");
 
-#ifdef KOTEK_DEBUG
 	auto type =
 		static_cast<Kotek::ktk::enum_base_t>(json.at("command").as_int64());
 
 	KOTEK_ASSERT(type == this->GetCommandType(),
 		"it is not create entity command! Something is broken!");
 
-	this->m_created_entity =
-		static_cast<entt::entity>(json.at("entity_id").to_number<kotek::uint32_t>());
-#endif
+	this->m_created_entity = static_cast<entt::entity>(
+		json.at("entity_id").to_number<kotek::uint32_t>());
 }

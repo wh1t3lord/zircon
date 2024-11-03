@@ -18,3 +18,5 @@ public:
 	virtual Kotek::ktk::json::value Serialize(
 		unsigned char* p_raw_memory, Kotek::ktk::size_t size) = 0;
 };
+
+#include "zircon_ecs_auto_enum_components.h"

@@ -3,7 +3,7 @@
 class zircon_scene;
 class zircon_command_history;
 
-class zircon_command_create_entity : public Kotek::Core::ktkISDKRedoUndo
+class zircon_command_create_entity : public kotek::core::ktkISDKRedoUndo
 {
 public:
 	zircon_command_create_entity(

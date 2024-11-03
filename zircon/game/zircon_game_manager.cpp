@@ -1472,7 +1472,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 
 				auto* p_placement_new_memory =
 					p_history_manager->allocate_memory_for_command(
-						sizeof(zircon_command_delete_entity));
+						sizeof(zircon_command_delete_entity), "zircon_command_delete_entity");
 
 				zircon_command_delete_entity* p_command =
 					new (p_placement_new_memory)
@@ -1493,7 +1493,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			{
 				auto* p_placement_new_memory =
 					p_history_manager->allocate_memory_for_command(
-						sizeof(zircon_command_create_entity));
+						sizeof(zircon_command_create_entity), "zircon_command_create_entity");
 
 				zircon_command_create_entity* p_command =
 					new (p_placement_new_memory)
@@ -1542,7 +1542,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 
 					auto* p_placement_new_memory =
 						p_history_manager->allocate_memory_for_command(
-							sizeof(zircon_command_add_component_to_entity));
+							sizeof(zircon_command_add_component_to_entity), "zircon_command_add_component_to_entity");
 
 					zircon_command_add_component_to_entity* p_command =
 						new (p_placement_new_memory)
@@ -1729,6 +1729,7 @@ void zircon_manager_game::Initialize_HistoryCommandManager(void) noexcept
 	this->m_p_sdk_history_manager = new zircon_command_history();
 	this->m_p_sdk_history_manager->initialize(
 		this->m_p_main_manager->GetFileSystem(), this->m_p_scene_manager,
+		this->m_p_factory,
 		this->m_p_main_manager->GetResourceManager());
 }
 

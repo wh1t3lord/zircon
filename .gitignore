@@ -34,4 +34,6 @@ CMakeFiles/
 doc/doxygen/html/*
 user_data/
 
+zircon_ecs_auto_enum_components.h
+
 imgui.ini

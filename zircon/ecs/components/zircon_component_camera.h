@@ -16,7 +16,6 @@ KOTEK_END_NAMESPACE_KOTEK
 class zircon_component_camera : public zircon_component_interface
 {
 	KOTEK_COMPONENT(zircon_component_camera)
-
 public:
 	zircon_component_camera(void);
 	~zircon_component_camera(void);

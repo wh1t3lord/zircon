@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
+set(zircon_enum_file_name "zircon_ecs_auto_enum_components.h")
+
 set(to_include_module_files 
 	"zircon_ecs_components.h"
 	"main_ecs_dll.cpp"
@@ -38,7 +40,6 @@ set(to_include_game_ecs_files
 	"zircon_component_ui_surface.cpp"
 	"zircon_component_ui_camera.h"
 	"zircon_component_ui_camera.cpp"
-	"zircon_component_interface.h"
 )
 
 set(to_include_game_factory_files 
@@ -55,12 +56,48 @@ set(to_include_sdk_ecs_files
 	"zircon_component_sdk_input.cpp"
 )
 
+file(WRITE ${zircon_enum_file_name} "#pragma once")
+
+file(APPEND ${zircon_enum_file_name} "
+enum zircon_component_type_t {
+")
+
+set(filenames_lists)
+
+foreach (filename IN LISTS to_include_game_ecs_files)
+	get_filename_component(clear_filename ${filename} NAME_WE)
+	list(APPEND filenames_list ${clear_filename})
+endforeach()
+
+foreach (filename IN LISTS to_include_sdk_ecs_files)
+	get_filename_component(clear_filename ${filename} NAME_WE)
+	list(APPEND filenames_list ${clear_filename})
+endforeach()
+
+list(REMOVE_DUPLICATES filenames_list)
+
+foreach (filename IN LISTS filenames_list)
+	file(APPEND ${zircon_enum_file_name} "
+	kComponentType${filename},
+	")
+endforeach()
+
+
+
+file(APPEND ${zircon_enum_file_name} "
+	kComponentTypeUnknown
+")
+file(APPEND ${zircon_enum_file_name} "
+};
+")
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_sdk_ecs_files}
 	${to_include_game_ecs_files}
 	${to_include_module_files}
 	${to_include_game_factory_files}
+	"zircon_component_interface.h"
+	${zircon_enum_file_name}
 )
 
 # TODO: add if when game.ktk builds as shared
@@ -69,7 +106,11 @@ if (UNIX)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
-source_group("Game/ECS" FILES ${to_include_game_ecs_files})
+source_group("Game/ECS" FILES 
+	${to_include_game_ecs_files}
+	"zircon_component_interface.h"
+	${zircon_enum_file_name}
+)
 source_group("Game/Factory" FILES ${to_include_game_factory_files})
 source_group("SDK/ECS" FILES ${to_include_sdk_ecs_files})
 source_group("Module" FILES ${to_include_module_files})

@@ -31,10 +31,25 @@ bool SerializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 // TODO: rethink, maybe you need to delete it, because we load information from
 // user settings for multiple renderers the same thing we have startup renderer.
 // So if we failed to load user settings we use what engine has
-void DeserializeRendererConfig(Kotek::Core::ktkMainManager* p_main_manager) {}
+void DeserializeRendererConfig(Kotek::Core::ktkMainManager* p_main_manager)
+{
+	if (p_main_manager->Get_Splash())
+	{
+		p_main_manager->Get_Splash()->Set_Text(
+			"[user_game_module]: deserialize [renderer][config]");
+		p_main_manager->Get_Splash()->Set_Progress();
+	}
+}
 
 bool DeserializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 {
+	if (p_main_manager->Get_Splash())
+	{
+		p_main_manager->Get_Splash()->Set_Text(
+			"[user_game_module]: deserialize [game]");
+		p_main_manager->Get_Splash()->Set_Progress();
+	}
+
 	KOTEK_ASSERT(p_main_manager,
 		"engine must pass a valid pointer to ktkMainManager instance!");
 
@@ -53,6 +68,12 @@ bool DeserializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 
 bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 {
+	if (p_main_manager->Get_Splash())
+	{
+		p_main_manager->Get_Splash()->Set_Text("[user_game_module]: init");
+		p_main_manager->Get_Splash()->Set_Progress();
+	}
+
 #ifdef KOTEK_USE_CPU_PROFILER
 	KOTEK_ASSERT(false,
 		"TODO: implement calling from "
@@ -206,10 +227,17 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 	}
 }
 
-bool InitializeModule_Render(kn_kotek::kn_core::ktkMainManager* p_main_manager)
+bool InitializeModule_Render(kotek::core::ktkMainManager* p_main_manager)
 {
+	if (p_main_manager->Get_Splash())
+	{
+		p_main_manager->Get_Splash()->Set_Text(
+			"[user_game_module]: init [render]");
+		p_main_manager->Get_Splash()->Set_Progress();
+	}
+
 	DeserializeRendererConfig(p_main_manager);
-	kn_kotek::kn_render::InitializeModule_Render(p_main_manager);
+	kotek::render::InitializeModule_Render(p_main_manager);
 
 	g_main_manager.Initialize(p_main_manager);
 	DeserializeModule_Game(p_main_manager);

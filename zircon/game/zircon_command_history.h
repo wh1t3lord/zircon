@@ -3,6 +3,7 @@
 #include "zircon_command_definitions.h"
 
 class zircon_scene_manager;
+class zircon_factory_game;
 
 class zircon_command_history : public kotek::core::ktkISDKCommandHistoryManager
 {
@@ -12,6 +13,7 @@ public:
 
 	void initialize(kotek::core::ktkIFileSystem* p_filesystem,
 		zircon_scene_manager* p_scene_manager,
+		zircon_factory_game* p_factory_game,
 		kotek::core::ktkIResourceManager* p_resource_manager);
 	void shutdown(void);
 
@@ -31,7 +33,7 @@ public:
 		entt::entity id_that_replaces_what_will_be_deleted) noexcept;
 
 	unsigned char* allocate_memory_for_command(
-		kotek::size_t size_of_class) noexcept;
+		kotek::size_t size_of_class, const char* p_debug_type_name) noexcept;
 
 	kotek::size_t get_current_index(void) const;
 	kotek::ptrdiff_t get_cursor_index(void) const;
@@ -44,6 +46,9 @@ private:
 	// данный метод вызывается дважды чтобы вставить контент которые относится к блоку "до" и "после"
 	// очевидно что блок "после" идет после того как сериализируются текущий фрейм
 	void insert_content(kotek::size_t before_offset, kotek::size_t after_offset, kotek::size_t cursor_offset_current);
+	void insert_content_exchange(kotek::size_t offset_cursor_exchange,
+		kotek::size_t read_until_offset_in_file, kotek::size_t cursor_offset_of_file);
+
 	bool is_contain_control_character(const char* p_buffer, kotek::size_t& how_much_time_control_character_repeats, kotek::size_t size_of_buffer, char control_character = '\n');
 
 	ktk_filesystem_path get_full_path_of_file(const char* filename_with_extension);
@@ -58,6 +63,12 @@ private:
 	void move_content_from_exchange_to_file(
 		kotek::size_t start_offset_in_file, kotek::size_t end_offset_in_file);
 
+	void update_dependent_serialized_commands(entt::entity id_what_will_be_deleted, entt::entity id_that_replaces_what_will_be_deleted);
+	bool check_json_entry_has_entity_id(entt::entity id_what_will_be_deleted,
+		int real_size_for_json_data, kotek::size_t& current_offset,
+		kotek::json::value& json);
+	
+
 private:
 	bool m_is_changed;
 	bool m_is_first_serialize_happened;
@@ -67,6 +78,7 @@ private:
 	Kotek::Core::ktkIFileSystem* m_p_filesystem;
 	Kotek::Core::ktkIResourceManager* m_p_resource_manager;
 	zircon_scene_manager* m_p_scene_manager;
+	zircon_factory_game* m_p_factory_game;
 	kotek::size_t m_index;
 	kotek::ptrdiff_t m_cursor_index;
 	// last time max value
@@ -102,6 +114,8 @@ private:
 		m_path_to_streaming_folder;
 	unsigned char
 		m_p_memory_for_stack_parser[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
+	unsigned char
+		m_p_memory_for_stack_command_creation[zircon_DEF_MAXIMUM_COMMAND_SIZE];
 	kotek::array_t<unsigned char[zircon_DEF_MAXIMUM_COMMAND_SIZE],
 		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>
 		m_storage;

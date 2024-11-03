@@ -17,6 +17,11 @@ void zircon_factory_game::Initialize(
 	KOTEK_ASSERT(
 		p_console, "you can't pass an invalid instance of ktkConsole!");
 
+	static_assert(zircon_component_type_t::kComponentTypeUnknown <=
+			std::numeric_limits<kotek::uint8_t>::max() &&
+		"something is wrong and it is overflow you should shrink "
+	    "ZIRCON_DEF_MAXIMUM_ENTITY_COMPONENT_SIZE constant");
+
 	this->m_p_config = p_config;
 	this->m_p_console = p_console;
 }
