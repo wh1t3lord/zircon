@@ -1,14 +1,16 @@
 #pragma once
 
+#include "../../../ecs/components/zircon_component_interface.h"
+
 class zircon_factory_game;
-class zircon_manager_sdk_ui;
+class zircon_sdk_ui_interface;
 
 class zircon_sdk_ui_component_inspector
-	: public Kotek::Core::ktkISDKUIElement
+	: public kotek::core::ktkISDKUIElement
 {
 public:
 	zircon_sdk_ui_component_inspector(
-		zircon_manager_sdk_ui* p_sdk_ui, zircon_factory_game* p_factory);
+		zircon_sdk_ui_interface* p_sdk_ui, zircon_factory_game* p_factory);
 	~zircon_sdk_ui_component_inspector();
 
 	void initialize(void) override;
@@ -17,18 +19,20 @@ public:
 
 private:
 	bool HasComponentByName(
-		const Kotek::ktk::cstring& component_name_from_preprocessor,
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>& component_name_from_preprocessor,
 		entt::entity id) noexcept;
 	void CreateComponentByName(
-		const Kotek::ktk::cstring& component_name_from_preprocessor,
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_name_from_preprocessor,
 		entt::entity id) noexcept;
 	void RemoveComponentByName(
-		const Kotek::ktk::cstring& component_name_from_preprocessor,
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_name_from_preprocessor,
 		entt::entity id) noexcept;
 
 private:
-	zircon_manager_sdk_ui* m_p_manager_sdk_ui;
+	zircon_sdk_ui_interface* m_p_manager_sdk_ui;
 	zircon_factory_game* m_p_factory;
-	Kotek::ktk::cstring m_combobox_current_item;
-	Kotek::ktk::cstring m_list_selected_item_allocator;
+	const char* m_p_combobox_current_item;
+	const char* m_p_list_selected_item_allocator;
 };

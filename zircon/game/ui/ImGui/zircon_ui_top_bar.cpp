@@ -46,10 +46,10 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 					if (GetOpenFileName(&ofn) == TRUE)
 					{
 						const auto& utf8_path =
-							kotek::static_path_t(ofn.lpstrFile).u8string();
+							kotek::static_path_t(ofn.lpstrFile);
 
 						const char* p_utf8_path =
-							reinterpret_cast<const char*>(utf8_path.c_str());
+							reinterpret_cast<const char*>(utf8_path.u8string().c_str());
 
 						KOTEK_MESSAGE("opening scene: {}", p_utf8_path);
 
@@ -57,7 +57,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 							static_cast<Kotek::ktk::enum_base_t>(
 								Kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_LoadScene),
-							{p_utf8_path});
+							{utf8_path});
 					}
 #endif
 				}
@@ -124,8 +124,8 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 		auto* p_game_manager =
 			static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
-		if (p_game_manager->GetSDKUI()
-				->imgui_GetShowModalSceneSaveAndCloseOrClose())
+		if (p_game_manager->get_sdk_ui()
+				->is_imgui_show_modal_save_scene())
 		{
 			p_wrapper_imgui->OpenPopup("Modal - Save Scene");
 		}
@@ -145,10 +145,10 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 				p_main_manager->GetGameManager()->GetConsole()->PushCommand(
 					static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
-					{{"false"}});
+					{kotek::static_cstring_t<8>("false")});
 
-				p_game_manager->GetSDKUI()
-					->imgui_SetShowModalSceneSaveAndCloseOrClose(false);
+				p_game_manager->get_sdk_ui()
+					->set_imgui_show_modal_save_scene(false);
 			}
 
 			p_wrapper_imgui->SameLine();
@@ -158,10 +158,10 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 				p_main_manager->GetGameManager()->GetConsole()->PushCommand(
 					static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
-					{{"false"}});
+					{kotek::static_cstring_t<8>("false")});
 
-				p_game_manager->GetSDKUI()
-					->imgui_SetShowModalSceneSaveAndCloseOrClose(false);
+				p_game_manager->get_sdk_ui()
+					->set_imgui_show_modal_save_scene(false);
 			}
 
 			p_wrapper_imgui->EndPopup();

@@ -4,18 +4,15 @@
 // TODO: remove all cstring to static_cstring containers!!!
 zircon_command_delete_component_from_entity::
 	zircon_command_delete_component_from_entity(zircon_factory_game* p_factory,
-		entt::entity id, Kotek::ktk::cstring component_string) :
+		entt::entity id,
+		const const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_string) :
 	m_id{id},
 	m_p_factory{p_factory}
 {
 	KOTEK_ASSERT(this->m_p_factory, "you can't pass an invalid factory here");
 
-	KOTEK_ASSERT(component_string.size() <= zircon_DEF_MAX_COMPONENT_NAME_SIZE,
-		"overflow component_string > zircon_DEF_MAX_COMPONENT_NAME_SIZE({}) "
-		"(suggestion: reduce naming in class)",
-		zircon_DEF_MAX_COMPONENT_NAME_SIZE);
-
-	this->m_component_name = component_string.c_str();
+	this->m_component_name = component_string;
 
 	KOTEK_ASSERT(this->m_component_name.empty() == false,
 		"you can't pass an empty string here");
@@ -44,7 +41,8 @@ void zircon_command_delete_component_from_entity::Execute(void)
 
 				KOTEK_MESSAGE("[history] removed component by name: {} "
 							  "in entity {}",
-					this->m_component_name.c_str(), static_cast<kotek::uint32_t>(this->m_id));
+					this->m_component_name.c_str(),
+					static_cast<kotek::uint32_t>(this->m_id));
 			}
 		}
 	}
@@ -67,7 +65,8 @@ void zircon_command_delete_component_from_entity::Undo(void)
 
 				KOTEK_MESSAGE("[history][undo] restored component by "
 							  "name: {} for entity {}",
-					this->m_component_name.c_str(), static_cast<kotek::uint32_t>(this->m_id));
+					this->m_component_name.c_str(),
+					static_cast<kotek::uint32_t>(this->m_id));
 			}
 		}
 	}

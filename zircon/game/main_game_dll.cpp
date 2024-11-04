@@ -189,13 +189,12 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 				{
 					is_should_close = false;
 
-					if (p_game_manager->GetSDKUI()
-							->imgui_GetShowModalSceneSaveAndCloseOrClose() ==
-						false)
+					if (p_game_manager->get_sdk_ui()
+							->is_imgui_show_modal_save_scene() == false)
 					{
 						p_game_manager->GetConsole()->PushCommand(static_cast<
-							Kotek::ktk::enum_base_t>(
-							Kotek::Core::eConsoleCommandIndex::
+							kotek::enum_base_t>(
+							kotek::core::eConsoleCommandIndex::
 								kConsoleCommand_SDK_ShowModalWindow_SaveAndCloseOrCloseScene));
 					}
 				}
@@ -203,10 +202,10 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 				{
 					g_main_manager.GetWindow()->HideWindow();
 					p_console->PushCommand(
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eConsoleCommandIndex::
+						static_cast<kotek::enum_base_t>(
+							kotek::core::eConsoleCommandIndex::
 								kConsoleCommand_App_Close),
-						{{"false"}});
+						{kotek::static_cstring_t<8>{"false"}});
 				}
 			}
 

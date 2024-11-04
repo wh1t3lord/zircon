@@ -109,8 +109,8 @@ void zircon_sdk_ui_object_list::Draw(
 							id == this->m_selected_entity_id))
 					{
 						this->m_selected_entity_id = id;
-						p_game_manager->GetSDKUI()->imgui_SetSelectedEntity(
-							&this->m_selected_entity_id);
+						p_game_manager->get_sdk_ui()->set_selected_entity(
+							this->m_selected_entity_id);
 					}
 					++i;
 				}

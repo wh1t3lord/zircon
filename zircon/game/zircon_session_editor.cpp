@@ -170,7 +170,7 @@ void zircon_session_editor::Deserialize_Entities(
 }
 
 void zircon_session_editor::Deserialize(
-	const ktk_filesystem_path& full_path_to_file) noexcept
+	const kotek::static_path_t& full_path_to_file) noexcept
 {
 	KOTEK_ASSERT(full_path_to_file.empty() == false,
 		"you can't send an empty path here");
@@ -270,7 +270,7 @@ void zircon_session_editor::update_editing_status(void) noexcept
 					kConsoleCommand_App_AddTextToExistedWindowTitle),
 			{{static_cast<Kotek::ktk::enum_base_t>(
 				 Kotek::Core::eWindowTitleType::kTitle_CurrentSceneEditStatus)},
-				{"-- editing"}});
+				kotek::static_cstring_t<16>{"-- editing"}});
 
 		this->m_is_change_title_once_for_editing_status = true;
 	}

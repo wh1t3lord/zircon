@@ -55,7 +55,8 @@ public:
 	}
 
 	void* GetComponentByName(entt::entity id,
-		const Kotek::ktk::cstring& component_name) noexcept
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_name) noexcept
 	{
 		KOTEK_ASSERT(component_name.empty() == false,
 			"you can't pass an empty string here");
@@ -88,11 +89,10 @@ public:
 	bool HasRequiredComponentsForCreation(
 		entt::entity id, entt::id_type component_hash_id) noexcept;
 
-	bool HasRequiredComponentsForCreation(entt::entity id,
-		const Kotek::ktk::cstring& component_name) noexcept;
+	bool HasRequiredComponentsForCreation(
+		entt::entity id, const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>& component_name) noexcept;
 
-	bool HasComponent(
-		entt::entity id, entt::id_type hashed_type) noexcept
+	bool HasComponent(entt::entity id, entt::id_type hashed_type) noexcept
 	{
 		bool result{};
 
@@ -125,7 +125,8 @@ public:
 	/// @param component_name_from_preprocessor
 	/// @return
 	bool HasComponent(entt::entity id,
-		const Kotek::ktk::cstring& component_name_from_preprocessor) noexcept
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_name_from_preprocessor) noexcept
 	{
 		KOTEK_ASSERT(component_name_from_preprocessor.empty() == false,
 			"you can't pass an empty component name, because if "
@@ -160,8 +161,6 @@ public:
 			"you forgot to register your component: {}",
 			ComponentType::GetComponentName());
 
-
-
 		constexpr auto hash_id = entt::type_hash<ComponentType>::value();
 
 		if (this->HasRequiredComponentsForCreation(id, hash_id) == false)
@@ -193,10 +192,9 @@ public:
 
 		if (p_existed_storage)
 		{
-	
 			auto status =
 				p_existed_storage->push(static_cast<entt::entity>(id));
-			
+
 			if (status == p_existed_storage->end())
 			{
 				KOTEK_MESSAGE(
@@ -294,9 +292,9 @@ public:
 		return this->GetComponentByName(id, component_name);
 	}
 
-	Kotek::ktk::json::value SerializeComponentByNameToJSON(
-		entt::entity id,
-		const Kotek::ktk::cstring& component_name) noexcept
+	Kotek::ktk::json::value SerializeComponentByNameToJSON(entt::entity id,
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_name) noexcept
 	{
 		Kotek::ktk::json::value result;
 
@@ -316,9 +314,8 @@ public:
 		return result;
 	}
 
-	Kotek::ktk::json::value SerializeComponentByNameToJSON(
-		entt::entity id, const char* p_component_name,
-		unsigned char* p_raw_memory,
+	Kotek::ktk::json::value SerializeComponentByNameToJSON(entt::entity id,
+		const char* p_component_name, unsigned char* p_raw_memory,
 		Kotek::ktk::size_t raw_memory_size) noexcept
 	{
 		Kotek::ktk::json::value result;
@@ -344,8 +341,6 @@ public:
 	template <typename ComponentType>
 	void RemoveComponent(entt::entity id) noexcept
 	{
-
-
 		if (this->m_registry.valid(static_cast<entt::entity>(id)))
 		{
 			if (this->HasComponent<ComponentType>(id))
@@ -357,12 +352,11 @@ public:
 	}
 
 	void RemoveComponentByName(entt::entity id,
-		const Kotek::ktk::cstring& component_name) noexcept
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_name) noexcept
 	{
 		KOTEK_ASSERT(component_name.empty() == false,
 			"you can't pass an empty string here");
-
-
 
 		if (this->HasComponent(id, component_name))
 		{
@@ -383,7 +377,7 @@ public:
 	entt::entity CreateEntity(void) noexcept
 	{
 		auto result = this->m_registry.create();
-		
+
 		return static_cast<entt::entity>(result);
 	}
 
@@ -404,7 +398,9 @@ public:
 		return false;
 	}
 
-	const Kotek::ktk::unordered_map<Kotek::ktk::cstring, entt::id_type>&
+	const kotek::unordered_map_t<
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
+		entt::id_type>&
 	GetRegisteredComponents(void) const noexcept
 	{
 		return this->m_component_name_to_id;
@@ -453,12 +449,14 @@ public:
 
 	entt::registry& GetRegistry(void) noexcept { return this->m_registry; }
 
-	Kotek::ktk::vector<
-		Kotek::ktk::pair<Kotek::ktk::cstring, Kotek::ktk::json::value>>
+	kotek::vector_t<kotek::pair_t<
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
+		Kotek::ktk::json::value>>
 	GetAllComponentsOfEntity(entt::entity entity_id) noexcept
 	{
-		Kotek::ktk::vector<
-			Kotek::ktk::pair<Kotek::ktk::cstring, Kotek::ktk::json::value>>
+		kotek::vector_t<kotek::pair_t<
+			kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
+			Kotek::ktk::json::value>>
 			result;
 
 		entt::entity id = static_cast<entt::entity>(entity_id);
@@ -529,24 +527,27 @@ private:
 private:
 	zircon_config* m_p_config;
 	kotek::core::ktkConsole* m_p_console;
-	kotek::ktk::unordered_map<kotek::ktk::cstring, entt::id_type>
+	kotek::unordered_map_t<
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
+		entt::id_type>
 		m_component_name_to_id;
-	kotek::ktk::unordered_map<entt::id_type, kotek::ktk::cstring>
+	kotek::unordered_map_t<entt::id_type,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>>
 		m_component_id_to_name;
 
 	// for each component (if it is needed) you specify hash types
 	// of what components it depends. For example
 	// component_ui_camera will be created if component_camera
 	// exists in entity.
-	kotek::ktk::unordered_map<kotek::ktk::cstring,
-		Kotek::ktk::vector<entt::id_type>>
+	kotek::unordered_map_t<
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
+		kotek::vector_t<entt::id_type>>
 		m_component_creation_restriction_by_component_name;
 
-	kotek::ktk::unordered_map<entt::id_type,
-		kotek::ktk::vector<entt::id_type>>
+	kotek::unordered_map_t<entt::id_type, kotek::vector_t<entt::id_type>>
 		m_component_creation_restriction_by_hash;
 
-	kotek::ktk::mt::mutex m_mutex;
+	kotek::mt::mutex_t m_mutex;
 
 	entt::registry m_registry;
 };

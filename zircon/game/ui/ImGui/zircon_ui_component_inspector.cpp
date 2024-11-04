@@ -5,17 +5,17 @@
 #include "../../../core/zircon_sdk_ui.h"
 
 zircon_sdk_ui_component_inspector::zircon_sdk_ui_component_inspector(
-	zircon_manager_sdk_ui* p_sdk_ui, zircon_factory_game* p_factory) :
-	m_list_selected_item_allocator{},
-	m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
-	m_combobox_current_item{}
+	zircon_sdk_ui_interface* p_sdk_ui, zircon_factory_game* p_factory) :
+	m_p_manager_sdk_ui{p_sdk_ui},
+	m_p_factory{p_factory}, m_p_combobox_current_item{},
+	m_p_list_selected_item_allocator{}
 {
 	KOTEK_ASSERT(
 		p_factory, "you can't pass an invalid pointer to zircon_GameFactory");
 	KOTEK_ASSERT(p_sdk_ui, "must be initialized!");
 
-	this->m_combobox_current_item =
-		p_factory->GetRegisteredComponents().cbegin()->first;
+	this->m_p_combobox_current_item =
+		p_factory->GetRegisteredComponents().cbegin()->first.c_str();
 }
 
 zircon_sdk_ui_component_inspector::~zircon_sdk_ui_component_inspector() {}
@@ -33,8 +33,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 	auto* p_current_scene =
 		p_game_manager->GetSceneManager()->GetCurrentScene();
 
-	auto* selected_entity =
-		p_game_manager->GetSDKUI()->imgui_GetSelectedEntity();
+	auto selected_entity = p_game_manager->get_sdk_ui()->get_selected_entity();
 
 	Kotek::Core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
@@ -44,7 +43,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 		if (p_wrapper_imgui->Begin("Component Inspector"))
 		{
 			if (p_wrapper_imgui->BeginCombo(
-					"Add Component", this->m_combobox_current_item.c_str()))
+					"Add Component", this->m_p_combobox_current_item))
 			{
 				for (const auto& [component_name, id_type] :
 					this->m_p_factory->GetRegisteredComponents())
@@ -53,15 +52,16 @@ void zircon_sdk_ui_component_inspector::Draw(
 					bool is_need_to_show =
 						this->m_p_manager_sdk_ui
 							->is_need_to_show_component_in_widget(
-								component_name);
+								component_name.c_str());
 
 					if (is_need_to_show)
 					{
 						if (p_wrapper_imgui->Selectable(component_name.c_str(),
-								this->m_combobox_current_item ==
+								this->m_p_combobox_current_item ==
 									component_name))
 						{
-							this->m_combobox_current_item = component_name;
+							this->m_p_combobox_current_item =
+								component_name.c_str();
 						}
 					}
 				}
@@ -69,34 +69,39 @@ void zircon_sdk_ui_component_inspector::Draw(
 				p_wrapper_imgui->EndCombo();
 			}
 
-			if (selected_entity)
+			if (selected_entity != entt::null)
 			{
-				auto real_entity_id = *selected_entity;
+				auto real_entity_id = selected_entity;
 				if (p_wrapper_imgui->Button("Add component"))
 				{
 					p_game_manager->GetConsole()->Execute(
 						static_cast<Kotek::ktk::enum_base_t>(
 							Kotek::Core::eConsoleCommandIndex::
 								kConsoleCommand_SDK_CreateComponentForEntity),
-						{{this->m_combobox_current_item},
+						{kotek::static_cstring_t<
+							 zircon_DEF_MAX_COMPONENT_NAME_SIZE>{
+							 this->m_p_combobox_current_item},
 							{static_cast<kotek::uint32_t>(real_entity_id)}});
 				}
 
 				if (p_wrapper_imgui->Button("Delete component from list box"))
 				{
-					if (this->m_list_selected_item_allocator.empty() == false)
+					if (this->m_p_list_selected_item_allocator)
 					{
 						p_game_manager->GetConsole()->Execute(
 							static_cast<Kotek::ktk::enum_base_t>(
 								Kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_DeleteComponentFromEntity),
-							{{this->m_list_selected_item_allocator},
-								{static_cast<kotek::uint32_t>(real_entity_id)}});
+							{kotek::static_cstring_t<
+								 zircon_DEF_MAX_COMPONENT_NAME_SIZE>{
+								 this->m_p_list_selected_item_allocator},
+								{static_cast<kotek::uint32_t>(
+									real_entity_id)}});
 					}
 				}
 
-				p_wrapper_imgui->Text(Kotek::ktk::format(
-					"Selected entity: {}", static_cast<kotek::uint32_t>(*selected_entity))
+				p_wrapper_imgui->Text(Kotek::ktk::format("Selected entity: {}",
+					static_cast<kotek::uint32_t>(selected_entity))
 										  .c_str());
 
 				if (p_wrapper_imgui->BeginListBox("list"))
@@ -106,7 +111,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 						this->m_p_factory->GetRegisteredComponents())
 					{
 						bool is_selected =
-							(this->m_list_selected_item_allocator ==
+							(this->m_p_list_selected_item_allocator ==
 								component_name);
 
 						is_presented = this->HasComponentByName(
@@ -117,8 +122,8 @@ void zircon_sdk_ui_component_inspector::Draw(
 							if (p_wrapper_imgui->Selectable(
 									component_name.c_str(), &is_selected))
 							{
-								this->m_list_selected_item_allocator =
-									component_name;
+								this->m_p_list_selected_item_allocator =
+									component_name.c_str();
 							}
 						}
 
@@ -131,12 +136,12 @@ void zircon_sdk_ui_component_inspector::Draw(
 					p_wrapper_imgui->EndListBox();
 				}
 
-				if (this->m_list_selected_item_allocator.empty() == false)
+				if (this->m_p_list_selected_item_allocator)
 				{
 					void* p_raw_data =
 						p_game_manager->get_factory_game()->GetComponentByName(
-							*selected_entity,
-							this->m_list_selected_item_allocator);
+							selected_entity,
+							this->m_p_list_selected_item_allocator);
 
 					if (p_raw_data)
 					{
@@ -164,7 +169,8 @@ void zircon_sdk_ui_component_inspector::Draw(
 }
 
 bool zircon_sdk_ui_component_inspector::HasComponentByName(
-	const Kotek::ktk::cstring& component_name_from_preprocessor,
+	const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		component_name_from_preprocessor,
 	entt::entity id) noexcept
 {
 	bool result{};
@@ -176,7 +182,8 @@ bool zircon_sdk_ui_component_inspector::HasComponentByName(
 }
 
 void zircon_sdk_ui_component_inspector::CreateComponentByName(
-	const Kotek::ktk::cstring& component_name_from_preprocessor,
+	const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		component_name_from_preprocessor,
 	entt::entity id) noexcept
 {
 	if (component_name_from_preprocessor ==
@@ -250,7 +257,8 @@ void zircon_sdk_ui_component_inspector::CreateComponentByName(
 }
 
 void zircon_sdk_ui_component_inspector::RemoveComponentByName(
-	const Kotek::ktk::cstring& component_name_from_preprocessor,
+	const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		component_name_from_preprocessor,
 	entt::entity id) noexcept
 {
 	if (component_name_from_preprocessor ==

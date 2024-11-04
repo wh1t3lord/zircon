@@ -1,5 +1,6 @@
 #pragma once
 
+#define zircon_DEF_MAX_COMPONENT_NAME_SIZE 128
 #define zircon_DEF_JSON_SERIALIZE_COMPONENT_NAME_FIELD "m_component_name"
 #define zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(json_object, entity_class) \
 	json_object[zircon_DEF_JSON_SERIALIZE_COMPONENT_NAME_FIELD] =           \

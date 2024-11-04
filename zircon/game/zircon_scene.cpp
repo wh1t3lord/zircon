@@ -56,16 +56,11 @@ void zircon_scene::SetActor(entt::entity actor_id) noexcept
 entt::entity zircon_scene::CreateEntity(void)
 {
 	auto result = this->m_p_game_factory->CreateEntity();
-
-	this->m_p_game_manager->GetSDKUI()->AddObjectToSceneList(result);
-
 	return result;
 }
 
 bool zircon_scene::RemoveEntity(entt::entity id)
 {
 	auto result = this->m_p_game_factory->RemoveEntity(id);
-	this->m_p_game_manager->GetSDKUI()->DeleteObjectFromSceneList(id);
-
 	return result;
 }

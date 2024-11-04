@@ -1,40 +1,16 @@
 #pragma once
 
-namespace zircon
-{
-	namespace sdk
-	{
-		namespace ui
-		{
-			class zircon_frame;
-		}
-	} // namespace sdk
-} // namespace zircon
-
-class zircon_factory_game;
-
-class zircon_manager_sdk_ui
+class zircon_sdk_ui_interface
 {
 public:
-	zircon_manager_sdk_ui(zircon_factory_game* p_factory, bool is_use_sdk);
-	~zircon_manager_sdk_ui(void);
+	virtual ~zircon_sdk_ui_interface() {}
 
-	void AddObjectToSceneList(entt::entity id) noexcept;
-	void DeleteObjectFromSceneList(entt::entity id) noexcept;
+	virtual entt::entity get_selected_entity() const = 0;
+	virtual void set_selected_entity(entt::entity id) = 0;
 
-	void imgui_SetSelectedEntity(entt::entity* id) noexcept;
-	entt::entity* imgui_GetSelectedEntity(void) noexcept;
+	virtual bool is_need_to_show_component_in_widget(
+		const char* p_component_name) = 0;
 
-	void imgui_SetShowModalSceneSaveAndCloseOrClose(bool status) noexcept;
-	bool imgui_GetShowModalSceneSaveAndCloseOrClose(void) noexcept;
-
-	bool is_need_to_show_component_in_widget(
-		const kn_kotek::kn_ktk::cstring& component_name) const noexcept;
-
-private:
-	bool m_is_show_modal_scene_save;
-	bool m_is_use_sdk_imgui;
-	kn_kotek::kn_ktk::unordered_map<kn_kotek::kn_ktk::cstring, bool>
-		m_components_to_show;
-	entt::entity* m_p_view_selected_entity;
+	virtual void set_imgui_show_modal_save_scene(bool show) = 0;
+	virtual bool is_imgui_show_modal_save_scene(void) const = 0;
 };

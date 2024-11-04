@@ -14,14 +14,12 @@ namespace zircon
 } // namespace zircon
 #endif
 
-namespace Kotek
-{
-	namespace Core
-	{
-		class ktkMainManager;
-		class ktkWindow;
-	} // namespace Core
-} // namespace Kotek
+KOTEK_BEGIN_NAMESPACE_KOTEK
+KOTEK_BEGIN_NAMESPACE_CORE
+class ktkMainManager;
+class ktkWindow;
+KOTEK_END_NAMESPACE_CORE
+KOTEK_END_NAMESPACE_KOTEK
 
 enum eZirconGameFeatures;
 enum eZirconSDKFeatures;
@@ -33,18 +31,19 @@ class zircon_config;
 class zircon_factory_game;
 class zircon_scene_manager;
 class zircon_interface_session;
-class zircon_manager_sdk_ui;
+class zircon_sdk_ui_interface;
+class zircon_sdk_ui;
 class zircon_session_game;
 class zircon_session_editor;
 
-class zircon_manager_game : public Kotek::Core::ktkIGameManager
+class zircon_manager_game : public kotek::core::ktkIGameManager
 {
 public:
 	zircon_manager_game(void);
 	~zircon_manager_game(void);
 
-	void Initialize(Kotek::Core::ktkMainManager* p_main_manager) override;
-	void Shutdown(Kotek::Core::ktkMainManager* p_main_manager) override;
+	void Initialize(kotek::core::ktkMainManager* p_main_manager) override;
+	void Shutdown(kotek::core::ktkMainManager* p_main_manager) override;
 
 	void* GetWindowHandle(void) const noexcept override;
 
@@ -54,16 +53,16 @@ public:
 	sdk::ui::zircon_frame* GetMainWindow(void) const noexcept;
 #endif
 
-	zircon_manager_sdk_ui* GetSDKUI(void) const noexcept;
+	zircon_sdk_ui_interface* get_sdk_ui(void) const noexcept;
 
 	int GetWindowWidth(void) const noexcept override;
 	int GetWindowHeight(void) const noexcept override;
-	Kotek::Core::ktkProfiler* GetProfiler(void) const noexcept override;
-	Kotek::Core::ktkConsole* GetConsole(void) const noexcept override;
+	kotek::core::ktkProfiler* GetProfiler(void) const noexcept override;
+	kotek::core::ktkConsole* GetConsole(void) const noexcept override;
 
-	Kotek::Core::ktkIRenderer* GetRenderer(void) const noexcept override;
+	kotek::core::ktkIRenderer* GetRenderer(void) const noexcept override;
 	void* GetRenderResourceManager(void) const noexcept override;
-	void* CreateSurface(Kotek::Core::ktkMainManager* p_main_manager,
+	void* CreateSurface(kotek::core::ktkMainManager* p_main_manager,
 		void* p_instance, const void* p_callbacks) override;
 
 	void Update(void) noexcept;
@@ -72,12 +71,12 @@ public:
 
 	zircon_scene_manager* GetSceneManager(void) const noexcept;
 	zircon_factory_game* get_factory_game(void) const noexcept;
-	Kotek::Core::ktkWindow* GetWindow(void) const noexcept;
+	kotek::core::ktkWindow* GetWindow(void) const noexcept;
 
 	void Serialize(void) noexcept;
 	void Deserialize(void) noexcept;
 
-	Kotek::Core::ktkMainManager* GetMainManager(void) const noexcept;
+	kotek::core::ktkMainManager* GetMainManager(void) const noexcept;
 
 	zircon_command_history* GetCommandHistoryManager(void) const noexcept;
 
@@ -129,10 +128,10 @@ private:
 private:
 	bool m_is_use_sdk;
 	bool m_is_use_sdk_imgui;
-	Kotek::Core::ktkProfiler* m_p_profiler;
-	Kotek::Core::ktkConsole* m_p_console;
-	Kotek::Core::ktkMainManager* m_p_main_manager;
-	Kotek::Core::ktkIRenderer* m_p_current_renderer;
+	kotek::core::ktkProfiler* m_p_profiler;
+	kotek::core::ktkConsole* m_p_console;
+	kotek::core::ktkMainManager* m_p_main_manager;
+	kotek::core::ktkIRenderer* m_p_current_renderer;
 	zircon_renderer_gles3* m_p_renderer_gles3;
 
 #ifdef KOTEK_USE_RENDER_VULKAN
@@ -145,7 +144,7 @@ private:
 	sdk::ui::zircon_frame* m_p_sdk_main_window;
 #endif
 
-	zircon_manager_sdk_ui* m_p_sdk_ui_manager;
+	zircon_sdk_ui* m_p_sdk_ui_manager;
 	zircon_factory_game* m_p_factory;
 	zircon_scene_manager* m_p_scene_manager;
 	zircon_resource_manager* m_p_resource_manager;

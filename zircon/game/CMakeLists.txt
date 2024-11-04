@@ -71,6 +71,11 @@ set(to_include_sdk_files_commands_history
 	"zircon_command_definitions.h"
 )
 
+set(to_include_sdk_ui_manager
+	"ui/Manager/zircon_sdk_ui.h"
+	"ui/Manager/zircon_sdk_ui.cpp"
+)
+
 set(to_include_game_scene_files
 	"zircon_scene.h"
 	"zircon_scene.cpp"
@@ -124,6 +129,7 @@ add_library(${PROJECT_NAME} ${KOTEK_DEVELOPMENT_TYPE}
 	${to_include_game_session_game_files}
 	${to_include_sdk_files_command_interface}
 	${to_include_sdk_files_commands_history}
+	${to_include_sdk_ui_manager}
 )
 
 source_group("Game/Session/Interface" FILES ${to_include_game_session_interface_files})
@@ -134,6 +140,7 @@ source_group("Game/Resource Management" FILES ${to_include_game_resource_managem
 source_group("Game/Core" FILES ${to_include_game_files})
 
 source_group("SDK/ui/ImGui" FILES ${to_include_imgui_files})
+source_group("SDK/ui/Manager" FILES ${to_include_sdk_ui_manager})
 source_group("SDK/commands/" FILES ${to_include_sdk_files_commands})
 source_group("SDK/commands/history" FILES ${to_include_sdk_files_commands_history})
 

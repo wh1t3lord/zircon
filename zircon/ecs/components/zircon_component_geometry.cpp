@@ -111,8 +111,8 @@ void zircon_component_geometry::DrawImGui(
 										p_main_manager->GetGameManager());
 
 								auto entity_id =
-									p_game_manager->GetSDKUI()
-										->imgui_GetSelectedEntity();
+									p_game_manager->get_sdk_ui()
+										->get_selected_entity();
 
 								p_main_manager->GetGameManager()
 									->GetConsole()
@@ -128,7 +128,7 @@ void zircon_component_geometry::DrawImGui(
 													kWithoutCache,
 											Kotek::Core::eResourceLoadingType::
 												kModelStatic_Triangle,
-											"", static_cast<kotek::uint32_t>(*entity_id))});
+											"", static_cast<kotek::uint32_t>(entity_id))});
 							}
 						}
 

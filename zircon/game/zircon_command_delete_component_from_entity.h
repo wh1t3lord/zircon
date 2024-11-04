@@ -1,6 +1,7 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
+#include "../ecs/components/zircon_component_interface.h"
 
 class zircon_factory_game;
 
@@ -9,7 +10,9 @@ class zircon_command_delete_component_from_entity
 {
 public:
 	zircon_command_delete_component_from_entity(zircon_factory_game* p_factory,
-		entt::entity id, Kotek::ktk::cstring component_string);
+		entt::entity id,
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+			component_name);
 
 	~zircon_command_delete_component_from_entity();
 

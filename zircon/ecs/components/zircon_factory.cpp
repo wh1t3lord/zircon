@@ -10,7 +10,7 @@ zircon_factory_game::zircon_factory_game(void) : m_p_config{}
 zircon_factory_game::~zircon_factory_game(void) {}
 
 void zircon_factory_game::Initialize(
-	zircon_config* p_config, kn_kotek::kn_core::ktkConsole* p_console)
+	zircon_config* p_config, kotek::core::ktkConsole* p_console)
 {
 	KOTEK_ASSERT(
 		p_config, "you can't pass an invalid instance of zircon_config!");
@@ -56,10 +56,11 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 					if (is_enabled)
 					{
 						this->m_p_console->Execute(
-							static_cast<Kotek::ktk::enum_base_t>(
-								Kotek::Core::eConsoleCommandIndex::
+							static_cast<kotek::enum_base_t>(
+								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntity),
-							{{this->m_component_id_to_name.at(hash_id)}, {static_cast<kotek::uint32_t>(id)}});
+							{{this->m_component_id_to_name.at(hash_id)},
+								{static_cast<kotek::uint32_t>(id)}});
 						result = is_enabled;
 
 						continue;
@@ -75,7 +76,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 }
 
 bool zircon_factory_game::HasRequiredComponentsForCreation(
-	entt::entity id, const Kotek::ktk::cstring& component_name) noexcept
+	entt::entity id, const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>& component_name) noexcept
 {
 	bool result{};
 
@@ -216,6 +217,5 @@ void zircon_factory_game::validate_components_restrictions()
 				"pointless...");
 		}
 	}
-
 #endif
 }
