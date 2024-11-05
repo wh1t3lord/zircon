@@ -18,7 +18,7 @@ void zircon_sdk_ui::initialize(zircon_factory_game* p_factory_game)
 
 		for (const auto& [component_name, hash] : map_component_name_and_hash)
 		{
-			this->m_components_to_show[component_name.c_str()] = true;
+			this->m_components_to_show[component_name.data()] = true;
 		}
 
 		this->m_components_to_show

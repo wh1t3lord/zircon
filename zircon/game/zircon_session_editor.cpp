@@ -128,7 +128,7 @@ void zircon_session_editor::Serialize_Entities(
 		for (const auto& [component_name,
 				 serialized_component_to_native_json_value] : all_components)
 		{
-			entity[component_name.c_str()] =
+			entity[component_name.data()] =
 				serialized_component_to_native_json_value;
 		}
 

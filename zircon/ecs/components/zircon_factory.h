@@ -55,13 +55,14 @@ public:
 	}
 
 	void* GetComponentByName(entt::entity id,
-		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		const kotek::static_cstring_view_t&
 			component_name) noexcept
 	{
 		KOTEK_ASSERT(component_name.empty() == false,
 			"you can't pass an empty string here");
 
-		auto hashed_type = this->m_component_name_to_id.at(component_name);
+		auto hashed_type =
+			this->m_component_name_to_id.at(component_name);
 
 		auto* p_existed_storage = this->m_registry.storage(hashed_type);
 
@@ -89,8 +90,9 @@ public:
 	bool HasRequiredComponentsForCreation(
 		entt::entity id, entt::id_type component_hash_id) noexcept;
 
-	bool HasRequiredComponentsForCreation(
-		entt::entity id, const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>& component_name) noexcept;
+	bool HasRequiredComponentsForCreation(entt::entity id,
+		const kotek::static_cstring_view_t&
+			component_name) noexcept;
 
 	bool HasComponent(entt::entity id, entt::id_type hashed_type) noexcept
 	{
@@ -125,7 +127,7 @@ public:
 	/// @param component_name_from_preprocessor
 	/// @return
 	bool HasComponent(entt::entity id,
-		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		const kotek::static_cstring_view_t&
 			component_name_from_preprocessor) noexcept
 	{
 		KOTEK_ASSERT(component_name_from_preprocessor.empty() == false,
@@ -293,7 +295,7 @@ public:
 	}
 
 	Kotek::ktk::json::value SerializeComponentByNameToJSON(entt::entity id,
-		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		const kotek::static_cstring_view_t&
 			component_name) noexcept
 	{
 		Kotek::ktk::json::value result;
@@ -352,7 +354,7 @@ public:
 	}
 
 	void RemoveComponentByName(entt::entity id,
-		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		const kotek::static_cstring_view_t&
 			component_name) noexcept
 	{
 		KOTEK_ASSERT(component_name.empty() == false,
@@ -360,7 +362,8 @@ public:
 
 		if (this->HasComponent(id, component_name))
 		{
-			auto hashed_type = this->m_component_name_to_id.at(component_name);
+			auto hashed_type =
+				this->m_component_name_to_id.at(component_name);
 
 			auto* p_existed_storage = this->m_registry.storage(hashed_type);
 
@@ -398,9 +401,7 @@ public:
 		return false;
 	}
 
-	const kotek::unordered_map_t<
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
-		entt::id_type>&
+	const kotek::unordered_map_t<kotek::static_cstring_view_t, entt::id_type>&
 	GetRegisteredComponents(void) const noexcept
 	{
 		return this->m_component_name_to_id;
@@ -449,14 +450,10 @@ public:
 
 	entt::registry& GetRegistry(void) noexcept { return this->m_registry; }
 
-	kotek::vector_t<kotek::pair_t<
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
-		Kotek::ktk::json::value>>
+	kotek::vector_t<kotek::pair_t<kotek::static_cstring_view_t, Kotek::ktk::json::value>>
 	GetAllComponentsOfEntity(entt::entity entity_id) noexcept
 	{
-		kotek::vector_t<kotek::pair_t<
-			kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
-			Kotek::ktk::json::value>>
+		kotek::vector_t<kotek::pair_t<kotek::static_cstring_view_t, Kotek::ktk::json::value>>
 			result;
 
 		entt::entity id = static_cast<entt::entity>(entity_id);
@@ -480,8 +477,8 @@ public:
 						"you implemented own method that doesn't "
 						"have a valid string)");
 
-					auto p_raw_data =
-						this->GetComponentByName(entity_id, component_name);
+					auto p_raw_data = this->GetComponentByName(
+						entity_id, component_name.data());
 
 					if (p_raw_data)
 					{
@@ -527,20 +524,16 @@ private:
 private:
 	zircon_config* m_p_config;
 	kotek::core::ktkConsole* m_p_console;
-	kotek::unordered_map_t<
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
-		entt::id_type>
+	kotek::unordered_map_t<kotek::static_cstring_view_t, entt::id_type>
 		m_component_name_to_id;
-	kotek::unordered_map_t<entt::id_type,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>>
+	kotek::unordered_map_t<entt::id_type, kotek::static_cstring_view_t>
 		m_component_id_to_name;
 
 	// for each component (if it is needed) you specify hash types
 	// of what components it depends. For example
 	// component_ui_camera will be created if component_camera
 	// exists in entity.
-	kotek::unordered_map_t<
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>,
+	kotek::unordered_map_t<kotek::static_cstring_view_t,
 		kotek::vector_t<entt::id_type>>
 		m_component_creation_restriction_by_component_name;
 

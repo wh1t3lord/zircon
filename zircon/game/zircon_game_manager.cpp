@@ -1202,7 +1202,8 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntity),
 							{zircon_component_bounding_sphere::
-									GetComponentName(),
+									GetComponentName()
+										.c_str(),
 								static_cast<kotek::uint32_t>(entity_id)});
 					}
 
@@ -1354,7 +1355,8 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				KOTEK_ASSERT(args.empty() == false,
 					"you can't pass an empty argument here");
 
-				const auto& path_to_file = std::get<kotek::static_path_t>(args[0]);
+				const auto& path_to_file =
+					std::get<kotek::static_path_t>(args[0]);
 
 				p_session->Deserialize(path_to_file);
 
@@ -1520,10 +1522,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 					"not enough arguments. First argument is component "
 					"name, second is entity id");
 
-				const kotek::static_cstring_t<
-					zircon_DEF_MAX_COMPONENT_NAME_SIZE>& component_name =
-					std::get<kotek::static_cstring_t<
-						zircon_DEF_MAX_COMPONENT_NAME_SIZE>>(args[0]);
+				const auto& component_name = std::get<const char*>(args[0]);
 
 				entt::entity id = static_cast<entt::entity>(
 					std::get<kotek::uint32_t>(args[1]));
@@ -1551,8 +1550,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 					zircon_command_add_component_to_entity* p_command =
 						new (p_placement_new_memory)
 							zircon_command_add_component_to_entity(
-								this->get_factory_game(), id,
-								component_name.c_str());
+								this->get_factory_game(), id, component_name);
 
 					p_history_manager->ExecuteCommand(p_command);
 				}

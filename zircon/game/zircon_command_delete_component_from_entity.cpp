@@ -5,7 +5,7 @@
 zircon_command_delete_component_from_entity::
 	zircon_command_delete_component_from_entity(zircon_factory_game* p_factory,
 		entt::entity id,
-		const const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
+		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
 			component_string) :
 	m_id{id},
 	m_p_factory{p_factory}

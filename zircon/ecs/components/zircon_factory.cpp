@@ -76,7 +76,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 }
 
 bool zircon_factory_game::HasRequiredComponentsForCreation(
-	entt::entity id, const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>& component_name) noexcept
+	entt::entity id, const kotek::static_cstring_view_t& component_name) noexcept
 {
 	bool result{};
 
@@ -118,44 +118,44 @@ void zircon_factory_game::register_components_restrictions()
 
 void zircon_factory_game::register_components_game()
 {
-	this->m_component_name_to_id[zircon_component_actor::GetComponentName()] =
+	this->m_component_name_to_id[zircon_component_actor::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_actor>::value();
-	this->m_component_name_to_id[zircon_component_camera::GetComponentName()] =
+	this->m_component_name_to_id[zircon_component_camera::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_camera>::value();
 	this->m_component_name_to_id
-		[zircon_component_geometry::GetComponentName()] =
+		[zircon_component_geometry::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_geometry>::value();
-	this->m_component_name_to_id[zircon_component_input::GetComponentName()] =
+	this->m_component_name_to_id[zircon_component_input::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_input>::value();
 	this->m_component_name_to_id
-		[zircon_component_transform::GetComponentName()] =
+		[zircon_component_transform::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_transform>::value();
 	this->m_component_name_to_id
-		[zircon_component_visibility::GetComponentName()] =
+		[zircon_component_visibility::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_visibility>::value();
 	this->m_component_name_to_id
-		[zircon_component_sdk_scene_name::GetComponentName()] =
+		[zircon_component_sdk_scene_name::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_sdk_scene_name>::value();
 	this->m_component_name_to_id
-		[zircon_component_ui_camera::GetComponentName()] =
+		[zircon_component_ui_camera::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_ui_camera>::value();
 	this->m_component_name_to_id
-		[zircon_component_ui_surface::GetComponentName()] =
+		[zircon_component_ui_surface::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_ui_surface>::value();
-	this->m_component_name_to_id[zircon_component_frustum::GetComponentName()] =
+	this->m_component_name_to_id[zircon_component_frustum::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_frustum>::value();
 	this->m_component_name_to_id
-		[zircon_component_bounding_sphere::GetComponentName()] =
+		[zircon_component_bounding_sphere::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_bounding_sphere>::value();
 }
 
 void zircon_factory_game::register_components_sdk()
 {
 	this->m_component_name_to_id
-		[zircon_component_sdk_camera::GetComponentName()] =
+		[zircon_component_sdk_camera::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_sdk_camera>::value();
 	this->m_component_name_to_id
-		[zircon_component_sdk_input::GetComponentName()] =
+		[zircon_component_sdk_input::GetComponentName().c_str()] =
 		entt::type_hash<zircon_component_sdk_input>::value();
 }
 
@@ -165,19 +165,19 @@ void zircon_factory_game::register_components_restrictions_game()
 		"you must register components first");
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_ui_camera::GetComponentName()]
+		[zircon_component_ui_camera::GetComponentName().c_str()]
 			.push_back(entt::type_hash<zircon_component_camera>::value());
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_camera::GetComponentName()]
+		[zircon_component_camera::GetComponentName().c_str()]
 			.push_back(entt::type_hash<zircon_component_input>::value());
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_camera::GetComponentName()]
+		[zircon_component_camera::GetComponentName().c_str()]
 			.push_back(entt::type_hash<zircon_component_frustum>::value());
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_camera::GetComponentName()]
+		[zircon_component_camera::GetComponentName().c_str()]
 			.push_back(entt::type_hash<zircon_component_transform>::value());
 }
 
@@ -187,15 +187,15 @@ void zircon_factory_game::register_components_restrictions_sdk()
 		"you must register components first");
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_sdk_camera::GetComponentName()]
+		[zircon_component_sdk_camera::GetComponentName().c_str()]
 			.push_back(entt::type_hash<zircon_component_sdk_input>::value());
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_sdk_camera::GetComponentName()]
+		[zircon_component_sdk_camera::GetComponentName().c_str()]
 			.push_back(entt::type_hash<zircon_component_frustum>::value());
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_sdk_camera::GetComponentName()]
+		[zircon_component_sdk_camera::GetComponentName().c_str()]
 			.push_back(entt::type_hash<zircon_component_transform>::value());
 }
 

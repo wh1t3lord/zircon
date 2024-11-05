@@ -78,16 +78,20 @@ void zircon_command_add_component_to_entity::SetEntityID(
 	this->m_id = static_cast<entt::entity>(id);
 }
 
-Kotek::ktk::enum_base_t
+kotek::enum_base_t
 zircon_command_add_component_to_entity::GetCommandType() noexcept
 {
-	return static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
+	return static_cast<kotek::enum_base_t>(kotek::core::
 			eConsoleCommandIndex::kConsoleCommand_SDK_CreateComponentForEntity);
 }
 
-Kotek::ktk::size_t zircon_command_add_component_to_entity::Serialize(
-	Kotek::ktk::uint32_t resource_handle_id,
-	Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept
+kotek::size_t zircon_command_add_component_to_entity::Serialize(
+	kotek::uint32_t resource_handle_id,
+	kotek::core::ktkIResourceManager* p_resource_manager) noexcept
 {
+	KOTEK_ASSERT(p_resource_manager, "must be valid!");
+
+	
+
 	return 0;
 }

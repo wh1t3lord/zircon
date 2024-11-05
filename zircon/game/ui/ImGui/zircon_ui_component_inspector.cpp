@@ -15,7 +15,7 @@ zircon_sdk_ui_component_inspector::zircon_sdk_ui_component_inspector(
 	KOTEK_ASSERT(p_sdk_ui, "must be initialized!");
 
 	this->m_p_combobox_current_item =
-		p_factory->GetRegisteredComponents().cbegin()->first.c_str();
+		p_factory->GetRegisteredComponents().cbegin()->first.data();
 }
 
 zircon_sdk_ui_component_inspector::~zircon_sdk_ui_component_inspector() {}
@@ -52,16 +52,16 @@ void zircon_sdk_ui_component_inspector::Draw(
 					bool is_need_to_show =
 						this->m_p_manager_sdk_ui
 							->is_need_to_show_component_in_widget(
-								component_name.c_str());
+								component_name.data());
 
 					if (is_need_to_show)
 					{
-						if (p_wrapper_imgui->Selectable(component_name.c_str(),
+						if (p_wrapper_imgui->Selectable(component_name.data(),
 								this->m_p_combobox_current_item ==
 									component_name))
 						{
 							this->m_p_combobox_current_item =
-								component_name.c_str();
+								component_name.data();
 						}
 					}
 				}
@@ -78,9 +78,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 						static_cast<Kotek::ktk::enum_base_t>(
 							Kotek::Core::eConsoleCommandIndex::
 								kConsoleCommand_SDK_CreateComponentForEntity),
-						{kotek::static_cstring_t<
-							 zircon_DEF_MAX_COMPONENT_NAME_SIZE>{
-							 this->m_p_combobox_current_item},
+						{{this->m_p_combobox_current_item},
 							{static_cast<kotek::uint32_t>(real_entity_id)}});
 				}
 
@@ -115,15 +113,15 @@ void zircon_sdk_ui_component_inspector::Draw(
 								component_name);
 
 						is_presented = this->HasComponentByName(
-							component_name, real_entity_id);
+							component_name.data(), real_entity_id);
 
 						if (is_presented)
 						{
 							if (p_wrapper_imgui->Selectable(
-									component_name.c_str(), &is_selected))
+									component_name.data(), &is_selected))
 							{
 								this->m_p_list_selected_item_allocator =
-									component_name.c_str();
+									component_name.data();
 							}
 						}
 
