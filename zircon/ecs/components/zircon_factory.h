@@ -316,16 +316,16 @@ public:
 		return result;
 	}
 
-	Kotek::ktk::json::value SerializeComponentByNameToJSON(entt::entity id,
+	kotek::ktk::json::value SerializeComponentByNameToJSON(entt::entity id,
 		const char* p_component_name, unsigned char* p_raw_memory,
 		Kotek::ktk::size_t raw_memory_size) noexcept
 	{
-		Kotek::ktk::json::value result;
-
 		KOTEK_ASSERT(p_component_name, "invalid string");
 		KOTEK_ASSERT(strlen(p_component_name), "empty string");
 		KOTEK_ASSERT(p_raw_memory, "invalid part of memory!");
 		KOTEK_ASSERT(raw_memory_size, "can't be zero!");
+
+		kotek::ktk::json::value result;
 
 		void* p_data = this->GetComponentByName(id, p_component_name);
 

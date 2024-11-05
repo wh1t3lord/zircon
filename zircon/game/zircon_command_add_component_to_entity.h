@@ -20,16 +20,19 @@ public:
 	kotek::uint32_t GetEntityID(void) const noexcept override;
 	void SetEntityID(kotek::uint32_t id) noexcept override;
 
-	Kotek::ktk::enum_base_t GetCommandType() noexcept override;
-	Kotek::ktk::size_t Serialize(Kotek::ktk::uint32_t resource_handle_id,
-		Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept override;
+	kotek::enum_base_t GetCommandType() noexcept override;
+	kotek::size_t Serialize(kotek::uint32_t resource_handle_id,
+		kotek::core::ktkIResourceManager* p_resource_manager) noexcept override;
 
 private:
 	bool m_is_serialized;
 	entt::entity m_id;
-	const char* m_component_name;
+	const char* m_p_component_name;
 	zircon_factory_game* m_p_factory;
-	Kotek::ktk::json::value m_serialized_state_of_deleted_component;
+	kotek::ktk::json::value m_serialized_state_of_deleted_component;
+	char m_serialized_component_as_string
+		[ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE];
 	unsigned char
-		m_storage_json_memory[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
+		m_storage_json_memory[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON -
+			ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE];
 };
