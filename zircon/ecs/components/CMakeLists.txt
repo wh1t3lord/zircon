@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(zircon_enum_file_name "zircon_ecs_auto_enum_components.h")
+set(zircon_components_to_enums_file_name "zircon_factory_components_to_enums.cpp")
 
 set(to_include_module_files 
 	"zircon_ecs_components.h"
@@ -56,7 +57,11 @@ set(to_include_sdk_ecs_files
 	"zircon_component_sdk_input.cpp"
 )
 
+
+
 file(WRITE ${zircon_enum_file_name} "#pragma once")
+file(WRITE ${zircon_components_to_enums_file_name} "void zircon_factory_game::register_components_and_their_enums() 
+{")
 
 file(APPEND ${zircon_enum_file_name} "
 enum zircon_component_type_t {
@@ -80,6 +85,10 @@ foreach (filename IN LISTS filenames_list)
 	file(APPEND ${zircon_enum_file_name} "
 	kComponentType${filename},
 	")
+	file(APPEND ${zircon_components_to_enums_file_name} "
+	this->m_component_name_to_component_type_id[${filename}::GetComponentName().c_str()] = zircon_component_type_t::kComponentType${filename};")
+	file(APPEND ${zircon_components_to_enums_file_name} "
+	this->m_component_type_id_to_component_name[zircon_component_type_t::kComponentType${filename}] = ${filename}::GetComponentName().c_str();")
 endforeach()
 
 
@@ -89,6 +98,10 @@ file(APPEND ${zircon_enum_file_name} "
 ")
 file(APPEND ${zircon_enum_file_name} "
 };
+")
+
+file(APPEND ${zircon_components_to_enums_file_name} "
+}
 ")
 
 add_library(${PROJECT_NAME} STATIC

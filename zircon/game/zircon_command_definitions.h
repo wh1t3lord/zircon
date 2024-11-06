@@ -3,7 +3,8 @@
 #define zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON 4096
 #define _zircon_FINAL_STR(x) #x
 #define _zircon_STR(x) _zircon_FINAL_STR(x)
-#define zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS _zircon_STR(zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON)
+#define zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS \
+	_zircon_STR(zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON)
 #define zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS \
 	sizeof(_zircon_STR(zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON)) - 1
 #define zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY '|'
@@ -20,5 +21,15 @@
 
 #define ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE 512
 
-#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME "entity_id"
-#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME "command"
+#ifdef KOTEK_DEBUG
+	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME \
+		"entity_id"
+	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME \
+		"command"
+	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME \
+		"component_type_id"
+#else
+// TODO: at some point of time provide binary implementation of history command
+// streaming
+	#error provide optimized variant for release
+#endif

@@ -4,22 +4,51 @@
 #include <kotek.core.containers.string/include/kotek_core_containers_string.h>
 #include <kotek.core.defines_dependent.ecs/include/kotek_core_defines_dependent_ecs.h>
 
+#include "zircon_component_interface.h"
+
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
 class ktkMainManager;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
-// TODO: delete it because you need to specify real backends
-// like texture and shader
-class ktkComponentModel
+
+class zircon_component_model : public zircon_component_interface
 {
-	//		KOTEK_COMPONENT(ktkComponentModel)
+	KOTEK_COMPONENT(zircon_component_model)
 
 public:
-	ktkComponentModel(void);
-	~ktkComponentModel(void);
+	zircon_component_model(void) {}
+	~zircon_component_model(void) {}
 
-	void Clear(void) noexcept;
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept;
+	void Clear(void) noexcept {}
+
+	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override
+	{
+	}
 };
+
+#ifdef KOTEK_USE_BOOST_LIBRARY
+inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
+	Kotek::ktk::json::value& write_to, const zircon_component_model& data)
+{
+	Kotek::ktk::json::object info;
+
+	info["m_is_enabled"] = data.IsEnabled();
+
+	write_to = info;
+}
+
+inline zircon_component_model tag_invoke(
+	const Kotek::ktk::json::value_to_tag<zircon_component_model>&,
+	const Kotek::ktk::json::value& read_from)
+{
+	auto data = read_from.as_object();
+
+	zircon_component_model result;
+
+	result.SetEnabled(data.at("m_is_enabled").as_bool());
+
+	return result;
+}
+#endif

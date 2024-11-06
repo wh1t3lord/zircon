@@ -219,3 +219,5 @@ void zircon_factory_game::validate_components_restrictions()
 	}
 #endif
 }
+
+#include "zircon_factory_components_to_enums.cpp"

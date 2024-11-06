@@ -23,6 +23,7 @@ public:
 	kotek::enum_base_t GetCommandType() noexcept override;
 	kotek::size_t Serialize(kotek::uint32_t resource_handle_id,
 		kotek::core::ktkIResourceManager* p_resource_manager) noexcept override;
+	void Deserialize(const kotek::ktk::json::object& json) noexcept;
 
 private:
 	bool m_is_serialized;

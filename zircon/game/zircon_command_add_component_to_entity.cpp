@@ -204,3 +204,35 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 
 	return offset;
 }
+
+void zircon_command_add_component_to_entity::Deserialize(
+	const kotek::ktk::json::object& json) noexcept
+{
+	KOTEK_ASSERT(
+		json.find(
+			ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME) !=
+			json.end(),
+		"must exist key in json-object: {}",
+		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME);
+
+	auto type = static_cast<kotek::core::eConsoleCommandIndex>(
+		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME)
+			.to_number<kotek::enum_base_t>());
+
+	KOTEK_ASSERT(
+		static_cast<kotek::enum_base_t>(type) == this->GetCommandType(),
+		"it is not {} command what expected to be based on field {}",
+		this->GetName(),
+		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME);
+
+	KOTEK_ASSERT(
+		json.find(
+			ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME) !=
+			json.end(),
+		"must exist key in json-object: {}",
+		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME);
+
+	this->m_id = static_cast<entt::entity>(
+		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME)
+			.to_number<kotek::uint32_t>());
+}
