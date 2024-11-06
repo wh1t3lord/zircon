@@ -35,5 +35,6 @@ doc/doxygen/html/*
 user_data/
 
 zircon_ecs_auto_enum_components.h
+zircon_factory_components_to_enums.cpp
 
 imgui.ini
