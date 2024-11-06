@@ -28,13 +28,13 @@ void zircon_command_add_component_to_entity::Execute(void)
 	{
 		if (this->m_p_factory->IsValidEntity(this->m_id))
 		{
-			auto p_raw_data = this->m_p_factory->CreateComponentByName(
+			auto p_raw_data_of_component = this->m_p_factory->CreateComponentByName(
 				this->m_id, this->m_p_component_name);
 
 			if (this->m_is_serialized)
 			{
-				this->m_p_factory->DeserializeComponent(
-					p_raw_data, this->m_serialized_state_of_deleted_component);
+				this->m_p_factory->DeserializeComponent(p_raw_data_of_component,
+					this->m_serialized_state_of_deleted_component);
 			}
 
 			KOTEK_MESSAGE("[history][{}] [{}] for entity[{}]", this->GetName(),
@@ -116,6 +116,12 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		"your compnent has a reserved field already! you should use different "
 		"field for serialization not: [{}]",
 		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME);
+	
+	KOTEK_ASSERT(
+		this->m_serialized_state_of_deleted_component.get_object().find(
+			ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME) ==
+			this->m_serialized_state_of_deleted_component.get_object().end(),
+		"your component has a reserved field already! you shoud use different field for serialization not: [{}]");
 
 	auto& object = this->m_serialized_state_of_deleted_component.get_object();
 
@@ -123,6 +129,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		this->GetCommandType();
 	object[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME] =
 		static_cast<kotek::uint32_t>(this->m_id);
+
 
 	kotek::ktk::json::serializer sr;
 	sr.reset(&this->m_serialized_state_of_deleted_component);
@@ -235,4 +242,6 @@ void zircon_command_add_component_to_entity::Deserialize(
 	this->m_id = static_cast<entt::entity>(
 		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME)
 			.to_number<kotek::uint32_t>());
+
+
 }
