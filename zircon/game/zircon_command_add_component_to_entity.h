@@ -10,6 +10,8 @@ class zircon_command_add_component_to_entity
 public:
 	zircon_command_add_component_to_entity(zircon_factory_game* p_factory,
 		entt::entity id, const char* component_string);
+	// for command history
+	zircon_command_add_component_to_entity(zircon_factory_game* p_factory);
 
 	~zircon_command_add_component_to_entity();
 

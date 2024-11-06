@@ -5,6 +5,7 @@ zircon_factory_game::zircon_factory_game(void) : m_p_config{}
 {
 	this->register_components();
 	this->register_components_restrictions();
+	this->register_components_and_their_enums();
 }
 
 zircon_factory_game::~zircon_factory_game(void) {}

@@ -3,6 +3,8 @@
 
 #include "zircon_command_create_entity.h"
 #include "zircon_command_delete_entity.h"
+#include "zircon_command_add_component_to_entity.h"
+#include "zircon_command_delete_component_from_entity.h"
 
 constexpr const char* _kExchangeFileNameWithExtension = "exchange.json";
 constexpr const char* _kTempFileNameWithExtension = "temp.json";
@@ -416,6 +418,22 @@ void zircon_command_history::Undo()
 							--copy_index;
 							break;
 						}
+						case kotek::core::eConsoleCommandIndex::
+							kConsoleCommand_SDK_CreateComponentForEntity:
+						{
+							auto placement_storage =
+								this->m_storage[copy_index];
+							zircon_command_add_component_to_entity* p_command =
+								new (placement_storage)
+									zircon_command_add_component_to_entity(
+										this->m_p_factory_game);
+							p_command->Deserialize(json);
+
+							this->m_commands[copy_index] = p_command;
+
+							--copy_index;
+							break;
+						}
 						default:
 						{
 							KOTEK_ASSERT(false,
@@ -769,6 +787,20 @@ void zircon_command_history::Redo()
 								zircon_command_delete_entity(this,
 									this->m_p_scene_manager->GetCurrentScene(),
 									this->m_p_factory_game, entt::null);
+
+						p_command->Deserialize(json);
+
+						this->m_commands[i] = p_command;
+						break;
+					}
+					case kotek::core::eConsoleCommandIndex::
+						kConsoleCommand_SDK_CreateComponentForEntity:
+					{
+						auto placement_storage = this->m_storage[i];
+						zircon_command_add_component_to_entity* p_command =
+							new (placement_storage)
+								zircon_command_add_component_to_entity(
+									this->m_p_factory_game);
 
 						p_command->Deserialize(json);
 
@@ -2415,6 +2447,34 @@ void zircon_command_history::update_dependent_serialized_commands(
 							this->m_p_resource_manager);
 
 						p_command->~zircon_command_delete_entity();
+
+						std::memset(this->m_p_memory_for_stack_command_creation,
+							0,
+							sizeof(
+								this->m_p_memory_for_stack_command_creation));
+
+						break;
+					}
+					case kotek::core::eConsoleCommandIndex::
+						kConsoleCommand_SDK_CreateComponentForEntity:
+					{
+						auto placement_storage =
+							this->m_p_memory_for_stack_command_creation;
+
+						zircon_command_add_component_to_entity* p_command =
+							new (placement_storage)
+								zircon_command_add_component_to_entity(
+									this->m_p_factory_game);
+
+						p_command->Deserialize(json_data.get_object());
+						p_command->SetEntityID(static_cast<kotek::uint32_t>(
+							id_that_replaces_what_will_be_deleted));
+
+						updated_size_of_entry = p_command->Serialize(
+							this->m_file_exchange_resource_handle_id,
+							this->m_p_resource_manager);
+
+						p_command->~zircon_command_add_component_to_entity();
 
 						std::memset(this->m_p_memory_for_stack_command_creation,
 							0,
