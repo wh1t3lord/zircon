@@ -175,16 +175,24 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 
 				this->m_is_serialized = true;
 			}
-			else
+		}
+		else
+		{
+			if (this->m_p_factory->IsValidEntity(this->m_id))
 			{
-				// probably delete component from entity was issued
-				// need to copy data from delete component if it is in one frame
-				// in command history
+				if (this->m_p_factory->HasComponent(
+						this->m_id, this->m_p_component_name))
+				{
+					auto* p_raw_data_of_component =
+						this->m_p_factory->GetComponentByName(
+							this->m_id, this->m_p_component_name);
 
-				KOTEK_ASSERT(this->m_is_serialized,
-					"must be serialized because before issuing delete "
-					"component from entity we serialized data in add "
-					"component");
+					this->m_serialized_state_of_deleted_component =
+						this->m_p_factory->SerializeComponentByNameToJSON(
+							this->m_id, this->m_p_component_name,
+							this->m_storage_json_memory,
+							sizeof(this->m_storage_json_memory));
+				}
 			}
 		}
 	}
