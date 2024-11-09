@@ -8,6 +8,8 @@ class ktkMainManager;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
+#define ZIRCON_DEF_COMPONENT_SDK_SCENE_NAME_MAX_LENGTH 64
+
 class zircon_component_sdk_scene_name : public zircon_component_interface
 {
 	KOTEK_COMPONENT(zircon_component_sdk_scene_name)
@@ -16,13 +18,14 @@ public:
 	zircon_component_sdk_scene_name();
 	~zircon_component_sdk_scene_name();
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void DrawImGui(kotek::core::ktkMainManager* main_manager) noexcept override;
 
-    const Kotek::ktk::cstring& GetName(void) const noexcept;
-    void SetName(const Kotek::ktk::cstring& name) noexcept;
+	const char* GetName(void) const noexcept;
+	void SetName(const kotek::static_cstring_view_t& name) noexcept;
 
 private:
-    Kotek::ktk::cstring m_name;
+	kotek::static_cstring_t<ZIRCON_DEF_COMPONENT_SDK_SCENE_NAME_MAX_LENGTH>
+		m_name;
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
@@ -33,7 +36,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	Kotek::ktk::json::object info;
 
 	info["m_is_enabled"] = data.IsEnabled();
-    info["m_name"] = data.GetName();
+	info["m_name"] = data.GetName();
 
 	write_to = info;
 }
