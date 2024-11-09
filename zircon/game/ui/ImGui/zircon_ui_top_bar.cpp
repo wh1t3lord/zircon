@@ -48,8 +48,8 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 						const auto& utf8_path =
 							kotek::static_path_t(ofn.lpstrFile);
 
-						const char* p_utf8_path =
-							reinterpret_cast<const char*>(utf8_path.u8string().c_str());
+						const char* p_utf8_path = reinterpret_cast<const char*>(
+							utf8_path.u8string().c_str());
 
 						KOTEK_MESSAGE("opening scene: {}", p_utf8_path);
 
@@ -124,16 +124,16 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 		auto* p_game_manager =
 			static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
-		if (p_game_manager->get_sdk_ui()
-				->is_imgui_show_modal_save_scene())
+		if (p_game_manager->get_sdk_ui()->is_imgui_show_modal_save_scene())
 		{
-			p_wrapper_imgui->OpenPopup("Modal - Save Scene");
+			p_wrapper_imgui->OpenPopup("Save Scene");
 		}
 
-		if (p_wrapper_imgui->BeginPopupModal("Modal - Save Scene",
-				nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		if (p_wrapper_imgui->BeginPopupModal(
+				"Save Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			p_wrapper_imgui->Text("Do you want to save?");
+			p_wrapper_imgui->Text(
+				"Do you want to save your work before quitting?");
 
 			if (p_wrapper_imgui->Button("Yes"))
 			{
@@ -147,8 +147,8 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
 					{kotek::static_cstring_t<8>("false")});
 
-				p_game_manager->get_sdk_ui()
-					->set_imgui_show_modal_save_scene(false);
+				p_game_manager->get_sdk_ui()->set_imgui_show_modal_save_scene(
+					false);
 			}
 
 			p_wrapper_imgui->SameLine();
@@ -160,8 +160,8 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
 					{kotek::static_cstring_t<8>("false")});
 
-				p_game_manager->get_sdk_ui()
-					->set_imgui_show_modal_save_scene(false);
+				p_game_manager->get_sdk_ui()->set_imgui_show_modal_save_scene(
+					false);
 			}
 
 			p_wrapper_imgui->EndPopup();
