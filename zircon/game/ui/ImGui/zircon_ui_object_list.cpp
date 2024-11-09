@@ -84,10 +84,12 @@ void zircon_sdk_ui_object_list::Draw(
 					p_wrapper_imgui->TableNextRow();
 					p_wrapper_imgui->TableSetColumnIndex(0);
 
-					Kotek::ktk::cstring converted_id;
+					kotek::static_cstring_t<128> converted_id;
 
-					if (p_game_manager->get_factory_game()
-							->HasComponent<zircon_component_sdk_scene_name>(id))
+					bool has_sdk_name =
+						p_game_manager->get_factory_game()
+							->HasComponent<zircon_component_sdk_scene_name>(id);
+					if (has_sdk_name)
 					{
 						auto component =
 							p_game_manager->get_factory_game()
@@ -95,14 +97,13 @@ void zircon_sdk_ui_object_list::Draw(
 
 									zircon_component_sdk_scene_name>(id);
 
-						converted_id = Kotek::ktk::format("{} [{}]",
-							static_cast<kotek::uint32_t>(id),
-							component.GetName());
+						converted_id = kotek::ktk::static_format<128>("[{}]",
+							component.get_name());
 					}
 					else
 					{
-						converted_id = Kotek::ktk::format(
-							"{} {}", i, static_cast<kotek::uint32_t>(id));
+						converted_id = Kotek::ktk::static_format<128>(
+							"{}", static_cast<kotek::uint32_t>(id));
 					}
 
 					if (p_wrapper_imgui->Selectable(converted_id.c_str(),
@@ -112,6 +113,14 @@ void zircon_sdk_ui_object_list::Draw(
 						p_game_manager->get_sdk_ui()->set_selected_entity(
 							this->m_selected_entity_id);
 					}
+
+					if (has_sdk_name)
+					{
+						p_wrapper_imgui->SameLine();
+						p_wrapper_imgui->TextDisabled(
+							"(%d)", static_cast<kotek::uint32_t>(id));
+					}
+
 					++i;
 				}
 

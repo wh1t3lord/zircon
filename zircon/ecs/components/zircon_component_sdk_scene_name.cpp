@@ -27,13 +27,13 @@ void zircon_component_sdk_scene_name::DrawImGui(
 	}
 }
 
-const char* zircon_component_sdk_scene_name::GetName(
+const char* zircon_component_sdk_scene_name::get_name(
 	void) const noexcept
 {
 	return this->m_name.c_str();
 }
 
-void zircon_component_sdk_scene_name::SetName(
+void zircon_component_sdk_scene_name::set_name(
     const kotek::static_cstring_view_t& name) noexcept
 {
 	this->m_name = name.data();

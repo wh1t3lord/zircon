@@ -51,7 +51,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object geometry;
 
-	geometry["m_is_enabled"] = data.IsEnabled();
+	geometry[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	geometry["m_is_visible"] = data.is_visible();
 	geometry["m_vertex_count"] = data.GetVertexCount();
 	geometry["m_index_count"] = data.GetIndexCount();
@@ -69,7 +69,7 @@ inline zircon_component_geometry tag_invoke(
 
 	zircon_component_geometry result;
 
-	result.SetEnabled(geometry.at("m_is_enabled").as_bool());
+	result.SetEnabled(geometry.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 	result.set_visible(geometry.at("m_is_visible").as_bool());
 	result.SetVertexCount(
 		geometry.at("m_vertex_count").to_number<Kotek::ktk::size_t>());

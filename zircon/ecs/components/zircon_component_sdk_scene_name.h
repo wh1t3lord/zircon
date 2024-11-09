@@ -20,8 +20,8 @@ public:
 
 	void DrawImGui(kotek::core::ktkMainManager* main_manager) noexcept override;
 
-	const char* GetName(void) const noexcept;
-	void SetName(const kotek::static_cstring_view_t& name) noexcept;
+	const char* get_name(void) const noexcept;
+	void set_name(const kotek::static_cstring_view_t& name) noexcept;
 
 private:
 	kotek::static_cstring_t<ZIRCON_DEF_COMPONENT_SDK_SCENE_NAME_MAX_LENGTH>
@@ -35,8 +35,8 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object info;
 
-	info["m_is_enabled"] = data.IsEnabled();
-	info["m_name"] = data.GetName();
+	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	info["m_name"] = data.get_name();
 
 	write_to = info;
 }
@@ -49,8 +49,9 @@ inline zircon_component_sdk_scene_name tag_invoke(
 
 	zircon_component_sdk_scene_name result;
 
-	result.SetEnabled(data.at("m_is_enabled").as_bool());
-	result.SetName(data.at("m_name").as_string().c_str());
+	result.SetEnabled(
+		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.set_name(data.at("m_name").as_string().c_str());
 
 	return result;
 }

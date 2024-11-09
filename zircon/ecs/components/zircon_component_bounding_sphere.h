@@ -41,7 +41,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object sphere;
 
-	sphere["m_is_enabled"] = data.IsEnabled();
+	sphere[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	sphere["m_radius"] = data.get_radius();
 	sphere["m_center"] = Kotek::ktk::json::value_from(data.get_center());
 	zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(sphere, data);
@@ -57,7 +57,7 @@ inline zircon_component_bounding_sphere tag_invoke(
 
 	zircon_component_bounding_sphere result;
 
-	result.SetEnabled(sphere.at("m_is_enabled").as_bool());
+	result.SetEnabled(sphere.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 	result.set_center(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
 		sphere.at("m_center")));
 	result.set_radius(sphere.at("m_radius").to_number<float>());

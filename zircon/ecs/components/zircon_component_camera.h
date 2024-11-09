@@ -76,7 +76,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object camera;
 
-	camera["m_is_enabled"] = data.IsEnabled();
+	camera[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	camera["m_plane_near"] = data.get_plane_near();
 	camera["m_plane_far"] = data.get_plane_far();
 	camera["m_fov"] = data.get_field_of_view();
@@ -101,7 +101,7 @@ inline zircon_component_camera tag_invoke(
 
 	zircon_component_camera result;
 
-	result.SetEnabled(camera.at("m_is_enabled").as_bool());
+	result.SetEnabled(camera.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 	result.set_plane_far(camera.at("m_plane_far").to_number<float>());
 	result.set_plane_near(camera.at("m_plane_near").to_number<float>());
 	result.set_field_of_view(camera.at("m_fov").to_number<float>());

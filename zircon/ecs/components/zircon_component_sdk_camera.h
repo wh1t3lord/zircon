@@ -27,7 +27,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object info;
 
-	info["m_is_enabled"] = data.IsEnabled();
+	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	info["m_camera"] = Kotek::ktk::json::value_from(data.get_camera());
 
 	write_to = info;
@@ -41,7 +41,7 @@ inline zircon_component_sdk_camera tag_invoke(
 
 	zircon_component_sdk_camera result;
 
-	result.SetEnabled(data.at("m_is_enabled").as_bool());
+	result.SetEnabled(data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 	result.set_camera(Kotek::ktk::json::value_to<zircon_component_camera>(
 		data.at("m_camera")));
 

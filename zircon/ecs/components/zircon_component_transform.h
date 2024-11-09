@@ -44,7 +44,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object info;
 
-	info["m_is_enabled"] = data.IsEnabled();
+	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	info["m_position"] = Kotek::ktk::json::serialize(
 		Kotek::ktk::json::value_from(data.get_position()));
 	info["m_scale"] = Kotek::ktk::json::serialize(
@@ -64,7 +64,7 @@ inline zircon_component_transform tag_invoke(
 
 	zircon_component_transform result;
 
-	result.SetEnabled(data.at("m_is_enabled").as_bool());
+	result.SetEnabled(data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	result.set_position(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
 		data.at("m_position")));
