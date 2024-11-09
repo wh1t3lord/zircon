@@ -9,6 +9,7 @@ add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(zircon_enum_file_name "zircon_ecs_auto_enum_components.h")
 set(zircon_components_to_enums_file_name "zircon_factory_components_to_enums.cpp")
+set(zircon_create_component_by_enum_file_name "zircon_factory_create_component.cpp")
 
 set(to_include_module_files 
 	"zircon_ecs_components.h"
@@ -45,6 +46,7 @@ set(to_include_game_ecs_files
 
 set(to_include_game_factory_files 
 	"zircon_factory.h"
+	"zircon_factory_definitions.h"
 	"zircon_factory.cpp"
 )
 
@@ -62,6 +64,17 @@ set(to_include_sdk_ecs_files
 file(WRITE ${zircon_enum_file_name} "#pragma once")
 file(WRITE ${zircon_components_to_enums_file_name} "void zircon_factory_game::register_components_and_their_enums() 
 {")
+file(WRITE ${zircon_create_component_by_enum_file_name} "bool zircon_factory_game::create_component(entt::entity id,
+	zircon_component_type_t component_type_id,
+	kotek::ktk::json::value& serialized_component)
+{
+	bool result{};
+
+	if (this->IsValidEntity(id))
+	{
+		switch (component_type_id)
+		{
+")
 
 file(APPEND ${zircon_enum_file_name} "
 enum zircon_component_type_t {
@@ -89,6 +102,22 @@ foreach (filename IN LISTS filenames_list)
 	this->m_component_name_to_component_type_id[${filename}::GetComponentName().c_str()] = zircon_component_type_t::kComponentType${filename};")
 	file(APPEND ${zircon_components_to_enums_file_name} "
 	this->m_component_type_id_to_component_name[zircon_component_type_t::kComponentType${filename}] = ${filename}::GetComponentName().c_str();")
+	file(APPEND ${zircon_create_component_by_enum_file_name} "
+		case zircon_component_type_t::kComponentType${filename}:
+		{
+			KOTEK_ASSERT(this->HasComponent<${filename}>(id) == false, \"supposed that entity doesn't have a such component ${filename} at all! Are you sure you called a right method?\");
+
+			this->CreateComponent<${filename}>(id);
+
+			${filename}& component = this->GetComponent<${filename}>(id);
+
+			component = kotek::ktk::json::value_to<${filename}>(serialized_component);
+
+			result = true;
+
+			break;
+		}
+	")
 endforeach()
 
 
@@ -101,6 +130,13 @@ file(APPEND ${zircon_enum_file_name} "
 ")
 
 file(APPEND ${zircon_components_to_enums_file_name} "
+}
+")
+file(APPEND ${zircon_create_component_by_enum_file_name} "
+		}
+	}
+
+	return result;
 }
 ")
 

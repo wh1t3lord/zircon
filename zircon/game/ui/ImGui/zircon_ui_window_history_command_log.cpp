@@ -38,7 +38,7 @@ void zircon_ui_window_history_command_log::Draw(
 				{
 					const auto& commands = p_history->GetCommands();
 
-					char button_name[32]{};
+					char button_name[64]{};
 					for (int i = 0;
 						 i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
 					{

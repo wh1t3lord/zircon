@@ -3,9 +3,10 @@
 #include "zircon_command_definitions.h"
 
 class zircon_factory_game;
+enum zircon_component_type_t;
 
 class zircon_command_add_component_to_entity
-	: public Kotek::Core::ktkISDKRedoUndo
+	: public kotek::core::ktkISDKRedoUndo
 {
 public:
 	zircon_command_add_component_to_entity(zircon_factory_game* p_factory,
@@ -26,6 +27,10 @@ public:
 	kotek::size_t Serialize(kotek::uint32_t resource_handle_id,
 		kotek::core::ktkIResourceManager* p_resource_manager) noexcept override;
 	void Deserialize(const kotek::ktk::json::object& json) noexcept;
+
+	void serialize_state();
+	bool is_state_serialized() const noexcept;
+	zircon_component_type_t get_component_type();
 
 private:
 	bool m_is_serialized;

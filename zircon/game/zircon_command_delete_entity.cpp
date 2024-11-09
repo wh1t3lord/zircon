@@ -26,6 +26,9 @@ void zircon_command_delete_entity::Execute(void)
 		// this->m_components = this->m_p_factory->GetAllComponentsOfEntity(
 		// this->m_entity_created);
 
+		this->m_components = this->m_p_factory->get_all_components_of_entity(
+			this->m_entity_created);
+
 		this->m_p_scene->RemoveEntity(this->m_entity_created);
 
 		if (this->m_entity_created != entt::null)
@@ -42,11 +45,9 @@ void zircon_command_delete_entity::Undo(void)
 {
 	if (this->m_p_scene)
 	{
-		this->m_entity_created = this->m_p_scene->CreateEntity();
+		KOTEK_ASSERT(this->m_p_history, "you must initialize it!");
 
-		// todo: reimpl!!
-		// this->m_p_factory->CreateAllComponents(
-		// this->m_entity_created, this->m_components);
+		this->m_entity_created = this->m_p_scene->CreateEntity();
 
 		if (this->m_entity_previous_id != entt::null &&
 			this->m_entity_created != this->m_entity_previous_id)
@@ -55,6 +56,39 @@ void zircon_command_delete_entity::Undo(void)
 			{
 				this->m_p_history->update_dependent_commands(
 					this->m_entity_previous_id, this->m_entity_created);
+
+				if (this->m_components.empty() == false)
+				{
+					kotek::ktk::json::static_resource storage(
+						this->m_p_placement_new_memory);
+
+					for (zircon_component_type_t& type_id : this->m_components)
+					{
+						kotek::ktk::json::value serialized_component(&storage);
+						bool status =
+							this->m_p_history
+								->get_serialized_component_by_entity_and_component_type_id(
+									serialized_component,
+									this->m_entity_created, type_id);
+
+						if (status)
+						{
+							this->m_p_factory->create_component(
+								this->m_entity_created, type_id,
+								serialized_component);
+						}
+#ifdef KOTEK_DEBUG
+						else
+						{
+							KOTEK_TRACE(
+								"couldn't obtain component {} from entity {}",
+								static_cast<kotek::uint32_t>(type_id),
+								static_cast<kotek::uint32_t>(
+									this->m_entity_created));
+						}
+#endif
+					}
+				}
 			}
 		}
 
@@ -101,6 +135,15 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 		this->GetCommandType();
 	object[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME] =
 		static_cast<kotek::uint32_t>(this->m_entity_created);
+	auto& serializing_ids =
+		object
+			[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME]
+				.emplace_array();
+
+	for (const zircon_component_type_t& type_id : this->m_components)
+	{
+		serializing_ids.push_back(static_cast<kotek::uint32_t>(type_id));
+	}
 
 	kotek::ktk::json::serializer sr;
 	sr.reset(&out);
@@ -200,4 +243,27 @@ void zircon_command_delete_entity::Deserialize(
 		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME)
 			.to_number<kotek::uint32_t>());
 	this->m_entity_previous_id = this->m_entity_created;
+
+	KOTEK_ASSERT(
+		json.find(
+			ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME) !=
+			json.end(),
+		"you must serialize a such field: {} but the content might be empty",
+		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME);
+
+	const auto& serialized_components =
+		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME)
+			.as_array();
+
+	if (serialized_components.empty() == false)
+	{
+		for (auto& value : serialized_components)
+		{
+			zircon_component_type_t type_id =
+				static_cast<zircon_component_type_t>(
+					value.to_number<kotek::uint32_t>());
+
+			this->m_components.push_back(type_id);
+		}
+	}
 }

@@ -1572,20 +1572,22 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 					"not enough arguments. First argument is "
 					"component_name, Second argument is id");
 
-				const kotek::static_cstring_t<
-					zircon_DEF_MAX_COMPONENT_NAME_SIZE>& component_name =
-					std::get<kotek::static_cstring_t<
-						zircon_DEF_MAX_COMPONENT_NAME_SIZE>>(args[0]);
+				const auto& p_component_name = std::get<const char*>(args[0]);
 
 				entt::entity id = static_cast<entt::entity>(
 					std::get<kotek::uint32_t>(args[1]));
 
 				if (this->get_factory_game()->GetComponentByName(
-						id, component_name))
+						id, p_component_name))
 				{
+					auto* p_placement_new_memory =
+						p_history_manager->allocate_memory_for_command(
+							sizeof(zircon_command_delete_component_from_entity),
+							"zircon_command_delete_component_from_entity");
+
 					zircon_command_delete_component_from_entity* p_command =
-						new zircon_command_delete_component_from_entity(
-							this->get_factory_game(), id, component_name);
+						new (p_placement_new_memory) zircon_command_delete_component_from_entity(
+							this->get_factory_game(), id, p_component_name);
 
 					p_history_manager->ExecuteCommand(p_command);
 				}

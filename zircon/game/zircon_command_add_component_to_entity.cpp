@@ -157,20 +157,35 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		{
 			KOTEK_ASSERT(
 				this->m_p_factory->IsValidEntity(this->m_id), "must be valid!");
-			KOTEK_ASSERT(this->m_p_factory->HasComponent(
-							 this->m_id, this->m_p_component_name),
-				"must has a component otherwise something is broken in order "
-			    "of execution!");
 
-			auto* p_raw_data_of_component = this->m_p_factory->GetComponentByName(
+			bool has_component = this->m_p_factory->HasComponent(
 				this->m_id, this->m_p_component_name);
 
-			this->m_serialized_state_of_deleted_component =
-				this->m_p_factory->SerializeComponentByNameToJSON(this->m_id,
-					this->m_p_component_name, this->m_storage_json_memory,
-					sizeof(this->m_storage_json_memory));
+			if (has_component)
+			{
+				auto* p_raw_data_of_component =
+					this->m_p_factory->GetComponentByName(
+						this->m_id, this->m_p_component_name);
 
-			this->m_is_serialized = true;
+				this->m_serialized_state_of_deleted_component =
+					this->m_p_factory->SerializeComponentByNameToJSON(
+						this->m_id, this->m_p_component_name,
+						this->m_storage_json_memory,
+						sizeof(this->m_storage_json_memory));
+
+				this->m_is_serialized = true;
+			}
+			else
+			{
+				// probably delete component from entity was issued
+				// need to copy data from delete component if it is in one frame
+				// in command history
+
+				KOTEK_ASSERT(this->m_is_serialized,
+					"must be serialized because before issuing delete "
+					"component from entity we serialized data in add "
+					"component");
+			}
 		}
 	}
 
@@ -315,4 +330,62 @@ void zircon_command_add_component_to_entity::Deserialize(
 	object = json;
 	this->m_serialized_state_of_deleted_component = out;
 	this->m_is_serialized = true;
+}
+
+void zircon_command_add_component_to_entity::serialize_state()
+{
+	if (this->m_is_serialized == false)
+	{
+		KOTEK_ASSERT(this->m_p_factory, "must be initialized");
+		KOTEK_ASSERT(
+			this->m_p_factory->IsValidEntity(this->m_id), "entity must exist");
+		KOTEK_ASSERT(this->m_p_component_name, "must be valid pointer");
+		KOTEK_ASSERT(
+			strlen(this->m_p_component_name), "must be not empty string");
+		KOTEK_ASSERT(this->m_p_factory->HasComponent(
+						 this->m_id, this->m_p_component_name),
+			"must exist otherwise wrong calling!");
+
+		if (this->m_p_factory)
+		{
+			auto* p_raw_data_of_component =
+				this->m_p_factory->GetComponentByName(
+					this->m_id, this->m_p_component_name);
+
+			this->m_serialized_state_of_deleted_component =
+				this->m_p_factory->SerializeComponentByNameToJSON(this->m_id,
+					this->m_p_component_name, this->m_storage_json_memory,
+					sizeof(this->m_storage_json_memory));
+
+			this->m_is_serialized = true;
+		}
+	}
+}
+
+bool zircon_command_add_component_to_entity::is_state_serialized()
+	const noexcept
+{
+	return this->m_is_serialized;
+}
+
+zircon_component_type_t
+zircon_command_add_component_to_entity::get_component_type()
+{
+	KOTEK_ASSERT(this->m_p_factory, "early calling, must be initialized");
+	KOTEK_ASSERT(this->m_p_component_name, "must be valid!");
+	KOTEK_ASSERT(strlen(this->m_p_component_name), "must be not empty!");
+
+	zircon_component_type_t result =
+		zircon_component_type_t::kComponentTypeUnknown;
+
+	if (this->m_p_factory)
+	{
+		if (this->m_p_component_name)
+		{
+			result = this->m_p_factory->get_component_type_id_by_component_name(
+				this->m_p_component_name);
+		}
+	}
+
+	return result;
 }

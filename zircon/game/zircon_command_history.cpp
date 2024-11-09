@@ -123,6 +123,78 @@ void zircon_command_history::ExecuteCommand(
 	//	static_cast<size_t>(zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE);
 
 	this->m_commands[this->m_index] = p_command;
+
+	if (p_command->GetCommandType() ==
+		static_cast<kotek::enum_base_t>(kotek::core::eConsoleCommandIndex::
+				kConsoleCommand_SDK_DeleteComponentFromEntity))
+	{
+		// trying to find a component that relates to add component from entity
+		// where entity is same as in delete component otherwise serialization
+		// of add component is invalid because the serialization state was never
+		// issued when frame moves next
+		zircon_command_delete_component_from_entity* p_casted_command =
+			static_cast<zircon_command_delete_component_from_entity*>(
+				p_command);
+
+		for (auto* p_cmd : this->m_commands)
+		{
+			if (p_cmd)
+			{
+				if (p_cmd->GetCommandType() ==
+					static_cast<kotek::enum_base_t>(
+						kotek::core::eConsoleCommandIndex::
+							kConsoleCommand_SDK_CreateComponentForEntity))
+				{
+					if (p_cmd->GetEntityID() == p_command->GetEntityID())
+					{
+						// we found or add component version, so we need
+						// serialize it but only that relates to the same
+						// component and entity
+
+						zircon_command_add_component_to_entity* p_casted_cmd =
+							static_cast<
+								zircon_command_add_component_to_entity*>(p_cmd);
+
+						if (p_casted_command->get_component_type() ==
+							p_casted_cmd->get_component_type())
+						{
+							p_casted_cmd->serialize_state();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (p_command->GetCommandType() ==
+		static_cast<kotek::enum_base_t>(kotek::core::eConsoleCommandIndex::
+				kConsoleCommand_SDK_DeleteEntity))
+	{
+		zircon_command_delete_entity* p_casted_command =
+			static_cast<zircon_command_delete_entity*>(p_command);
+
+		for (auto* p_cmd : this->m_commands)
+		{
+			if (p_cmd)
+			{
+				if (p_cmd->GetCommandType() ==
+					static_cast<kotek::enum_base_t>(
+						kotek::core::eConsoleCommandIndex::
+							kConsoleCommand_SDK_CreateComponentForEntity))
+				{
+					if (p_cmd->GetEntityID() == p_command->GetEntityID())
+					{
+						zircon_command_add_component_to_entity* p_casted_cmd =
+							static_cast<
+								zircon_command_add_component_to_entity*>(p_cmd);
+
+						p_casted_cmd->serialize_state();
+					}
+				}
+			}
+		}
+	}
+
 	p_command->Execute();
 
 	set_changed(true);
@@ -431,6 +503,23 @@ void zircon_command_history::Undo()
 
 							this->m_commands[copy_index] = p_command;
 
+							--copy_index;
+							break;
+						}
+						case kotek::core::eConsoleCommandIndex::
+							kConsoleCommand_SDK_DeleteComponentFromEntity:
+						{
+							auto placement_storage =
+								this->m_storage[copy_index];
+
+							zircon_command_delete_component_from_entity*
+								p_command = new (placement_storage)
+									zircon_command_delete_component_from_entity(
+										this->m_p_factory_game);
+
+							p_command->Deserialize(json);
+
+							this->m_commands[copy_index] = p_command;
 							--copy_index;
 							break;
 						}
@@ -807,6 +896,20 @@ void zircon_command_history::Redo()
 						this->m_commands[i] = p_command;
 						break;
 					}
+					case kotek::core::eConsoleCommandIndex::
+						kConsoleCommand_SDK_DeleteComponentFromEntity:
+					{
+						auto placement_storage = this->m_storage[i];
+						zircon_command_delete_component_from_entity* p_command =
+							new (placement_storage)
+								zircon_command_delete_component_from_entity(
+									this->m_p_factory_game);
+
+						p_command->Deserialize(json);
+
+						this->m_commands[i] = p_command;
+						break;
+					}
 					default:
 					{
 						KOTEK_ASSERT(false,
@@ -968,6 +1071,151 @@ kotek::size_t zircon_command_history::get_current_index(void) const
 kotek::ptrdiff_t zircon_command_history::get_cursor_index(void) const
 {
 	return this->m_cursor_index;
+}
+
+bool zircon_command_history::
+	get_serialized_component_by_entity_and_component_type_id(
+		kotek::ktk::json::value&
+			constructed_value_on_stack_based_on_placement_new_memory,
+		entt::entity id, zircon_component_type_t type_id)
+{
+	KOTEK_ASSERT(
+		this->m_p_resource_manager, "early calling, must be initialized!");
+
+	bool result{};
+
+	if (this->m_p_resource_manager)
+	{
+		if (this->m_p_resource_manager->Is_Open(
+				this->m_file_resource_handle_id))
+
+		{
+			kotek::size_t restored_offset = this->m_p_resource_manager->Tellg(
+				this->m_file_resource_handle_id);
+
+			this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
+				0, kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
+
+			kotek::size_t file_size = this->m_p_resource_manager->Tellg(
+				this->m_file_resource_handle_id);
+
+			kotek::size_t current_offset{};
+
+			char stream_buffer_for_json_data
+				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
+
+			char buffer[sizeof(
+				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS)]{};
+
+			this->reopen_exchange_file(
+				this->m_file_exchange_resource_handle_id);
+
+			this->m_p_resource_manager->Seekg(
+				this->m_file_exchange_resource_handle_id, 0,
+				kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
+
+			this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
+				0, kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
+
+			while (current_offset < file_size)
+			{
+				std::memset(buffer, 0, sizeof(buffer));
+
+				kotek::size_t current_section_offset_begin{current_offset};
+				kotek::size_t current_section_offset_end{};
+
+				this->m_p_resource_manager->Read(
+					this->m_file_resource_handle_id, buffer, sizeof(buffer));
+
+				if (buffer
+						[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] ==
+					zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY)
+				{
+					auto test_current_offset = current_offset;
+					test_current_offset += sizeof(buffer);
+
+					this->m_p_resource_manager->Seekg(
+						this->m_file_resource_handle_id, 0,
+						kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
+
+					auto file_size = this->m_p_resource_manager->Tellg(
+						this->m_file_resource_handle_id);
+
+					// we reached end of file, so we can't move further,
+					// making leaving from this stack...
+					if (test_current_offset == file_size)
+					{
+						break;
+					}
+					else
+					{
+						// everything is fine we can move further
+						current_offset += sizeof(buffer);
+						this->m_p_resource_manager->Seekg(
+							this->m_file_resource_handle_id, current_offset,
+							kotek::core::eFileSeekDirectionType::
+								kSeekDirectionBegin);
+
+						this->m_p_resource_manager->Read(
+							this->m_file_resource_handle_id, buffer,
+							sizeof(buffer));
+					}
+				}
+
+				KOTEK_ASSERT(
+					buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] !=
+						zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY,
+					"that means we are reading for going to back (to "
+					"the "
+					"beginning of file) that's not correct and data "
+					"might "
+					"be corrupted, check everything again!");
+
+				auto offset_for_json_data = std::atoi(buffer);
+
+				current_offset += sizeof(buffer) + 2;
+
+				auto real_size_for_json_data = offset_for_json_data - 2;
+
+				this->m_p_resource_manager->Seekg(
+					this->m_file_resource_handle_id, current_offset,
+					kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
+
+				kotek::json::value json_data;
+
+				bool is_contain =
+					this->check_json_entry_has_entity_id_and_component_type_id(
+						id, type_id, real_size_for_json_data, current_offset,
+						json_data);
+
+				if (is_contain)
+				{
+					constructed_value_on_stack_based_on_placement_new_memory =
+						json_data;
+					result = true;
+					break;
+				}
+				else
+				{
+					this->m_p_resource_manager->Seekg(
+						this->m_file_resource_handle_id, current_offset,
+						kotek::core::eFileSeekDirectionType::
+							kSeekDirectionBegin);
+
+					if (current_offset + sizeof(buffer) == file_size)
+					{
+						break;
+					}
+				}
+			}
+
+			this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
+				restored_offset,
+				kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
+		}
+	}
+
+	return result;
 }
 
 void zircon_command_history::unload_content()
@@ -2483,6 +2731,34 @@ void zircon_command_history::update_dependent_serialized_commands(
 
 						break;
 					}
+					case kotek::core::eConsoleCommandIndex::
+						kConsoleCommand_SDK_DeleteComponentFromEntity:
+					{
+						auto placement_storage =
+							this->m_p_memory_for_stack_command_creation;
+
+						zircon_command_delete_component_from_entity* p_command =
+							new (placement_storage)
+								zircon_command_delete_component_from_entity(
+									this->m_p_factory_game);
+
+						p_command->Deserialize(json_data.get_object());
+						p_command->SetEntityID(static_cast<kotek::uint32_t>(
+							id_that_replaces_what_will_be_deleted));
+
+						updated_size_of_entry = p_command->Serialize(
+							this->m_file_exchange_resource_handle_id,
+							this->m_p_resource_manager);
+
+						p_command
+							->~zircon_command_delete_component_from_entity();
+
+						std::memset(this->m_p_memory_for_stack_command_creation,
+							0,
+							sizeof(
+								this->m_p_memory_for_stack_command_creation));
+						break;
+					}
 					default:
 					{
 						KOTEK_ASSERT(false,
@@ -2670,14 +2946,154 @@ bool zircon_command_history::check_json_entry_has_entity_id(
 
 			auto& map = json.as_object();
 
-			if (map.find("entity_id") != map.end())
+			if (map.find(
+					ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME) !=
+				map.end())
 			{
-				kotek::uint32_t entity_id = static_cast<kotek::uint32_t>(
-					map.at("entity_id").as_int64());
+				kotek::uint32_t entity_id =
+					(map.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME)
+							.to_number<kotek::uint32_t>());
 
 				result = static_cast<entt::entity>(entity_id) ==
 					id_what_will_be_deleted;
 			}
+		}
+	}
+
+	current_offset = copy_offset;
+
+	return result;
+}
+
+bool zircon_command_history::
+	check_json_entry_has_entity_id_and_component_type_id(entt::entity id,
+		zircon_component_type_t type_id, int real_size_for_json_data,
+		kotek::size_t& current_offset, kotek::ktk::json::value& json)
+{
+	kotek::size_t copy_offset = current_offset;
+
+	bool result{};
+
+	bool found_entity_id{};
+	bool found_component_type_id{};
+
+	if (this->m_p_resource_manager)
+	{
+		if (this->m_p_resource_manager->Is_Open(
+				this->m_file_resource_handle_id))
+		{
+			kotek::json::stream_parser parser;
+			kotek::json::static_resource storage_ptr(
+				this->m_p_memory_for_stack_parser);
+			parser.reset(&storage_ptr);
+
+			char stream_buffer_for_json_data
+				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
+
+			if (real_size_for_json_data > zircon_DEF_STREAM_JSON_STACK_SIZE)
+			{
+				int counter{real_size_for_json_data};
+				auto prev_size{copy_offset};
+
+				while (counter > 0)
+				{
+					if (counter > zircon_DEF_STREAM_JSON_STACK_SIZE)
+					{
+						this->m_p_resource_manager->Read(
+							this->m_file_resource_handle_id,
+							stream_buffer_for_json_data,
+							sizeof(stream_buffer_for_json_data));
+						copy_offset += zircon_DEF_STREAM_JSON_STACK_SIZE;
+						this->m_p_resource_manager->Seekg(
+							this->m_file_resource_handle_id, copy_offset,
+							kotek::core::eFileSeekDirectionType::
+								kSeekDirectionBegin);
+					}
+					else
+					{
+						this->m_p_resource_manager->Read(
+							this->m_file_resource_handle_id,
+							stream_buffer_for_json_data, counter);
+						copy_offset += counter;
+					}
+
+					if (counter > zircon_DEF_STREAM_JSON_STACK_SIZE)
+					{
+						parser.write(stream_buffer_for_json_data,
+							sizeof(stream_buffer_for_json_data));
+					}
+					else
+					{
+						parser.write(stream_buffer_for_json_data, counter);
+					}
+
+					counter -= zircon_DEF_STREAM_JSON_STACK_SIZE;
+					std::memset(stream_buffer_for_json_data, 0,
+						sizeof(stream_buffer_for_json_data));
+				}
+
+				KOTEK_ASSERT(
+					(copy_offset - real_size_for_json_data) == prev_size,
+					"wrong calculations! after parsing you have to "
+					"get exactly the same size as you minused "
+					"offset_for_json_data! curret_offset:[{}] "
+					"real_size_for_json_data:[{}] dif:[{}] "
+					"prev_size:[{}]",
+					copy_offset, real_size_for_json_data,
+					(copy_offset - real_size_for_json_data), prev_size);
+
+				if (copy_offset > 0)
+					copy_offset += 2;
+
+				auto status = parser.done();
+
+				KOTEK_ASSERT(status, "must be valid json!");
+			}
+			else
+			{
+				this->m_p_resource_manager->Read(
+					this->m_file_resource_handle_id,
+					stream_buffer_for_json_data, real_size_for_json_data);
+				parser.write(stream_buffer_for_json_data);
+				auto status = parser.done();
+				KOTEK_ASSERT(status, "must be valid json in stream buffer!");
+
+				copy_offset += real_size_for_json_data;
+
+				if (copy_offset > 0)
+					copy_offset += 2;
+			}
+
+			json = parser.release();
+
+			KOTEK_ASSERT(json.is_object(), "must be object!");
+
+			auto& map = json.as_object();
+
+			if (map.find(
+					ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME) !=
+				map.end())
+			{
+				kotek::uint32_t entity_id =
+					(map.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME)
+							.to_number<kotek::uint32_t>());
+
+				found_entity_id = static_cast<entt::entity>(entity_id) == id;
+			}
+
+			if (map.find(
+					ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME) !=
+				map.end())
+			{
+				zircon_component_type_t restored_type_id = static_cast<
+					zircon_component_type_t>(
+					map.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME)
+						.to_number<kotek::uint32_t>());
+
+				found_component_type_id = restored_type_id == type_id;
+			}
+
+			result = found_component_type_id && found_entity_id;
 		}
 	}
 

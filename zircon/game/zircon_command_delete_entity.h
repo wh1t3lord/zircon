@@ -1,10 +1,13 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
+#include "../ecs/components/zircon_factory_definitions.h"
 
 class zircon_factory_game;
 class zircon_command_history;
 class zircon_scene;
+
+enum zircon_component_type_t;
 
 // TODO: implement streaming of json size of 30k+ while we are limited in our
 // storage
@@ -35,9 +38,13 @@ private:
 	zircon_factory_game* m_p_factory;
 	entt::entity m_entity_created;
 	entt::entity m_entity_previous_id;
+	kotek::static_vector_t<zircon_component_type_t,
+		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
+		m_components;
 	char m_p_serialized_json_as_string
 		[ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE];
-	unsigned char
-		m_p_placement_new_memory[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON - ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE];
-
+	unsigned char m_p_placement_new_memory
+		[(zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON -
+			 ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE) -
+			sizeof(m_components)];
 };

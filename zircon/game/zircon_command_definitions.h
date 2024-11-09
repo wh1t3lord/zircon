@@ -10,7 +10,6 @@
 #define zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY '|'
 #define zircon_DEF_MAXIMUM_COMMAND_SIZE 65536
 #define zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE 10
-#define zircon_DEF_MAXIMUM_ENTITY_COMPONENT_SIZE 256
 
 // xxxxxx_y where x count of file on disk like 999999 means literally 999999
 // numbers, but y means write line 10 interprets from 0 to 9 and thus only one
@@ -28,6 +27,8 @@
 		"command"
 	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME \
 		"component_type_id"
+	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME \
+		"component_type_ids"
 #else
 // TODO: at some point of time provide binary implementation of history command
 // streaming

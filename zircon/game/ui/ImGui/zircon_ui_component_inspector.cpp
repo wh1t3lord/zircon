@@ -90,9 +90,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 							static_cast<Kotek::ktk::enum_base_t>(
 								Kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_DeleteComponentFromEntity),
-							{kotek::static_cstring_t<
-								 zircon_DEF_MAX_COMPONENT_NAME_SIZE>{
-								 this->m_p_list_selected_item_allocator},
+							{{this->m_p_list_selected_item_allocator},
 								{static_cast<kotek::uint32_t>(
 									real_entity_id)}});
 					}

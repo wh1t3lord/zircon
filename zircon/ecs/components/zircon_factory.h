@@ -23,6 +23,8 @@
 #include "zircon_component_sdk_camera.h"
 #include "zircon_component_sdk_input.h"
 
+#include "zircon_factory_definitions.h"
+
 class zircon_config;
 
 class zircon_factory_game
@@ -524,8 +526,8 @@ public:
 	kotek::static_cstring_view_t get_component_name_by_component_type_id(
 		zircon_component_type_t type) const noexcept
 	{
-		KOTEK_ASSERT(this->m_component_type_id_to_component_name.find(type) !=
-				this->m_component_type_id_to_component_name.end(),
+		KOTEK_ASSERT(
+			type <= this->m_component_type_id_to_component_name.size() - 1,
 			"you forgot to register component type: {} or early calling!",
 			static_cast<kotek::enum_base_t>(type));
 
@@ -533,14 +535,39 @@ public:
 
 		kotek::static_cstring_view_t result(_UnknownComponentName);
 
-		if (this->m_component_type_id_to_component_name.find(type) !=
-			this->m_component_type_id_to_component_name.end())
+		if (type <= this->m_component_type_id_to_component_name.size() - 1)
 		{
 			result = this->m_component_type_id_to_component_name.at(type);
 		}
 
 		return result;
 	}
+
+	kotek::static_vector_t<zircon_component_type_t, zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
+	get_all_components_of_entity(entt::entity id) noexcept
+	{
+		kotek::static_vector_t<zircon_component_type_t,
+			zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
+			result;
+
+		if (this->IsValidEntity(id))
+		{
+			for (const auto& [component_name, component_hashed_type] :
+				this->m_component_name_to_id)
+			{
+				if (this->HasComponent(id, component_hashed_type))
+				{
+					result.push_back(
+						this->get_component_type_id_by_component_name(
+							component_name));
+				}
+			}
+		}
+
+		return result;
+	}
+
+	bool create_component(entt::entity id, zircon_component_type_t component_type_id,  kotek::ktk::json::value& serialized_component);
 
 private:
 	template <typename ComponentType>
@@ -576,8 +603,9 @@ private:
 	kotek::unordered_map_t<kotek::static_cstring_view_t,
 		zircon_component_type_t>
 		m_component_name_to_component_type_id;
-	kotek::unordered_map_t<zircon_component_type_t,
-		kotek::static_cstring_view_t>
+	// look-up table instead of hash table
+	kotek::static_array_t<kotek::static_cstring_view_t,
+		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_component_type_id_to_component_name;
 
 	// for each component (if it is needed) you specify hash types
