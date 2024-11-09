@@ -13,9 +13,15 @@ void zircon_component_sdk_scene_name::DrawImGui(
 	{
 		if (p_wrapper_imgui->CollapsingHeader("Scene name"))
 		{
-			if (p_wrapper_imgui->InputText("Name", this->m_name.data(),
+			char buffer[ZIRCON_DEF_COMPONENT_SDK_SCENE_NAME_MAX_LENGTH]{};
+
+			kotek::ktk::memory::memcpy(buffer, this->m_name.data(),
+				ZIRCON_DEF_COMPONENT_SDK_SCENE_NAME_MAX_LENGTH);
+
+			if (p_wrapper_imgui->InputText("Name", buffer,
 					ZIRCON_DEF_COMPONENT_SDK_SCENE_NAME_MAX_LENGTH))
 			{
+				this->m_name = buffer;
 			}
 		}
 	}
