@@ -1,10 +1,18 @@
 #include "zircon_render_graph_pass_model_static.h"
-#include <kotek.render.gl/include/kotek_render_graph_simplified_node.h>
 #include <kotek.render.gl/include/kotek_render_resource_manager.h>
 #include <kotek.render.gl/include/kotek_render_geometry_manager.h>
 
 #include "../../ecs/components/zircon_factory.h"
 #include "../../game/zircon_game_manager.h"
+
+zircon_render_graph_pass_model_static_gles3::
+	zircon_render_graph_pass_model_static_gles3(
+		const kotek::static_u8string_view_t& render_pass_name) :
+	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
+		render_pass_name.data()),
+	m_p_factory{}, m_p_manager_render_resource{}
+{
+}
 
 zircon_render_graph_pass_model_static_gles3::
 	zircon_render_graph_pass_model_static_gles3() :
@@ -18,6 +26,7 @@ zircon_render_graph_pass_model_static_gles3::
 {
 }
 
+/*
 void zircon_render_graph_pass_model_static_gles3::OnSetupInput(
 	kn_kotek::kn_render::kn_render_gl::ktkRenderGraphSimplifiedStorageInput&
 		storage,
@@ -78,36 +87,45 @@ void zircon_render_graph_pass_model_static_gles3::OnSetupInput(
 		kn_kotek::kn_render::kn_render_gl::ktkRenderResourceManager*>(
 		this->m_p_manager_resource);
 }
+*/
 
-void zircon_render_graph_pass_model_static_gles3::OnSetupOutput(
-	kn_kotek::kn_render::kn_render_gl::ktkRenderGraphSimplifiedStorageOutput&
-		storage,
-	kn_kotek::kn_core::ktkIRenderDevice* p_device)
+void zircon_render_graph_pass_model_static_gles3::OnCreateResources(
+	kotek::core::ktkMainManager* p_manager_main,
+	kotek::core::ktkIRenderResourceManager* p_manager_resource)
+{
+	this->m_p_manager_render_resource =
+		dynamic_cast<kotek::render::gl::ktkRenderResourceManager*>(
+			p_manager_resource);
+
+	KOTEK_ASSERT(
+		this->m_p_manager_render_resource, "must be a valid resource manager!");
+}
+
+void zircon_render_graph_pass_model_static_gles3::OnUpdate(
+	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+		p_previous_pass)
 {
 }
 
-void zircon_render_graph_pass_model_static_gles3::OnCreatedResources(void) {}
-
-void zircon_render_graph_pass_model_static_gles3::OnUpdate() {}
-
 void zircon_render_graph_pass_model_static_gles3::OnRender(
-	const kn_kotek::kn_render::kn_render_gl::ktkRenderGraphSimplifiedNode& node)
+	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+		p_previous_pass)
 {
-	kn_kotek::kn_render::kn_render_gl::ktkRenderResourceManager* p_manager =
-		dynamic_cast<
-			kn_kotek::kn_render::kn_render_gl::ktkRenderResourceManager*>(
-			this->m_p_manager_resource);
+//	kn_kotek::kn_render::kn_render_gl::ktkRenderResourceManager* p_manager =
+//		dynamic_cast<
+//			kn_kotek::kn_render::kn_render_gl::ktkRenderResourceManager*>(
+//			this->m_p_manager_resource);
 
-	const auto& info_buffer_instance =
-		node.Get_Buffer("buffer_for_instance_matricies_in_vertex_shader");
+//	const auto& info_buffer_instance =
+	//	node.Get_Buffer("buffer_for_instance_matricies_in_vertex_shader");
 
-	const auto& info_buffer_camera =
-		node.Get_Buffer("buffer_camera_data_in_vertex_shader");
+//	const auto& info_buffer_camera =
+//		node.Get_Buffer("buffer_camera_data_in_vertex_shader");
 
-	auto program = node.Get_Program(KOTEK_TEXTU("simple_instancing"));
+//	auto program = node.Get_Program(KOTEK_TEXTU("simple_instancing"));
 
-	this->render_sdk_camera(info_buffer_camera);
-	this->render_instances(info_buffer_instance, program);
+//	this->render_sdk_camera(info_buffer_camera);
+//	this->render_instances(info_buffer_instance, program);
 }
 
 void zircon_render_graph_pass_model_static_gles3::render_sdk_camera(
@@ -121,8 +139,7 @@ void zircon_render_graph_pass_model_static_gles3::render_sdk_camera(
 		auto id = entities[0];
 
 		const auto& component_camera =
-			this->m_p_factory->GetComponent<zircon_component_sdk_camera>(
-				id);
+			this->m_p_factory->GetComponent<zircon_component_sdk_camera>(id);
 
 		glBindBuffer(
 			buffer_camera.Get_BufferObjectType(), buffer_camera.Get_Buffer());

@@ -930,7 +930,7 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 	}
 
 	KOTEK_MESSAGE(
-		"Initialized Renderer: [{}]", this->m_p_current_renderer->GetName());
+		"Initialized Renderer: [{}]", this->m_p_current_renderer->Get_Name());
 }
 
 void zircon_manager_game::Destroy_Renderer(void) noexcept

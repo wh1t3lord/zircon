@@ -1,12 +1,14 @@
 #include "zircon_render_graph_pass_imgui.h"
-#include <kotek.render.gl/include/kotek_render_graph_simplified_node.h>
 
 zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
-	Kotek::Core::ktkMainManager* p_main_manager,
-	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements) :
+	const kotek::static_u8string_view_t& render_pass_name,
+	kotek::core::ktkMainManager* p_main_manager,
+	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& elements) :
+	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
+		render_pass_name.data()),
 	m_p_main_manager{p_main_manager},
 	m_p_imgui_wrapper{p_main_manager->Get_ImguiWrapper()},
-	m_p_imgui_ui_elements{&ui_elements}
+	m_p_imgui_ui_elements{&elements}
 {
 	bool is_imgui_enabled = false;
 	bool is_sdk_enabled = false;
@@ -30,7 +32,7 @@ zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
 		if (this->m_p_imgui_wrapper)
 		{
 			this->m_p_imgui_wrapper->CreateContext();
-			
+
 			this->m_p_imgui_wrapper->GetIO().ConfigFlags |=
 				ImGuiConfigFlags_NavEnableKeyboard;
 
@@ -125,22 +127,15 @@ zircon_render_graph_pass_imgui_gles3::~zircon_render_graph_pass_imgui_gles3(
 		false);
 }
 
-void zircon_render_graph_pass_imgui_gles3::OnSetupInput(
-	Kotek::Render::gl::ktkRenderGraphSimplifiedStorageInput& storage,
-	Kotek::Core::ktkIRenderDevice* p_device,
-	Kotek::Core::ktkFileSystem* p_file_system)
+void zircon_render_graph_pass_imgui_gles3::OnCreateResources(
+	kotek::core::ktkMainManager* p_manager_main,
+	kotek::core::ktkIRenderResourceManager* p_manager_resource)
 {
 }
 
-void zircon_render_graph_pass_imgui_gles3::OnSetupOutput(
-	Kotek::Render::gl::ktkRenderGraphSimplifiedStorageOutput& storage,
-	Kotek::Core::ktkIRenderDevice* p_device)
-{
-}
-
-void zircon_render_graph_pass_imgui_gles3::OnCreatedResources(void) {}
-
-void zircon_render_graph_pass_imgui_gles3::OnUpdate()
+void zircon_render_graph_pass_imgui_gles3::OnUpdate(
+	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+		p_previous_pass)
 {
 	Kotek::Core::ktkIEngineConfig* p_config =
 		this->m_p_main_manager->Get_EngineConfig();
@@ -179,7 +174,8 @@ void zircon_render_graph_pass_imgui_gles3::OnUpdate()
 }
 
 void zircon_render_graph_pass_imgui_gles3::OnRender(
-	const Kotek::Render::gl::ktkRenderGraphSimplifiedNode& node)
+	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+		p_previous_pass)
 {
 	Kotek::Core::ktkIEngineConfig* p_config =
 		this->m_p_main_manager->Get_EngineConfig();

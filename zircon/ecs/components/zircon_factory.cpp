@@ -55,7 +55,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 							static_cast<kotek::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntity),
-							{{this->m_component_id_to_name.at(hash_id)},
+							{{this->m_component_id_to_name.at(hash_id).data()},
 								{static_cast<kotek::uint32_t>(id)}});
 						result = is_enabled;
 

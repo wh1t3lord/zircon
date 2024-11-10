@@ -2,35 +2,19 @@
 
 #include <kotek.render.gl/include/kotek_render_graph_simplified_render_pass.h>
 
-namespace Kotek
-{
-	namespace Render
-	{
-		namespace gl
-		{
-			class ktkRenderGraphSimplifiedNode;
-		}
-	} // namespace Render
-} // namespace Kotek
-
 class zircon_render_graph_pass_present_gles3
-	: public Kotek::Render::gl::ktkRenderGraphSimplifiedRenderPass
+	: public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
 {
 public:
+	zircon_render_graph_pass_present_gles3(
+		const kotek::static_u8string_view_t& render_pass_name);
 	zircon_render_graph_pass_present_gles3(void);
 	~zircon_render_graph_pass_present_gles3(void);
 
-	void OnSetupInput(
-		Kotek::Render::gl::ktkRenderGraphSimplifiedStorageInput& storage,
-		Kotek::Core::ktkIRenderDevice* p_device,
-		Kotek::Core::ktkFileSystem* p_file_system) override;
-
-	void OnSetupOutput(
-		Kotek::Render::gl::ktkRenderGraphSimplifiedStorageOutput& storage,
-		Kotek::Core::ktkIRenderDevice* p_device) override;
-
-	void OnCreatedResources(void) override;
-	void OnUpdate() override;
-	void OnRender(
-		const Kotek::Render::gl::ktkRenderGraphSimplifiedNode& node) override;
+	void OnCreateResources(kotek::core::ktkMainManager* p_manager_main,
+		kotek::core::ktkIRenderResourceManager* p_manager_resource) override;
+	void OnUpdate(const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+			p_previous_pass) override;
+	void OnRender(const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+			p_previous_pass) override;
 };

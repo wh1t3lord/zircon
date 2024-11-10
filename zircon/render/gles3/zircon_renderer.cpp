@@ -2,21 +2,17 @@
 
 #include "zircon_render_graph_pass_imgui.h"
 #include "zircon_render_graph_pass_present.h"
-#include "zircon_render_graph_pass_triangle.h"
 #include "zircon_render_graph_pass_model_static.h"
 
 #include <kotek.render.gl/include/kotek_render_device.h>
 #include <kotek.render.gl/include/kotek_render_resource_manager.h>
-#include <kotek.render.gl/include/kotek_render_graph_simplified_builder.h>
-#include <kotek.render.gl/include/kotek_render_graph_simplified_node.h>
 
 zircon_renderer_gles3::zircon_renderer_gles3(
 	Kotek::Core::ktkMainManager* p_main_manager) :
 	m_p_main_manager{p_main_manager},
 	m_p_render_device{static_cast<Kotek::Render::gl::ktkRenderDevice*>(
 		p_main_manager->getRenderDevice())},
-	m_p_render_resource_manager{}, m_render_graph_simplified_resource_manager{
-									   p_main_manager}
+	m_p_render_resource_manager{}
 {
 }
 
@@ -33,7 +29,8 @@ void zircon_renderer_gles3::Initialize(
 		dynamic_cast<Kotek::Render::gl::ktkRenderResourceManager*>(
 			this->m_p_main_manager->GetRenderResourceManager());
 
-	this->m_render_graph_simplified.Initialize();
+	this->m_render_graph_simplified.Initialize(
+		this->m_p_main_manager, this->m_p_render_resource_manager);
 }
 
 void zircon_renderer_gles3::Shutdown(void)
@@ -57,7 +54,7 @@ void zircon_renderer_gles3::draw()
 
 void zircon_renderer_gles3::Resize() {}
 
-Kotek::ktk::cstring zircon_renderer_gles3::GetName(void) const noexcept
+const char* zircon_renderer_gles3::Get_Name(void) const noexcept
 {
 	return Kotek::kRenderer_OpenGLES_3_Name;
 }
@@ -76,40 +73,26 @@ void zircon_renderer_gles3::End() noexcept
 void zircon_renderer_gles3::Destroy_RenderGraph(void) noexcept
 {
 	this->m_render_graph_simplified.Shutdown();
-	this->m_render_graph_simplified_resource_manager.Shutdown();
 }
 
 void zircon_renderer_gles3::Create_RenderGraph(
-	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>&
+	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
 		imgui_elements) noexcept
 {
 	KOTEK_ASSERT(
 		this->m_p_main_manager, "you must initialize main manager first");
 
-	Kotek::Render::gl::ktkRenderGraphSimplifiedBuilder builder(
-		this->m_p_main_manager);
+	this->m_render_graph_simplified.Add_Pass(
+		new zircon_render_graph_pass_present_gles3(
+			u8"render_pass_gles3_present"));
 
-	builder.Initialize(&this->m_render_graph_simplified_resource_manager,
-		"present_image_gl3_3",
-		Kotek::Render::gl::eRenderGraphBuilderType::
-			kRenderBuilderFor_Forward_Only,
-		Kotek::Render::gl::eRenderGraphBuilderPipelineRenderingType::
-			kRenderBuilderBasedOnPipeline_Orthodox);
+	this->m_render_graph_simplified.Add_Pass(
+		new zircon_render_graph_pass_model_static_gles3(
+			u8"render_pass_gles3_static_geometry"));
 
-	builder.Register_RenderPass("render_pass_gles3_present",
-		new zircon_render_graph_pass_present_gles3());
-
-	builder.Register_RenderPass("render_pass_gles3_static_geometry",
-		new zircon_render_graph_pass_model_static_gles3());
-
-	// builder.Register_RenderPass("render_pass_gles3_triangle",
-	// new zircon_render_graph_pass_triangle_gles3());
-
-	builder.Register_RenderPass("render_pass_gles3_imgui",
-		new zircon_render_graph_pass_imgui_gles3(
+	this->m_render_graph_simplified.Add_Pass(
+		new zircon_render_graph_pass_imgui_gles3(u8"render_pass_gles3_imgui",
 			this->m_p_main_manager, imgui_elements));
-
-	this->m_render_graph_simplified = builder.Compile();
 }
 
 void zircon_renderer_gles3::Destroy_ImGuiUIElements(void) noexcept

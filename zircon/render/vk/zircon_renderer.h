@@ -44,7 +44,7 @@ namespace zircon
 
 				void Resize() override;
 
-                Kotek::ktk::cstring GetName(void) const noexcept override;
+                const char* Get_Name(void) const noexcept override;
 
 			private:
 				void Begin() noexcept;
