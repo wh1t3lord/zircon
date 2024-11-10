@@ -97,10 +97,10 @@ Kotek::ktk::uint32_t zircon_resource_manager::GenerateFileID(void) noexcept
 	return this->m_p_manager_resource_saver->GenerateFileID();
 }
 
-Kotek::ktk::any zircon_resource_manager::Load(
+kotek::shared_ptr_t<kotek::core::ktkResourceHandle> zircon_resource_manager::Load(
 	const Kotek::Core::ktkLoadingRequest& request) noexcept
 {
-	Kotek::ktk::any result;
+	kotek::shared_ptr_t<kotek::core::ktkResourceHandle> result{};
 
 	if (request.Get_LoadingPolicy() ==
 		Kotek::Core::eResourceLoadingPolicy::kAsync)
@@ -130,6 +130,8 @@ Kotek::ktk::any zircon_resource_manager::Load(
 									kBoundingSphere),
 							static_cast<kotek::uint32_t>(
 								request.Get_EntityID())});
+
+					result = std::move(p_resource_geometry);
 				}
 			}
 			else
@@ -152,8 +154,10 @@ Kotek::ktk::any zircon_resource_manager::Load(
 		{
 			if (this->m_p_manager_resource_loader)
 			{
-				result = this->m_p_manager_resource_loader->Load(
-					request.Get_ResourcePath());
+				// think about it
+				// result = this->m_p_manager_resource_loader->Load(
+				//	request.Get_ResourcePath());
+				KOTEK_ASSERT(false, "not implemented");
 			}
 		}
 		else

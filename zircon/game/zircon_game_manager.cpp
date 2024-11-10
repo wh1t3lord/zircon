@@ -1164,10 +1164,10 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			if (p_factory)
 			{
 				auto p_resource_geometry =
-					std::any_cast<Kotek::Render::gl::ktkGeometry>(
-						std::get<Kotek::ktk::shared_ptr<Kotek::ktk::any>>(
+					reinterpret_cast<Kotek::Render::gl::ktkGeometry*>(
+						std::get<Kotek::ktk::shared_ptr<kun_kotek kun_core ktkResourceHandle>>(
 							args[0])
-							.get());
+							.get()->Get_Resource());
 				auto bounding_type =
 					static_cast<Kotek::Core::eRenderBoundingPrimitiveType>(
 						std::get<Kotek::ktk::enum_base_t>(args[1]));

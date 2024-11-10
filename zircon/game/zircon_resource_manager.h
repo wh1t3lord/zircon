@@ -17,7 +17,7 @@ public:
 	void Initialize(void) override;
 	void Shutdown(void) override;
 
-	Kotek::ktk::any Load(
+	kotek::ktk::shared_ptr<kotek::core::ktkResourceHandle> Load(
 		const Kotek::Core::ktkLoadingRequest& request) noexcept override;
 
 	void Open(const Kotek::Core::ktkResourceWritingRequest& request) noexcept

@@ -67,7 +67,7 @@ void zircon_session_editor::Serialize(
 	this->Serialize_Entities(output);
 
 	this->m_p_main_manager->GetResourceManager()->Get_ResourceSaver()->Save(
-		copied, &output);
+		copied, kotek::core::ktkResourceHandle(&output, true));
 
 	auto* p_factory = this->m_p_game_manager->get_factory_game();
 }
@@ -175,10 +175,10 @@ void zircon_session_editor::Deserialize(
 	KOTEK_ASSERT(full_path_to_file.empty() == false,
 		"you can't send an empty path here");
 
-	Kotek::Core::ktkFileText input;
+	kotek::core::ktkFileText input;
 
 	this->m_p_main_manager->GetResourceManager()->Get_ResourceLoader()->Load(
-		full_path_to_file, &input);
+		full_path_to_file, kotek::core::ktkResourceHandle(&input, true));
 
 	this->Deserialize_Entities(input);
 	this->Deserialize_Settings(input);

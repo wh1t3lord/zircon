@@ -13,16 +13,15 @@ void zircon_config::set_feature(
 {
 	if (status)
 	{
-		KOTEK_SET_FLAG(this->m_features_sdk,feature);
+		KOTEK_SET_FLAG(this->m_features_sdk, feature);
 	}
 	else
 	{
-		KOTEK_REMOVE_FLAG(this->m_features_sdk,feature);
+		KOTEK_REMOVE_FLAG(this->m_features_sdk, feature);
 	}
 }
 
-void zircon_config::set_feature(
-	eZirconSDKFeatures feature, int data) noexcept
+void zircon_config::set_feature(eZirconSDKFeatures feature, int data) noexcept
 {
 	if (this->is_feature_enabled(feature))
 	{
@@ -35,11 +34,11 @@ void zircon_config::set_feature(
 {
 	if (status)
 	{
-		KOTEK_SET_FLAG(this->m_features_game,feature);
+		KOTEK_SET_FLAG(this->m_features_game, feature);
 	}
 	else
 	{
-		KOTEK_REMOVE_FLAG(this->m_features_game,feature);
+		KOTEK_REMOVE_FLAG(this->m_features_game, feature);
 	}
 }
 
@@ -50,7 +49,7 @@ bool zircon_config::is_feature_enabled(eZirconSDKFeatures feature) const
 
 bool zircon_config::is_feature_enabled(eZirconGameFeatures feature) const
 {
-	return KOTEK_CHECK_FLAG(this->m_features_game,feature);
+	return KOTEK_CHECK_FLAG(this->m_features_game, feature);
 }
 
 void zircon_config::serialize(Kotek::Core::ktkIFileSystem* p_filesystem,
@@ -83,13 +82,13 @@ void zircon_config::serialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 					this->is_feature_enabled(eZirconSDKFeatures::
 							kSDK_Feature_AddRequiredComponents_Automatically));
 
-				config.Write(
-					translate_zircon_sdk_features(
-						eZirconSDKFeatures::kSDK_Feature_SphereBoundingBox_Quality),
+				config.Write(translate_zircon_sdk_features(eZirconSDKFeatures::
+									 kSDK_Feature_SphereBoundingBox_Quality),
 					this->get_feature<int>(eZirconSDKFeatures::
 							kSDK_Feature_SphereBoundingBox_Quality));
 
-				p_saver->Save(path_to_file, &config);
+				p_saver->Save(path_to_file,
+					kotek::core::ktkResourceHandle(&config, true));
 			}
 		}
 	}
@@ -126,12 +125,14 @@ void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 				else
 				{
 					Kotek::Core::ktkFileText file;
-					KOTEK_ASSERT(p_loader->Load(path_to_file, &file),
+					KOTEK_ASSERT(
+						p_loader->Load(path_to_file,
+							kotek::core::ktkResourceHandle(&file, true)),
 						"failed to load file!");
 
-					bool status = file.Get<bool>(
-						translate_zircon_sdk_features(eZirconSDKFeatures::
-								kSDK_Feature_AddRequiredComponents_Automatically));
+					bool status = file.Get<bool>(translate_zircon_sdk_features(
+						eZirconSDKFeatures::
+							kSDK_Feature_AddRequiredComponents_Automatically));
 
 					this->set_feature(
 						eZirconSDKFeatures::
@@ -143,7 +144,8 @@ void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 								kSDK_Feature_SphereBoundingBox_Quality));
 
 					this->set_feature(
-						eZirconSDKFeatures::kSDK_Feature_SphereBoundingBox_Quality,
+						eZirconSDKFeatures::
+							kSDK_Feature_SphereBoundingBox_Quality,
 						quality);
 				}
 			}
@@ -154,21 +156,25 @@ void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 void zircon_config::initialize_default() noexcept
 {
 	this->set_feature(
-		eZirconSDKFeatures::kSDK_Feature_AddRequiredComponents_Automatically, true);
+		eZirconSDKFeatures::kSDK_Feature_AddRequiredComponents_Automatically,
+		true);
 }
 
 kotek::cstring_t translate_zircon_sdk_features(eZirconSDKFeatures features)
 {
-	if (KOTEK_CHECK_FLAG(features,eZirconSDKFeatures::kSDK_Feature_AddRequiredComponents_Automatically))
+	if (KOTEK_CHECK_FLAG(features,
+			eZirconSDKFeatures::
+				kSDK_Feature_AddRequiredComponents_Automatically))
 	{
 		return "add_required_components_automatically";
 	}
-	else if (KOTEK_CHECK_FLAG(features ,
+	else if (KOTEK_CHECK_FLAG(features,
 				 eZirconSDKFeatures::kSDK_Feature_SphereBoundingBox_Quality))
 	{
 		return "sphere_bounding_box_quality";
 	}
-	else if (KOTEK_CHECK_FLAG(features,eZirconSDKFeatures::kSDK_Feature_Unknown))
+	else if (KOTEK_CHECK_FLAG(
+				 features, eZirconSDKFeatures::kSDK_Feature_Unknown))
 	{
 		return "unknown";
 	}
