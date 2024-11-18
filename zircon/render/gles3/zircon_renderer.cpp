@@ -1,8 +1,15 @@
 #include "zircon_renderer.h"
 
+// Game Passes
 #include "zircon_render_graph_pass_imgui.h"
 #include "zircon_render_graph_pass_present.h"
 #include "zircon_render_graph_pass_model_static.h"
+
+// Editor Passes
+#include "zircon_render_graph_pass_editor_imgui.h"
+#include "zircon_render_graph_pass_editor_present.h"
+#include "zircon_render_graph_pass_editor_model_static.h"
+#include "zircon_render_graph_pass_editor_debug.h"
 
 #include <kotek.render.gl/include/kotek_render_device.h>
 #include <kotek.render.gl/include/kotek_render_resource_manager.h>
@@ -82,17 +89,46 @@ void zircon_renderer_gles3::Create_RenderGraph(
 	KOTEK_ASSERT(
 		this->m_p_main_manager, "you must initialize main manager first");
 
-	this->m_render_graph_simplified.Add_Pass(
-		new zircon_render_graph_pass_present_gles3(
-			u8"render_pass_gles3_present"));
+	this->Add_PassesEditor(imgui_elements);
+	this->Add_PassesGame();
+}
 
-	this->m_render_graph_simplified.Add_Pass(
-		new zircon_render_graph_pass_model_static_gles3(
-			u8"render_pass_gles3_static_geometry"));
+void zircon_renderer_gles3::Add_PassesEditor(
+	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
+		imgui_elements) noexcept
+{
+#ifdef KOTEK_USE_SDK_IMGUI
+	if (this->m_p_main_manager)
+	{
+		if (this->m_p_main_manager->Get_EngineConfig())
+		{
+			if (this->m_p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
+					kotek::core::kEngine_Feature_SDK_ImGui))
+			{
+				this->m_render_graph_simplified.Add_Pass(
+					new zircon_render_graph_pass_editor_present_gles3(
+						u8"render_editor_pass_gles3_present"));
 
-	this->m_render_graph_simplified.Add_Pass(
-		new zircon_render_graph_pass_imgui_gles3(u8"render_pass_gles3_imgui",
-			this->m_p_main_manager, imgui_elements));
+				this->m_render_graph_simplified.Add_Pass(
+					new zircon_render_graph_pass_editor_model_static_gles3(
+						u8"render_editor_pass_gles3_static_geometry"));
+
+				this->m_render_graph_simplified.Add_Pass(
+					new zircon_render_graph_pass_editor_imgui_gles3(
+						u8"render_editor_pass_gles3_imgui",
+						this->m_p_main_manager, imgui_elements));
+			}
+		}
+	}
+#endif
+}
+
+void zircon_renderer_gles3::Add_PassesGame() noexcept
+{
+	// todo: implement that when you implement simulation button in editor and
+	// you can test the game as standalone
+	KOTEK_MESSAGE_WARNING(
+		"you didn't register game render passes for renderer!");
 }
 
 void zircon_renderer_gles3::Destroy_ImGuiUIElements(void) noexcept

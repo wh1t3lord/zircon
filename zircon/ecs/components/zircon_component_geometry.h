@@ -35,6 +35,8 @@ public:
 	void Clear(void) noexcept;
 	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
 
+	kotek::core::eStaticGeometryType get_geometry_type() const noexcept;
+
 private:
 	bool m_is_use_model;
 	bool m_is_visible;

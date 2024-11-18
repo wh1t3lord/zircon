@@ -63,6 +63,7 @@ void zircon_component_geometry::Clear(void) noexcept
 	this->m_vertex_count = {};
 	this->m_path = "";
 }
+
 void zircon_component_geometry::DrawImGui(
 	Kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
@@ -138,4 +139,10 @@ void zircon_component_geometry::DrawImGui(
 			}
 		}
 	}
+}
+
+kotek::core::eStaticGeometryType
+zircon_component_geometry::get_geometry_type() const noexcept
+{
+	return this->m_geometry_type;
 }

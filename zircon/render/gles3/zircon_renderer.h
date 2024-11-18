@@ -41,6 +41,11 @@ private:
 		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
 			imgui_elements) noexcept;
 
+	void Add_PassesEditor(
+		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
+			imgui_elements) noexcept;
+	void Add_PassesGame() noexcept;
+
 	void Destroy_ImGuiUIElements(void) noexcept;
 
 private:

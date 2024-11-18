@@ -1,4 +1,4 @@
-#include "zircon_render_graph_pass_model_static.h"
+#include "zircon_render_graph_pass_editor_model_static.h"
 #include <kotek.render.gl/include/kotek_render_resource_manager.h>
 #include <kotek.render.gl/include/kotek_render_geometry_manager.h>
 #include <kotek.render.gl/include/kotek_render_shader_manager.h>
@@ -6,8 +6,8 @@
 #include "../../ecs/components/zircon_factory.h"
 #include "../../game/zircon_game_manager.h"
 
-zircon_render_graph_pass_model_static_gles3::
-	zircon_render_graph_pass_model_static_gles3(
+zircon_render_graph_pass_editor_model_static_gles3::
+	zircon_render_graph_pass_editor_model_static_gles3(
 		const kotek::static_u8string_view_t& render_pass_name) :
 	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
 		render_pass_name.data()),
@@ -15,20 +15,20 @@ zircon_render_graph_pass_model_static_gles3::
 {
 }
 
-zircon_render_graph_pass_model_static_gles3::
-	zircon_render_graph_pass_model_static_gles3() :
+zircon_render_graph_pass_editor_model_static_gles3::
+	zircon_render_graph_pass_editor_model_static_gles3() :
 	m_p_factory{},
 	m_p_manager_render_resource{}
 {
 }
 
-zircon_render_graph_pass_model_static_gles3::
-	~zircon_render_graph_pass_model_static_gles3()
+zircon_render_graph_pass_editor_model_static_gles3::
+	~zircon_render_graph_pass_editor_model_static_gles3()
 {
 }
 
 /*
-void zircon_render_graph_pass_model_static_gles3::OnSetupInput(
+void zircon_render_graph_pass_editor_model_static_gles3::OnSetupInput(
     kn_kotek::kn_render::kn_render_gl::ktkRenderGraphSimplifiedStorageInput&
         storage,
     kn_kotek::kn_core::ktkIRenderDevice* p_device,
@@ -90,7 +90,7 @@ void zircon_render_graph_pass_model_static_gles3::OnSetupInput(
 }
 */
 
-void zircon_render_graph_pass_model_static_gles3::OnCreateResources(
+void zircon_render_graph_pass_editor_model_static_gles3::OnCreateResources(
 	kotek::core::ktkMainManager* p_manager_main,
 	kotek::core::ktkIRenderResourceManager* p_manager_resource)
 {
@@ -160,7 +160,7 @@ void zircon_render_graph_pass_model_static_gles3::OnCreateResources(
 	}
 }
 
-void zircon_render_graph_pass_model_static_gles3::OnDestroyResources()
+void zircon_render_graph_pass_editor_model_static_gles3::OnDestroyResources()
 {
 	KOTEK_ASSERT(
 		this->m_p_manager_render_shader, "you must register shader manager!");
@@ -176,7 +176,7 @@ void zircon_render_graph_pass_model_static_gles3::OnDestroyResources()
 	}
 }
 
-void zircon_render_graph_pass_model_static_gles3::OnUpdate(
+void zircon_render_graph_pass_editor_model_static_gles3::OnUpdate(
 	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 		p_previous_pass)
 {
@@ -184,7 +184,7 @@ void zircon_render_graph_pass_model_static_gles3::OnUpdate(
 	this->update_instances();
 }
 
-void zircon_render_graph_pass_model_static_gles3::OnRender(
+void zircon_render_graph_pass_editor_model_static_gles3::OnRender(
 	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 		p_previous_pass)
 {
@@ -207,7 +207,7 @@ void zircon_render_graph_pass_model_static_gles3::OnRender(
 	this->render_instances();
 }
 
-void zircon_render_graph_pass_model_static_gles3::update_sdk_camera()
+void zircon_render_graph_pass_editor_model_static_gles3::update_sdk_camera()
 {
 	if (!this->m_p_factory)
 		return;
@@ -251,7 +251,7 @@ void zircon_render_graph_pass_model_static_gles3::update_sdk_camera()
 	}
 }
 
-void zircon_render_graph_pass_model_static_gles3::update_instances()
+void zircon_render_graph_pass_editor_model_static_gles3::update_instances()
 {
 	if (this->m_p_factory)
 	{
@@ -292,7 +292,7 @@ void zircon_render_graph_pass_model_static_gles3::update_instances()
 	}
 }
 
-void zircon_render_graph_pass_model_static_gles3::render_instances()
+void zircon_render_graph_pass_editor_model_static_gles3::render_instances()
 {
 	if (this->m_p_manager_render_geometry)
 	{

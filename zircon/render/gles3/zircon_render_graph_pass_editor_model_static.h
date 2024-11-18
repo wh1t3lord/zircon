@@ -16,14 +16,14 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_factory_game;
 
-class zircon_render_graph_pass_model_static_gles3
+class zircon_render_graph_pass_editor_model_static_gles3
 	: public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
 {
 public:
-	zircon_render_graph_pass_model_static_gles3(
+	zircon_render_graph_pass_editor_model_static_gles3(
 		const kotek::static_u8string_view_t& render_pass_name);
-	zircon_render_graph_pass_model_static_gles3();
-	~zircon_render_graph_pass_model_static_gles3();
+	zircon_render_graph_pass_editor_model_static_gles3();
+	~zircon_render_graph_pass_editor_model_static_gles3();
 
 	void OnCreateResources(kotek::core::ktkMainManager* p_manager_main,
 		kotek::core::ktkIRenderResourceManager* p_manager_resource) override;
