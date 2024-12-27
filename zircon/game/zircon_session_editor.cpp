@@ -336,11 +336,11 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 
 				Kotek::ktk::math::vec3f_t front;
 
-				front.Set_X(cos(Kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(Kotek::ktk::math::convert_to_radians(pitch)));
-				front.Set_Y(sin(Kotek::ktk::math::convert_to_radians(pitch)));
-				front.Set_Z(sin(Kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(Kotek::ktk::math::convert_to_radians(pitch)));
+				front.x() = cos(Kotek::ktk::math::convert_to_radians(yaw)) *
+					cos(Kotek::ktk::math::convert_to_radians(pitch));
+				front.y() = sin(Kotek::ktk::math::convert_to_radians(pitch));
+				front.z() = sin(Kotek::ktk::math::convert_to_radians(yaw)) *
+					cos(Kotek::ktk::math::convert_to_radians(pitch));
 
 				auto height = this->m_p_main_manager->Get_WindowManager()
 								  ->ActiveWindow_GetHeight();
