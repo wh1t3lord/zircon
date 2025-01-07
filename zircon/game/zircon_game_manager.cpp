@@ -161,6 +161,17 @@ void WindowCallback_Key(GLFWwindow* p_window, int glfw_key, int scancode,
 
 	#endif
 
+	if (p_manager->Get_Input())
+	{
+		kotek::core::ktkInputPlatformBackendArgs_GLFW3 args;
+		args.key = glfw_key;
+		args.action = glfw_action;
+		args.scancode = scancode;
+		args.mods = glfw_mods;
+
+		p_manager->Get_Input()->Update(&args);
+	}
+
 	#ifdef KOTEK_USE_SDK_IMGUI
 	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
@@ -1165,9 +1176,10 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			{
 				auto p_resource_geometry =
 					reinterpret_cast<Kotek::Render::gl::ktkGeometry*>(
-						std::get<Kotek::ktk::shared_ptr<kun_kotek kun_core ktkResourceHandle>>(
-							args[0])
-							.get()->Get_Resource());
+						std::get<Kotek::ktk::shared_ptr<
+							kun_kotek kun_core ktkResourceHandle>>(args[0])
+							.get()
+							->Get_Resource());
 				auto bounding_type =
 					static_cast<Kotek::Core::eRenderBoundingPrimitiveType>(
 						std::get<Kotek::ktk::enum_base_t>(args[1]));
@@ -1306,6 +1318,28 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		p_main_manager->Get_EngineConfig()->SetApplicationWorking(status);
 
 		return true;
+	};
+
+	auto p_command_sdk_show_window =
+		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
+	{
+		if (data.empty())
+		{
+			KOTEK_MESSAGE_WARNING(
+				"can't execute command because it requires an ID for window "
+				"showing, ID is a required argument for calling");
+			return false;
+		}
+
+		int window_id = std::get<int>(data[0]);
+
+		return true;
+	};
+
+	auto p_command_sdk_print_registered_windows =
+		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
+	{ 
+		return true; 
 	};
 
 	this->m_p_console->RegisterCommand(
@@ -1586,8 +1620,9 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 							"zircon_command_delete_component_from_entity");
 
 					zircon_command_delete_component_from_entity* p_command =
-						new (p_placement_new_memory) zircon_command_delete_component_from_entity(
-							this->get_factory_game(), id, p_component_name);
+						new (p_placement_new_memory)
+							zircon_command_delete_component_from_entity(
+								this->get_factory_game(), id, p_component_name);
 
 					p_history_manager->ExecuteCommand(p_command);
 				}

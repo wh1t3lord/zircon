@@ -109,6 +109,24 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 
 				p_wrapper_imgui->EndMenu();
 			}
+
+			if (p_wrapper_imgui->BeginMenu("Tools##ZirconImGuiSDK_MainBar_Tools"))
+			{
+				if (p_wrapper_imgui->BeginMenu(
+						"Debug##ZirconImGuiSDK_MainBar_Tools_Debug"))
+				{
+					if (p_wrapper_imgui->MenuItem("Input"))
+					{
+
+					}
+
+
+					p_wrapper_imgui->EndMenu();
+				}
+
+
+				p_wrapper_imgui->EndMenu();
+			}
 		}
 		p_wrapper_imgui->EndMainMenuBar();
 	}
