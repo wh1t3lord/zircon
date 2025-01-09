@@ -66,6 +66,12 @@ const char* zircon_renderer_gles3::Get_Name(void) const noexcept
 	return Kotek::kRenderer_OpenGLES_3_Name;
 }
 
+const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
+zircon_renderer_gles3::Get_UIImGuiElements() const
+{
+	return this->m_imgui_ui_elements;
+}
+
 void zircon_renderer_gles3::Begin() noexcept {}
 
 void zircon_renderer_gles3::End() noexcept

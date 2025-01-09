@@ -1,16 +1,23 @@
-#include "zircon_ui_window_render_system.h"
+#include "zircon_ui_window_render_stats.h"
+#include "../../../core/zircon_sdk_ui.h"
 
-zircon_ui_window_render_system::zircon_ui_window_render_system() {}
-
-zircon_ui_window_render_system::~zircon_ui_window_render_system() {}
-
-void zircon_ui_window_render_system::initialize(void) {}
-
-void zircon_ui_window_render_system::shutdown(void) {}
-
-void zircon_ui_window_render_system::Draw(
-	Kotek::Core::ktkMainManager* p_main_manager)
+zircon_ui_window_render_stats::zircon_ui_window_render_stats() :
+	m_is_show_window(false)
 {
+}
+
+zircon_ui_window_render_stats::~zircon_ui_window_render_stats() {}
+
+void zircon_ui_window_render_stats::initialize(void) {}
+
+void zircon_ui_window_render_stats::shutdown(void) {}
+
+void zircon_ui_window_render_stats::Draw(
+	kotek::core::ktkMainManager* p_main_manager)
+{
+	if (!this->m_is_show_window)
+		return;
+
 	if (p_main_manager)
 	{
 		auto* p_wrapper_imgui = p_main_manager->Get_ImguiWrapper();
@@ -28,17 +35,17 @@ void zircon_ui_window_render_system::Draw(
 
 						auto* p_stat_index_buffer =
 							p_render_resource_manager->Get_Statistic(
-								Kotek::Core::eRenderStatistics::
+								kotek::core::eRenderStatistics::
 									kStat_Buffer_Index);
 
 						auto* p_stat_vertex_buffer =
 							p_render_resource_manager->Get_Statistic(
-								Kotek::Core::eRenderStatistics::
+								kotek::core::eRenderStatistics::
 									kStat_Buffer_Vertex);
 
 						auto* p_stat_ssbo_matrix_buffer =
 							p_render_resource_manager->Get_Statistic(
-								Kotek::Core::eRenderStatistics::
+								kotek::core::eRenderStatistics::
 									kStat_Buffer_SSBO_Matrix);
 
 						if (p_stat_vertex_buffer)
@@ -109,7 +116,7 @@ void zircon_ui_window_render_system::Draw(
 							p_wrapper_imgui->Text("Instance count: %d",
 								p_stat_ssbo_matrix_buffer
 										->Get_AllocatedMemory() /
-									sizeof(Kotek::ktk::math::mat4x4f_t));
+									sizeof(kotek::ktk::math::mat4x4f_t));
 						}
 					}
 				}
@@ -118,4 +125,24 @@ void zircon_ui_window_render_system::Draw(
 			p_wrapper_imgui->End();
 		}
 	}
+}
+
+int zircon_ui_window_render_stats::Get_ID(void) const
+{
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_RenderStats);
+}
+
+void zircon_ui_window_render_stats::Show(void)
+{
+	this->m_is_show_window = true;
+}
+
+void zircon_ui_window_render_stats::Hide(void)
+{
+	this->m_is_show_window = false;
+}
+
+bool zircon_ui_window_render_stats::Is_Shown(void) const
+{
+	return this->m_is_show_window;
 }

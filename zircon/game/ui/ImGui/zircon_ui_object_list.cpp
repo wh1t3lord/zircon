@@ -5,7 +5,7 @@
 #include "../../../core/zircon_sdk_ui.h"
 
 zircon_sdk_ui_object_list::zircon_sdk_ui_object_list(void) :
-	m_amount_of_entites{}, m_selected_entity_id{}
+	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{}
 {
 }
 
@@ -32,6 +32,9 @@ void zircon_sdk_ui_object_list::Draw(
 	if (p_wrapper_imgui)
 	{
 		p_wrapper_imgui->ShowDemoWindow();
+
+		if (!this->m_is_show_window)
+			return;
 
 		if (p_wrapper_imgui->Begin("Entity List"))
 		{
@@ -97,8 +100,8 @@ void zircon_sdk_ui_object_list::Draw(
 
 									zircon_component_sdk_scene_name>(id);
 
-						converted_id = kotek::ktk::static_format<128>("[{}]",
-							component.get_name());
+						converted_id = kotek::ktk::static_format<128>(
+							"[{}]", component.get_name());
 					}
 					else
 					{
@@ -131,4 +134,24 @@ void zircon_sdk_ui_object_list::Draw(
 
 		p_wrapper_imgui->End();
 	}
+}
+
+int zircon_sdk_ui_object_list::Get_ID(void) const
+{
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_ObjectList);
+}
+
+void zircon_sdk_ui_object_list::Show(void)
+{
+	this->m_is_show_window = true;
+}
+
+void zircon_sdk_ui_object_list::Hide(void)
+{
+	this->m_is_show_window = false;
+}
+
+bool zircon_sdk_ui_object_list::Is_Shown(void) const
+{
+	return this->m_is_show_window;
 }

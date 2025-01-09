@@ -6,9 +6,8 @@
 
 zircon_sdk_ui_component_inspector::zircon_sdk_ui_component_inspector(
 	zircon_sdk_ui_interface* p_sdk_ui, zircon_factory_game* p_factory) :
-	m_p_manager_sdk_ui{p_sdk_ui},
-	m_p_factory{p_factory}, m_p_combobox_current_item{},
-	m_p_list_selected_item_allocator{}
+	m_is_show_window{}, m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
+	m_p_combobox_current_item{}, m_p_list_selected_item_allocator{}
 {
 	KOTEK_ASSERT(
 		p_factory, "you can't pass an invalid pointer to zircon_GameFactory");
@@ -27,6 +26,10 @@ void zircon_sdk_ui_component_inspector::shutdown(void) {}
 void zircon_sdk_ui_component_inspector::Draw(
 	Kotek::Core::ktkMainManager* p_main_manager)
 {
+	if (!this->m_is_show_window)
+		return;
+
+
 	zircon_manager_game* p_game_manager =
 		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
@@ -40,7 +43,8 @@ void zircon_sdk_ui_component_inspector::Draw(
 
 	if (p_wrapper_imgui)
 	{
-		if (p_wrapper_imgui->Begin("Component Inspector"))
+		if (p_wrapper_imgui->Begin(
+				"Component Inspector"))
 		{
 			if (p_wrapper_imgui->BeginCombo(
 					"Add Component", this->m_p_combobox_current_item))
@@ -162,6 +166,26 @@ void zircon_sdk_ui_component_inspector::Draw(
 			p_wrapper_imgui->End();
 		}
 	}
+}
+
+int zircon_sdk_ui_component_inspector::Get_ID(void) const
+{
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_ComponentInspector);
+}
+
+void zircon_sdk_ui_component_inspector::Show(void)
+{
+	this->m_is_show_window = true;
+}
+
+void zircon_sdk_ui_component_inspector::Hide(void)
+{
+	this->m_is_show_window = false;
+}
+
+bool zircon_sdk_ui_component_inspector::Is_Shown(void) const
+{
+	return this->m_is_show_window;
 }
 
 bool zircon_sdk_ui_component_inspector::HasComponentByName(

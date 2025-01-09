@@ -1,10 +1,11 @@
 #include "zircon_ui_window_history_command_log.h"
 #include "../../zircon_game_manager.h"
 #include "../../zircon_command_history.h"
+#include "../../../core/zircon_sdk_ui.h"
 
 zircon_ui_window_history_command_log::zircon_ui_window_history_command_log(
 	zircon_command_history* p_manager_history) :
-	m_p_manager_history{p_manager_history}
+	m_is_show_window(false),m_p_manager_history{p_manager_history}
 {
 	KOTEK_ASSERT(this->m_p_manager_history,
 		"you can't pass an invalid pointer to instance "
@@ -20,6 +21,9 @@ void zircon_ui_window_history_command_log::shutdown(void) {}
 void zircon_ui_window_history_command_log::Draw(
 	Kotek::Core::ktkMainManager* main_manager)
 {
+	if (!this->m_is_show_window)
+		return;
+
 	auto* p_wrapper_imgui = main_manager->Get_ImguiWrapper();
 
 	if (p_wrapper_imgui)
@@ -70,4 +74,24 @@ void zircon_ui_window_history_command_log::Draw(
 
 		p_wrapper_imgui->End();
 	}
+}
+
+int zircon_ui_window_history_command_log::Get_ID(void) const
+{
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_CommandHistoryLog);
+}
+
+void zircon_ui_window_history_command_log::Show(void) 
+{
+	this->m_is_show_window = true;
+}
+
+void zircon_ui_window_history_command_log::Hide(void) 
+{
+	this->m_is_show_window = false;
+}
+
+bool zircon_ui_window_history_command_log::Is_Shown(void) const
+{
+	return this->m_is_show_window;
 }

@@ -49,10 +49,12 @@ set(to_include_imgui_files
 	"ui/ImGui/zircon_ui_component_inspector.cpp"
 	"ui/ImGui/zircon_ui_window_history_command_log.h"
 	"ui/ImGui/zircon_ui_window_history_command_log.cpp"
-	"ui/ImGui/zircon_ui_window_render_system.h"
-	"ui/ImGui/zircon_ui_window_render_system.cpp"
+	"ui/ImGui/zircon_ui_window_render_stats.h"
+	"ui/ImGui/zircon_ui_window_render_stats.cpp"
 	"ui/ImGui/zircon_ui_window_settings.h"
 	"ui/ImGui/zircon_ui_window_settings.cpp"
+	"ui/ImGui/zircon_ui_window_debug_input.h"
+	"ui/ImGui/zircon_ui_window_debug_input.cpp"
 )
 
 set(to_include_sdk_files_commands)

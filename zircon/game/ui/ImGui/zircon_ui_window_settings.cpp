@@ -1,8 +1,12 @@
 #include "zircon_ui_window_settings.h"
 #include "../../zircon_game_manager.h"
 #include "../../../core/zircon_config.h"
+#include "../../../core/zircon_sdk_ui.h"
 
-zircon_ui_window_settings::zircon_ui_window_settings(void) {}
+zircon_ui_window_settings::zircon_ui_window_settings(void) :
+	m_is_window_show(false)
+{
+}
 
 zircon_ui_window_settings::~zircon_ui_window_settings(void) {}
 
@@ -12,9 +16,12 @@ void zircon_ui_window_settings::shutdown(void) {}
 
 void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
 {
+	if (!this->m_is_window_show)
+		return;
+
 	auto* p_wrapper_imgui = main_manager->Get_ImguiWrapper();
-	auto* p_game_manager = static_cast<zircon_manager_game*>(
-		main_manager->GetGameManager());
+	auto* p_game_manager =
+		static_cast<zircon_manager_game*>(main_manager->GetGameManager());
 
 	if (p_wrapper_imgui)
 	{
@@ -98,4 +105,24 @@ void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
 
 		p_wrapper_imgui->End();
 	}
+}
+
+int zircon_ui_window_settings::Get_ID(void) const
+{
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Settings);
+}
+
+void zircon_ui_window_settings::Show(void)
+{
+	this->m_is_window_show = true;
+}
+
+void zircon_ui_window_settings::Hide(void)
+{
+	this->m_is_window_show = false;
+}
+
+bool zircon_ui_window_settings::Is_Shown(void) const
+{
+	return this->m_is_window_show;
 }

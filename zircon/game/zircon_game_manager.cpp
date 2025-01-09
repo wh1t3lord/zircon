@@ -12,7 +12,7 @@
 #include "ui/ImGui/zircon_ui_window_prefab_browser.h"
 #include "ui/ImGui/zircon_ui_window_history_command_log.h"
 #include "ui/ImGui/zircon_ui_window_log.h"
-#include "ui/ImGui/zircon_ui_window_render_system.h"
+#include "ui/ImGui/zircon_ui_window_render_stats.h"
 #include "ui/ImGui/zircon_ui_window_settings.h"
 
 #include "ui/Manager/zircon_sdk_ui.h"
@@ -168,6 +168,8 @@ void WindowCallback_Key(GLFWwindow* p_window, int glfw_key, int scancode,
 		args.action = glfw_action;
 		args.scancode = scancode;
 		args.mods = glfw_mods;
+		args.controller =
+			kotek::core::eInputControllerType::kControllerKeyboard;
 
 		p_manager->Get_Input()->Update(&args);
 	}
@@ -861,7 +863,7 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 	elements.push_back(new zircon_sdk_ui_window_log());
 	elements.push_back(new zircon_ui_window_history_command_log(
 		this->m_p_sdk_history_manager));
-	elements.push_back(new zircon_ui_window_render_system());
+	elements.push_back(new zircon_ui_window_render_stats());
 	elements.push_back(new zircon_ui_window_settings());
 
 	auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
@@ -1320,8 +1322,11 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		return true;
 	};
 
+	kotek::core::ktkIRenderer* p_current_renderer = this->m_p_current_renderer;
+
 	auto p_command_sdk_show_window =
-		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
+		[p_main_manager, p_current_renderer](
+			kotek::ktk::console_command_args_t data) -> bool
 	{
 		if (data.empty())
 		{
@@ -1331,16 +1336,111 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			return false;
 		}
 
+		if (!p_current_renderer)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"you can't call this command if renderer wasn't initialized");
+			return false;
+		}
+
+		const auto& imgui_elements = p_current_renderer->Get_UIImGuiElements();
+
+		if (imgui_elements.empty())
+		{
+			KOTEK_MESSAGE_WARNING("engine didn't register any window on "
+								  "renderer side... Unable to proceed...");
+			return false;
+		}
+
 		int window_id = std::get<int>(data[0]);
+
+		auto window_iter =
+			std::find_if(imgui_elements.begin(), imgui_elements.end(),
+				[window_id](kotek::core::ktkISDKUIElement* p_element) -> bool
+				{
+					KOTEK_ASSERT(p_element,
+						"something is broken and window is invalid!");
+					return p_element->Get_ID() == window_id;
+				});
+
+		if (window_iter != imgui_elements.end())
+		{
+			kotek::core::ktkISDKUIElement* p_element = (*window_iter);
+
+			if (p_element->Is_Shown() == false)
+			{
+				p_element->Show();
+			}
+		}
+
+		return true;
+	};
+
+	auto p_command_sdk_hide_window =
+		[p_main_manager, p_current_renderer](
+			kotek::ktk::console_command_args_t data) -> bool
+	{
+		if (data.empty())
+		{
+			KOTEK_MESSAGE_WARNING(
+				"can't execute command because it requires an ID for window "
+				"showing, ID is a required argument for calling");
+			return false;
+		}
+
+		if (!p_current_renderer)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"you can't call this command if renderer wasn't initialized");
+			return false;
+		}
+
+		const auto& imgui_elements = p_current_renderer->Get_UIImGuiElements();
+
+		if (imgui_elements.empty())
+		{
+			KOTEK_MESSAGE_WARNING("engine didn't register any window on "
+								  "renderer side... Unable to proceed...");
+			return false;
+		}
+
+		int window_id = std::get<int>(data[0]);
+
+		auto window_iter =
+			std::find_if(imgui_elements.begin(), imgui_elements.end(),
+				[window_id](kotek::core::ktkISDKUIElement* p_element) -> bool
+				{
+					KOTEK_ASSERT(p_element,
+						"something is broken and window is invalid!");
+					return p_element->Get_ID() == window_id;
+				});
+
+		if (window_iter != imgui_elements.end())
+		{
+			kotek::core::ktkISDKUIElement* p_element = (*window_iter);
+
+			if (p_element->Is_Shown() == true)
+			{
+				p_element->Hide();
+			}
+		}
 
 		return true;
 	};
 
 	auto p_command_sdk_print_registered_windows =
 		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
-	{ 
-		return true; 
-	};
+	{ return true; };
+
+	this->m_p_console->RegisterCommand(
+		static_cast<kotek::ktk::enum_base_t>(
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_ShowWindow),
+		p_command_sdk_show_window);
+
+	this->m_p_console->RegisterCommand(
+		static_cast<kotek::ktk::enum_base_t>(
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_HideWindow),
+		p_command_sdk_hide_window);
 
 	this->m_p_console->RegisterCommand(
 		static_cast<Kotek::ktk::enum_base_t>(

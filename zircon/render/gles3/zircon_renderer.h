@@ -32,6 +32,9 @@ public:
 
 	const char* Get_Name(void) const noexcept override;
 
+	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
+	Get_UIImGuiElements() const override;
+
 private:
 	void Begin() noexcept;
 	void End() noexcept;
