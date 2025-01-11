@@ -17,4 +17,5 @@ public:
 
 private:
 	bool m_is_show_window;
+	char m_state_keys_buffer[512];
 };

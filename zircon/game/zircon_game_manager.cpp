@@ -14,6 +14,7 @@
 #include "ui/ImGui/zircon_ui_window_log.h"
 #include "ui/ImGui/zircon_ui_window_render_stats.h"
 #include "ui/ImGui/zircon_ui_window_settings.h"
+#include "ui/ImGui/zircon_ui_window_debug_input.h"
 
 #include "ui/Manager/zircon_sdk_ui.h"
 
@@ -36,15 +37,15 @@
 #ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
 void WindowCallback_Resize(GLFWwindow* p_window, int width, int height)
 {
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetWindowUserPointer(p_window));
 
 	KOTEK_ASSERT(
 		p_manager, "you didn't register user pointer to ktkMainManager");
 
 	p_manager->GetGameManager()->GetConsole()->PushCommand(
-		static_cast<Kotek::ktk::enum_base_t>(
-			Kotek::Core::eConsoleCommandIndex::kConsoleCommand_Resize),
+		static_cast<kotek::ktk::enum_base_t>(
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_Resize),
 		{{width}, {height}});
 
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
@@ -54,7 +55,7 @@ void WindowCallback_Resize(GLFWwindow* p_window, int width, int height)
 	if (!p_manager->Get_GameUIEngine())
 		return;
 
-	auto* p_casted = dynamic_cast<Kotek::UI::ktkGameUI_RMLUI*>(
+	auto* p_casted = dynamic_cast<kotek::UI::ktkGameUI_RMLUI*>(
 		p_manager->Get_GameUIEngine());
 
 	if (!p_casted)
@@ -64,8 +65,8 @@ void WindowCallback_Resize(GLFWwindow* p_window, int width, int height)
 
 void WindowCallback_Mouse(GLFWwindow* p_window, double xpos, double ypos)
 {
-	Kotek::Core::ktkMainManager* p_manager =
-		static_cast<Kotek::Core::ktkMainManager*>(
+	kotek::core::ktkMainManager* p_manager =
+		static_cast<kotek::core::ktkMainManager*>(
 			glfwGetWindowUserPointer(p_window));
 
 	KOTEK_ASSERT(
@@ -96,7 +97,7 @@ void WindowCallback_Mouse(GLFWwindow* p_window, double xpos, double ypos)
 	auto* p_game_factory = p_game_manager->get_factory_game();
 
 	#ifdef KOTEK_USE_SDK_IMGUI
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -147,7 +148,7 @@ void WindowCallback_Key(GLFWwindow* p_window, int glfw_key, int scancode,
 	int glfw_action, int glfw_mods)
 {
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetWindowUserPointer(p_window));
 
 	if (!p_manager)
@@ -175,7 +176,7 @@ void WindowCallback_Key(GLFWwindow* p_window, int glfw_key, int scancode,
 	}
 
 	#ifdef KOTEK_USE_SDK_IMGUI
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -189,8 +190,8 @@ void WindowCallback_Key(GLFWwindow* p_window, int glfw_key, int scancode,
 void WindowCallback_Char(GLFWwindow* p_window, unsigned int codepoint)
 {
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
-	Kotek::Core::ktkMainManager* p_manager =
-		static_cast<Kotek::Core::ktkMainManager*>(
+	kotek::core::ktkMainManager* p_manager =
+		static_cast<kotek::core::ktkMainManager*>(
 			glfwGetWindowUserPointer(p_window));
 
 	if (!p_manager)
@@ -200,8 +201,8 @@ void WindowCallback_Char(GLFWwindow* p_window, unsigned int codepoint)
 
 	if (p_manager->Get_GameUIEngine())
 	{
-		Kotek::UI::ktkGameUI_RMLUI* p_casted =
-			dynamic_cast<Kotek::UI::ktkGameUI_RMLUI*>(
+		kotek::UI::ktkGameUI_RMLUI* p_casted =
+			dynamic_cast<kotek::UI::ktkGameUI_RMLUI*>(
 				p_manager->Get_GameUIEngine());
 
 		if (!p_casted)
@@ -213,7 +214,7 @@ void WindowCallback_Char(GLFWwindow* p_window, unsigned int codepoint)
 	#endif
 
 	#ifdef KOTEK_USE_SDK_IMGUI
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -226,7 +227,7 @@ void WindowCallback_Char(GLFWwindow* p_window, unsigned int codepoint)
 void WindowCallback_CursorEnter(GLFWwindow* p_window, int entered)
 {
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetWindowUserPointer(p_window));
 
 	if (!p_manager)
@@ -235,7 +236,7 @@ void WindowCallback_CursorEnter(GLFWwindow* p_window, int entered)
 	if (!p_manager->Get_GameUIEngine())
 		return;
 
-	auto* p_casted = dynamic_cast<Kotek::UI::ktkGameUI_RMLUI*>(
+	auto* p_casted = dynamic_cast<kotek::UI::ktkGameUI_RMLUI*>(
 		p_manager->Get_GameUIEngine());
 
 	if (!p_casted)
@@ -243,7 +244,7 @@ void WindowCallback_CursorEnter(GLFWwindow* p_window, int entered)
 	#endif
 
 	#ifdef KOTEK_USE_SDK_IMGUI
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -257,7 +258,7 @@ void WindowCallback_MouseButton(
 	GLFWwindow* p_window, int button, int action, int mods)
 {
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetWindowUserPointer(p_window));
 
 	if (!p_manager)
@@ -266,7 +267,7 @@ void WindowCallback_MouseButton(
 	if (!p_manager->Get_GameUIEngine())
 		return;
 
-	auto* p_casted = dynamic_cast<Kotek::UI::ktkGameUI_RMLUI*>(
+	auto* p_casted = dynamic_cast<kotek::UI::ktkGameUI_RMLUI*>(
 		p_manager->Get_GameUIEngine());
 
 	if (!p_casted)
@@ -274,7 +275,7 @@ void WindowCallback_MouseButton(
 	#endif
 
 	#ifdef KOTEK_USE_SDK_IMGUI
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -349,7 +350,7 @@ void WindowCallback_MouseButton(
 void WindowCallback_Scroll(GLFWwindow* p_window, double xoffset, double yoffset)
 {
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetWindowUserPointer(p_window));
 
 	if (!p_manager)
@@ -358,7 +359,7 @@ void WindowCallback_Scroll(GLFWwindow* p_window, double xoffset, double yoffset)
 	if (!p_manager->Get_GameUIEngine())
 		return;
 
-	auto* p_casted = dynamic_cast<Kotek::UI::ktkGameUI_RMLUI*>(
+	auto* p_casted = dynamic_cast<kotek::UI::ktkGameUI_RMLUI*>(
 		p_manager->Get_GameUIEngine());
 
 	if (!p_casted)
@@ -366,7 +367,7 @@ void WindowCallback_Scroll(GLFWwindow* p_window, double xoffset, double yoffset)
 	#endif
 
 	#ifdef KOTEK_USE_SDK_IMGUI
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -381,7 +382,7 @@ void WindowCallback_WindowContentScale(
 	GLFWwindow* p_window, float xscale, float yscale)
 {
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetWindowUserPointer(p_window));
 
 	if (!p_manager)
@@ -390,7 +391,7 @@ void WindowCallback_WindowContentScale(
 	if (!p_manager->Get_GameUIEngine())
 		return;
 
-	auto* p_casted = dynamic_cast<Kotek::UI::ktkGameUI_RMLUI*>(
+	auto* p_casted = dynamic_cast<kotek::UI::ktkGameUI_RMLUI*>(
 		p_manager->Get_GameUIEngine());
 
 	if (!p_casted)
@@ -401,13 +402,13 @@ void WindowCallback_WindowContentScale(
 void WindowCallback_Monitor(GLFWmonitor* p_monitor, int event)
 {
 	#ifdef KOTEK_USE_SDK_IMGUI
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetMonitorUserPointer(p_monitor));
 
 	if (!p_manager)
 		return;
 
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -420,13 +421,13 @@ void WindowCallback_Monitor(GLFWmonitor* p_monitor, int event)
 void WindowCallback_WindowFocus(GLFWwindow* p_window, int focused)
 {
 	#ifdef KOTEK_USE_SDK_IMGUI
-	auto* p_manager = static_cast<Kotek::Core::ktkMainManager*>(
+	auto* p_manager = static_cast<kotek::core::ktkMainManager*>(
 		glfwGetWindowUserPointer(p_window));
 
 	if (!p_manager)
 		return;
 
-	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(Kotek::Core::
+	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
@@ -459,15 +460,15 @@ zircon_manager_game::zircon_manager_game(void) :
 zircon_manager_game::~zircon_manager_game(void) {}
 
 void zircon_manager_game::Initialize(
-	Kotek::Core::ktkMainManager* p_main_manager)
+	kotek::core::ktkMainManager* p_main_manager)
 {
 	this->m_p_main_manager = p_main_manager;
 
 	if (this->m_p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor) == false)
+				kotek::kConsoleCommandArg_Editor) == false)
 	{
-		Kotek::Core::ktkWindow* p_window = static_cast<Kotek::Core::ktkWindow*>(
+		kotek::core::ktkWindow* p_window = static_cast<kotek::core::ktkWindow*>(
 			this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow());
 
 		p_window->RegisterUserMainManager(this->m_p_main_manager);
@@ -512,7 +513,7 @@ void zircon_manager_game::Initialize(
 	this->RegisterConsole_Commands_SDK();
 }
 
-void zircon_manager_game::Shutdown(Kotek::Core::ktkMainManager* p_main_manager)
+void zircon_manager_game::Shutdown(kotek::core::ktkMainManager* p_main_manager)
 {
 	this->Destroy_UI();
 	this->Destroy_HistoryCommandManager();
@@ -612,17 +613,17 @@ int zircon_manager_game::GetWindowHeight(void) const noexcept
 	}
 }
 
-Kotek::Core::ktkProfiler* zircon_manager_game::GetProfiler(void) const noexcept
+kotek::core::ktkProfiler* zircon_manager_game::GetProfiler(void) const noexcept
 {
 	return this->m_p_profiler;
 }
 
-Kotek::Core::ktkConsole* zircon_manager_game::GetConsole(void) const noexcept
+kotek::core::ktkConsole* zircon_manager_game::GetConsole(void) const noexcept
 {
 	return this->m_p_console;
 }
 
-Kotek::Core::ktkIRenderer* zircon_manager_game::GetRenderer(void) const noexcept
+kotek::core::ktkIRenderer* zircon_manager_game::GetRenderer(void) const noexcept
 {
 	return this->m_p_current_renderer;
 }
@@ -633,7 +634,7 @@ void* zircon_manager_game::GetRenderResourceManager(void) const noexcept
 }
 
 void* zircon_manager_game::CreateSurface(
-	Kotek::Core::ktkMainManager* p_main_manager, void* p_instance,
+	kotek::core::ktkMainManager* p_main_manager, void* p_instance,
 	const void* p_callbacks)
 {
 	KOTEK_ASSERT(p_main_manager, "must be valid");
@@ -644,21 +645,21 @@ void* zircon_manager_game::CreateSurface(
 		"you must initialize engine config, something is wrong");
 
 	bool is_gl_initialized = p_engine_config->GetRendererVersionEnum() >=
-			Kotek::Core::eEngineSupportedRenderer::kOpenGL_1_0 ||
+			kotek::core::eEngineSupportedRenderer::kOpenGL_1_0 ||
 		p_engine_config->GetRendererVersionEnum() <=
-			Kotek::Core::eEngineSupportedRenderer::kOpenGL_Latest;
+			kotek::core::eEngineSupportedRenderer::kOpenGL_Latest;
 	bool is_vk_initialized = p_engine_config->GetRendererVersionEnum() >=
-			Kotek::Core::eEngineSupportedRenderer::kVulkan_1_0 ||
+			kotek::core::eEngineSupportedRenderer::kVulkan_1_0 ||
 		p_engine_config->GetRendererVersionEnum() <=
-			Kotek::Core::eEngineSupportedRenderer::kVulkan_Latest;
+			kotek::core::eEngineSupportedRenderer::kVulkan_Latest;
 	bool is_dx_initialized = p_engine_config->GetRendererVersionEnum() >=
-			Kotek::Core::eEngineSupportedRenderer::kDirectX_7 ||
+			kotek::core::eEngineSupportedRenderer::kDirectX_7 ||
 		p_engine_config->GetRendererVersionEnum() <=
-			Kotek::Core::eEngineSupportedRenderer::kDirectX_Latest;
+			kotek::core::eEngineSupportedRenderer::kDirectX_Latest;
 	bool is_gles_initialized = p_engine_config->GetRendererVersionEnum() >=
-			Kotek::Core::eEngineSupportedRenderer::kOpenGLES_1 ||
+			kotek::core::eEngineSupportedRenderer::kOpenGLES_1 ||
 		p_engine_config->GetRendererVersionEnum() <=
-			Kotek::Core::eEngineSupportedRenderer::kOpenGLES_Latest;
+			kotek::core::eEngineSupportedRenderer::kOpenGLES_Latest;
 
 	int how_many_is_initialized{};
 
@@ -766,9 +767,9 @@ zircon_factory_game* zircon_manager_game::get_factory_game(void) const noexcept
 	return this->m_p_factory;
 }
 
-Kotek::Core::ktkWindow* zircon_manager_game::GetWindow(void) const noexcept
+kotek::core::ktkWindow* zircon_manager_game::GetWindow(void) const noexcept
 {
-	return static_cast<Kotek::Core::ktkWindow*>(
+	return static_cast<kotek::core::ktkWindow*>(
 		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow());
 }
 
@@ -782,7 +783,7 @@ void zircon_manager_game::Deserialize(void) noexcept
 {
 	if (this->m_p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor_ImGui))
+				kotek::kConsoleCommandArg_Editor_ImGui))
 	{
 	}
 	else
@@ -793,7 +794,7 @@ void zircon_manager_game::Deserialize(void) noexcept
 		this->m_p_main_manager->GetResourceManager());
 }
 
-Kotek::Core::ktkMainManager* zircon_manager_game::GetMainManager(
+kotek::core::ktkMainManager* zircon_manager_game::GetMainManager(
 	void) const noexcept
 {
 	return this->m_p_main_manager;
@@ -854,7 +855,7 @@ entt::entity zircon_manager_game::Initialize_Actor(void) noexcept
 void zircon_manager_game::Initialize_Renderer(void) noexcept
 {
 	// TODO: think about ImGui preprocessor...
-	Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*> elements;
+	kotek::ktk::vector<kotek::core::ktkISDKUIElement*> elements;
 	elements.push_back(new zircon_sdk_ui_object_list());
 	elements.push_back(new zircon_sdk_ui_top_bar());
 	elements.push_back(new zircon_sdk_ui_window_prefab());
@@ -865,6 +866,7 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 		this->m_p_sdk_history_manager));
 	elements.push_back(new zircon_ui_window_render_stats());
 	elements.push_back(new zircon_ui_window_settings());
+	elements.push_back(new zircon_sdk_ui_window_debug_input());
 
 	auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
 
@@ -873,9 +875,9 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 
 	// TODO: add initialization with appropriate gl version of we have
 	// the 4.6 for example we have to initialize with according version
-	if (p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+	if (p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_OpenGL_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_OpenGL_SpecifiedByUser))
 	{
 		switch (p_engine_config->GetRendererVersionEnum())
@@ -886,9 +888,9 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 		}
 	}
 	else if (p_engine_config->IsFeatureEnabled(
-				 Kotek::Core::eEngineFeatureRenderer::
+				 kotek::core::eEngineFeatureRenderer::
 					 kEngine_Feature_Renderer_Vulkan_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_Vulkan_SpecifiedByUser))
 	{
 #ifdef KOTEK_USE_RENDER_VULKAN
@@ -900,24 +902,24 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 #endif
 	}
 	else if (p_engine_config->IsFeatureEnabled(
-				 Kotek::Core::eEngineFeatureRenderer::
+				 kotek::core::eEngineFeatureRenderer::
 					 kEngine_Feature_Renderer_DirectX_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_DirectX_SpecifiedByUser))
 	{
 		KOTEK_ASSERT(false, "not supported");
 	}
 	else if (p_engine_config->IsFeatureEnabled(
-				 Kotek::Core::eEngineFeatureRenderer::
+				 kotek::core::eEngineFeatureRenderer::
 					 kEngine_Feature_Renderer_OpenGLES_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_OpenGLES_SpecifiedByUser))
 	{
 		switch (p_engine_config->GetRendererVersionEnum())
 		{
-		case Kotek::Core::eEngineSupportedRenderer::kOpenGLES_3_0:
-		case Kotek::Core::eEngineSupportedRenderer::kOpenGLES_3_1:
-		case Kotek::Core::eEngineSupportedRenderer::kOpenGLES_3_2:
+		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_0:
+		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
+		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 		default:
 		{
 			this->m_p_renderer_gles3 =
@@ -929,7 +931,7 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 		}
 		}
 	}
-	else if (p_engine_config->IsFeatureEnabled(Kotek::Core::
+	else if (p_engine_config->IsFeatureEnabled(kotek::core::
 					 eEngineFeatureRenderer::kEngine_Feature_Renderer_Software))
 	{
 		KOTEK_ASSERT(false, "not implemented yet");
@@ -950,9 +952,9 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 {
 	auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
 
-	if (p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+	if (p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_OpenGL_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_OpenGL_SpecifiedByUser))
 	{
 		switch (p_engine_config->GetRendererVersionEnum())
@@ -963,9 +965,9 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 		}
 	}
 	else if (p_engine_config->IsFeatureEnabled(
-				 Kotek::Core::eEngineFeatureRenderer::
+				 kotek::core::eEngineFeatureRenderer::
 					 kEngine_Feature_Renderer_Vulkan_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_Vulkan_SpecifiedByUser))
 	{
 #ifdef KOTEK_USE_RENDER_VULKAN
@@ -976,17 +978,17 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 #endif
 	}
 	else if (p_engine_config->IsFeatureEnabled(
-				 Kotek::Core::eEngineFeatureRenderer::
+				 kotek::core::eEngineFeatureRenderer::
 					 kEngine_Feature_Renderer_DirectX_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_DirectX_SpecifiedByUser))
 	{
 		KOTEK_ASSERT(false, "not implemented yet");
 	}
 	else if (p_engine_config->IsFeatureEnabled(
-				 Kotek::Core::eEngineFeatureRenderer::
+				 kotek::core::eEngineFeatureRenderer::
 					 kEngine_Feature_Renderer_OpenGLES_Latest) ||
-		p_engine_config->IsFeatureEnabled(Kotek::Core::eEngineFeatureRenderer::
+		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_OpenGLES_SpecifiedByUser))
 	{
 		KOTEK_ASSERT(this->m_p_renderer_gles3, "must be valid");
@@ -994,7 +996,7 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 		delete this->m_p_renderer_gles3;
 		this->m_p_renderer_gles3 = nullptr;
 	}
-	else if (p_engine_config->IsFeatureEnabled(Kotek::Core::
+	else if (p_engine_config->IsFeatureEnabled(kotek::core::
 					 eEngineFeatureRenderer::kEngine_Feature_Renderer_Software))
 	{
 		KOTEK_ASSERT(false, "not implemented yet");
@@ -1078,9 +1080,9 @@ void zircon_manager_game::Initialize_ResourceManager(void) noexcept
 	this->m_p_resource_manager->Set_RenderResourceManager(
 		this->m_p_main_manager->GetRenderResourceManager());
 	this->m_p_resource_manager->Set_ResourceLoader(
-		new Kotek::Core::ktkResourceLoaderManager());
+		new kotek::core::ktkResourceLoaderManager());
 	this->m_p_resource_manager->Set_ResourceSaver(
-		new Kotek::Core::ktkResourceSaverManager());
+		new kotek::core::ktkResourceSaverManager());
 	this->m_p_resource_manager->Initialize();
 
 	this->m_p_main_manager->SetResourceManager(this->m_p_resource_manager);
@@ -1098,7 +1100,7 @@ void zircon_manager_game::Destroy_ResourceManager(void) noexcept
 
 void zircon_manager_game::Initialize_Console(void) noexcept
 {
-	this->m_p_console = new Kotek::Core::ktkConsole();
+	this->m_p_console = new kotek::core::ktkConsole();
 	this->m_p_console->Initialize();
 }
 
@@ -1109,10 +1111,10 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 	KOTEK_ASSERT(p_window_manager, "you must initialize window manager");
 
 	this->m_p_console->RegisterCommand(
-		static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::eConsoleCommandIndex::
+		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
 				kConsoleCommand_App_AddTextToExistedWindowTitle),
 		[p_window_manager](
-			const Kotek::ktk::console_command_args_t& args) -> bool
+			const kotek::ktk::console_command_args_t& args) -> bool
 		{
 			KOTEK_ASSERT(args.empty() == false,
 				"you can't pass an empty arguments here");
@@ -1125,7 +1127,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			if (p_window_manager->Get_ActiveWindow())
 			{
 				p_window_manager->Get_ActiveWindow()->SetStringToTitle(
-					std::get<Kotek::ktk::enum_base_t>(args[0]),
+					std::get<kotek::ktk::enum_base_t>(args[0]),
 					std::get<kotek::static_cstring_t<16>>(args[1]).c_str());
 			}
 
@@ -1133,10 +1135,10 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		});
 
 	this->m_p_console->RegisterCommand(
-		static_cast<Kotek::ktk::enum_base_t>(
-			Kotek::Core::eConsoleCommandIndex::kConsoleCommand_Input_Type),
+		static_cast<kotek::ktk::enum_base_t>(
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_Input_Type),
 		[p_window_manager](
-			const Kotek::ktk::console_command_args_t& args) -> bool
+			const kotek::ktk::console_command_args_t& args) -> bool
 		{
 			KOTEK_ASSERT(
 				args.empty() == false, "you must pass an argument here");
@@ -1144,7 +1146,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			if (p_window_manager->Get_ActiveWindow())
 			{
 				p_window_manager->Get_ActiveWindow()->Set_InputType(
-					std::get<Kotek::ktk::enum_base_t>(args[0]));
+					std::get<kotek::ktk::enum_base_t>(args[0]));
 			}
 
 			return true;
@@ -1155,9 +1157,9 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 	auto* p_resource_manager = p_main_manager->GetResourceManager();
 
 	this->m_p_console->RegisterCommand(
-		static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::eConsoleCommandIndex::
+		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
 				kConsoleCommand_Render_CalculateBoundingPrimitive),
-		[this](const Kotek::ktk::console_command_args_t& args) -> bool
+		[this](const kotek::ktk::console_command_args_t& args) -> bool
 		{
 			KOTEK_ASSERT(args.empty() == false,
 				"you must pass an arguments here. arg1=resource_geometry, "
@@ -1177,14 +1179,14 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			if (p_factory)
 			{
 				auto p_resource_geometry =
-					reinterpret_cast<Kotek::Render::gl::ktkGeometry*>(
-						std::get<Kotek::ktk::shared_ptr<
+					reinterpret_cast<kotek::Render::gl::ktkGeometry*>(
+						std::get<kotek::ktk::shared_ptr<
 							kun_kotek kun_core ktkResourceHandle>>(args[0])
 							.get()
 							->Get_Resource());
 				auto bounding_type =
-					static_cast<Kotek::Core::eRenderBoundingPrimitiveType>(
-						std::get<Kotek::ktk::enum_base_t>(args[1]));
+					static_cast<kotek::core::eRenderBoundingPrimitiveType>(
+						std::get<kotek::ktk::enum_base_t>(args[1]));
 				auto entity_id = static_cast<entt::entity>(
 					std::get<kotek::uint32_t>(args[2]));
 
@@ -1248,17 +1250,17 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		});
 
 	this->m_p_console->RegisterCommand(
-		static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::eConsoleCommandIndex::
+		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
 				kConsoleCommand_ResourceManager_Load),
 		[p_resource_manager](
-			const Kotek::ktk::console_command_args_t& args) -> bool
+			const kotek::ktk::console_command_args_t& args) -> bool
 		{
 			KOTEK_ASSERT(
 				args.empty() == false, "you must pass an arguments here");
 			KOTEK_ASSERT(p_resource_manager,
 				"you must have valid resource manager here");
 
-			auto request = std::get<Kotek::Core::ktkLoadingRequest>(args[0]);
+			auto request = std::get<kotek::core::ktkLoadingRequest>(args[0]);
 
 			if (p_resource_manager)
 			{
@@ -1269,7 +1271,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		});
 
 	auto p_command_resize = [p_main_manager](
-								Kotek::ktk::console_command_args_t data) -> bool
+								kotek::ktk::console_command_args_t data) -> bool
 	{
 		if (data.empty())
 		{
@@ -1304,7 +1306,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 	};
 
 	auto p_command_close_application =
-		[p_main_manager](Kotek::ktk::console_command_args_t data) -> bool
+		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
 	{
 		if (data.empty())
 		{
@@ -1443,13 +1445,13 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		p_command_sdk_hide_window);
 
 	this->m_p_console->RegisterCommand(
-		static_cast<Kotek::ktk::enum_base_t>(
-			Kotek::Core::eConsoleCommandIndex::kConsoleCommand_Resize),
+		static_cast<kotek::ktk::enum_base_t>(
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_Resize),
 		p_command_resize);
 
 	this->m_p_console->RegisterCommand(
-		static_cast<Kotek::ktk::enum_base_t>(
-			Kotek::Core::eConsoleCommandIndex::kConsoleCommand_App_Close),
+		static_cast<kotek::ktk::enum_base_t>(
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_App_Close),
 		p_command_close_application);
 }
 
@@ -1463,7 +1465,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 	// ????? UI ??????? ? ???????
 	if (this->m_p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor_ImGui))
+				kotek::kConsoleCommandArg_Editor_ImGui))
 	{
 		KOTEK_ASSERT(
 			this->m_p_session_editor, "you must initialize session for editor");
@@ -1476,14 +1478,14 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 		auto* p_history_manager = this->m_p_sdk_history_manager;
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_LoadScene),
 			[p_session, this](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				this->GetConsole()->Execute(
-					static_cast<Kotek::ktk::enum_base_t>(
-						Kotek::Core::eConsoleCommandIndex::
+					static_cast<kotek::ktk::enum_base_t>(
+						kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_CloseCurrentScene));
 
 				KOTEK_ASSERT(args.empty() == false,
@@ -1498,10 +1500,10 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_SaveScene),
 			[p_history_manager, p_session, this](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				kotek::static_path_t filename;
 
@@ -1552,11 +1554,11 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 					p_history_manager->set_changed(false);
 
 					this->GetConsole()->PushCommand(
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eConsoleCommandIndex::
+						static_cast<kotek::ktk::enum_base_t>(
+							kotek::core::eConsoleCommandIndex::
 								kConsoleCommand_App_AddTextToExistedWindowTitle),
-						{{static_cast<Kotek::ktk::enum_base_t>(
-							 Kotek::Core::eWindowTitleType::
+						{{static_cast<kotek::ktk::enum_base_t>(
+							 kotek::core::eWindowTitleType::
 								 kTitle_CurrentSceneEditStatus)},
 							kotek::static_cstring_t<16>("-- saved")});
 
@@ -1571,30 +1573,30 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(
-				Kotek::Core::eConsoleCommandIndex::kConsoleCommand_SDK_Redo),
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Redo),
 			[p_history_manager](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				p_history_manager->Redo();
 				return true;
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(
-				Kotek::Core::eConsoleCommandIndex::kConsoleCommand_SDK_Undo),
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Undo),
 			[p_history_manager](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				p_history_manager->Undo();
 				return true;
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_DeleteEntity),
 			[p_history_manager, this](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				KOTEK_ASSERT(args.empty() == false,
 					"you can't pass an empty args here!");
@@ -1622,10 +1624,10 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_CreateEntity),
 			[p_history_manager, this](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				auto* p_placement_new_memory =
 					p_history_manager->allocate_memory_for_command(
@@ -1643,11 +1645,11 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(
-				Kotek::Core::eConsoleCommandIndex::
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_CreateComponentForEntity),
 			[p_history_manager, this](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				KOTEK_ASSERT(
 					args.empty() == false, "you can't an empty arguments here");
@@ -1693,11 +1695,11 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(
-				Kotek::Core::eConsoleCommandIndex::
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_DeleteComponentFromEntity),
 			[p_history_manager, this](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				KOTEK_ASSERT(args.empty() == false,
 					"you can't pass an empty arguments here");
@@ -1731,20 +1733,20 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(
-				Kotek::Core::eConsoleCommandIndex::
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_CloseCurrentScene),
 			[p_history_manager, this](
-				const Kotek::ktk::console_command_args_t& args) -> bool
+				const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				if (this->GetSession_Editor())
 				{
 					this->GetSession_Editor()->shutdown();
 					this->GetConsole()->PushCommand(
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eConsoleCommandIndex::
+						static_cast<kotek::ktk::enum_base_t>(
+							kotek::core::eConsoleCommandIndex::
 								kConsoleCommand_App_AddTextToExistedWindowTitle),
-						{{static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
+						{{static_cast<kotek::ktk::enum_base_t>(kotek::core::
 								 eWindowTitleType::kTitle_CurrentSceneName)},
 							kotek::static_cstring_t<16>("")});
 				}
@@ -1753,10 +1755,10 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 			});
 
 		this->m_p_console->RegisterCommand(
-			static_cast<Kotek::ktk::enum_base_t>(
-				Kotek::Core::eConsoleCommandIndex::
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_ShowModalWindow_SaveAndCloseOrCloseScene),
-			[this](const Kotek::ktk::console_command_args_t& args) -> bool
+			[this](const kotek::ktk::console_command_args_t& args) -> bool
 			{
 				if (this->get_sdk_ui())
 				{
@@ -1783,12 +1785,12 @@ void zircon_manager_game::Initialize_SDKUIManager(
 	// TODO: change to flag
 	this->m_is_use_sdk_imgui = this->m_p_main_manager->Get_EngineConfig()
 								   ->IsContainsConsoleCommandLineArgument(
-									   Kotek::kConsoleCommandArg_Editor_ImGui);
+									   kotek::kConsoleCommandArg_Editor_ImGui);
 
 #ifdef KOTEK_USE_SDK
 	this->m_is_use_sdk = this->m_p_main_manager->Get_EngineConfig()
 							 ->IsContainsConsoleCommandLineArgument(
-								 Kotek::kConsoleCommandArg_Editor);
+								 kotek::kConsoleCommandArg_Editor);
 
 	this->m_p_sdk_ui_manager =
 		new sdk::ui::zircon_SDKUIManager(this->m_is_use_sdk,
@@ -1810,7 +1812,7 @@ void zircon_manager_game::Initialize_Session(void) noexcept
 {
 	if (this->m_p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor_ImGui))
+				kotek::kConsoleCommandArg_Editor_ImGui))
 	{
 		this->m_p_session_editor = new zircon_session_editor();
 
@@ -1834,7 +1836,7 @@ void zircon_manager_game::Destroy_Session(void) noexcept
 {
 	if (this->m_p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor_ImGui))
+				kotek::kConsoleCommandArg_Editor_ImGui))
 	{
 		if (this->m_p_session_editor)
 		{
