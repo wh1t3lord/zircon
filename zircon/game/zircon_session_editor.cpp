@@ -39,6 +39,16 @@ void zircon_session_editor::shutdown(void)
 
 void zircon_session_editor::update(void)
 {
+	if (this->m_p_main_manager)
+	{
+		auto* p_input = this->m_p_main_manager->Get_Input();
+
+		if (p_input)
+		{
+			p_input->Update();
+		}
+	}
+
 	this->update_editing_status();
 
 	this->update_component_input_sdk();

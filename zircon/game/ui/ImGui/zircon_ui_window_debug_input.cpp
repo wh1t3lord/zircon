@@ -51,11 +51,30 @@ void zircon_sdk_ui_window_debug_input::Draw(
 
 			p_wrapper_imgui->Separator();
 
+			p_input->WriteKeyAsStringToBuffer_IfHolding(
+				kotek::core::eInputControllerType::kControllerKeyboard,
+				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+
+			p_input->WriteKeyAsStringToBuffer_IfHolding(
+				kotek::core::eInputControllerType::kControllerMouse,
+				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+
 			p_wrapper_imgui->Text("Holding: [%s]", this->m_state_keys_buffer);
+
+			this->m_state_keys_buffer[0] = '\0';
 
 			p_wrapper_imgui->Separator();
 
+			p_input->WriteKeyAsStringToBuffer_IfReleased(
+				kotek::core::eInputControllerType::kControllerKeyboard,
+				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+			p_input->WriteKeyAsStringToBuffer_IfReleased(
+				kotek::core::eInputControllerType::kControllerMouse,
+				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+
 			p_wrapper_imgui->Text("Release: [%s]", this->m_state_keys_buffer);
+
+			this->m_state_keys_buffer[0] = '\0';
 
 			p_wrapper_imgui->End();
 		}

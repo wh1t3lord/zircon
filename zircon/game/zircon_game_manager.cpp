@@ -172,7 +172,7 @@ void WindowCallback_Key(GLFWwindow* p_window, int glfw_key, int scancode,
 		args.controller =
 			kotek::core::eInputControllerType::kControllerKeyboard;
 
-		p_manager->Get_Input()->Update(&args);
+		p_manager->Get_Input()->Update_Controller(&args);
 	}
 
 	#ifdef KOTEK_USE_SDK_IMGUI
@@ -284,7 +284,7 @@ void WindowCallback_MouseButton(
 		args.controller =
 			kotek::core::eInputControllerType::kControllerMouse;
 
-		p_manager->Get_Input()->Update(&args);
+		p_manager->Get_Input()->Update_Controller(&args);
 	}
 
 	#ifdef KOTEK_USE_SDK_IMGUI
