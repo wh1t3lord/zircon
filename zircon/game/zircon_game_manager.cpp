@@ -274,6 +274,19 @@ void WindowCallback_MouseButton(
 		return;
 	#endif
 
+	if (p_manager->Get_Input())
+	{
+		kotek::core::ktkInputPlatformBackendArgs_GLFW3 args;
+		args.key = button;
+		args.action = action;
+		args.scancode = -1;
+		args.mods = mods;
+		args.controller =
+			kotek::core::eInputControllerType::kControllerMouse;
+
+		p_manager->Get_Input()->Update(&args);
+	}
+
 	#ifdef KOTEK_USE_SDK_IMGUI
 	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
 				eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized))

@@ -28,7 +28,7 @@ void zircon_sdk_ui_window_debug_input::Draw(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"engine: doesn't have initialize input manager (nullptr). Can't "
-		    "open window = zircon_sdk_ui_window_debug_input");
+			"open window = zircon_sdk_ui_window_debug_input");
 		return;
 	}
 
@@ -41,22 +41,21 @@ void zircon_sdk_ui_window_debug_input::Draw(
 			p_input->WriteKeyAsStringToBuffer_IfPressed(
 				kotek::core::eInputControllerType::kControllerKeyboard,
 				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+			p_input->WriteKeyAsStringToBuffer_IfPressed(
+				kotek::core::eInputControllerType::kControllerMouse,
+				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
 
 			p_wrapper_imgui->Text("Pressed: [%s]", this->m_state_keys_buffer);
-			kotek::ktk::memory::memset(this->m_state_keys_buffer, 0,
-				sizeof(this->m_state_keys_buffer));
+
+			this->m_state_keys_buffer[0] = '\0';
 
 			p_wrapper_imgui->Separator();
 
 			p_wrapper_imgui->Text("Holding: [%s]", this->m_state_keys_buffer);
-			kotek::ktk::memory::memset(this->m_state_keys_buffer, 0,
-				sizeof(this->m_state_keys_buffer));
 
 			p_wrapper_imgui->Separator();
 
 			p_wrapper_imgui->Text("Release: [%s]", this->m_state_keys_buffer);
-			kotek::ktk::memory::memset(this->m_state_keys_buffer, 0,
-				sizeof(this->m_state_keys_buffer));
 
 			p_wrapper_imgui->End();
 		}
