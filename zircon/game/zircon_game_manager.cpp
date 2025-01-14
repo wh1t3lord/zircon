@@ -281,8 +281,7 @@ void WindowCallback_MouseButton(
 		args.action = action;
 		args.scancode = -1;
 		args.mods = mods;
-		args.controller =
-			kotek::core::eInputControllerType::kControllerMouse;
+		args.controller = kotek::core::eInputControllerType::kControllerMouse;
 
 		p_manager->Get_Input()->Update_Controller(&args);
 	}
@@ -1903,12 +1902,26 @@ void zircon_manager_game::Initialize_UI(void) noexcept
 {
 	KOTEK_ASSERT(this->m_p_main_manager->Get_GameUIEngine(),
 		"you have to initialize game ui engine");
+	KOTEK_ASSERT(this->m_p_resource_manager, "must initialize this first!");
 
 	this->m_p_main_manager->Get_GameUIEngine()->Initialize(
 		this->m_p_main_manager->Get_EngineConfig(),
 		this->m_p_main_manager->Get_WindowManager()->ActiveWindow_GetHandle(),
 		this->m_p_main_manager->Get_WindowManager()->ActiveWindow_GetWidth(),
 		this->m_p_main_manager->Get_WindowManager()->ActiveWindow_GetHeight());
+
+	this->m_p_window_console = new kotek::core::ktkWindowConsole();
+
+	auto path = this->m_p_main_manager->GetFileSystem()->GetFolderByEnum(
+		kotek::core::eFolderIndex::kFolderIndex_UserData);
+
+	path /= KOTEK_USE_LOG_OUTPUT_FILE_NAME;
+
+	this->m_p_window_console->Initialize(
+		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow(),
+		this->m_p_resource_manager,
+		path
+	);
 }
 
 void zircon_manager_game::Destroy_UI(void) noexcept

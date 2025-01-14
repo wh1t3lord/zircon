@@ -84,7 +84,7 @@ void zircon_command_history::initialize(
 	if (this->m_p_resource_manager)
 	{
 		this->m_file_resource_handle_id =
-			this->m_p_resource_manager->GenerateFileID();
+			this->m_p_resource_manager->GenerateFileIDFor_Writing();
 
 		kotek::core::ktkResourceWritingRequest request;
 		request.Set_Path(path_to_file / _kTempFileNameWithExtension);
@@ -94,7 +94,7 @@ void zircon_command_history::initialize(
 		this->m_p_resource_manager->Open(request);
 
 		this->m_file_exchange_resource_handle_id =
-			this->m_p_resource_manager->GenerateFileID();
+			this->m_p_resource_manager->GenerateFileIDFor_Writing();
 
 		request.Set_Path(path_to_file / _kExchangeFileNameWithExtension);
 		request.Set_ID(this->m_file_exchange_resource_handle_id);

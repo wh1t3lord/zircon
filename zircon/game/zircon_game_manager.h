@@ -18,6 +18,7 @@ KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
 class ktkMainManager;
 class ktkWindow;
+class ktkWindowConsole;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
@@ -132,6 +133,8 @@ private:
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
 	kotek::core::ktkIRenderer* m_p_current_renderer;
+	kotek::core::ktkWindowConsole* m_p_window_console;
+
 	zircon_renderer_gles3* m_p_renderer_gles3;
 
 #ifdef KOTEK_USE_RENDER_VULKAN

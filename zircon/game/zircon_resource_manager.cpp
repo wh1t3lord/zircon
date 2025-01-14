@@ -3,9 +3,9 @@
 
 zircon_resource_manager::zircon_resource_manager(
 	Kotek::Core::ktkMainManager* p_main_manager) :
-	m_p_manager_resource_loader{},
-	m_p_manager_resource_saver{}, m_p_manager_render_resource{},
-	m_p_manager_main{p_main_manager}, m_p_manager_console{}
+	m_p_manager_resource_loader{}, m_p_manager_resource_saver{},
+	m_p_manager_render_resource{}, m_p_manager_main{p_main_manager},
+	m_p_manager_console{}
 {
 }
 
@@ -91,13 +91,22 @@ Kotek::Core::ktkMainManager* zircon_resource_manager::Get_MainManager(
 
 void zircon_resource_manager::update(void) noexcept {}
 
-Kotek::ktk::uint32_t zircon_resource_manager::GenerateFileID(void) noexcept
+kotek::ktk::uint32_t
+zircon_resource_manager::GenerateFileIDFor_Writing() noexcept
 {
 	KOTEK_ASSERT(this->m_p_manager_resource_saver, "initialize saver first!");
 	return this->m_p_manager_resource_saver->GenerateFileID();
 }
 
-kotek::shared_ptr_t<kotek::core::ktkResourceHandle> zircon_resource_manager::Load(
+kotek::ktk::uint32_t
+zircon_resource_manager::GenerateFileIDFor_Reading() noexcept
+{
+	KOTEK_ASSERT(this->m_p_manager_resource_loader, "initialize loader first!");
+	return this->m_p_manager_resource_loader->GenerateFileID();
+}
+
+kotek::shared_ptr_t<kotek::core::ktkResourceHandle>
+zircon_resource_manager::Load(
 	const Kotek::Core::ktkLoadingRequest& request) noexcept
 {
 	kotek::shared_ptr_t<kotek::core::ktkResourceHandle> result{};
@@ -194,6 +203,28 @@ void zircon_resource_manager::Open(
 	}
 	else
 	{
+		KOTEK_ASSERT(false, "not implemented");
+	}
+}
+
+void zircon_resource_manager::Open(
+	const kotek::core::ktkResourceReadingRequest& request) noexcept
+{
+	if (request.Get_Policy() == kotek::core::eResourceReadingPolicy::kSync)
+	{
+		if (this->m_p_manager_resource_loader)
+		{
+			bool result = this->m_p_manager_resource_loader->Open(
+				request.Get_Path(), request.Get_ResourceType(),
+				request.Get_Policy(), request.Get_ID());
+
+			KOTEK_ASSERT(result, "failed to open file by path: [{}]",
+				request.Get_Path());
+		}
+	}
+	else
+	{
+		KOTEK_ASSERT(false, "not implemented");
 	}
 }
 
@@ -383,7 +414,6 @@ void zircon_resource_manager::Seekg(Kotek::ktk::uint32_t resource_id,
 	{
 		this->m_p_manager_resource_saver->Seekg(resource_id, bytes, type);
 	}
-
 }
 
 void zircon_resource_manager::Seekp(Kotek::ktk::uint32_t resource_id,
@@ -395,7 +425,6 @@ void zircon_resource_manager::Seekp(Kotek::ktk::uint32_t resource_id,
 	{
 		this->m_p_manager_resource_saver->Seekp(resource_id, bytes, type);
 	}
-
 }
 
 Kotek::ktk::size_t zircon_resource_manager::Tellp(
@@ -413,7 +442,8 @@ Kotek::ktk::size_t zircon_resource_manager::Tellp(
 	return result;
 }
 
-Kotek::ktk::size_t zircon_resource_manager::Tellg(Kotek::ktk::uint32_t resource_id)
+Kotek::ktk::size_t zircon_resource_manager::Tellg(
+	Kotek::ktk::uint32_t resource_id)
 {
 	Kotek::ktk::size_t result{};
 
@@ -427,7 +457,8 @@ Kotek::ktk::size_t zircon_resource_manager::Tellg(Kotek::ktk::uint32_t resource_
 	return result;
 }
 
-void zircon_resource_manager::Read(Kotek::ktk::uint32_t resource_id, char* p_buffer, Kotek::ktk::size_t size) 
+void zircon_resource_manager::Read(
+	Kotek::ktk::uint32_t resource_id, char* p_buffer, Kotek::ktk::size_t size)
 {
 	KOTEK_ASSERT(this->m_p_manager_resource_saver, "initialize saver first!");
 	KOTEK_ASSERT(p_buffer, "pass a valid buffer!");

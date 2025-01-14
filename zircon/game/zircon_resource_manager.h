@@ -22,6 +22,8 @@ public:
 
 	void Open(const Kotek::Core::ktkResourceWritingRequest& request) noexcept
 		override;
+	void Open(const kotek::core::ktkResourceReadingRequest& request) noexcept
+		override;
 
 	void Write(Kotek::ktk::uint32_t resource_id,
 
@@ -115,7 +117,15 @@ public:
 
 	void update(void) noexcept;
 
-	Kotek::ktk::uint32_t GenerateFileID(void) noexcept override;
+	/// \~english @brief uses ktkIResourceSaverManager for generating resource
+	/// (file) ID
+	/// @return resource ID forktkIResourceSaverManager
+	kotek::ktk::uint32_t GenerateFileIDFor_Writing() noexcept override;
+
+	/// \~english @brief uses ktkIResourceLoaderManager for generating resource
+	/// (file) ID
+	/// @return resouce ID for ktkIResourceLoaderManager
+	kotek::ktk::uint32_t GenerateFileIDFor_Reading() noexcept override;
 
 private:
 	Kotek::Core::ktkIResourceLoaderManager* m_p_manager_resource_loader;
