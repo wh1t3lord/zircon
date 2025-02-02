@@ -105,8 +105,8 @@ void zircon_command_history::initialize(
 
 void zircon_command_history::shutdown(void)
 {
-	this->m_p_resource_manager->Close(this->m_file_resource_handle_id);
-	this->m_p_resource_manager->Close(this->m_file_exchange_resource_handle_id);
+	this->m_p_resource_manager->Close_Saver(this->m_file_resource_handle_id);
+	this->m_p_resource_manager->Close_Saver(this->m_file_exchange_resource_handle_id);
 	for (const auto& path_file : kotek::ktk::filesystem::directory_iterator(
 			 this->m_path_to_streaming_folder.c_str()))
 	{
@@ -1255,7 +1255,7 @@ void zircon_command_history::unload_content()
 
 void zircon_command_history::unload_content_before()
 {
-	this->m_p_resource_manager->Close(this->m_file_exchange_resource_handle_id);
+	this->m_p_resource_manager->Close_Saver(this->m_file_exchange_resource_handle_id);
 
 	kotek::core::ktkResourceWritingRequest request;
 	request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
@@ -1353,7 +1353,7 @@ void zircon_command_history::unload_content_after(bool is_need_to_reopen)
 
 	if (is_need_to_reopen)
 	{
-		this->m_p_resource_manager->Close(
+		this->m_p_resource_manager->Close_Saver(
 			this->m_file_exchange_resource_handle_id);
 
 		kotek::core::ktkResourceWritingRequest request;
@@ -1668,7 +1668,7 @@ void zircon_command_history::reopen_current_file(kotek::uint32_t file_id)
 
 	if (this->m_p_resource_manager)
 	{
-		this->m_p_resource_manager->Close(file_id);
+		this->m_p_resource_manager->Close_Saver(file_id);
 
 		kotek::core::ktkResourceWritingRequest request;
 		request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
@@ -1690,7 +1690,7 @@ void zircon_command_history::reopen_exchange_file(kotek::uint32_t file_id)
 
 	if (this->m_p_resource_manager)
 	{
-		this->m_p_resource_manager->Close(file_id);
+		this->m_p_resource_manager->Close_Saver(file_id);
 
 		kotek::core::ktkResourceWritingRequest request;
 		request.Set_ResourceType(kotek::core::eResourceWritingType::kText);

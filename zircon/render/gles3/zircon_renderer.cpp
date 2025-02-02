@@ -11,6 +11,9 @@
 #include "zircon_render_graph_pass_editor_model_static.h"
 #include "zircon_render_graph_pass_editor_debug.h"
 
+// OS Passes
+#include "../os/zircon_render_graph_pass_console.h"
+
 #include <kotek.render.gl/include/kotek_render_device.h>
 #include <kotek.render.gl/include/kotek_render_resource_manager.h>
 
@@ -26,11 +29,11 @@ zircon_renderer_gles3::zircon_renderer_gles3(
 zircon_renderer_gles3::~zircon_renderer_gles3(void) {}
 
 void zircon_renderer_gles3::Initialize(
-	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements)
+	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements, kotek::core::ktkWindowConsole* p_console)
 {
 	this->m_imgui_ui_elements = ui_elements;
 
-	this->Create_RenderGraph(this->m_imgui_ui_elements);
+	this->Create_RenderGraph(this->m_imgui_ui_elements, p_console);
 
 	this->m_p_render_resource_manager =
 		dynamic_cast<Kotek::Render::gl::ktkRenderResourceManager*>(
@@ -90,13 +93,13 @@ void zircon_renderer_gles3::Destroy_RenderGraph(void) noexcept
 
 void zircon_renderer_gles3::Create_RenderGraph(
 	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
-		imgui_elements) noexcept
+		imgui_elements, kotek::core::ktkWindowConsole* p_console) noexcept
 {
 	KOTEK_ASSERT(
 		this->m_p_main_manager, "you must initialize main manager first");
 
 	this->Add_PassesEditor(imgui_elements);
-	this->Add_PassesGame();
+	this->Add_PassesGame(p_console);
 }
 
 void zircon_renderer_gles3::Add_PassesEditor(
@@ -129,12 +132,16 @@ void zircon_renderer_gles3::Add_PassesEditor(
 #endif
 }
 
-void zircon_renderer_gles3::Add_PassesGame() noexcept
+void zircon_renderer_gles3::Add_PassesGame(kotek::core::ktkWindowConsole* p_console) noexcept
 {
 	// todo: implement that when you implement simulation button in editor and
 	// you can test the game as standalone
 	KOTEK_MESSAGE_WARNING(
 		"you didn't register game render passes for renderer!");
+
+	this->m_render_graph_simplified.Add_Pass(
+		new zircon_render_graph_pass_console(
+			this->m_p_main_manager, p_console));
 }
 
 void zircon_renderer_gles3::Destroy_ImGuiUIElements(void) noexcept

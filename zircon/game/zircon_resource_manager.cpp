@@ -481,7 +481,8 @@ bool zircon_resource_manager::Is_Open(Kotek::ktk::uint32_t resource_id)
 	return false;
 }
 
-void zircon_resource_manager::Close(Kotek::ktk::uint32_t resource_id) noexcept
+void zircon_resource_manager::Close_Saver(
+	Kotek::ktk::uint32_t resource_id) noexcept
 {
 	KOTEK_ASSERT(this->m_p_manager_resource_saver, "initialize saver first!");
 
@@ -490,3 +491,16 @@ void zircon_resource_manager::Close(Kotek::ktk::uint32_t resource_id) noexcept
 		this->m_p_manager_resource_saver->Close(resource_id);
 	}
 }
+
+void zircon_resource_manager::Close_Loader(
+	kotek::ktk::uint32_t resource_id) noexcept
+{
+	KOTEK_ASSERT(this->m_p_manager_resource_loader, "initialize loader first!");
+
+	if (this->m_p_manager_resource_loader)
+	{
+		this->m_p_manager_resource_loader->Close(resource_id);
+	}
+}
+
+ 

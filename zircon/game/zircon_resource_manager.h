@@ -87,8 +87,8 @@ public:
 	void Read(Kotek::ktk::uint32_t resource_id, char* p_buffer,
 		Kotek::ktk::size_t size) override;
 	bool Is_Open(Kotek::ktk::uint32_t resource_id) override;
-	void Close(Kotek::ktk::uint32_t resource_id) noexcept override;
-
+	void Close_Saver(Kotek::ktk::uint32_t resource_id) noexcept override;
+	void Close_Loader(kotek::ktk::uint32_t resource_id) noexcept override;
 	// TODO: implement for saver too!
 	void Set_ResourceLoader(
 		Kotek::Core::ktkIResourceLoaderManager* p_instance) noexcept override;

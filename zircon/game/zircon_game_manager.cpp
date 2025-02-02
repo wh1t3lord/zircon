@@ -866,6 +866,30 @@ entt::entity zircon_manager_game::Initialize_Actor(void) noexcept
 
 void zircon_manager_game::Initialize_Renderer(void) noexcept
 {
+	this->m_p_window_console = new kotek::core::ktkWindowConsole();
+
+	auto path = this->m_p_main_manager->GetFileSystem()->GetFolderByEnum(
+		kotek::core::eFolderIndex::kFolderIndex_UserData);
+
+	path /= KOTEK_USE_LOG_OUTPUT_FILE_NAME;
+
+	int imgui_height = 0;
+
+#ifdef KOTEK_USE_SDK_IMGUI
+	// todo: think how to get imgui's height
+	imgui_height = 19;
+#endif
+
+	if (this->m_p_main_manager->Get_Logger())
+	{
+		this->m_p_main_manager->Get_Logger()->Flush_All();
+	}
+
+	this->m_p_window_console->Initialize(
+		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow(),
+		this->m_p_resource_manager, this->m_p_main_manager->Get_Input(),
+		this->m_p_main_manager->Get_Logger(), imgui_height, path);
+
 	// TODO: think about ImGui preprocessor...
 	kotek::ktk::vector<kotek::core::ktkISDKUIElement*> elements;
 	elements.push_back(new zircon_sdk_ui_object_list());
@@ -937,7 +961,8 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 			this->m_p_renderer_gles3 =
 				new zircon_renderer_gles3(this->m_p_main_manager);
 
-			this->m_p_renderer_gles3->Initialize(elements);
+			this->m_p_renderer_gles3->Initialize(
+				elements, this->m_p_window_console);
 			this->m_p_current_renderer = this->m_p_renderer_gles3;
 			break;
 		}
@@ -962,6 +987,11 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 
 void zircon_manager_game::Destroy_Renderer(void) noexcept
 {
+	if (this->m_p_window_console)
+	{
+		this->m_p_window_console->Shutdown();
+	}
+
 	auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
 
 	if (p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
@@ -1909,19 +1939,6 @@ void zircon_manager_game::Initialize_UI(void) noexcept
 		this->m_p_main_manager->Get_WindowManager()->ActiveWindow_GetHandle(),
 		this->m_p_main_manager->Get_WindowManager()->ActiveWindow_GetWidth(),
 		this->m_p_main_manager->Get_WindowManager()->ActiveWindow_GetHeight());
-
-	this->m_p_window_console = new kotek::core::ktkWindowConsole();
-
-	auto path = this->m_p_main_manager->GetFileSystem()->GetFolderByEnum(
-		kotek::core::eFolderIndex::kFolderIndex_UserData);
-
-	path /= KOTEK_USE_LOG_OUTPUT_FILE_NAME;
-
-	this->m_p_window_console->Initialize(
-		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow(),
-		this->m_p_resource_manager,
-		path
-	);
 }
 
 void zircon_manager_game::Destroy_UI(void) noexcept

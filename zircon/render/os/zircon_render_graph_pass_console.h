@@ -2,11 +2,11 @@
 
 #include <kotek.render.gl/include/kotek_render_graph_simplified_render_pass.h>
 
-class zircon_render_graph_pass_console
+class zircon_render_graph_pass_console : public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
 {
 public:
 	zircon_render_graph_pass_console(
-		kotek::core::ktkMainManager* p_main_manager);
+		kotek::core::ktkMainManager* p_main_manager, kotek::core::ktkWindowConsole* p_console);
 	~zircon_render_graph_pass_console();
 
 	void OnCreateResources(kotek::core::ktkMainManager* p_manager_main,
