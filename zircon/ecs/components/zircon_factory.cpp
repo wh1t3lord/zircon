@@ -51,7 +51,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 
 					if (is_enabled)
 					{
-						this->m_p_console->Execute(
+						this->m_p_console->Execute_Command(
 							static_cast<kotek::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntity),

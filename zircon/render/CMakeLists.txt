@@ -124,7 +124,7 @@ source_group("OpenGL ES/3/Implementation" FILES ${to_include_opengles3_implement
 source_group("OpenGL ES/3/Passes/Game" FILES ${to_include_opengles3_game_passes_files})
 source_group("OpenGL ES/3/Passes/Editor" FILES ${to_include_opengles3_editor_passes_files})
 source_group("OpenGL ES/3/Shaders" FILES ${to_include_shaders_gles})
-source_group("OS" FILES ${to_include_os})
+source_group("OpenGL ES/3/Passes/OS" FILES ${to_include_os})
 source_group("Module" FILES ${to_include_module_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")

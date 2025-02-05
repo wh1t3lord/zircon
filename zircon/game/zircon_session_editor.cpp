@@ -108,7 +108,7 @@ void zircon_session_editor::Deserialize_Settings(
 			formatted += settings.at("scene_name").as_string().c_str();
 			formatted += "]";
 
-			this->m_p_game_manager->GetConsole()->Execute(
+			this->m_p_game_manager->GetConsole()->Execute_Command(
 				static_cast<Kotek::ktk::enum_base_t>(
 					Kotek::Core::eConsoleCommandIndex::
 						kConsoleCommand_App_AddTextToExistedWindowTitle),
@@ -231,7 +231,7 @@ void zircon_session_editor::update_component_input_sdk(void) noexcept
 
 						if (p_console)
 						{
-							p_console->PushCommand(
+							p_console->Push_Command(
 								static_cast<Kotek::ktk::enum_base_t>(
 									Kotek::Core::eConsoleCommandIndex::
 										kConsoleCommand_Input_Type),
@@ -253,7 +253,7 @@ void zircon_session_editor::update_component_input_sdk(void) noexcept
 
 						if (p_console)
 						{
-							p_console->PushCommand(
+							p_console->Push_Command(
 								static_cast<Kotek::ktk::enum_base_t>(
 									Kotek::Core::eConsoleCommandIndex::
 										kConsoleCommand_Input_Type),
@@ -274,7 +274,7 @@ void zircon_session_editor::update_editing_status(void) noexcept
 	if (p_command_history->is_changed() &&
 		!this->m_is_change_title_once_for_editing_status)
 	{
-		this->m_p_game_manager->GetConsole()->PushCommand(
+		this->m_p_game_manager->GetConsole()->Push_Command(
 			static_cast<Kotek::ktk::enum_base_t>(
 				Kotek::Core::eConsoleCommandIndex::
 					kConsoleCommand_App_AddTextToExistedWindowTitle),

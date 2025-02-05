@@ -40,7 +40,7 @@ void zircon_sdk_ui_object_list::Draw(
 		{
 			if (p_wrapper_imgui->Button("Add"))
 			{
-				p_game_manager->GetConsole()->Execute(
+				p_game_manager->GetConsole()->Execute_Command(
 					static_cast<kotek::ktk::enum_base_t>(
 						kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_CreateEntity));
@@ -60,7 +60,7 @@ void zircon_sdk_ui_object_list::Draw(
 						if (p_factory->IsValidEntity(
 								this->m_selected_entity_id))
 						{
-							p_game_manager->GetConsole()->Execute(
+							p_game_manager->GetConsole()->Execute_Command(
 								static_cast<kotek::ktk::enum_base_t>(
 									kotek::core::eConsoleCommandIndex::
 										kConsoleCommand_SDK_DeleteEntity),

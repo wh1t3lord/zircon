@@ -78,7 +78,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 				auto real_entity_id = selected_entity;
 				if (p_wrapper_imgui->Button("Add component"))
 				{
-					p_game_manager->GetConsole()->Execute(
+					p_game_manager->GetConsole()->Execute_Command(
 						static_cast<Kotek::ktk::enum_base_t>(
 							Kotek::Core::eConsoleCommandIndex::
 								kConsoleCommand_SDK_CreateComponentForEntity),
@@ -90,7 +90,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 				{
 					if (this->m_p_list_selected_item_allocator)
 					{
-						p_game_manager->GetConsole()->Execute(
+						p_game_manager->GetConsole()->Execute_Command(
 							static_cast<Kotek::ktk::enum_base_t>(
 								Kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_DeleteComponentFromEntity),

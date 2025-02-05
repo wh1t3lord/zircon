@@ -129,7 +129,7 @@ zircon_resource_manager::Load(
 								request.Get_ResourceType()),
 							request.Get_EntityID());
 
-					this->m_p_manager_console->Execute(
+					this->m_p_manager_console->Execute_Command(
 						static_cast<Kotek::ktk::enum_base_t>(
 							Kotek::Core::eConsoleCommandIndex::
 								kConsoleCommand_Render_CalculateBoundingPrimitive),

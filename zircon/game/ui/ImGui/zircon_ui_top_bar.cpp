@@ -58,7 +58,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 
 							p_main_manager->GetGameManager()
 								->GetConsole()
-								->Execute(
+								->Execute_Command(
 									static_cast<kotek::ktk::enum_base_t>(
 										kotek::core::eConsoleCommandIndex::
 											kConsoleCommand_SDK_LoadScene),
@@ -69,7 +69,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 
 					if (p_wrapper_imgui->MenuItem("Save"))
 					{
-						p_main_manager->GetGameManager()->GetConsole()->Execute(
+						p_main_manager->GetGameManager()->GetConsole()->Execute_Command(
 							static_cast<kotek::ktk::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_SaveScene));
@@ -79,7 +79,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 					{
 						p_main_manager->GetGameManager()
 							->GetConsole()
-							->PushCommand(static_cast<kotek::ktk::enum_base_t>(
+							->Push_Command(static_cast<kotek::ktk::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CloseCurrentScene));
 					}
@@ -88,7 +88,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 					{
 						p_main_manager->GetGameManager()
 							->GetConsole()
-							->PushCommand(static_cast<kotek::ktk::enum_base_t>(
+							->Push_Command(static_cast<kotek::ktk::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_ShowModalWindow_SaveAndCloseOrCloseScene));
 					}
@@ -102,7 +102,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 					{
 						p_main_manager->GetGameManager()
 							->GetConsole()
-							->PushCommand(static_cast<kotek::ktk::enum_base_t>(
+							->Push_Command(static_cast<kotek::ktk::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_Undo));
 					}
@@ -111,7 +111,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 					{
 						p_main_manager->GetGameManager()
 							->GetConsole()
-							->PushCommand(static_cast<kotek::ktk::enum_base_t>(
+							->Push_Command(static_cast<kotek::ktk::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_Redo));
 					}
@@ -171,7 +171,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 									{
 										p_main_manager->GetGameManager()
 											->GetConsole()
-											->PushCommand(
+											->Push_Command(
 												static_cast<
 													kotek::ktk::enum_base_t>(
 													kotek::core::eConsoleCommandIndex::
@@ -182,7 +182,7 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 									{
 										p_main_manager->GetGameManager()
 											->GetConsole()
-											->PushCommand(
+											->Push_Command(
 												static_cast<
 													kotek::ktk::enum_base_t>(
 													kotek::core::eConsoleCommandIndex::
@@ -248,12 +248,12 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 
 			if (p_wrapper_imgui->Button("Yes"))
 			{
-				p_main_manager->GetGameManager()->GetConsole()->PushCommand(
+				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
 					static_cast<kotek::ktk::enum_base_t>(
 						kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_SaveScene));
 
-				p_main_manager->GetGameManager()->GetConsole()->PushCommand(
+				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
 					static_cast<kotek::ktk::enum_base_t>(kotek::core::
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
 					{kotek::static_cstring_t<8>("false")});
@@ -266,7 +266,7 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 
 			if (p_wrapper_imgui->Button("No"))
 			{
-				p_main_manager->GetGameManager()->GetConsole()->PushCommand(
+				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
 					static_cast<kotek::ktk::enum_base_t>(kotek::core::
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
 					{kotek::static_cstring_t<8>("false")});

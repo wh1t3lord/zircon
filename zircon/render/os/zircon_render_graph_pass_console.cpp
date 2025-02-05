@@ -30,8 +30,4 @@ void zircon_render_graph_pass_console::OnRender(
 	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 		p_previous_pass)
 {
-	if (this->m_p_console)
-	{
-		//	this->m_p_console->Render();
-	}
 }

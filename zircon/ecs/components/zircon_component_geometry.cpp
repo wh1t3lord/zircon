@@ -117,7 +117,7 @@ void zircon_component_geometry::DrawImGui(
 
 								p_main_manager->GetGameManager()
 									->GetConsole()
-									->PushCommand(
+									->Push_Command(
 										static_cast<Kotek::ktk::enum_base_t>(
 											Kotek::Core::eConsoleCommandIndex::
 												kConsoleCommand_ResourceManager_Load),

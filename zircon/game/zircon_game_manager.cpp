@@ -43,7 +43,7 @@ void WindowCallback_Resize(GLFWwindow* p_window, int width, int height)
 	KOTEK_ASSERT(
 		p_manager, "you didn't register user pointer to ktkMainManager");
 
-	p_manager->GetGameManager()->GetConsole()->PushCommand(
+	p_manager->GetGameManager()->GetConsole()->Push_Command(
 		static_cast<kotek::ktk::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::kConsoleCommand_Resize),
 		{{width}, {height}});
@@ -888,7 +888,7 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 	this->m_p_window_console->Initialize(
 		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow(),
 		this->m_p_resource_manager, this->m_p_main_manager->Get_Input(),
-		this->m_p_main_manager->Get_Logger(), imgui_height, path);
+		this->m_p_main_manager->Get_Logger(), this->m_p_console, imgui_height, path);
 
 	// TODO: think about ImGui preprocessor...
 	kotek::ktk::vector<kotek::core::ktkISDKUIElement*> elements;
@@ -1152,7 +1152,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 
 	KOTEK_ASSERT(p_window_manager, "you must initialize window manager");
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
 				kConsoleCommand_App_AddTextToExistedWindowTitle),
 		[p_window_manager](
@@ -1176,7 +1176,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			return true;
 		});
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::kConsoleCommand_Input_Type),
 		[p_window_manager](
@@ -1198,7 +1198,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 
 	auto* p_resource_manager = p_main_manager->GetResourceManager();
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
 				kConsoleCommand_Render_CalculateBoundingPrimitive),
 		[this](const kotek::ktk::console_command_args_t& args) -> bool
@@ -1255,7 +1255,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 
 					if (!status)
 					{
-						this->GetConsole()->Execute(
+						this->GetConsole()->Execute_Command(
 							static_cast<kotek::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntity),
@@ -1291,7 +1291,7 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			return true;
 		});
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
 				kConsoleCommand_ResourceManager_Load),
 		[p_resource_manager](
@@ -1476,22 +1476,22 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
 	{ return true; };
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_ShowWindow),
 		p_command_sdk_show_window);
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_HideWindow),
 		p_command_sdk_hide_window);
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::kConsoleCommand_Resize),
 		p_command_resize);
 
-	this->m_p_console->RegisterCommand(
+	this->m_p_console->Register_Command(
 		static_cast<kotek::ktk::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::kConsoleCommand_App_Close),
 		p_command_close_application);
@@ -1519,13 +1519,13 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 
 		auto* p_history_manager = this->m_p_sdk_history_manager;
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_LoadScene),
 			[p_session, this](
 				const kotek::ktk::console_command_args_t& args) -> bool
 			{
-				this->GetConsole()->Execute(
+				this->GetConsole()->Execute_Command(
 					static_cast<kotek::ktk::enum_base_t>(
 						kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_CloseCurrentScene));
@@ -1541,7 +1541,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_SaveScene),
 			[p_history_manager, p_session, this](
@@ -1595,7 +1595,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 
 					p_history_manager->set_changed(false);
 
-					this->GetConsole()->PushCommand(
+					this->GetConsole()->Push_Command(
 						static_cast<kotek::ktk::enum_base_t>(
 							kotek::core::eConsoleCommandIndex::
 								kConsoleCommand_App_AddTextToExistedWindowTitle),
@@ -1614,7 +1614,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Redo),
 			[p_history_manager](
@@ -1624,7 +1624,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Undo),
 			[p_history_manager](
@@ -1634,7 +1634,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_DeleteEntity),
 			[p_history_manager, this](
@@ -1665,7 +1665,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(kotek::core::
 					eConsoleCommandIndex::kConsoleCommand_SDK_CreateEntity),
 			[p_history_manager, this](
@@ -1686,7 +1686,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_CreateComponentForEntity),
@@ -1736,7 +1736,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_DeleteComponentFromEntity),
@@ -1774,7 +1774,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_CloseCurrentScene),
@@ -1784,7 +1784,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				if (this->GetSession_Editor())
 				{
 					this->GetSession_Editor()->shutdown();
-					this->GetConsole()->PushCommand(
+					this->GetConsole()->Push_Command(
 						static_cast<kotek::ktk::enum_base_t>(
 							kotek::core::eConsoleCommandIndex::
 								kConsoleCommand_App_AddTextToExistedWindowTitle),
@@ -1796,7 +1796,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				return true;
 			});
 
-		this->m_p_console->RegisterCommand(
+		this->m_p_console->Register_Command(
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
 					kConsoleCommand_SDK_ShowModalWindow_SaveAndCloseOrCloseScene),
