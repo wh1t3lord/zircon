@@ -18,6 +18,7 @@ add_library(${PROJECT_NAME} STATIC
 	"zircon_config.cpp"
 	"zircon_sdk_ui.h"
 	"zircon_sdk_ui.cpp"
+	"zircon_console.h"
 )
 
 # TODO: add if when game.ktk builds as shared

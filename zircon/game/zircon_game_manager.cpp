@@ -29,6 +29,7 @@
 #include "zircon_command_delete_component_from_entity.h"
 #include "zircon_command_add_component_to_entity.h"
 #include "../core/zircon_config.h"
+#include "../core/zircon_console.h"
 
 #ifdef KOTEK_USE_RMLUI_LIBRARY
 	#include <RmlUi/Core.h>
@@ -45,7 +46,7 @@ void WindowCallback_Resize(GLFWwindow* p_window, int width, int height)
 
 	p_manager->GetGameManager()->GetConsole()->Push_Command(
 		static_cast<kotek::ktk::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::kConsoleCommand_Resize),
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_Render_Resize),
 		{{width}, {height}});
 
 	#ifdef KOTEK_USE_RMLUI_LIBRARY
@@ -888,7 +889,8 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 	this->m_p_window_console->Initialize(
 		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow(),
 		this->m_p_resource_manager, this->m_p_main_manager->Get_Input(),
-		this->m_p_main_manager->Get_Logger(), this->m_p_console, imgui_height, path);
+		this->m_p_main_manager->Get_Logger(), this->m_p_console, imgui_height,
+		path);
 
 	// TODO: think about ImGui preprocessor...
 	kotek::ktk::vector<kotek::core::ktkISDKUIElement*> elements;
@@ -1143,7 +1145,7 @@ void zircon_manager_game::Destroy_ResourceManager(void) noexcept
 void zircon_manager_game::Initialize_Console(void) noexcept
 {
 	this->m_p_console = new kotek::core::ktkConsole();
-	this->m_p_console->Initialize();
+	this->m_p_console->Initialize(zircon_user_console_translation_callback);
 }
 
 void zircon_manager_game::RegisterConsole_Commands(void) noexcept
@@ -1153,64 +1155,52 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 	KOTEK_ASSERT(p_window_manager, "you must initialize window manager");
 
 	this->m_p_console->Register_Command(
-		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
-				kConsoleCommand_App_AddTextToExistedWindowTitle),
-		[p_window_manager](
-			const kotek::ktk::console_command_args_t& args) -> bool
+		[p_window_manager](kotek::ktk::enum_base_t title_id,
+			kotek::static_cstring_t<16> title) -> bool
 		{
-			KOTEK_ASSERT(args.empty() == false,
-				"you can't pass an empty arguments here");
-
-			KOTEK_ASSERT(args.size() >= 2,
-				"you must have two arguments, one is a id from "
-				"eWindowTitleType enum and the second is the "
-				"string for title");
-
 			if (p_window_manager->Get_ActiveWindow())
 			{
 				p_window_manager->Get_ActiveWindow()->SetStringToTitle(
-					std::get<kotek::ktk::enum_base_t>(args[0]),
-					std::get<kotek::static_cstring_t<16>>(args[1]).c_str());
+					title_id, title.c_str());
 			}
 
 			return true;
-		});
+		},
+		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
+				kConsoleCommand_App_AddTextToExistedWindowTitle));
 
 	this->m_p_console->Register_Command(
-		static_cast<kotek::ktk::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::kConsoleCommand_Input_Type),
-		[p_window_manager](
-			const kotek::ktk::console_command_args_t& args) -> bool
+		[p_window_manager](kotek::ktk::enum_base_t input_type) -> bool
 		{
-			KOTEK_ASSERT(
-				args.empty() == false, "you must pass an argument here");
-
 			if (p_window_manager->Get_ActiveWindow())
 			{
-				p_window_manager->Get_ActiveWindow()->Set_InputType(
-					std::get<kotek::ktk::enum_base_t>(args[0]));
+#ifdef KOTEK_DEBUG // for debugging purposes, lazing without specifying in
+                   // debugger manually (watch)
+				kotek::core::eInputType type =
+					static_cast<kotek::core::eInputType>(input_type);
+#endif
+				p_window_manager->Get_ActiveWindow()->Set_InputType(input_type);
 			}
 
 			return true;
-		});
+		},
+		static_cast<kotek::ktk::enum_base_t>(
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_Input_Type));
 
 	auto* p_main_manager = this->m_p_main_manager;
 
 	auto* p_resource_manager = p_main_manager->GetResourceManager();
 
 	this->m_p_console->Register_Command(
-		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
-				kConsoleCommand_Render_CalculateBoundingPrimitive),
-		[this](const kotek::ktk::console_command_args_t& args) -> bool
+
+		[this](
+			kotek::ktk::shared_ptr<kotek::core::ktkResourceHandle> ptr_resource,
+			kotek::ktk::enum_base_t bounding_primitive_type,
+			kotek::uint32_t entity) -> bool
 		{
-			KOTEK_ASSERT(args.empty() == false,
-				"you must pass an arguments here. arg1=resource_geometry, "
-				"arg2=primitive_type");
-			KOTEK_ASSERT(args.size() > 2,
-				"not enough arguments. Must be three arguments one defines "
-				"geometry (index + vertex), second is primitive type (bounding "
-				"type), third is entity to which we need to create bounding "
-				"component");
+			KOTEK_ASSERT(ptr_resource.get(),
+				"must be initialize pointer, did you have a corrupted memory "
+				"or something broken in codebase?");
 
 			auto* p_factory = this->get_factory_game();
 
@@ -1222,15 +1212,11 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			{
 				auto p_resource_geometry =
 					reinterpret_cast<kotek::Render::gl::ktkGeometry*>(
-						std::get<kotek::ktk::shared_ptr<
-							kun_kotek kun_core ktkResourceHandle>>(args[0])
-							.get()
-							->Get_Resource());
+						ptr_resource.get()->Get_Resource());
 				auto bounding_type =
 					static_cast<kotek::core::eRenderBoundingPrimitiveType>(
-						std::get<kotek::ktk::enum_base_t>(args[1]));
-				auto entity_id = static_cast<entt::entity>(
-					std::get<kotek::uint32_t>(args[2]));
+						bounding_primitive_type);
+				auto entity_id = static_cast<entt::entity>(entity);
 
 				auto status_geometry =
 					p_factory->HasComponent<zircon_component_geometry>(
@@ -1289,51 +1275,28 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 			}
 
 			return true;
-		});
+		},
+		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
+				kConsoleCommand_Render_CalculateBoundingPrimitive));
 
 	this->m_p_console->Register_Command(
-		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
-				kConsoleCommand_ResourceManager_Load),
-		[p_resource_manager](
-			const kotek::ktk::console_command_args_t& args) -> bool
+		[p_resource_manager](kotek::core::ktkLoadingRequest req) -> bool
 		{
-			KOTEK_ASSERT(
-				args.empty() == false, "you must pass an arguments here");
 			KOTEK_ASSERT(p_resource_manager,
 				"you must have valid resource manager here");
 
-			auto request = std::get<kotek::core::ktkLoadingRequest>(args[0]);
-
 			if (p_resource_manager)
 			{
-				p_resource_manager->Load(request);
+				p_resource_manager->Load(req);
 			}
 
 			return true;
-		});
+		},
+		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
+				kConsoleCommand_ResourceManager_Load));
 
-	auto p_command_resize = [p_main_manager](
-								kotek::ktk::console_command_args_t data) -> bool
+	auto p_command_resize = [p_main_manager](int width, int height) -> bool
 	{
-		if (data.empty())
-		{
-			KOTEK_MESSAGE_WARNING(
-				"can't execute resize command because data argument "
-				"list is empty");
-			return false;
-		}
-
-		if (data.size() < 2)
-		{
-			KOTEK_MESSAGE_WARNING("can't execute resize command "
-								  "brcause data doesn't contain "
-								  "enough arguments");
-			return false;
-		}
-
-		int width = std::get<int>(data[0]);
-		int height = std::get<int>(data[1]);
-
 		if (width == p_main_manager->getRenderDevice()->GetWidth() &&
 			height == p_main_manager->getRenderDevice()->GetHeight())
 			return true;
@@ -1348,16 +1311,14 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 	};
 
 	auto p_command_close_application =
-		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
+		[p_main_manager](kotek::static_cstring_t<8> argument) -> bool
 	{
-		if (data.empty())
+		if (argument.empty())
 		{
 			KOTEK_MESSAGE_WARNING("can't execute application close command "
 								  "because data argument list is empty");
 			return false;
 		}
-
-		const auto& argument = std::get<kotek::static_cstring_t<8>>(data[0]);
 
 		bool status = kotek::ktk::cast::to_bool(argument.c_str());
 
@@ -1368,18 +1329,9 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 
 	kotek::core::ktkIRenderer* p_current_renderer = this->m_p_current_renderer;
 
-	auto p_command_sdk_show_window =
-		[p_main_manager, p_current_renderer](
-			kotek::ktk::console_command_args_t data) -> bool
+	auto p_command_sdk_show_window = [p_main_manager, p_current_renderer](
+										 int window_id) -> bool
 	{
-		if (data.empty())
-		{
-			KOTEK_MESSAGE_WARNING(
-				"can't execute command because it requires an ID for window "
-				"showing, ID is a required argument for calling");
-			return false;
-		}
-
 		if (!p_current_renderer)
 		{
 			KOTEK_MESSAGE_WARNING(
@@ -1395,8 +1347,6 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 								  "renderer side... Unable to proceed...");
 			return false;
 		}
-
-		int window_id = std::get<int>(data[0]);
 
 		auto window_iter =
 			std::find_if(imgui_elements.begin(), imgui_elements.end(),
@@ -1420,18 +1370,9 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		return true;
 	};
 
-	auto p_command_sdk_hide_window =
-		[p_main_manager, p_current_renderer](
-			kotek::ktk::console_command_args_t data) -> bool
+	auto p_command_sdk_hide_window = [p_main_manager, p_current_renderer](
+										 int window_id) -> bool
 	{
-		if (data.empty())
-		{
-			KOTEK_MESSAGE_WARNING(
-				"can't execute command because it requires an ID for window "
-				"showing, ID is a required argument for calling");
-			return false;
-		}
-
 		if (!p_current_renderer)
 		{
 			KOTEK_MESSAGE_WARNING(
@@ -1447,8 +1388,6 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 								  "renderer side... Unable to proceed...");
 			return false;
 		}
-
-		int window_id = std::get<int>(data[0]);
 
 		auto window_iter =
 			std::find_if(imgui_elements.begin(), imgui_elements.end(),
@@ -1472,29 +1411,24 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		return true;
 	};
 
-	auto p_command_sdk_print_registered_windows =
-		[p_main_manager](kotek::ktk::console_command_args_t data) -> bool
+	auto p_command_sdk_print_registered_windows = [p_main_manager]() -> bool
 	{ return true; };
 
-	this->m_p_console->Register_Command(
+	this->m_p_console->Register_Command(p_command_sdk_show_window,
 		static_cast<kotek::ktk::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_ShowWindow),
-		p_command_sdk_show_window);
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_ShowWindow));
 
-	this->m_p_console->Register_Command(
+	this->m_p_console->Register_Command(p_command_sdk_hide_window,
 		static_cast<kotek::ktk::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_HideWindow),
-		p_command_sdk_hide_window);
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_HideWindow));
 
-	this->m_p_console->Register_Command(
+	this->m_p_console->Register_Command(p_command_resize,
 		static_cast<kotek::ktk::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::kConsoleCommand_Resize),
-		p_command_resize);
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_Render_Resize));
 
-	this->m_p_console->Register_Command(
+	this->m_p_console->Register_Command(p_command_close_application,
 		static_cast<kotek::ktk::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::kConsoleCommand_App_Close),
-		p_command_close_application);
+			kotek::core::eConsoleCommandIndex::kConsoleCommand_App_Close));
 }
 
 void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
@@ -1520,36 +1454,27 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 		auto* p_history_manager = this->m_p_sdk_history_manager;
 
 		this->m_p_console->Register_Command(
-			static_cast<kotek::ktk::enum_base_t>(kotek::core::
-					eConsoleCommandIndex::kConsoleCommand_SDK_LoadScene),
-			[p_session, this](
-				const kotek::ktk::console_command_args_t& args) -> bool
+			[p_session, this](kotek::static_path_t path_to_file) -> bool
 			{
 				this->GetConsole()->Execute_Command(
 					static_cast<kotek::ktk::enum_base_t>(
 						kotek::core::eConsoleCommandIndex::
 							kConsoleCommand_SDK_CloseCurrentScene));
 
-				KOTEK_ASSERT(args.empty() == false,
-					"you can't pass an empty argument here");
-
-				const auto& path_to_file =
-					std::get<kotek::static_path_t>(args[0]);
-
 				p_session->Deserialize(path_to_file);
 
 				return true;
-			});
+			},
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
+					eConsoleCommandIndex::kConsoleCommand_SDK_LoadScene));
 
 		this->m_p_console->Register_Command(
-			static_cast<kotek::ktk::enum_base_t>(kotek::core::
-					eConsoleCommandIndex::kConsoleCommand_SDK_SaveScene),
 			[p_history_manager, p_session, this](
-				const kotek::ktk::console_command_args_t& args) -> bool
+				kotek::static_path_t custom_path) -> bool
 			{
 				kotek::static_path_t filename;
 
-				if (args.empty())
+				if (custom_path.empty())
 				{
 #ifdef KOTEK_PLATFORM_WINDOWS
 					OPENFILENAME ofn;
@@ -1583,7 +1508,22 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				}
 				else
 				{
-					filename = std::get<kotek::static_path_t>(args[0]);
+					filename = custom_path;
+
+					bool is_valid =
+						this->GetMainManager()->GetFileSystem()->IsValidPath(
+							filename.parent_path());
+
+					KOTEK_ASSERT(
+						is_valid, "can't save to non-existed path on your OS");
+
+					if (!is_valid)
+					{
+						KOTEK_MESSAGE_WARNING("can't save scene to the "
+											  "following path: {} filename: {}",
+							filename.parent_path(), filename.filename());
+						return false;
+					}
 
 					KOTEK_MESSAGE(
 						"saving scene (user passed args): {}", filename);
@@ -1612,42 +1552,35 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				return true;
-			});
+			},
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
+					eConsoleCommandIndex::kConsoleCommand_SDK_SaveScene));
 
 		this->m_p_console->Register_Command(
-			static_cast<kotek::ktk::enum_base_t>(
-				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Redo),
-			[p_history_manager](
-				const kotek::ktk::console_command_args_t& args) -> bool
+			[p_history_manager]() -> bool
 			{
 				p_history_manager->Redo();
 				return true;
-			});
+			},
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Redo));
 
 		this->m_p_console->Register_Command(
-			static_cast<kotek::ktk::enum_base_t>(
-				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Undo),
-			[p_history_manager](
-				const kotek::ktk::console_command_args_t& args) -> bool
+			[p_history_manager]() -> bool
 			{
 				p_history_manager->Undo();
 				return true;
-			});
+			},
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_Undo));
 
 		this->m_p_console->Register_Command(
-			static_cast<kotek::ktk::enum_base_t>(kotek::core::
-					eConsoleCommandIndex::kConsoleCommand_SDK_DeleteEntity),
-			[p_history_manager, this](
-				const kotek::ktk::console_command_args_t& args) -> bool
+			[p_history_manager, this](kotek::uint32_t entity) -> bool
 			{
-				KOTEK_ASSERT(args.empty() == false,
-					"you can't pass an empty args here!");
-
 				KOTEK_ASSERT(p_history_manager,
 					"history manager in lambda is nullptr! can't be");
 
-				entt::entity id = static_cast<entt::entity>(
-					std::get<kotek::uint32_t>(args[0]));
+				entt::entity id = static_cast<entt::entity>(entity);
 
 				auto* p_placement_new_memory =
 					p_history_manager->allocate_memory_for_command(
@@ -1663,13 +1596,12 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				p_history_manager->ExecuteCommand(p_command);
 
 				return true;
-			});
+			},
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
+					eConsoleCommandIndex::kConsoleCommand_SDK_DeleteEntity));
 
 		this->m_p_console->Register_Command(
-			static_cast<kotek::ktk::enum_base_t>(kotek::core::
-					eConsoleCommandIndex::kConsoleCommand_SDK_CreateEntity),
-			[p_history_manager, this](
-				const kotek::ktk::console_command_args_t& args) -> bool
+			[p_history_manager, this]() -> bool
 			{
 				auto* p_placement_new_memory =
 					p_history_manager->allocate_memory_for_command(
@@ -1684,26 +1616,15 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				p_history_manager->ExecuteCommand(p_command);
 
 				return true;
-			});
+			},
+			static_cast<kotek::ktk::enum_base_t>(kotek::core::
+					eConsoleCommandIndex::kConsoleCommand_SDK_CreateEntity));
 
 		this->m_p_console->Register_Command(
-			static_cast<kotek::ktk::enum_base_t>(
-				kotek::core::eConsoleCommandIndex::
-					kConsoleCommand_SDK_CreateComponentForEntity),
 			[p_history_manager, this](
-				const kotek::ktk::console_command_args_t& args) -> bool
+				const char* component_name, kotek::uint32_t entity) -> bool
 			{
-				KOTEK_ASSERT(
-					args.empty() == false, "you can't an empty arguments here");
-
-				KOTEK_ASSERT(args.size() >= 2,
-					"not enough arguments. First argument is component "
-					"name, second is entity id");
-
-				const auto& component_name = std::get<const char*>(args[0]);
-
-				entt::entity id = static_cast<entt::entity>(
-					std::get<kotek::uint32_t>(args[1]));
+				entt::entity id = static_cast<entt::entity>(entity);
 
 				if (this->get_factory_game()->GetComponentByName(
 						id, component_name) == nullptr)
@@ -1734,26 +1655,16 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				return true;
-			});
-
-		this->m_p_console->Register_Command(
+			},
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
-					kConsoleCommand_SDK_DeleteComponentFromEntity),
+					kConsoleCommand_SDK_CreateComponentForEntity));
+
+		this->m_p_console->Register_Command(
 			[p_history_manager, this](
-				const kotek::ktk::console_command_args_t& args) -> bool
+				const char* p_component_name, kotek::uint32_t entity) -> bool
 			{
-				KOTEK_ASSERT(args.empty() == false,
-					"you can't pass an empty arguments here");
-
-				KOTEK_ASSERT(args.size() >= 2,
-					"not enough arguments. First argument is "
-					"component_name, Second argument is id");
-
-				const auto& p_component_name = std::get<const char*>(args[0]);
-
-				entt::entity id = static_cast<entt::entity>(
-					std::get<kotek::uint32_t>(args[1]));
+				entt::entity id = static_cast<entt::entity>(entity);
 
 				if (this->get_factory_game()->GetComponentByName(
 						id, p_component_name))
@@ -1772,14 +1683,13 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				return true;
-			});
-
-		this->m_p_console->Register_Command(
+			},
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
-					kConsoleCommand_SDK_CloseCurrentScene),
-			[p_history_manager, this](
-				const kotek::ktk::console_command_args_t& args) -> bool
+					kConsoleCommand_SDK_DeleteComponentFromEntity));
+
+		this->m_p_console->Register_Command(
+			[p_history_manager, this]() -> bool
 			{
 				if (this->GetSession_Editor())
 				{
@@ -1794,13 +1704,13 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				return true;
-			});
-
-		this->m_p_console->Register_Command(
+			},
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
-					kConsoleCommand_SDK_ShowModalWindow_SaveAndCloseOrCloseScene),
-			[this](const kotek::ktk::console_command_args_t& args) -> bool
+					kConsoleCommand_SDK_CloseCurrentScene));
+
+		this->m_p_console->Register_Command(
+			[this]() -> bool
 			{
 				if (this->get_sdk_ui())
 				{
@@ -1808,7 +1718,10 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				return true;
-			});
+			},
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::
+					kConsoleCommand_SDK_ShowModalWindow_SaveAndCloseOrCloseScene));
 	}
 }
 
