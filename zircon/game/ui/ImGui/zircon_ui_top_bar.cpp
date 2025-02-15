@@ -69,10 +69,12 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 
 					if (p_wrapper_imgui->MenuItem("Save"))
 					{
-						p_main_manager->GetGameManager()->GetConsole()->Execute_Command(
-							static_cast<kotek::ktk::enum_base_t>(
-								kotek::core::eConsoleCommandIndex::
-									kConsoleCommand_SDK_SaveScene));
+						p_main_manager->GetGameManager()
+							->GetConsole()
+							->Execute_Command(
+								static_cast<kotek::ktk::enum_base_t>(
+									kotek::core::eConsoleCommandIndex::
+										kConsoleCommand_SDK_SaveScene));
 					}
 
 					if (p_wrapper_imgui->MenuItem("Close Current Project"))
@@ -165,8 +167,6 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 								if (p_wrapper_imgui->MenuItem(
 										build_window_name, nullptr, is_shown))
 								{
-	
-
 									if (p_element->Is_Shown() == false)
 									{
 										p_main_manager->GetGameManager()
@@ -256,7 +256,7 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
 					static_cast<kotek::ktk::enum_base_t>(kotek::core::
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
-					{kotek::static_cstring_t<8>("false")});
+					{});
 
 				p_game_manager->get_sdk_ui()->set_imgui_show_modal_save_scene(
 					false);
@@ -269,7 +269,7 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
 					static_cast<kotek::ktk::enum_base_t>(kotek::core::
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
-					{kotek::static_cstring_t<8>("false")});
+					{});
 
 				p_game_manager->get_sdk_ui()->set_imgui_show_modal_save_scene(
 					false);

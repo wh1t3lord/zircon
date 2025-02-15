@@ -29,9 +29,12 @@ zircon_renderer_gles3::zircon_renderer_gles3(
 zircon_renderer_gles3::~zircon_renderer_gles3(void) {}
 
 void zircon_renderer_gles3::Initialize(
-	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements, kotek::core::ktkWindowConsole* p_console)
+	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements,
+	kotek::core::ktkWindowConsole* p_console, kotek::core::ktkConsole* p_con)
 {
 	this->m_imgui_ui_elements = ui_elements;
+
+	this->initialize_extensions(p_con);
 
 	this->Create_RenderGraph(this->m_imgui_ui_elements, p_console);
 
@@ -75,6 +78,144 @@ zircon_renderer_gles3::Get_UIImGuiElements() const
 	return this->m_imgui_ui_elements;
 }
 
+template <unsigned char Size>
+bool validate_extensions(const std::array<const char*, Size>& extension_names,
+	kotek::core::ktkConsole* p_console)
+{
+	KOTEK_ASSERT(p_console, "must be valid!");
+
+	bool presented[Size]{};
+	bool status = true;
+	int NumberOfExtensions;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &NumberOfExtensions);
+	for (int i = 0; i < NumberOfExtensions; i++)
+	{
+		const GLubyte* extension_name = glGetStringi(GL_EXTENSIONS, i);
+		for (unsigned char j = 0; j < Size; j++)
+		{
+			if (strcmp((const char*)extension_name, extension_names[j]) == 0)
+			{
+				presented[j] = true;
+
+				KOTEK_MESSAGE("device supported extension: {}",
+					(const char*)extension_name);
+			}
+		}
+	}
+
+	for (unsigned char i = 0; i < Size; ++i)
+	{
+		if (presented[i] == false)
+		{
+			KOTEK_ASSERT(false,
+				"your device's driver doesn't support a such extension [{}] "
+				"thus we "
+				"can't run application :(",
+				extension_names[i]);
+
+			KOTEK_MESSAGE("//////////");
+
+			for (unsigned char j = 0; j < Size; ++j)
+			{
+				if (presented[j] == false)
+				{
+					KOTEK_MESSAGE("device unsupported extensions: {}",
+						extension_names[j]);
+				}
+			}
+
+			KOTEK_MESSAGE("//////////");
+
+			if (p_console)
+			{
+				status = false;
+				p_console->Push_Command(
+					static_cast<kotek::ktk::enum_base_t>(kotek::core::
+							eConsoleCommandIndex::kConsoleCommand_App_Close),
+					{});
+				break;
+			}
+		}
+	}
+
+	return status;
+}
+
+void zircon_renderer_gles3::initialize_extensions(
+	kotek::core::ktkConsole* p_console)
+{
+	std::array<const char*, 3> extensions = {"GL_EXT_multi_draw_indirect",
+		"GL_EXT_draw_elements_base_vertex", "GL_EXT_base_instance"};
+
+	bool is_valid = validate_extensions(extensions, p_console);
+
+	if (!glDrawElementsIndirect)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"if you're gles 3.1 it loads glDrawElementsIndirect by default in "
+			"GLAD but it wasn't load so probably bug of driver of your device "
+			"doesn't support it at all! Report to developers of driver and to "
+			"us too!");
+
+		if (p_console)
+		{
+			p_console->Push_Command(
+				static_cast<kotek::ktk::enum_base_t>(kotek::core::
+						eConsoleCommandIndex::kConsoleCommand_App_Close),
+				{});
+		}
+	}
+
+	if (is_valid)
+	{
+		if (!glMultiDrawArraysIndirect)
+		{
+			glMultiDrawArraysIndirect =
+				(decltype(glMultiDrawArraysIndirect))(glfwGetProcAddress(
+					"glMultiDrawArraysIndirectEXT"));
+
+			KOTEK_ASSERT(glMultiDrawArraysIndirect,
+				"failed to load proc address: {}",
+				"glMultiDrawArraysIndirectEXT");
+
+			if (glMultiDrawArraysIndirect)
+			{
+				KOTEK_MESSAGE(
+					"loaded function: {}", "glMultiDrawArraysIndirectEXT");
+			}
+			else
+			{
+				KOTEK_MESSAGE_ERROR("failed to load function: {}",
+					"glMultiDrawArraysIndirectEXT");
+			}
+		}
+
+		if (!glMultiDrawElementsIndirect)
+		{
+			glMultiDrawElementsIndirect =
+				(decltype(glMultiDrawElementsIndirect))(glfwGetProcAddress(
+					"glMultiDrawElementsIndirectEXT"));
+
+			KOTEK_ASSERT(glMultiDrawElementsIndirect,
+				"failed to load proc address: {}",
+				"glMultiDrawElementsIndirectEXT");
+
+			if (glMultiDrawElementsIndirect)
+			{
+				KOTEK_MESSAGE(
+					"loaded function: {}", "glMultiDrawElementsIndirectEXT");
+			}
+			else
+			{
+				KOTEK_MESSAGE_ERROR("failed to load function: {}",
+					"glMultiDrawElementsIndirectEXT");
+			}
+		}
+
+		KOTEK_MESSAGE("extensions were loaded successfully!");
+	}
+}
+
 void zircon_renderer_gles3::Begin() noexcept {}
 
 void zircon_renderer_gles3::End() noexcept
@@ -92,8 +233,8 @@ void zircon_renderer_gles3::Destroy_RenderGraph(void) noexcept
 }
 
 void zircon_renderer_gles3::Create_RenderGraph(
-	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
-		imgui_elements, kotek::core::ktkWindowConsole* p_console) noexcept
+	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& imgui_elements,
+	kotek::core::ktkWindowConsole* p_console) noexcept
 {
 	KOTEK_ASSERT(
 		this->m_p_main_manager, "you must initialize main manager first");
@@ -132,7 +273,8 @@ void zircon_renderer_gles3::Add_PassesEditor(
 #endif
 }
 
-void zircon_renderer_gles3::Add_PassesGame(kotek::core::ktkWindowConsole* p_console) noexcept
+void zircon_renderer_gles3::Add_PassesGame(
+	kotek::core::ktkWindowConsole* p_console) noexcept
 {
 	// todo: implement that when you implement simulation button in editor and
 	// you can test the game as standalone

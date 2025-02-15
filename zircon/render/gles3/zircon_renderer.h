@@ -22,7 +22,9 @@ public:
 	~zircon_renderer_gles3(void);
 
 	void Initialize(
-		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& ui_elements, kotek::core::ktkWindowConsole* p_console);
+		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& ui_elements,
+		kotek::core::ktkWindowConsole* p_console,
+		kotek::core::ktkConsole* p_con);
 
 	void Shutdown(void) override;
 
@@ -36,6 +38,8 @@ public:
 	Get_UIImGuiElements() const override;
 
 private:
+	void initialize_extensions(kotek::core::ktkConsole* p_console);
+
 	void Begin() noexcept;
 	void End() noexcept;
 
@@ -43,8 +47,7 @@ private:
 	void Create_RenderGraph(
 		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
 			imgui_elements,
-		kotek
-		::core::ktkWindowConsole* p_console) noexcept;
+		kotek ::core::ktkWindowConsole* p_console) noexcept;
 
 	void Add_PassesEditor(
 		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&

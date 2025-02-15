@@ -964,7 +964,7 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 				new zircon_renderer_gles3(this->m_p_main_manager);
 
 			this->m_p_renderer_gles3->Initialize(
-				elements, this->m_p_window_console);
+				elements, this->m_p_window_console, this->m_p_console);
 			this->m_p_current_renderer = this->m_p_renderer_gles3;
 			break;
 		}
@@ -1310,19 +1310,9 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		return true;
 	};
 
-	auto p_command_close_application =
-		[p_main_manager](kotek::static_cstring_t<8> argument) -> bool
+	auto p_command_close_application = [p_main_manager]() -> bool
 	{
-		if (argument.empty())
-		{
-			KOTEK_MESSAGE_WARNING("can't execute application close command "
-								  "because data argument list is empty");
-			return false;
-		}
-
-		bool status = kotek::ktk::cast::to_bool(argument.c_str());
-
-		p_main_manager->Get_EngineConfig()->SetApplicationWorking(status);
+		p_main_manager->Get_EngineConfig()->SetApplicationWorking(false);
 
 		return true;
 	};

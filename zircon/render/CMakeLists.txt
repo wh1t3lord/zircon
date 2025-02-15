@@ -72,7 +72,12 @@ set(to_include_opengles3_editor_passes_files
 	"gles3/zircon_render_graph_pass_editor_model_static.h"
 	"gles3/zircon_render_graph_pass_editor_debug.h"
 	"gles3/zircon_render_graph_pass_editor_debug.cpp"
+	"gles3/zircon_render_graph_pass_editor_grid.h"
+	"gles3/zircon_render_graph_pass_editor_grid.cpp"
+	"gles3/zircon_render_graph_pass_editor_camera.h"
+	"gles3/zircon_render_graph_pass_editor_camera.cpp"
 )
+
 
 ### OpenGL ES
 
