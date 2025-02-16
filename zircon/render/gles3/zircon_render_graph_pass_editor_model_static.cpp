@@ -17,8 +17,7 @@ zircon_render_graph_pass_editor_model_static_gles3::
 
 zircon_render_graph_pass_editor_model_static_gles3::
 	zircon_render_graph_pass_editor_model_static_gles3() :
-	m_p_factory{},
-	m_p_manager_render_resource{}
+	m_p_factory{}, m_p_manager_render_resource{}
 {
 }
 
@@ -270,7 +269,6 @@ void zircon_render_graph_pass_editor_model_static_gles3::update_instances()
 
 		kotek::ktk::math::mat4x4f_t mat;
 		mat.Identity();
-		mat[2][3] = -13.0f;
 
 		for (auto&& [entity, geometry, transform] : view.each())
 		{
@@ -296,18 +294,17 @@ void zircon_render_graph_pass_editor_model_static_gles3::render_instances()
 {
 	if (this->m_p_manager_render_geometry)
 	{
-		bool is_empty = this->m_p_manager_render_geometry
-							->Get_IndirectCommands_PredefinedModels()
-							.empty();
-
-		if (is_empty == false)
+		kotek::ktk::uint32_t commands_count =
+			this->m_p_manager_render_geometry
+				->Get_CurrentIndirectCommandsInUse();
+		if (commands_count > 0)
 		{
 			glBindBuffer(this->m_p_manager_render_geometry
 							 ->Get_Buffer_DrawIndirectCommands()
 							 ->Get_Target(),
 				this->m_p_manager_render_geometry
 					->Get_Buffer_DrawIndirectCommands()
-					->Get_Handles()[0]);
+					->Get_Handle());
 			KOTEK_GL_ASSERT();
 
 			auto buffer_object_type =
@@ -330,8 +327,52 @@ void zircon_render_graph_pass_editor_model_static_gles3::render_instances()
 			glUseProgram(this->m_shaders_geometry_color_only);
 			KOTEK_GL_ASSERT();
 
-			glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, 0);
+			glMultiDrawElementsIndirect(
+				GL_TRIANGLES, GL_UNSIGNED_INT, 0, commands_count, 0);
 			KOTEK_GL_ASSERT();
 		}
 	}
+
+	/*
+	if (this->m_p_manager_render_geometry)
+	{
+	    bool is_empty = this->m_p_manager_render_geometry
+	                        ->Get_IndirectCommands_PredefinedModels()
+	                        .empty();
+
+	    if (is_empty == false)
+	    {
+	        glBindBuffer(this->m_p_manager_render_geometry
+	                         ->Get_Buffer_DrawIndirectCommands()
+	                         ->Get_Target(),
+	            this->m_p_manager_render_geometry
+	                ->Get_Buffer_DrawIndirectCommands()
+	                ->Get_Handles()[0]);
+	        KOTEK_GL_ASSERT();
+
+	        auto buffer_object_type =
+	            this->m_shader_buffer_instancing_data.Get_BufferObjectType();
+	        auto buffer_instancing_handle_id =
+	            this->m_shader_buffer_instancing_data.Get_Buffer();
+	        auto buffer_point_index =
+	            this->m_shader_buffer_instancing_data.Get_BindingPointIndex();
+
+	        glBindBuffer(buffer_object_type, buffer_instancing_handle_id);
+	        KOTEK_GL_ASSERT();
+
+	        glBindBufferBase(buffer_object_type, buffer_point_index,
+	            buffer_instancing_handle_id);
+	        KOTEK_GL_ASSERT();
+
+	        glBindVertexArray(this->m_p_manager_render_geometry->Get_VAO());
+	        KOTEK_GL_ASSERT();
+
+	        glUseProgram(this->m_shaders_geometry_color_only);
+	        KOTEK_GL_ASSERT();
+
+	        glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, 0);
+	        KOTEK_GL_ASSERT();
+	    }
+	}
+	*/
 }

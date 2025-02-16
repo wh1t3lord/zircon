@@ -15,10 +15,9 @@ layout (std140, binding=0) uniform CameraData
 layout(std430, binding=1) buffer InstancedMatriciesData
 {
 	mat4 transform[];
-};
-
+} input_instance_transforms;
 
 void main()
 {
-	gl_Position = projection * view * transform[gl_InstanceID] * vec4(inPos.x, inPos.y, inPos.z, 1.0);
+	gl_Position = projection * view * input_instance_transforms.transform[gl_InstanceID] * vec4(inPos.x, inPos.y, inPos.z, 1.0);
 }

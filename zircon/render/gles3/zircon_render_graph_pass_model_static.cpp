@@ -17,8 +17,7 @@ zircon_render_graph_pass_model_static_gles3::
 
 zircon_render_graph_pass_model_static_gles3::
 	zircon_render_graph_pass_model_static_gles3() :
-	m_p_factory{},
-	m_p_manager_render_resource{}
+	m_p_factory{}, m_p_manager_render_resource{}
 {
 }
 
@@ -307,7 +306,7 @@ void zircon_render_graph_pass_model_static_gles3::render_instances()
 							 ->Get_Target(),
 				this->m_p_manager_render_geometry
 					->Get_Buffer_DrawIndirectCommands()
-					->Get_Handles()[0]);
+					->Get_Handle());
 			KOTEK_GL_ASSERT();
 
 			auto buffer_object_type =
