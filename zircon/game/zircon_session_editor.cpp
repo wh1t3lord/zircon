@@ -296,77 +296,85 @@ void zircon_session_editor::update_component_camera(void) noexcept {}
 
 void zircon_session_editor::update_component_camera_sdk(void) noexcept
 {
-	if (this->m_p_game_manager)
+	if (this->m_p_main_manager->Get_Input()->Is_KeyHolding(
+			kotek::core::eInputControllerType::kControllerMouse,
+			kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
 	{
-		auto* p_game_factory = this->m_p_game_manager->get_factory_game();
-
-		if (p_game_factory)
+		if (this->m_p_game_manager)
 		{
-			auto& registry = p_game_factory->GetRegistry();
+			auto* p_game_factory = this->m_p_game_manager->get_factory_game();
 
-			auto entities = registry.view<zircon_component_sdk_camera>();
-
-			KOTEK_ASSERT(
-				entities.size() <= 1, "you must have only one editor camera");
-
-			if (!entities.empty())
+			if (p_game_factory)
 			{
-				auto id = entities[0];
+				auto& registry = p_game_factory->GetRegistry();
 
-				auto& component_camera =
-					entities.get<zircon_component_sdk_camera>(id);
+				auto entities = registry.view<zircon_component_sdk_camera>();
 
-				const auto& component_input =
-					p_game_factory->GetComponent<zircon_component_sdk_input>(
-						static_cast<entt::entity>(id));
+				KOTEK_ASSERT(entities.size() <= 1,
+					"you must have only one editor camera");
 
-				const auto& component_transform =
-					p_game_factory->GetComponent<zircon_component_transform>(
-						static_cast<entt::entity>(id));
+				if (!entities.empty())
+				{
+					auto id = entities[0];
 
-				const auto& input = component_input.get_input();
+					auto& component_camera =
+						entities.get<zircon_component_sdk_camera>(id);
 
-				auto& camera = component_camera.get_camera();
+					const auto& component_input =
+						p_game_factory
+							->GetComponent<zircon_component_sdk_input>(
+								static_cast<entt::entity>(id));
 
-				auto pitch = camera.get_pitch();
-				auto yaw = camera.get_yaw();
-				auto sens = camera.get_mouse_sensetivity();
+					const auto& component_transform =
+						p_game_factory
+							->GetComponent<zircon_component_transform>(
+								static_cast<entt::entity>(id));
 
-				yaw += input.get_offset_mouse_position_x() * sens;
-				pitch += input.get_offset_mouse_position_y() * sens;
+					const auto& input = component_input.get_input();
 
-				if (pitch > 89.0f)
-					pitch = 89.0f;
+					auto& camera = component_camera.get_camera();
 
-				if (pitch < -89.0f)
-					pitch = -89.0f;
+					auto pitch = camera.get_pitch();
+					auto yaw = camera.get_yaw();
+					auto sens = camera.get_mouse_sensetivity();
 
-				camera.set_pitch(pitch);
-				camera.set_yaw(yaw);
+					yaw += input.get_offset_mouse_position_x() * sens;
+					pitch += input.get_offset_mouse_position_y() * sens;
 
-				Kotek::ktk::math::vec3f_t front;
+					if (pitch > 89.0f)
+						pitch = 89.0f;
 
-				front.x() = cos(Kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(Kotek::ktk::math::convert_to_radians(pitch));
-				front.y() = sin(Kotek::ktk::math::convert_to_radians(pitch));
-				front.z() = sin(Kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(Kotek::ktk::math::convert_to_radians(pitch));
+					if (pitch < -89.0f)
+						pitch = -89.0f;
 
-				auto height = this->m_p_main_manager->Get_WindowManager()
-								  ->ActiveWindow_GetHeight();
-				auto width = this->m_p_main_manager->Get_WindowManager()
-								 ->ActiveWindow_GetWidth();
+					camera.set_pitch(pitch);
+					camera.set_yaw(yaw);
 
-				// TODO: projection update only when we zoom
-				camera.set_projection(Kotek::ktk::math::perspective(
-					Kotek::ktk::math::convert_to_radians(
-						camera.get_field_of_view()),
-					width / height, camera.get_plane_near(),
-					camera.get_plane_far()));
-				camera.set_view(Kotek::ktk::math::look_at(
-					component_transform.get_position(),
-					component_transform.get_position() + front,
-					{0.0f, 1.0f, 0.0f}));
+					Kotek::ktk::math::vec3f_t front;
+
+					front.x() = cos(Kotek::ktk::math::convert_to_radians(yaw)) *
+						cos(Kotek::ktk::math::convert_to_radians(pitch));
+					front.y() =
+						sin(Kotek::ktk::math::convert_to_radians(pitch));
+					front.z() = sin(Kotek::ktk::math::convert_to_radians(yaw)) *
+						cos(Kotek::ktk::math::convert_to_radians(pitch));
+
+					auto height = this->m_p_main_manager->Get_WindowManager()
+									  ->ActiveWindow_GetHeight();
+					auto width = this->m_p_main_manager->Get_WindowManager()
+									 ->ActiveWindow_GetWidth();
+
+					// TODO: projection update only when we zoom
+					camera.set_projection(Kotek::ktk::math::perspective(
+						Kotek::ktk::math::convert_to_radians(
+							camera.get_field_of_view()),
+						width / height, camera.get_plane_near(),
+						camera.get_plane_far()));
+					camera.set_view(Kotek::ktk::math::look_at(
+						component_transform.get_position(),
+						component_transform.get_position() + front,
+						{0.0f, 1.0f, 0.0f}));
+				}
 			}
 		}
 	}

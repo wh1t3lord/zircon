@@ -230,16 +230,25 @@ void zircon_render_graph_pass_editor_model_static_gles3::update_sdk_camera()
 		glBindBuffer(buffer_object_type, handle_id);
 		KOTEK_GL_ASSERT();
 
+		const kotek::ktk::math::matrix4x4f& projection =
+			component_camera.get_camera().get_projection();
+		kotek::ktk::math::matrix4x4f tproj =
+			kotek::ktk::math::transpose(projection);
+
 		glBufferSubData(buffer_object_type, 0,
 			sizeof(kotek::ktk::math::mat4x4f_t),
-			kotek::ktk::math::value_ptr(
-				component_camera.get_camera().get_projection()));
+			kotek::ktk::math::value_ptr(tproj));
 		KOTEK_GL_ASSERT();
+
+		const kotek::ktk::math::matrix4x4f& view =
+			component_camera.get_camera().get_view();
+
+		kotek::ktk::math::matrix4x4f tview =
+			kotek::ktk::math::transpose(view);
 
 		glBufferSubData(buffer_object_type, sizeof(kotek::ktk::math::mat4x4f_t),
 			sizeof(kotek::ktk::math::mat4x4f_t),
-			kotek::ktk::math::value_ptr(
-				component_camera.get_camera().get_view()));
+			kotek::ktk::math::value_ptr(tview));
 		KOTEK_GL_ASSERT();
 
 		glBindBufferBase(buffer_object_type, binding_point_index, handle_id);
@@ -269,6 +278,7 @@ void zircon_render_graph_pass_editor_model_static_gles3::update_instances()
 
 		kotek::ktk::math::mat4x4f_t mat;
 		mat.Identity();
+		mat[3][3] = -10.0f;
 
 		for (auto&& [entity, geometry, transform] : view.each())
 		{
