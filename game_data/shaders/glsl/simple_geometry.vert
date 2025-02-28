@@ -21,5 +21,5 @@ layout(std430, binding=1) buffer InstancedMatriciesData
 
 void main()
 {
-	gl_Position = vec4(inPos, 1.0) * view * projection;
+	gl_Position = projection * view * vec4(inPos, 1.0);
 }
