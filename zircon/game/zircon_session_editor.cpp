@@ -392,7 +392,7 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 
 						if (input.is_key_holding(
 								kotek::core::eInputAllKeys::kCK_KEY_A,
-								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
 						{
 							component_transform.get_position() -=
 								right * movement_speed;
@@ -400,7 +400,7 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 
 						if (input.is_key_holding(
 								kotek::core::eInputAllKeys::kCK_KEY_D,
-								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
 						{
 							component_transform.get_position() +=
 								right * movement_speed;
@@ -408,7 +408,7 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 
 						if (input.is_key_holding(
 								kotek::core::eInputAllKeys::kCK_KEY_W,
-								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
 						{
 							component_transform.get_position() +=
 								front * movement_speed;
@@ -416,7 +416,7 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 
 						if (input.is_key_holding(
 								kotek::core::eInputAllKeys::kCK_KEY_S,
-								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
 						{
 							component_transform.get_position() -= front * movement_speed;
 						}

@@ -15,7 +15,8 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_factory_game;
 
-#define ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION 2
+#define ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES 2
+#define ZIRCON_DEF_INPUT_MOUSE_HOLDING_FRAMES 16
 
 class zircon_component_input : public zircon_component_interface
 {
