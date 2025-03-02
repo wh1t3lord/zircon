@@ -103,6 +103,8 @@ private:
 
 	void Initialize_Console(void) noexcept;
 
+	void initialize_input(void) noexcept;
+
 	void RegisterConsole_Commands(void) noexcept;
 	void RegisterConsole_Commands_SDK(void) noexcept;
 

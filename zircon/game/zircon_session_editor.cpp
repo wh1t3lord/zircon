@@ -215,7 +215,8 @@ void zircon_session_editor::update_component_input_sdk(void) noexcept
 
 				auto& input = component_input.get_input();
 
-				auto status = component_input.get_input().is_mouse_right_hold();
+				auto status = component_input.get_input().is_key_holding(
+					kotek::core::eInputAllKeys::kCM_KEY_RIGHT);
 
 				if (status)
 				{
@@ -296,50 +297,58 @@ void zircon_session_editor::update_component_camera(void) noexcept {}
 
 void zircon_session_editor::update_component_camera_sdk(void) noexcept
 {
-	if (this->m_p_main_manager->Get_Input()->Is_KeyHolding(
-			kotek::core::eInputControllerType::kControllerMouse,
-			kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
+	if (this->m_p_game_manager)
 	{
-		if (this->m_p_game_manager)
+		auto* p_game_factory = this->m_p_game_manager->get_factory_game();
+
+		if (p_game_factory)
 		{
-			auto* p_game_factory = this->m_p_game_manager->get_factory_game();
+			auto& registry = p_game_factory->GetRegistry();
 
-			if (p_game_factory)
+			auto entities = registry.view<zircon_component_sdk_camera>();
+
+			KOTEK_ASSERT(
+				entities.size() <= 1, "you must have only one editor camera");
+
+			if (!entities.empty())
 			{
-				auto& registry = p_game_factory->GetRegistry();
+				auto id = entities[0];
 
-				auto entities = registry.view<zircon_component_sdk_camera>();
-
-				KOTEK_ASSERT(entities.size() <= 1,
-					"you must have only one editor camera");
-
-				if (!entities.empty())
+				if (p_game_factory->HasComponent<zircon_component_sdk_input>(
+						id) &&
+					p_game_factory->HasComponent<zircon_component_transform>(
+						id))
 				{
-					auto id = entities[0];
-
-					auto& component_camera =
-						entities.get<zircon_component_sdk_camera>(id);
-
 					const auto& component_input =
 						p_game_factory
 							->GetComponent<zircon_component_sdk_input>(
 								static_cast<entt::entity>(id));
 
-					const auto& component_transform =
+					const auto& input = component_input.get_input();
+
+					auto& component_transform =
 						p_game_factory
 							->GetComponent<zircon_component_transform>(
 								static_cast<entt::entity>(id));
 
-					const auto& input = component_input.get_input();
-
+					auto& component_camera =
+						entities.get<zircon_component_sdk_camera>(id);
 					auto& camera = component_camera.get_camera();
 
 					auto pitch = camera.get_pitch();
 					auto yaw = camera.get_yaw();
-					auto sens = camera.get_mouse_sensetivity();
 
-					yaw += input.get_offset_mouse_position_x() * sens;
-					pitch += input.get_offset_mouse_position_y() * sens;
+					if (input.is_key_holding(
+							kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
+					{
+						yaw += input.get_delta_x(kotek::core::
+									   eInputControllerType::kControllerMouse) *
+							input.get_sensetivity();
+						pitch +=
+							input.get_delta_y(kotek::core::
+									eInputControllerType::kControllerMouse) *
+							input.get_sensetivity();
+					}
 
 					if (pitch > 89.0f)
 						pitch = 89.0f;
@@ -358,7 +367,6 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 						sin(Kotek::ktk::math::convert_to_radians(pitch));
 					front.z() = sin(Kotek::ktk::math::convert_to_radians(yaw)) *
 						cos(Kotek::ktk::math::convert_to_radians(pitch));
-
 					auto height = this->m_p_main_manager->Get_WindowManager()
 									  ->ActiveWindow_GetHeight();
 					auto width = this->m_p_main_manager->Get_WindowManager()
@@ -374,6 +382,80 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 						component_transform.get_position(),
 						component_transform.get_position() + front,
 						{0.0f, 1.0f, 0.0f}));
+
+					if (input.is_key_holding(
+							kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
+					{
+						float movement_speed = 0.1f;
+						const kotek::ktk::math::vector3f& right = kotek::ktk::math::cross(
+							front, kotek::ktk::math::vector3f(0.0f,1.0f,0.0f));
+
+						if (input.is_key_holding(
+								kotek::core::eInputAllKeys::kCK_KEY_A,
+								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+						{
+							component_transform.get_position() -=
+								right * movement_speed;
+						}
+
+						if (input.is_key_holding(
+								kotek::core::eInputAllKeys::kCK_KEY_D,
+								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+						{
+							component_transform.get_position() +=
+								right * movement_speed;
+						}
+
+						if (input.is_key_holding(
+								kotek::core::eInputAllKeys::kCK_KEY_W,
+								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+						{
+							component_transform.get_position() +=
+								front * movement_speed;
+						}
+
+						if (input.is_key_holding(
+								kotek::core::eInputAllKeys::kCK_KEY_S,
+								ZIRCON_DEF_INPUT_COMPONENT_DEFAULT_FRAMES_KEYBOARD_FOR_HOLDING_DETERMINATION))
+						{
+							component_transform.get_position() -= front * movement_speed;
+						}
+					}
+				}
+				else
+				{
+					auto& component_camera =
+						entities.get<zircon_component_sdk_camera>(id);
+
+					if (!component_camera.is_initialized())
+					{
+						zircon_component_camera& camera =
+							component_camera.get_camera();
+
+						camera.set_pitch(0.0f);
+						camera.set_yaw(-90.0f);
+
+						component_camera.set_initialized(true);
+					}
+
+					zircon_component_camera& camera =
+						component_camera.get_camera();
+
+					auto width = this->m_p_main_manager->Get_WindowManager()
+									 ->ActiveWindow_GetWidth();
+					auto height = this->m_p_main_manager->Get_WindowManager()
+									  ->ActiveWindow_GetHeight();
+
+					camera.set_projection(kotek::ktk::math::perspective(
+						kotek::ktk::math::convert_to_radians(
+							camera.get_field_of_view()),
+						width / height, camera.get_plane_near(),
+						camera.get_plane_far()));
+
+					camera.set_view(kotek::ktk::math::look_at(
+						kotek::ktk::math::vector3f(0.0f, 0.0f, 3.0f),
+						kotek::ktk::math::vector3f(0.0f, 0.0f, -3.0f),
+						kotek::ktk::math::vector3f(0.0f, 1.0f, 0.0f)));
 				}
 			}
 		}

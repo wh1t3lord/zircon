@@ -4,8 +4,7 @@
 
 zircon_component_camera::zircon_component_camera(void) :
 	m_plane_near(0.1f), m_plane_far(1000.0f), m_fov(60.0f), m_yaw(-90.0f),
-	m_pitch(0.0f), m_mouse_sensetivity(0.5f), m_front(0.0f, 0.0f, -1.0f),
-	m_up(0.0f, 1.0f, 0.0f)
+	m_pitch(0.0f), m_front(0.0f, 0.0f, -1.0f), m_up(0.0f, 1.0f, 0.0f)
 {
 }
 
@@ -97,16 +96,6 @@ void zircon_component_camera::set_right(
 	this->m_right = data;
 }
 
-float zircon_component_camera::get_mouse_sensetivity(void) const noexcept
-{
-	return this->m_mouse_sensetivity;
-}
-
-void zircon_component_camera::set_mouse_sensetivity(float value) noexcept
-{
-	this->m_mouse_sensetivity = value;
-}
-
 const Kotek::ktk::math::mat4x4f_t& zircon_component_camera::get_view(
 	void) const noexcept
 {
@@ -132,6 +121,107 @@ void zircon_component_camera::set_projection(
 }
 
 void zircon_component_camera::DrawImGui(
-	Kotek::Core::ktkMainManager* main_manager) noexcept
+	Kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
+	if (p_main_manager)
+	{
+		kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
+			p_main_manager->Get_ImguiWrapper();
+
+		if (p_wrapper_imgui)
+		{
+			if (p_wrapper_imgui->BeginTabBar("ZirconComponentCameraTab"))
+			{
+				if (p_wrapper_imgui->BeginTabItem("info"))
+				{
+					p_wrapper_imgui->Text("plane: \n\tnear: %.3f \n\tfar: %.3f",
+						this->m_plane_near, this->m_plane_far);
+					p_wrapper_imgui->Text(
+						"pitch: \n\t%.3f (deg) \n\t%.3f (rad)", this->m_pitch,
+						kotek::ktk::math::convert_to_radians(this->m_pitch));
+					p_wrapper_imgui->Text("yaw: \n\t%.3f (deg) \n\t%.3f (rad)",
+						this->m_yaw,
+						kotek::ktk::math::convert_to_radians(this->m_yaw));
+
+					p_wrapper_imgui->Text(
+						"view: \n\t[0]: %.3f %.3f %.3f %.3f \n\t[1]: "
+						"%.3f %.3f %.3f %.3f \n\t[2]: %.3f %.3f %.3f "
+						"%.3f \n\t[3]: %.3f %.3f %.3f %.3f",
+						this->m_view[0][0], this->m_view[0][1],
+						this->m_view[0][2], this->m_view[0][3],
+						this->m_view[1][0], this->m_view[1][1],
+						this->m_view[1][2], this->m_view[1][3],
+						this->m_view[2][0], this->m_view[2][1],
+						this->m_view[2][2], this->m_view[2][3],
+						this->m_view[3][0], this->m_view[3][1],
+						this->m_view[3][2], this->m_view[3][3]);
+
+					p_wrapper_imgui->Text("projection: \n\t[0]: %.3f %.3f %.3f "
+					                      "%.3f \n\t[1]: %.3f "
+										  "%.3f "
+										  "%.3f %.3f \n\t[2]: %.3f %.3f %.3f "
+					                      "%.3f \n\t[3]: %.3f %.3f "
+										  "%.3f %.3f",
+						this->m_projection[0][0], this->m_projection[0][1],
+						this->m_projection[0][2], this->m_projection[0][3],
+						this->m_projection[1][0], this->m_projection[1][1],
+						this->m_projection[1][2], this->m_projection[1][3],
+						this->m_projection[2][0], this->m_projection[2][1],
+						this->m_projection[2][2], this->m_projection[2][3],
+						this->m_projection[3][0], this->m_projection[3][1],
+						this->m_projection[3][2], this->m_projection[3][3]);
+
+					p_wrapper_imgui->EndTabItem();
+				}
+
+				if (p_wrapper_imgui->BeginTabItem("edit"))
+				{
+					p_wrapper_imgui->DragFloat(
+						"plane far", &this->m_plane_far, 1.0f, 1.0f, 10000.0f);
+					p_wrapper_imgui->DragFloat("plane near",
+						&this->m_plane_near, 1.0f, 0.00001f, 0.5f);
+					p_wrapper_imgui->DragFloat(
+						"pitch", &this->m_pitch, 1.0f, -89.0f, 89.0f);
+					p_wrapper_imgui->DragFloat(
+						"yaw", &this->m_yaw, 1.0f, -360.0f, 360.0f);
+
+					p_wrapper_imgui->DragFloat("fov", &this->m_fov, 1.0f, 0.1f, 120.0f);
+
+					p_wrapper_imgui->SeparatorText("view");
+					p_wrapper_imgui->DragFloat4(
+						"[0]##view", this->m_view[0].data(), 1.0f, -10.0f, 10.0f);
+					p_wrapper_imgui->DragFloat4("[1]##view",
+						this->m_view[1].data(), 1.0f, -10.0f, 10.0f);
+					p_wrapper_imgui->DragFloat4("[2]##view",
+						this->m_view[2].data(), 1.0f, -10.0f, 10.0f);
+					p_wrapper_imgui->DragFloat4("[3]##view",
+						this->m_view[3].data(), 1.0f, -10.0f, 10.0f);
+
+					p_wrapper_imgui->SeparatorText("projection");
+
+					if (p_wrapper_imgui->Button("reset##projection"))
+					{
+						this->m_yaw = -90.0f;
+						this->m_pitch = 0.0f;
+						this->m_fov = 60.0f;
+
+						auto width = p_main_manager->Get_WindowManager()
+										 ->ActiveWindow_GetWidth();
+						auto height = p_main_manager->Get_WindowManager()
+										  ->ActiveWindow_GetHeight();
+						this->m_plane_near = 0.1f;
+						this->m_plane_far = 1000.0f;
+						this->m_projection = kotek::ktk::math::perspective(
+							kotek::ktk::math::convert_to_radians(this->m_fov),
+							width / height, this->m_plane_near,
+							this->m_plane_far);
+					}
+
+					p_wrapper_imgui->EndTabItem();
+				}
+
+				p_wrapper_imgui->EndTabBar();
+			}
+		}
+	}
 }

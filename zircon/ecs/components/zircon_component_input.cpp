@@ -2,57 +2,24 @@
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
 zircon_component_input::zircon_component_input(void) :
-	m_is_first_iteration{}, m_mouse_right_tick_count{},
-	m_mouse_left_tick_count{},
+	m_is_invert_mouse_axis_x{}, m_is_invert_mouse_axis_y{},
+	m_sensetivity{ZIRCON_DEF_COMPONENT_INPUT_DEFAULT_SENSETIVITY},
 	m_input_type{static_cast<Kotek::ktk::enum_base_t>(
 		Kotek::Core::eInputType::kInputType_DisabledCursor)},
-	m_input_type_previous{m_input_type}, m_position_mouse_x(0.0f),
-	m_position_mouse_y(0.0f), m_offset_mouse_position_x(0.0f),
-	m_offset_mouse_position_y(0.0f)
+	m_input_type_previous{m_input_type}, m_p_input_manager{}
+{
+}
+
+zircon_component_input::zircon_component_input(
+	const kotek::core::ktkIInput* p_manager) :
+	m_is_invert_mouse_axis_x{}, m_is_invert_mouse_axis_y{}, m_sensetivity{},
+	m_input_type{static_cast<Kotek::ktk::enum_base_t>(
+		Kotek::Core::eInputType::kInputType_DisabledCursor)},
+	m_input_type_previous{m_input_type}, m_p_input_manager{p_manager}
 {
 }
 
 zircon_component_input::~zircon_component_input(void) {}
-
-float zircon_component_input::get_position_mouse_y(void) const noexcept
-{
-	return this->m_position_mouse_y;
-}
-
-float zircon_component_input::get_position_mouse_x(void) const noexcept
-{
-	return this->m_position_mouse_x;
-}
-
-void zircon_component_input::set_position_mouse_y(float value) noexcept
-{
-	this->m_position_mouse_y = value;
-}
-
-void zircon_component_input::set_position_mouse_x(float value) noexcept
-{
-	this->m_position_mouse_x = value;
-}
-
-float zircon_component_input::get_offset_mouse_position_y(void) const noexcept
-{
-	return this->m_offset_mouse_position_y;
-}
-
-float zircon_component_input::get_offset_mouse_position_x(void) const noexcept
-{
-	return this->m_offset_mouse_position_x;
-}
-
-void zircon_component_input::set_offset_mouse_position_y(float value) noexcept
-{
-	this->m_offset_mouse_position_y = value;
-}
-
-void zircon_component_input::set_offset_mouse_position_x(float value) noexcept
-{
-	this->m_offset_mouse_position_x = value;
-}
 
 void zircon_component_input::DrawImGui(
 	Kotek::Core::ktkMainManager* p_main_manager) noexcept
@@ -63,59 +30,86 @@ void zircon_component_input::DrawImGui(
 
 		if (p_wrapper_imgui)
 		{
-			p_wrapper_imgui->Text("mouse x: %.2f", this->m_position_mouse_x);
-			p_wrapper_imgui->Text("mouse y: %.2f", this->m_position_mouse_y);
+			if (p_wrapper_imgui->BeginTabBar("ZirconComponentInput"))
+			{
+				if (p_wrapper_imgui->BeginTabItem("info"))
+				{
+					p_wrapper_imgui->Text("Input type: %s",
+						Kotek::Core::helper::Translate_InputType(
+							static_cast<Kotek::Core::eInputType>(
+								this->m_input_type))
+							.c_str());
 
-			p_wrapper_imgui->Text("dx (curr - prev): %.2f", this->m_offset_mouse_position_x);
-			p_wrapper_imgui->Text("dy (curr - prev): %.2f", this->m_offset_mouse_position_y);
+					// TODO: implement showing all devices that connected to ps
+					// for each devices print all necessary information
+					if (this->m_p_input_manager)
+					{
+						p_wrapper_imgui->Text("x: \n\t%.3f (pixels) \n\t%.3f "
+											  "(normalized) \n\t%.3f (delta) "
+											  "\n\t%.3f (delta*sens)",
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseCoordinateXInPixels),
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseCoordinateXNormalized),
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseDeltaX),
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseDeltaX) *
+								this->m_sensetivity);
 
-			p_wrapper_imgui->Text("Mouse left hold: %d", this->is_mouse_left_hold());
-			p_wrapper_imgui->Text("Mouse right hold: %d", this->is_mouse_right_hold());
+						p_wrapper_imgui->Text("y: \n\t%.3f (pixels) \n\t%.3f "
+											  "(normalized) \n\t%.3f (delta) "
+											  "\n\t%.3f (delta*sens)",
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseCoordinateYInPixels),
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseCoordinateYNormalized),
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseDeltaY),
+							this->m_p_input_manager->Get_ControllerData(
+								kotek::core::eInputControllerType::
+									kControllerMouse,
+								kotek::core::eInputControllerMouseData::
+									kMouseDeltaY) *
+								this->m_sensetivity);
+					}
 
-			p_wrapper_imgui->Text("Input type: %s",
-				Kotek::Core::helper::Translate_InputType(static_cast<Kotek::Core::eInputType>(this->m_input_type)).c_str());
+					p_wrapper_imgui->EndTabItem();
+				}
+
+				if (p_wrapper_imgui->BeginTabItem("edit"))
+				{
+					p_wrapper_imgui->DragFloat("sensetivity",
+						&this->m_sensetivity, 1.0f, 0.00001f, 1.0f);
+
+					p_wrapper_imgui->EndTabItem();
+				}
+
+				p_wrapper_imgui->EndTabBar();
+			}
 		}
 	}
-}
-
-bool zircon_component_input::is_first_iteration(void) const noexcept
-{
-	return this->m_is_first_iteration;
-}
-
-void zircon_component_input::set_first_iteration(bool status) noexcept
-{
-	this->m_is_first_iteration = status;
-}
-
-bool zircon_component_input::is_mouse_right_hold(void) const noexcept
-{
-	return this->m_mouse_right_tick_count >= 1;
-}
-
-int zircon_component_input::get_mouse_right_hold_tick_count(void) const noexcept
-{
-	return this->m_mouse_right_tick_count;
-}
-
-void zircon_component_input::set_mouse_right_hold_tick_count(int value) noexcept
-{
-	this->m_mouse_right_tick_count = value;
-}
-
-bool zircon_component_input::is_mouse_left_hold(void) const noexcept
-{
-	return this->m_mouse_left_tick_count >= 1;
-}
-
-int zircon_component_input::get_mouse_left_hold_tick_count(void) const noexcept
-{
-	return this->m_mouse_left_tick_count;
-}
-
-void zircon_component_input::set_mouse_left_hold_tick_count(int value) noexcept
-{
-	this->m_mouse_left_tick_count = value;
 }
 
 void zircon_component_input::set_input_type(
@@ -137,4 +131,144 @@ Kotek::ktk::enum_base_t zircon_component_input::get_input_type_previous(
 	void) const noexcept
 {
 	return this->m_input_type_previous;
+}
+
+bool zircon_component_input::is_key_holding(
+	kotek::core::eInputAllKeys key, unsigned char frames) const
+{
+	KOTEK_ASSERT(this->m_p_input_manager,
+		"you forgot to initialize this class, probably wrong constructor was "
+		"used?");
+
+	if (this->m_p_input_manager)
+	{
+		return this->m_p_input_manager->Is_KeyHolding(
+			this->m_p_input_manager->Get_ControllerTypeByKey(key), key, frames);
+	}
+
+	return false;
+}
+
+bool zircon_component_input::is_key_pressed(
+	kotek::core::eInputAllKeys key) const
+{
+	KOTEK_ASSERT(this->m_p_input_manager,
+		"you forgot to initialize this class, probably wrong constructor was "
+		"used?");
+
+	if (this->m_p_input_manager)
+	{
+		return this->m_p_input_manager->Is_KeyPressed(
+			this->m_p_input_manager->Get_ControllerTypeByKey(key), key);
+	}
+
+	return false;
+}
+
+bool zircon_component_input::is_key_released(
+	kotek::core::eInputAllKeys key) const
+{
+	KOTEK_ASSERT(this->m_p_input_manager,
+		"you forgot to initialize this class, probably wrong constructor was "
+		"used?");
+
+	if (this->m_p_input_manager)
+	{
+		return this->m_p_input_manager->Is_KeyReleased(
+			this->m_p_input_manager->Get_ControllerTypeByKey(key), key);
+	}
+
+	return false;
+}
+
+float zircon_component_input::get_sensetivity(void) const
+{
+	return m_sensetivity;
+}
+
+void zircon_component_input::set_sensetivity(float sensetivity)
+{
+	m_sensetivity = sensetivity;
+}
+
+void zircon_component_input::register_input(
+	const kotek::core::ktkIInput* p_input_manager)
+{
+	KOTEK_ASSERT(p_input_manager, "you can't pass invalid pointer!");
+
+	this->m_p_input_manager = p_input_manager;
+
+	if (this->m_p_input_manager)
+	{
+	}
+}
+
+float zircon_component_input::get_delta_x(
+	kotek::core::eInputControllerType type) const
+{
+	if (this->m_p_input_manager)
+	{
+		switch (type)
+		{
+		case kotek::core::eInputControllerType::kControllerMouse:
+		{
+			float result = this->m_p_input_manager->Get_ControllerData(
+				type, kotek::core::eInputControllerMouseData::kMouseDeltaX);
+
+			return result;
+		}
+		default:
+		{
+			KOTEK_ASSERT(false, "not implemented!");
+			break;
+		}
+		}
+	}
+
+	return 0.0f;
+}
+
+float zircon_component_input::get_delta_y(
+	kotek::core::eInputControllerType type) const
+{
+	if (this->m_p_input_manager)
+	{
+		switch (type)
+		{
+		case kotek::core::eInputControllerType::kControllerMouse:
+		{
+			float result = this->m_p_input_manager->Get_ControllerData(
+				type, kotek::core::eInputControllerMouseData::kMouseDeltaY);
+
+			return result;
+		}
+		default:
+		{
+			KOTEK_ASSERT(false, "not implemented!");
+			break;
+		}
+		}
+	}
+
+	return 0.0f;
+}
+
+bool zircon_component_input::is_invert_mouse_axis_x(void) const
+{
+	return this->m_is_invert_mouse_axis_x;
+}
+
+bool zircon_component_input::is_invert_mouse_axis_y(void) const
+{
+	return this->m_is_invert_mouse_axis_y;
+}
+
+void zircon_component_input::set_invert_mouse_axis_x(bool status)
+{
+	this->m_is_invert_mouse_axis_x = status;
+}
+
+void zircon_component_input::set_invert_mouse_axis_y(bool status)
+{
+	this->m_is_invert_mouse_axis_y = status;
 }

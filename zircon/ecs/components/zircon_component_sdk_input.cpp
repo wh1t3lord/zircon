@@ -2,6 +2,11 @@
 
 zircon_component_sdk_input::zircon_component_sdk_input() {}
 
+zircon_component_sdk_input::zircon_component_sdk_input(
+	const kotek::core::ktkIInput* p_input) : m_input(p_input)
+{
+}
+
 zircon_component_sdk_input::~zircon_component_sdk_input() {}
 
 const zircon_component_input& zircon_component_sdk_input::get_input(

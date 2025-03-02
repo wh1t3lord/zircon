@@ -17,7 +17,11 @@ public:
 
 	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
 
+	bool is_initialized(void) const;
+	void set_initialized(bool status);
+
 private:
+	bool m_is_initialized;
 	zircon_component_camera m_camera;
 };
 

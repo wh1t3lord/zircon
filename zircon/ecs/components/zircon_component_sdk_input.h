@@ -8,6 +8,7 @@ class zircon_component_sdk_input : public zircon_component_interface
 
 public:
 	zircon_component_sdk_input();
+	zircon_component_sdk_input(const kotek::core::ktkIInput* p_input);
 	~zircon_component_sdk_input();
 
 	const zircon_component_input& get_input(void) const noexcept;

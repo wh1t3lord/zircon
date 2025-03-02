@@ -95,7 +95,110 @@ void WindowCallback_Mouse(GLFWwindow* p_window, double xpos, double ypos)
 	    component_input.SetPositionMouseY(ypos);
 	}*/
 
-	auto* p_game_factory = p_game_manager->get_factory_game();
+	if (p_manager)
+	{
+		kotek::core::ktkIInput* p_input = p_manager->Get_Input();
+
+		if (p_input)
+		{
+			/*
+			p_input->Set_ControllerData(
+			    kotek::core::eInputControllerType::kControllerMouse,
+			    kotek::core::eInputControllerMouseData::kMouseCoordinateX, );
+			*/
+
+			p_input->Set_ControllerData(
+				kotek::core::eInputControllerType::kControllerMouse,
+				kotek::core::eInputControllerMouseData::
+					kMousePreviousCoordinateXInPixels,
+				p_input->Get_ControllerData(
+					kotek::core::eInputControllerType::kControllerMouse,
+					kotek::core::eInputControllerMouseData::
+						kMouseCoordinateXInPixels));
+			p_input->Set_ControllerData(
+				kotek::core::eInputControllerType::kControllerMouse,
+				kotek::core::eInputControllerMouseData::
+					kMousePreviousCoordinateYInPixels,
+				p_input->Get_ControllerData(
+					kotek::core::eInputControllerType::kControllerMouse,
+					kotek::core::eInputControllerMouseData::
+						kMouseCoordinateYInPixels));
+
+			p_input->Set_ControllerData(
+				kotek::core::eInputControllerType::kControllerMouse,
+				kotek::core::eInputControllerMouseData::
+					kMouseCoordinateXInPixels,
+				xpos);
+			p_input->Set_ControllerData(
+				kotek::core::eInputControllerType::kControllerMouse,
+				kotek::core::eInputControllerMouseData::
+					kMouseCoordinateYInPixels,
+				ypos);
+			float width = static_cast<float>(
+				p_manager->Get_WindowManager()->ActiveWindow_GetWidth());
+			float height = static_cast<float>(
+				p_manager->Get_WindowManager()->ActiveWindow_GetHeight());
+
+			KOTEK_ASSERT(
+				kotek::ktk::is_equal(width, 0.0f) == false, "wrong data");
+			KOTEK_ASSERT(
+				kotek::ktk::is_equal(height, 0.0f) == false, "wrong data");
+
+			bool is_valid = true;
+			if (kotek::ktk::is_equal(width, 0.0f))
+			{
+				is_valid = false;
+			}
+
+			if (kotek::ktk::is_equal(height, 0.0f))
+			{
+				is_valid = false;
+			}
+
+			if (is_valid)
+			{
+				p_input->Set_ControllerData(
+					kotek::core::eInputControllerType::kControllerMouse,
+					kotek::core::eInputControllerMouseData::
+						kMouseCoordinateXNormalized,
+					xpos / width);
+				p_input->Set_ControllerData(
+					kotek::core::eInputControllerType::kControllerMouse,
+					kotek::core::eInputControllerMouseData::
+						kMouseCoordinateYNormalized,
+					ypos / height);
+			}
+
+			p_input->Set_ControllerUpdate(
+				kotek::core::eInputControllerType::kControllerMouse);
+
+			if constexpr (false)
+			{
+				float delta_x = xpos -
+					p_input->Get_ControllerData(
+						kotek::core::eInputControllerType::kControllerMouse,
+						kotek::core::eInputControllerMouseData::
+							kMousePreviousCoordinateXInPixels);
+				float delta_y = ypos -
+					p_input->Get_ControllerData(
+						kotek::core::eInputControllerType::kControllerMouse,
+						kotek::core::eInputControllerMouseData::
+							kMousePreviousCoordinateYInPixels);
+
+				KOTEK_TRACE("dx: {} - {} = {} dy: {} - {} = {}", xpos,
+					p_input->Get_ControllerData(
+						kotek::core::eInputControllerType::kControllerMouse,
+						kotek::core::eInputControllerMouseData::
+							kMousePreviousCoordinateXInPixels),
+					delta_x, ypos,
+					p_input->Get_ControllerData(
+						kotek::core::eInputControllerType::kControllerMouse,
+						kotek::core::eInputControllerMouseData::
+							kMousePreviousCoordinateYInPixels),
+					delta_y);
+			}
+		}
+	}
 
 	#ifdef KOTEK_USE_SDK_IMGUI
 	if (p_manager->Get_EngineConfig()->IsFeatureEnabled(kotek::core::
@@ -104,43 +207,6 @@ void WindowCallback_Mouse(GLFWwindow* p_window, double xpos, double ypos)
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
 		p_wrapper_imgui->ImGui_ImplGlfw_CursorPosCallback(p_window, xpos, ypos);
-
-		if (p_game_factory)
-		{
-			auto& registry = p_game_factory->GetRegistry();
-
-			auto entities_input = registry.view<zircon_component_sdk_input>();
-
-			KOTEK_ASSERT(entities_input.size() <= 1,
-				"you must have only one component that represent "
-				"input");
-
-			if (!entities_input.empty())
-			{
-				auto id = entities_input[0];
-
-				auto& component_input =
-					entities_input.get<zircon_component_sdk_input>(id);
-
-				auto& input = component_input.get_input();
-
-				if (input.is_first_iteration() == false)
-				{
-					input.set_position_mouse_x(xpos);
-					input.set_position_mouse_y(ypos);
-
-					input.set_first_iteration(true);
-				}
-
-				input.set_offset_mouse_position_x(
-					xpos - input.get_position_mouse_x());
-				input.set_position_mouse_x(xpos);
-
-				input.set_offset_mouse_position_y(
-					ypos - input.get_position_mouse_y());
-				input.set_position_mouse_y(ypos);
-			}
-		}
 	}
 	#endif
 }
@@ -322,37 +388,6 @@ void WindowCallback_MouseButton(
 						entities_input.get<zircon_component_sdk_input>(id);
 
 					auto& input = component_input.get_input();
-
-					int tick_left = input.get_mouse_left_hold_tick_count();
-					int tick_right = input.get_mouse_right_hold_tick_count();
-
-					if (button == GLFW_MOUSE_BUTTON_RIGHT)
-					{
-						if (action == GLFW_RELEASE)
-						{
-							input.set_mouse_right_hold_tick_count(0);
-						}
-
-						if (action == GLFW_PRESS)
-						{
-							++tick_right;
-							input.set_mouse_right_hold_tick_count(tick_right);
-						}
-					}
-
-					if (button == GLFW_MOUSE_BUTTON_LEFT)
-					{
-						if (action == GLFW_RELEASE)
-						{
-							input.set_mouse_left_hold_tick_count(0);
-						}
-
-						if (action == GLFW_PRESS)
-						{
-							++tick_left;
-							input.set_mouse_left_hold_tick_count(tick_left);
-						}
-					}
 				}
 			}
 		}
@@ -477,35 +512,7 @@ void zircon_manager_game::Initialize(
 {
 	this->m_p_main_manager = p_main_manager;
 
-	if (this->m_p_main_manager->Get_EngineConfig()
-			->IsContainsConsoleCommandLineArgument(
-				kotek::kConsoleCommandArg_Editor) == false)
-	{
-		kotek::core::ktkWindow* p_window = static_cast<kotek::core::ktkWindow*>(
-			this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow());
-
-		p_window->RegisterUserMainManager(this->m_p_main_manager);
-
-#ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
-		auto* p_handle_window = static_cast<GLFWwindow*>(p_window->GetHandle());
-		glfwSetWindowSizeCallback(p_handle_window, &WindowCallback_Resize);
-		glfwSetCursorPosCallback(p_handle_window, &WindowCallback_Mouse);
-		glfwSetScrollCallback(p_handle_window, &WindowCallback_Scroll);
-		glfwSetKeyCallback(p_handle_window, &WindowCallback_Key);
-		glfwSetCharCallback(p_handle_window, &WindowCallback_Char);
-		glfwSetMonitorCallback(&WindowCallback_Monitor);
-		glfwSetMouseButtonCallback(
-			p_handle_window, &WindowCallback_MouseButton);
-		glfwSetCursorEnterCallback(
-			p_handle_window, &WindowCallback_CursorEnter);
-		glfwSetWindowFocusCallback(
-			p_handle_window, &WindowCallback_WindowFocus);
-#elif defined(KOTEK_USE_WINDOW_LIBRARY_SDL)
-	#error not implemented
-#else
-	#error provide implementation
-#endif
-	}
+	this->initialize_input();
 
 	this->Initialize_Console();
 	this->initialize_config();
@@ -1074,7 +1081,8 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 void zircon_manager_game::Initialize_Factory(void) noexcept
 {
 	this->m_p_factory = new zircon_factory_game();
-	this->m_p_factory->Initialize(this->m_p_config, this->m_p_console);
+	this->m_p_factory->Initialize(this->m_p_config, this->m_p_console,
+		this->m_p_main_manager->Get_Input());
 }
 
 void zircon_manager_game::Destroy_Factory(void) noexcept
@@ -1148,6 +1156,50 @@ void zircon_manager_game::Initialize_Console(void) noexcept
 	this->m_p_console->Initialize(zircon_user_console_translation_callback);
 }
 
+void zircon_manager_game::initialize_input(void) noexcept
+{
+	KOTEK_ASSERT(this->m_p_main_manager, "must be initialized!");
+	KOTEK_ASSERT(this->m_p_main_manager->Get_Input(), "must be initialized!");
+
+	if (this->m_p_main_manager && this->m_p_main_manager->Get_Input())
+	{
+		// todo: implement serialization thing and you take that information
+		// from sys_info.json
+		this->m_p_main_manager->Get_Input()->Initialize(
+			kotek::core::eInputPlatformBackend::kPlatformBackend_GLFW3);
+	}
+
+	if (this->m_p_main_manager->Get_EngineConfig()
+			->IsContainsConsoleCommandLineArgument(
+				kotek::kConsoleCommandArg_Editor) == false)
+	{
+		kotek::core::ktkWindow* p_window = static_cast<kotek::core::ktkWindow*>(
+			this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow());
+
+		p_window->RegisterUserMainManager(this->m_p_main_manager);
+
+#ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
+		auto* p_handle_window = static_cast<GLFWwindow*>(p_window->GetHandle());
+		glfwSetWindowSizeCallback(p_handle_window, &WindowCallback_Resize);
+		glfwSetCursorPosCallback(p_handle_window, &WindowCallback_Mouse);
+		glfwSetScrollCallback(p_handle_window, &WindowCallback_Scroll);
+		glfwSetKeyCallback(p_handle_window, &WindowCallback_Key);
+		glfwSetCharCallback(p_handle_window, &WindowCallback_Char);
+		glfwSetMonitorCallback(&WindowCallback_Monitor);
+		glfwSetMouseButtonCallback(
+			p_handle_window, &WindowCallback_MouseButton);
+		glfwSetCursorEnterCallback(
+			p_handle_window, &WindowCallback_CursorEnter);
+		glfwSetWindowFocusCallback(
+			p_handle_window, &WindowCallback_WindowFocus);
+#elif defined(KOTEK_USE_WINDOW_LIBRARY_SDL)
+	#error not implemented
+#else
+	#error provide implementation
+#endif
+	}
+}
+
 void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 {
 	auto* p_window_manager = this->m_p_main_manager->Get_WindowManager();
@@ -1169,8 +1221,11 @@ void zircon_manager_game::RegisterConsole_Commands(void) noexcept
 		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
 				kConsoleCommand_App_AddTextToExistedWindowTitle));
 
+	kotek::core::ktkIInput* p_input_manager =
+		this->m_p_main_manager->Get_Input();
 	this->m_p_console->Register_Command(
-		[p_window_manager](kotek::ktk::enum_base_t input_type) -> bool
+		[p_window_manager, p_input_manager](
+			kotek::ktk::enum_base_t input_type) -> bool
 		{
 			if (p_window_manager->Get_ActiveWindow())
 			{

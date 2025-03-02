@@ -15,6 +15,12 @@ const Kotek::ktk::math::vec3f_t& zircon_component_transform::get_position(
 	return this->m_position;
 }
 
+kotek::ktk::math::vec3f_t& zircon_component_transform::get_position(
+	void) noexcept
+{
+	return this->m_position;
+}
+
 void zircon_component_transform::set_position(
 	const Kotek::ktk::math::vec3f_t& pos) noexcept
 {

@@ -22,6 +22,7 @@ public:
 	~zircon_component_transform(void);
 
 	const Kotek::ktk::math::vec3f_t& get_position(void) const noexcept;
+	kotek::ktk::math::vec3f_t& get_position(void) noexcept;
 	void set_position(const Kotek::ktk::math::vec3f_t& pos) noexcept;
 
 	const Kotek::ktk::math::vec3f_t& get_scale(void) const noexcept;

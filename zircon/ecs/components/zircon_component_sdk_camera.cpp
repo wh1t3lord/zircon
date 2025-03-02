@@ -1,6 +1,8 @@
 #include "zircon_component_sdk_camera.h"
 
-zircon_component_sdk_camera::zircon_component_sdk_camera() {}
+zircon_component_sdk_camera::zircon_component_sdk_camera() : m_is_initialized{}
+{
+}
 
 zircon_component_sdk_camera::~zircon_component_sdk_camera() {}
 
@@ -28,4 +30,14 @@ void zircon_component_sdk_camera::DrawImGui(
 	{
 		this->m_camera.DrawImGui(p_main_manager);
 	}
+}
+
+bool zircon_component_sdk_camera::is_initialized(void) const
+{
+	return m_is_initialized;
+}
+
+void zircon_component_sdk_camera::set_initialized(bool status)
+{
+	this->m_is_initialized = status;
 }

@@ -1,7 +1,7 @@
 #include "zircon_factory.h"
 #include "../../core/zircon_config.h"
 
-zircon_factory_game::zircon_factory_game(void) : m_p_config{}
+zircon_factory_game::zircon_factory_game(void) : m_p_config{}, m_p_input{}
 {
 	this->register_components();
 	this->register_components_restrictions();
@@ -11,15 +11,18 @@ zircon_factory_game::zircon_factory_game(void) : m_p_config{}
 zircon_factory_game::~zircon_factory_game(void) {}
 
 void zircon_factory_game::Initialize(
-	zircon_config* p_config, kotek::core::ktkConsole* p_console)
+	zircon_config* p_config, kotek::core::ktkConsole* p_console, kotek::core::ktkIInput* p_input)
 {
 	KOTEK_ASSERT(
 		p_config, "you can't pass an invalid instance of zircon_config!");
 	KOTEK_ASSERT(
 		p_console, "you can't pass an invalid instance of ktkConsole!");
+	KOTEK_ASSERT(p_input, "you can't pass an invalid instance of ktkIInput!");
+
 
 	this->m_p_config = p_config;
 	this->m_p_console = p_console;
+	this->m_p_input = p_input;
 }
 
 void zircon_factory_game::Shutdown(void) {}

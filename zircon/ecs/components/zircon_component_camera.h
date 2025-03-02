@@ -44,9 +44,6 @@ public:
 	const Kotek::ktk::math::vec3f_t& get_right(void) const noexcept;
 	void set_right(const Kotek::ktk::math::vec3f_t& data) noexcept;
 
-	float get_mouse_sensetivity(void) const noexcept;
-	void set_mouse_sensetivity(float value) noexcept;
-
 	const Kotek::ktk::math::mat4x4f_t& get_view(void) const noexcept;
 	void set_view(const Kotek::ktk::math::mat4x4f_t& matrix) noexcept;
 
@@ -61,7 +58,6 @@ private:
 	float m_fov;
 	float m_yaw;
 	float m_pitch;
-	float m_mouse_sensetivity;
 	Kotek::ktk::math::vec3f_t m_front;
 	Kotek::ktk::math::vec3f_t m_right;
 	Kotek::ktk::math::vec3f_t m_up;
@@ -82,7 +78,6 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	camera["m_fov"] = data.get_field_of_view();
 	camera["m_yaw"] = data.get_yaw();
 	camera["m_pitch"] = data.get_pitch();
-	camera["m_mouse_sensetivity"] = data.get_mouse_sensetivity();
 	camera["m_front"] = 
 		Kotek::ktk::json::value_from(data.get_front());
 	camera["m_up"] =
@@ -107,8 +102,6 @@ inline zircon_component_camera tag_invoke(
 	result.set_field_of_view(camera.at("m_fov").to_number<float>());
 	result.set_yaw(camera.at("m_yaw").to_number<float>());
 	result.set_pitch(camera.at("m_pitch").to_number<float>());
-	result.set_mouse_sensetivity(
-		camera.at("m_mouse_sensetivity").to_number<float>());
 	result.set_front(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
 		camera.at("m_front")));
 	result.set_up(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
