@@ -58,7 +58,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	geometry["m_vertex_count"] = data.GetVertexCount();
 	geometry["m_index_count"] = data.GetIndexCount();
 	geometry["m_path"] = data.GetPath();
-	zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(geometry, data);
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(geometry, data);
 
 	write_to = geometry;
 }

@@ -26,7 +26,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	Kotek::ktk::json::object frustum;
 
 	frustum[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
-	zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(frustum, data);
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(frustum, data);
 
 	write_to = frustum;
 }

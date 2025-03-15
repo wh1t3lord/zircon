@@ -36,7 +36,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	Kotek::ktk::json::object info;
 
 	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
-	zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
 
 	write_to = info;
 }

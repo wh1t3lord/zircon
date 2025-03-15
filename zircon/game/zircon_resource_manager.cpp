@@ -127,7 +127,7 @@ zircon_resource_manager::Load(
 						this->m_p_manager_render_resource->LoadGeometry(
 							static_cast<Kotek::ktk::enum_base_t>(
 								request.Get_ResourceType()),
-							request.Get_EntityID());
+							0);
 
 					this->m_p_manager_console->Execute_Command(
 						static_cast<Kotek::ktk::enum_base_t>(

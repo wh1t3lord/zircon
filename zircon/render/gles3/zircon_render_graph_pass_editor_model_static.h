@@ -34,6 +34,20 @@ public:
 	void OnRender(const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 			p_previous_pass) override;
 
+
+
+	void on_transform_component_created(entt::registry& registry, entt::entity id);
+	void on_transform_component_updated(entt::registry& registry, entt::entity id);
+
+	// when geometry exists and then we add animation component we should remove
+	// from this pass our "model"/instance and define as dynamic geometry
+	void on_animation_component_created(
+		entt::registry& registry, entt::entity id);
+	// when animation component removed from entity we should remove from
+	// dynamic geometry pass and add to this static geometry pass
+	void on_animation_component_removed(
+		entt::registry& registry, entt::entity id);
+
 private:
 	void update_sdk_camera();
 	void update_instances();

@@ -42,7 +42,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 
 	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	info["m_is_visible"] = data.GetVisible();
-	zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
 
 	write_to = info;
 }

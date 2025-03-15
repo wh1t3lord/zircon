@@ -59,21 +59,45 @@ void zircon_component_transform::DrawImGui(
 
 	if (p_wrapper_imgui)
 	{
-		if (p_wrapper_imgui->CollapsingHeader("Component Transform"))
+		if (p_wrapper_imgui->BeginTabBar("ZirconComponentTransform"))
 		{
-			p_wrapper_imgui->PushID(1);
-			p_wrapper_imgui->EditDragVec3f(
-				"position##Transform", &this->m_position);
-			p_wrapper_imgui->PopID();
+			if (p_wrapper_imgui->BeginTabItem(
+					"info##zircon_component_transform"))
+			{
+				p_wrapper_imgui->Text("position: %.3f %.3f %.3f",
+					this->m_position.x(), this->m_position.y(),
+					this->m_position.z());
+				p_wrapper_imgui->Text("scale: %.3f %.3f %.3f",
+					this->m_scale.x(), this->m_scale.y(), this->m_scale.z());
+				p_wrapper_imgui->Text("rotation: %.3f %.3f %.3f %.3f",
+					this->m_rotation.x(), this->m_rotation.y(),
+					this->m_rotation.z(), this->m_rotation.w());
 
-			p_wrapper_imgui->PushID(2);
-			p_wrapper_imgui->EditDragVec3f("scale##Transform", &this->m_scale);
-			p_wrapper_imgui->PopID();
+				p_wrapper_imgui->EndTabItem();
+			}
 
-			p_wrapper_imgui->PushID(3);
-			p_wrapper_imgui->EditDragQuatf(
-				"rotation##Transform", &this->m_rotation);
-			p_wrapper_imgui->PopID();
+			if (p_wrapper_imgui->BeginTabItem(
+					"edit##zircon_component_transform"))
+			{
+				p_wrapper_imgui->PushID(1);
+				p_wrapper_imgui->EditDragVec3f(
+					"position", &this->m_position);
+				p_wrapper_imgui->PopID();
+
+				p_wrapper_imgui->PushID(2);
+				p_wrapper_imgui->EditDragVec3f(
+					"scale", &this->m_scale);
+				p_wrapper_imgui->PopID();
+
+				p_wrapper_imgui->PushID(3);
+				p_wrapper_imgui->EditDragQuatf(
+					"rotation", &this->m_rotation);
+				p_wrapper_imgui->PopID();
+
+				p_wrapper_imgui->EndTabItem();
+			}
+
+			p_wrapper_imgui->EndTabBar();
 		}
 	}
 }

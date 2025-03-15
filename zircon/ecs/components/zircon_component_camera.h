@@ -82,7 +82,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 		Kotek::ktk::json::value_from(data.get_front());
 	camera["m_up"] =
 		Kotek::ktk::json::value_from(data.get_up());
-	zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(camera, data);
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(camera, data);
 
 	write_to = camera;
 }

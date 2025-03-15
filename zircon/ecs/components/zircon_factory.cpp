@@ -6,6 +6,7 @@ zircon_factory_game::zircon_factory_game(void) : m_p_config{}, m_p_input{}
 	this->register_components();
 	this->register_components_restrictions();
 	this->register_components_and_their_enums();
+	this->register_lookuptable_component_enum_and_id_type();
 }
 
 zircon_factory_game::~zircon_factory_game(void) {}
@@ -91,8 +92,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(entt::entity id,
 
 void zircon_factory_game::register_components()
 {
-	this->register_components_game();
-	this->register_components_sdk();
+	this->register_components_game_and_sdk();
 
 	for (const auto& [component_name, component_id] :
 		this->m_component_name_to_id)
@@ -113,53 +113,6 @@ void zircon_factory_game::register_components_restrictions()
 		this->m_component_creation_restriction_by_hash
 			[this->m_component_name_to_id.at(component_name)] = list_hashes;
 	}
-}
-
-void zircon_factory_game::register_components_game()
-{
-	this->m_component_name_to_id[zircon_component_actor::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_actor>::value();
-	this->m_component_name_to_id[zircon_component_camera::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_camera>::value();
-	this->m_component_name_to_id[zircon_component_geometry::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_geometry>::value();
-	this->m_component_name_to_id[zircon_component_input::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_input>::value();
-	this->m_component_name_to_id[zircon_component_transform::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_transform>::value();
-	this->m_component_name_to_id[zircon_component_visibility::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_visibility>::value();
-	this->m_component_name_to_id
-		[zircon_component_sdk_scene_name::GetComponentName().c_str()] =
-		entt::type_hash<zircon_component_sdk_scene_name>::value();
-	this->m_component_name_to_id[zircon_component_ui_camera::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_ui_camera>::value();
-	this->m_component_name_to_id[zircon_component_ui_surface::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_ui_surface>::value();
-	this->m_component_name_to_id[zircon_component_frustum::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_frustum>::value();
-	this->m_component_name_to_id
-		[zircon_component_bounding_sphere::GetComponentName().c_str()] =
-		entt::type_hash<zircon_component_bounding_sphere>::value();
-}
-
-void zircon_factory_game::register_components_sdk()
-{
-	this->m_component_name_to_id[zircon_component_sdk_camera::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_sdk_camera>::value();
-	this->m_component_name_to_id[zircon_component_sdk_input::GetComponentName()
-									 .c_str()] =
-		entt::type_hash<zircon_component_sdk_input>::value();
 }
 
 void zircon_factory_game::register_components_restrictions_game()
@@ -225,3 +178,6 @@ void zircon_factory_game::validate_components_restrictions()
 
 #include "zircon_factory_components_to_enums.cpp"
 #include "zircon_factory_create_component.cpp"
+#include "zircon_factory_register_lookuptable_component_enum_and_id_type.cpp"
+#include "zircon_factory_get_component_name_by_enum.cpp"
+#include "zircon_factory_register_components_game_and_sdk.cpp"

@@ -119,6 +119,29 @@ void zircon_render_graph_pass_editor_model_static_gles3::OnCreateResources(
 
 	this->m_p_factory = p_manager_game->get_factory_game();
 
+	if (this->m_p_factory)
+	{
+		this->m_p_factory->GetRegistry()
+			.on_construct<zircon_component_transform>()
+			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
+					on_transform_component_created>(this);
+
+		this->m_p_factory->GetRegistry()
+			.on_update<zircon_component_transform>()
+			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
+					on_transform_component_updated>(this);
+
+		this->m_p_factory->GetRegistry()
+			.on_construct<zircon_component_animation>()
+			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
+					on_animation_component_created>(this);
+
+		this->m_p_factory->GetRegistry()
+			.on_destroy<zircon_component_animation>()
+			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
+					on_animation_component_removed>(this);
+	}
+
 	if (this->m_p_manager_render_shader)
 	{
 		kotek::static_cstring_t<512> stack_buffer;
@@ -204,6 +227,64 @@ void zircon_render_graph_pass_editor_model_static_gles3::OnRender(
 	//	this->render_instances(info_buffer_instance, program);
 
 	this->render_instances();
+}
+
+void zircon_render_graph_pass_editor_model_static_gles3::
+	on_transform_component_created(entt::registry& registry, entt::entity id)
+{
+	KOTEK_ASSERT(registry.valid(id),
+		"something is really wrong if you got this assert, try to reproduce "
+		"and report to EnTT developers");
+
+	KOTEK_ASSERT(this->m_p_factory,
+		"happened early calling, change your code logic and assign transform "
+		"component after rendering initialization!");
+
+	if (this->m_p_factory)
+	{
+		// don't add instances that already have animation component they should
+		// have been added to dynamic geometry pass
+		if (this->m_p_factory->HasComponent<zircon_component_geometry>(id) &&
+			!this->m_p_factory->HasComponent<zircon_component_animation>(id))
+		{
+		}
+	}
+}
+
+void zircon_render_graph_pass_editor_model_static_gles3::
+	on_transform_component_updated(entt::registry& registry, entt::entity id)
+{
+}
+
+void zircon_render_graph_pass_editor_model_static_gles3::
+	on_animation_component_created(entt::registry& registry, entt::entity id)
+{
+	KOTEK_ASSERT(registry.valid(id), "something is wrong");
+	KOTEK_ASSERT(this->m_p_factory, "early calling");
+
+	if (this->m_p_factory)
+	{
+		if (this->m_p_factory->HasComponent<zircon_component_geometry>(id))
+		{
+			// todo: add implementation when animation component removed from
+			// entity and we need that entity add to static geometry pass (and
+			// remove from dynamic geometry pass)
+		}
+	}
+}
+
+void zircon_render_graph_pass_editor_model_static_gles3::
+	on_animation_component_removed(entt::registry& registry, entt::entity id)
+{
+	KOTEK_ASSERT(registry.valid(id), "something is wrong");
+	KOTEK_ASSERT(this->m_p_factory, "early calling?");
+
+	if (this->m_p_factory)
+	{
+		if (this->m_p_factory->HasComponent<zircon_component_geometry>(id))
+		{
+		}
+	}
 }
 
 void zircon_render_graph_pass_editor_model_static_gles3::update_sdk_camera()
@@ -333,6 +414,18 @@ void zircon_render_graph_pass_editor_model_static_gles3::render_instances()
 
 			glMultiDrawElementsIndirect(
 				GL_TRIANGLES, GL_UNSIGNED_INT, 0, commands_count, 0);
+			KOTEK_GL_ASSERT();
+
+			glBindVertexArray(0);
+			KOTEK_GL_ASSERT();
+
+			glBindBuffer(buffer_object_type, 0);
+			KOTEK_GL_ASSERT();
+
+			glBindBuffer(this->m_p_manager_render_geometry
+							 ->Get_Buffer_DrawIndirectCommands()
+							 ->Get_Target(),
+				0);
 			KOTEK_GL_ASSERT();
 		}
 	}

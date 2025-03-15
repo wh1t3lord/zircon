@@ -44,7 +44,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	sphere[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	sphere["m_radius"] = data.get_radius();
 	sphere["m_center"] = Kotek::ktk::json::value_from(data.get_center());
-	zircon_DEF_TAG_INVOKE_REG_COMPONENT_NAME(sphere, data);
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(sphere, data);
 
 	write_to = sphere;
 }

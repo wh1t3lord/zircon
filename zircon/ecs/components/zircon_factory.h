@@ -8,7 +8,7 @@
 #include "zircon_component_transform.h"
 #include "zircon_component_visibility.h"
 #include "zircon_component_frustum.h"
-
+#include "zircon_component_animation.h"
 #include "zircon_component_terrain.h"
 #include "zircon_component_terrain_impl_cbt.h"
 
@@ -86,7 +86,13 @@ public:
 	bool HasComponent(entt::entity id) noexcept
 	{
 		return this->m_registry.all_of<ComponentType>(
-			static_cast<entt::entity>(id));
+			id);
+	}
+
+	template<typename... ComponentTypes>
+	bool HasComponents(entt::entity id) noexcept
+	{
+		return this->m_registry.all_of<ComponentTypes...>(id);
 	}
 
 	bool HasRequiredComponentsForCreation(
@@ -241,6 +247,16 @@ public:
 
 							break;
 						}
+						case kComponentTypezircon_component_animation:
+						{
+							KOTEK_ASSERT(
+								this->HasComponent<zircon_component_geometry>(
+									id),
+								"must have this component otherwise you broke "
+							    "the order of adding components first geometry "
+							    "then animation");
+							break;
+						}
 						default:
 						{
 							break;
@@ -254,83 +270,7 @@ public:
 		}
 		else
 		{
-			auto hash_component_name =
-				kotek::ktk::hash<kotek::ktk::cstring_view>{}(component_name);
-
-			if (hash_component_name ==
-				zircon_component_actor::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_actor>(id);
-			}
-			else if (hash_component_name ==
-
-				zircon_component_camera::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_camera>(id);
-			}
-			else if (hash_component_name ==
-
-				zircon_component_geometry::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_geometry>(id);
-			}
-			else if (hash_component_name ==
-				zircon_component_input::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_input>(
-					id, this->m_p_input);
-			}
-			else if (hash_component_name ==
-
-				zircon_component_transform::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_transform>(id);
-			}
-			else if (hash_component_name ==
-
-				zircon_component_visibility::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_visibility>(id);
-			}
-			else if (hash_component_name ==
-
-				zircon_component_sdk_scene_name::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_sdk_scene_name>(id);
-			}
-			else if (hash_component_name ==
-				zircon_component_ui_camera::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_ui_camera>(id);
-			}
-			else if (hash_component_name ==
-				zircon_component_sdk_input::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_sdk_input>(
-					id, this->m_p_input);
-			}
-			else if (hash_component_name ==
-				zircon_component_sdk_camera::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_sdk_camera>(id);
-			}
-			else if (hash_component_name ==
-				zircon_component_frustum::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_frustum>(id);
-			}
-			else if (hash_component_name ==
-				zircon_component_bounding_sphere::GetComponentNameHash())
-			{
-				this->CreateComponent<zircon_component_bounding_sphere>(id);
-			}
-			else
-			{
-				KOTEK_ASSERT(false,
-					"can't be you forgot to update this if "
-					"statement (in case where you added a new "
-					"component)");
-			}
+#include "zircon_factory_create_component_by_name.cpp"
 		}
 
 		return this->GetComponentByName(id, component_name);
@@ -612,6 +552,22 @@ public:
 		zircon_component_type_t component_type_id,
 		kotek::ktk::json::value& serialized_component);
 
+	inline entt::id_type get_type_hash_by_enum(
+		zircon_component_type_t id) const noexcept
+	{
+		entt::id_type result = -1;
+
+		if (id >= zircon_component_type_t::kComponentTypeUnknown || id < 0)
+			return result;
+
+		result = this->m_lookuptable_id_types_by_component_enum[id];
+
+		return result;
+	}
+
+	const char* get_component_name_by_enum(
+		zircon_component_type_t component_type) const noexcept;
+
 private:
 	template <typename ComponentType>
 	Kotek::ktk::cstring GetComponentTypeName(void) const noexcept
@@ -625,19 +581,22 @@ private:
 
 	void register_components();
 	void register_components_restrictions();
-
-	void register_components_game();
-	void register_components_sdk();
+	
+	void register_components_game_and_sdk();
 
 	void register_components_restrictions_game();
 	void register_components_restrictions_sdk();
 
 	void register_components_and_their_enums();
 
+	void register_lookuptable_component_enum_and_id_type();
+
 	void validate_components_restrictions();
 
 private:
 	zircon_config* m_p_config;
+	entt::id_type m_lookuptable_id_types_by_component_enum
+		[zircon_component_type_t::kComponentTypeUnknown];
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkIInput* m_p_input;
 	kotek::unordered_map_t<kotek::static_cstring_view_t, entt::id_type>

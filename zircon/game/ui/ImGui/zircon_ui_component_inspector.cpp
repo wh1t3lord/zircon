@@ -4,9 +4,13 @@
 #include "../../zircon_scene_manager.h"
 #include "../../../core/zircon_sdk_ui.h"
 
+constexpr const char* _kSDKModalWindowFailedToAddComponent =
+	"Warning##ComponentInspectorFailedToAddComponent";
+
 zircon_sdk_ui_component_inspector::zircon_sdk_ui_component_inspector(
 	zircon_sdk_ui_interface* p_sdk_ui, zircon_factory_game* p_factory) :
-	m_is_show_window{}, m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
+	m_is_show_window{}, m_combobox_current_item_type{},
+	m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
 	m_p_combobox_current_item{}, m_p_list_selected_item_allocator{}
 {
 	KOTEK_ASSERT(
@@ -29,7 +33,6 @@ void zircon_sdk_ui_component_inspector::Draw(
 	if (!this->m_is_show_window)
 		return;
 
-
 	zircon_manager_game* p_game_manager =
 		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
@@ -43,8 +46,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 
 	if (p_wrapper_imgui)
 	{
-		if (p_wrapper_imgui->Begin(
-				"Component Inspector"))
+		if (p_wrapper_imgui->Begin("Component Inspector"))
 		{
 			if (p_wrapper_imgui->BeginCombo(
 					"Add Component", this->m_p_combobox_current_item))
@@ -66,6 +68,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 						{
 							this->m_p_combobox_current_item =
 								component_name.data();
+							this->m_combobox_current_item_type = id_type;
 						}
 					}
 				}
@@ -75,15 +78,98 @@ void zircon_sdk_ui_component_inspector::Draw(
 
 			if (selected_entity != entt::null)
 			{
-				auto real_entity_id = selected_entity;
 				if (p_wrapper_imgui->Button("Add component"))
 				{
-					p_game_manager->GetConsole()->Execute_Command(
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eConsoleCommandIndex::
-								kConsoleCommand_SDK_CreateComponentForEntity),
-						{{this->m_p_combobox_current_item},
-							{static_cast<kotek::uint32_t>(real_entity_id)}});
+					bool is_valid_for_adding = true;
+
+					if (this->m_combobox_current_item_type ==
+						this->m_p_factory->get_type_hash_by_enum(
+							zircon_component_type_t::
+								kComponentTypezircon_component_transform))
+					{
+						bool required_components =
+							!this->m_p_factory
+								 ->HasComponent<zircon_component_geometry>(
+									 selected_entity) &&
+							!this->m_p_factory
+								 ->HasComponent<zircon_component_camera>(
+									 selected_entity) &&
+							!this->m_p_factory
+								 ->HasComponent<zircon_component_sdk_camera>(
+									 selected_entity);
+
+						if (required_components)
+						{
+							p_wrapper_imgui->OpenPopup(
+								_kSDKModalWindowFailedToAddComponent);
+
+							is_valid_for_adding = false;
+						}
+					}
+
+					if (this->m_combobox_current_item_type ==
+						this->m_p_factory->get_type_hash_by_enum(
+							zircon_component_type_t::
+								kComponentTypezircon_component_sdk_camera))
+					{
+						const auto& view =
+							this->m_p_factory->GetRegistry()
+								.view<zircon_component_sdk_camera>();
+
+						if (!view.empty())
+						{
+							p_wrapper_imgui->OpenPopup(
+								_kSDKModalWindowFailedToAddComponent);
+
+							is_valid_for_adding = false;
+						}
+					}
+
+					if (this->m_combobox_current_item_type ==
+						this->m_p_factory->get_type_hash_by_enum(
+							zircon_component_type_t::
+								kComponentTypezircon_component_sdk_input))
+					{
+						const auto& view =
+							this->m_p_factory->GetRegistry()
+								.view<zircon_component_sdk_input>();
+
+						if (!view.empty())
+						{
+							p_wrapper_imgui->OpenPopup(
+								_kSDKModalWindowFailedToAddComponent);
+							is_valid_for_adding = false;
+						}
+					}
+
+					if (this->m_combobox_current_item_type ==
+						this->m_p_factory->get_type_hash_by_enum(
+							zircon_component_type_t::
+								kComponentTypezircon_component_animation))
+					{
+						bool required_components =
+							!this->m_p_factory
+								->HasComponent<zircon_component_geometry>(
+									selected_entity);
+
+						if (required_components)
+						{
+							p_wrapper_imgui->OpenPopup(
+								_kSDKModalWindowFailedToAddComponent);
+							is_valid_for_adding = false;
+						}
+					}
+
+					if (is_valid_for_adding)
+					{
+						p_game_manager->GetConsole()->Execute_Command(
+							static_cast<Kotek::ktk::enum_base_t>(
+								Kotek::Core::eConsoleCommandIndex::
+									kConsoleCommand_SDK_CreateComponentForEntity),
+							{{this->m_p_combobox_current_item},
+								{static_cast<kotek::uint32_t>(
+									selected_entity)}});
+					}
 				}
 
 				if (p_wrapper_imgui->Button("Delete component from list box"))
@@ -96,13 +182,13 @@ void zircon_sdk_ui_component_inspector::Draw(
 									kConsoleCommand_SDK_DeleteComponentFromEntity),
 							{{this->m_p_list_selected_item_allocator},
 								{static_cast<kotek::uint32_t>(
-									real_entity_id)}});
+									selected_entity)}});
 					}
 				}
 
 				p_wrapper_imgui->Text(Kotek::ktk::format("Selected entity: {}",
 					static_cast<kotek::uint32_t>(selected_entity))
-										  .c_str());
+						.c_str());
 
 				if (p_wrapper_imgui->BeginListBox("list"))
 				{
@@ -115,7 +201,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 								component_name);
 
 						is_presented = this->HasComponentByName(
-							component_name.data(), real_entity_id);
+							component_name.data(), selected_entity);
 
 						if (is_presented)
 						{
@@ -160,6 +246,8 @@ void zircon_sdk_ui_component_inspector::Draw(
 				"you didn't select any element on scene or from "
 				"object list");
 		}
+
+		this->update_modal_windows(p_wrapper_imgui);
 
 		if (p_wrapper_imgui)
 		{
@@ -324,5 +412,75 @@ void zircon_sdk_ui_component_inspector::RemoveComponentByName(
 			"your component by "
 			"name: {}",
 			component_name_from_preprocessor);
+	}
+}
+
+void zircon_sdk_ui_component_inspector::update_modal_windows(
+	kotek::core::ktkIImguiWrapper* p_wrapper_imgui)
+{
+	if (p_wrapper_imgui)
+	{
+		bool enable_cross = true;
+		if (p_wrapper_imgui->BeginPopupModal(
+				_kSDKModalWindowFailedToAddComponent, &enable_cross,
+				ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			auto
+				pReasonNoRequiredComponentsPresentedInEntityForAddingComponent =
+					[p_wrapper_imgui,
+						this]<zircon_component_type_t component_for_adding,
+						typename... Types>()
+			{
+				if (this->m_combobox_current_item_type ==
+					this->m_p_factory->get_type_hash_by_enum(
+						component_for_adding))
+				{
+					p_wrapper_imgui->Text(
+						"Failed to add component [%s] because you need to add some "
+					    "of these components:", this->m_p_factory->get_component_name_by_enum(component_for_adding));
+
+					// Print each component on a separate line
+					(p_wrapper_imgui->Text(
+						 "- [%s]", Types::GetComponentName().c_str()),
+						...);
+				}
+			};
+
+			auto pReasonNoMoreThanOne =
+				[p_wrapper_imgui, this]<typename ComponentType,
+					zircon_component_type_t component_id>()
+			{
+				if (this->m_combobox_current_item_type ==
+					this->m_p_factory->get_type_hash_by_enum(component_id))
+				{
+					p_wrapper_imgui->Text(
+						"You can't add more than one of [%s] on scene!",
+						ComponentType::GetComponentName().c_str());
+				}
+			};
+
+			pReasonNoRequiredComponentsPresentedInEntityForAddingComponent
+				.template
+				operator()<zircon_component_type_t::
+							   kComponentTypezircon_component_transform,
+					zircon_component_geometry, zircon_component_sdk_camera,
+					zircon_component_camera>();
+
+			pReasonNoRequiredComponentsPresentedInEntityForAddingComponent
+				.template
+				operator()<zircon_component_type_t::
+							   kComponentTypezircon_component_animation,
+					zircon_component_geometry>();
+
+			pReasonNoMoreThanOne
+				.template operator()<zircon_component_sdk_camera,
+					zircon_component_type_t::
+						kComponentTypezircon_component_sdk_camera>();
+			pReasonNoMoreThanOne.template operator()<zircon_component_sdk_input,
+				zircon_component_type_t::
+					kComponentTypezircon_component_sdk_input>();
+
+			p_wrapper_imgui->EndPopup();
+		}
 	}
 }

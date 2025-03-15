@@ -91,6 +91,12 @@ bool validate_extensions(const std::array<const char*, Size>& extension_names,
 	for (int i = 0; i < NumberOfExtensions; i++)
 	{
 		const GLubyte* extension_name = glGetStringi(GL_EXTENSIONS, i);
+
+#ifdef KOTEK_DEBUG
+		KOTEK_MESSAGE(
+			"extension: {}", reinterpret_cast<const char*>(extension_name));
+#endif
+
 		for (unsigned char j = 0; j < Size; j++)
 		{
 			if (strcmp((const char*)extension_name, extension_names[j]) == 0)

@@ -36,8 +36,11 @@ private:
 			component_name_from_preprocessor,
 		entt::entity id) noexcept;
 
+	void update_modal_windows(kotek::core::ktkIImguiWrapper* p_wrapper_imgui);
+
 private:
 	bool m_is_show_window;
+	entt::id_type m_combobox_current_item_type;
 	zircon_sdk_ui_interface* m_p_manager_sdk_ui;
 	zircon_factory_game* m_p_factory;
 	const char* m_p_combobox_current_item;
