@@ -37,5 +37,9 @@ user_data/
 zircon_ecs_auto_enum_components.h
 zircon_factory_components_to_enums.cpp
 zircon_factory_create_component.cpp
+zircon_factory_register_lookuptable_component_enum_and_id_type.cpp
+zircon_factory_register_components_game_and_sdk.cpp
+zircon_factory_create_component_by_name.cpp
+zircon_factory_get_component_name_by_enum.cpp
 
 imgui.ini
