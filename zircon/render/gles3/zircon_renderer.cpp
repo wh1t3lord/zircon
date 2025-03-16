@@ -151,12 +151,7 @@ void zircon_renderer_gles3::initialize_extensions(
 	kotek::core::ktkConsole* p_console)
 {
 	const char* extensions[] = {"GL_EXT_multi_draw_indirect",
-		"GL_EXT_draw_elements_base_vertex", "GL_EXT_base_instance"
-#ifdef KOTEK_DEF_RENDER_GL_ES_BINDLESS_TEXTURES_ENABLED
-
-#endif
-
-	};
+		"GL_EXT_draw_elements_base_vertex", "GL_EXT_base_instance"};
 
 	bool is_valid = validate_extensions(extensions, p_console);
 
