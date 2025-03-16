@@ -20,31 +20,53 @@ public:
 	zircon_component_geometry(void);
 	~zircon_component_geometry(void);
 
-	Kotek::ktk::size_t GetVertexCount(void) const noexcept;
-	void SetVertexCount(Kotek::ktk::size_t count) noexcept;
+	kotek::size_t get_vertex_count(void) const noexcept;
+	void set_vertex_count(Kotek::size_t count) noexcept;
 
-	Kotek::ktk::size_t GetIndexCount(void) const noexcept;
-	void SetIndexCount(Kotek::ktk::size_t count) noexcept;
+	kotek::size_t get_index_count(void) const noexcept;
+	void set_index_count(Kotek::size_t count) noexcept;
 
-	const Kotek::ktk::cstring& GetPath(void) const noexcept;
-	void SetPath(const Kotek::ktk::cstring& path) noexcept;
+	const char* get_path(void) const noexcept;
+	void set_path(const Kotek::ktk::cstring& path) noexcept;
 
 	bool is_visible(void) const noexcept;
 	void set_visible(bool status) noexcept;
+
+	kotek::size_t get_render_vertex_buffer_offset(void) const noexcept;
+	kotek::size_t get_render_index_buffer_offset(void) const noexcept;
+
+	void set_render_vertex_buffer_offset(kotek::size_t offset) noexcept;
+	void set_render_index_buffer_offset(kotek::size_t offset) noexcept;
+
+	// make things better just using universal approach and not using direct
+	// handles of any GAPI that's why it is uint8_t (not like uint32_t in GL or VK or DX)
+	kotek::uint8_t get_render_vertex_buffer_id(void) const noexcept;
+	kotek::uint8_t get_render_index_buffer_id(void) const noexcept;
 
 	void Clear(void) noexcept;
 	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
 
 	kotek::core::eStaticGeometryType get_geometry_type() const noexcept;
+	void set_geometry_type(kotek::core::eStaticGeometryType type) noexcept;
 
 private:
 	bool m_is_use_model;
 	bool m_is_visible;
-	Kotek::Core::eStaticGeometryType m_geometry_type;
-	Kotek::ktk::size_t m_vertex_count;
-	Kotek::ktk::size_t m_index_count;
+	kotek::uint8_t m_render_internal_vertex_buffer_id;
+	kotek::uint8_t m_render_internal_index_buffer_id;
+
+	kotek::core::eStaticGeometryType m_geometry_type;
+	const char* m_p_geometry_name;
+	kotek::size_t m_render_internal_vertex_buffer_offset;
+	kotek::size_t m_render_internal_index_buffer_offset;
+
+	// making for release much much tight for memory
+	// release means without editor
+#ifdef KOTEK_USE_SDK_IMGUI
+	kotek::size_t m_vertex_count;
+	kotek::size_t m_index_count;
 	Kotek::ktk::cstring m_path;
-	Kotek::ktk::cstring m_geometry_name;
+#endif
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
@@ -55,9 +77,15 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 
 	geometry[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	geometry["m_is_visible"] = data.is_visible();
-	geometry["m_vertex_count"] = data.GetVertexCount();
-	geometry["m_index_count"] = data.GetIndexCount();
-	geometry["m_path"] = data.GetPath();
+	geometry["m_geometry_type"] =
+		static_cast<kotek::enum_base_t>(data.get_geometry_type());
+
+	#ifdef KOTEK_USE_SDK_IMGUI
+	geometry["m_vertex_count"] = data.get_vertex_count();
+	geometry["m_index_count"] = data.get_index_count();
+	geometry["m_path"] = data.get_path();
+	#endif
+
 	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(geometry, data);
 
 	write_to = geometry;
@@ -71,13 +99,19 @@ inline zircon_component_geometry tag_invoke(
 
 	zircon_component_geometry result;
 
-	result.SetEnabled(geometry.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.SetEnabled(
+		geometry.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 	result.set_visible(geometry.at("m_is_visible").as_bool());
-	result.SetVertexCount(
+	result.set_geometry_type(static_cast<kotek::core::eStaticGeometryType>(
+		geometry.at("m_geometry_type").to_number<kotek::enum_base_t>()));
+
+	#ifdef KOTEK_USE_SDK_IMGUI
+	result.set_vertex_count(
 		geometry.at("m_vertex_count").to_number<Kotek::ktk::size_t>());
-	result.SetIndexCount(
+	result.set_index_count(
 		geometry.at("m_index_count").to_number<Kotek::ktk::size_t>());
-	result.SetPath(geometry.at("m_path").as_string().c_str());
+	result.set_path(geometry.at("m_path").as_string().c_str());
+	#endif
 
 	return result;
 }

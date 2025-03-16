@@ -79,7 +79,7 @@ zircon_renderer_gles3::Get_UIImGuiElements() const
 }
 
 template <unsigned char Size>
-bool validate_extensions(const std::array<const char*, Size>& extension_names,
+bool validate_extensions(const const char* (&extension_names)[Size],
 	kotek::core::ktkConsole* p_console)
 {
 	KOTEK_ASSERT(p_console, "must be valid!");
@@ -150,8 +150,13 @@ bool validate_extensions(const std::array<const char*, Size>& extension_names,
 void zircon_renderer_gles3::initialize_extensions(
 	kotek::core::ktkConsole* p_console)
 {
-	std::array<const char*, 3> extensions = {"GL_EXT_multi_draw_indirect",
-		"GL_EXT_draw_elements_base_vertex", "GL_EXT_base_instance"};
+	const char* extensions[] = {"GL_EXT_multi_draw_indirect",
+		"GL_EXT_draw_elements_base_vertex", "GL_EXT_base_instance"
+#ifdef KOTEK_DEF_RENDER_GL_ES_BINDLESS_TEXTURES_ENABLED
+
+#endif
+
+	};
 
 	bool is_valid = validate_extensions(extensions, p_console);
 
