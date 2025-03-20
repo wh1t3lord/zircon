@@ -139,7 +139,10 @@ void zircon_component_geometry::DrawImGui(
 												kConsoleCommand_ResourceManager_Load),
 										{kotek::core::ktkLoadingRequest(
 											kotek::core::
-												eResourceLoadingPolicy::kAsync,
+												eResourceThreadingPolicy::
+													kAsync,
+											kotek::core::
+												eResourceLoadingPolicy::kStream,
 											kotek::core::
 												eResourceCachingPolicy::
 													kWithoutCache,

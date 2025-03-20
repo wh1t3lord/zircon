@@ -111,8 +111,8 @@ zircon_resource_manager::Load(
 {
 	kotek::shared_ptr_t<kotek::core::ktkResourceHandle> result{};
 
-	if (request.Get_LoadingPolicy() ==
-		Kotek::Core::eResourceLoadingPolicy::kAsync)
+	if (request.Get_ThreadingPolicy() ==
+		Kotek::Core::eResourceThreadingPolicy::kAsync)
 	{
 		switch (request.Get_ResourceType())
 		{
@@ -155,8 +155,8 @@ zircon_resource_manager::Load(
 		}
 		}
 	}
-	else if (request.Get_LoadingPolicy() ==
-		Kotek::Core::eResourceLoadingPolicy::kSync)
+	else if (request.Get_ThreadingPolicy() ==
+		Kotek::Core::eResourceThreadingPolicy::kSync)
 	{
 		if (request.Get_CachingPolicy() ==
 			Kotek::Core::eResourceCachingPolicy::kWithoutCache)
@@ -502,5 +502,3 @@ void zircon_resource_manager::Close_Loader(
 		this->m_p_manager_resource_loader->Close(resource_id);
 	}
 }
-
- 
