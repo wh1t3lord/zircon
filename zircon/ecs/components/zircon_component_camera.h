@@ -67,10 +67,16 @@ private:
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
 inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to,
-	const zircon_component_camera& data)
+	Kotek::ktk::json::value& write_to, const zircon_component_camera& data)
 {
-	Kotek::ktk::json::object camera;
+	#ifdef KOTEK_DEBUG
+	unsigned char p_storage_memory[2048];
+	#else
+	KOTEK_ASSERT(false, "defined buffer for release");
+	#endif
+
+	kotek::ktk::json::static_resource storage(p_storage_memory);
+	Kotek::ktk::json::object camera(&storage);
 
 	camera[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 	camera["m_plane_near"] = data.get_plane_near();
@@ -78,25 +84,25 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	camera["m_fov"] = data.get_field_of_view();
 	camera["m_yaw"] = data.get_yaw();
 	camera["m_pitch"] = data.get_pitch();
-	camera["m_front"] = 
-		Kotek::ktk::json::value_from(data.get_front());
-	camera["m_up"] =
-		Kotek::ktk::json::value_from(data.get_up());
+	camera["m_front"] = Kotek::ktk::json::value_from(data.get_front());
+	camera["m_up"] = Kotek::ktk::json::value_from(data.get_up());
+	#ifdef KOTEK_DEBUG
 	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(camera, data);
+	#endif
 
 	write_to = camera;
 }
 
 inline zircon_component_camera tag_invoke(
-	const Kotek::ktk::json::value_to_tag<
-		zircon_component_camera>&,
+	const Kotek::ktk::json::value_to_tag<zircon_component_camera>&,
 	const Kotek::ktk::json::value& read_from)
 {
 	auto camera = read_from.as_object();
 
 	zircon_component_camera result;
 
-	result.SetEnabled(camera.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.SetEnabled(
+		camera.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 	result.set_plane_far(camera.at("m_plane_far").to_number<float>());
 	result.set_plane_near(camera.at("m_plane_near").to_number<float>());
 	result.set_field_of_view(camera.at("m_fov").to_number<float>());

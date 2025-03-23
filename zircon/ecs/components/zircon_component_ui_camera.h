@@ -13,43 +13,53 @@ public:
 
 	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
 
-
-	const Kotek::ktk::cstring& get_current_page(void) const noexcept;
-	void set_current_page(const Kotek::ktk::cstring& page_name) noexcept;
+	const kotek::cstring_t& get_current_page(void) const noexcept;
+	void set_current_page(const kotek::cstring_t& page_name) noexcept;
 	void clear_current_page(void) noexcept;
 
-	const Kotek::ktk::unordered_set<Kotek::ktk::cstring>& get_predefined_pages(void) const noexcept;
-	void add_page(const Kotek::ktk::cstring& page_name) noexcept;
+	const kotek::unordered_set_t<kotek::cstring_t>& get_predefined_pages(
+		void) const noexcept;
+	void add_page(const kotek::cstring_t& page_name) noexcept;
 	void clear_predefined_pages(void) noexcept;
-	
+
 	void clear_all(void) noexcept;
 
 private:
-	Kotek::ktk::cstring m_current_page;
-	Kotek::ktk::unordered_set<Kotek::ktk::cstring> m_predefined_pages;
+	kotek::cstring_t m_current_page;
+	kotek::unordered_set_t<kotek::cstring_t> m_predefined_pages;
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_ui_camera& data)
+inline void tag_invoke(const kotek::json::value_from_tag&,
+	kotek::json::value& write_to, const zircon_component_ui_camera& data)
 {
-	Kotek::ktk::json::object info;
+	#ifdef KOTEK_DEBUG
+	unsigned char p_storage_memory[1024];
+	#else
+	KOTEK_ASSERT(false, "provide optimized buffer for release");
+	#endif
+	kotek::json::static_resource storage(p_storage_memory);
+	kotek::json::object ui_camera(&storage);
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
+	ui_camera[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 
-	write_to = info;
+	#ifdef KOTEK_DEBUG
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(ui_camera, data);
+	#endif
+
+	write_to = ui_camera;
 }
 
 inline zircon_component_ui_camera tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_ui_camera>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::json::value_to_tag<zircon_component_ui_camera>&,
+	const kotek::json::value& read_from)
 {
 	auto data = read_from.as_object();
 
 	zircon_component_ui_camera result;
 
-	result.SetEnabled(data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.SetEnabled(
+		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	return result;
 }

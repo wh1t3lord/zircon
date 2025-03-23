@@ -865,8 +865,6 @@ entt::entity zircon_manager_game::Initialize_Actor(void) noexcept
 
 	this->m_p_factory->CreateComponent<zircon_component_camera>(actor_id);
 
-	this->m_p_factory->CreateComponent<zircon_component_visibility>(actor_id);
-
 	this->m_p_factory->CreateComponent<zircon_component_transform>(actor_id);
 
 	return actor_id;

@@ -119,13 +119,15 @@ kotek::enum_base_t zircon_command_delete_entity::GetCommandType() noexcept
 }
 
 kotek::size_t zircon_command_delete_entity::Serialize(
-	kotek::uint32_t resource_handle_id,
+	kotek::cfstream_t* p_file,
 	kotek::core::ktkIResourceManager* p_resource_manager) noexcept
 {
-	KOTEK_ASSERT(resource_handle_id != kotek::size_t(-1),
+	KOTEK_ASSERT(p_file,
 		"you must pass a valid resource manager handle!");
 	KOTEK_ASSERT(p_resource_manager,
 		"you must pass a valid resource manager interface!");
+
+	kotek::cfstream_t& file = *p_file;
 
 	kotek::ktk::json::static_resource storage(this->m_p_placement_new_memory);
 	kotek::ktk::json::value out(&storage);
@@ -186,15 +188,18 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
 			' ';
 
-		p_resource_manager->Write(
-			resource_handle_id, offset_string, sizeof(offset_string));
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kNewLine);
-
-		p_resource_manager->Write(
-			resource_handle_id, this->m_p_serialized_json_as_string);
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kNewLine);
+		//p_resource_manager->Write(
+		//	resource_handle_id, offset_string, sizeof(offset_string));
+		file.write(offset_string, sizeof(offset_string));
+		//p_resource_manager->Write(resource_handle_id,
+		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
+		file << std::endl;
+	//	p_resource_manager->Write(
+	//		resource_handle_id, this->m_p_serialized_json_as_string);
+		file << this->m_p_serialized_json_as_string;
+		//p_resource_manager->Write(resource_handle_id,
+		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
+		file << std::endl;
 
 		null_symbol_index = kotek::ktk::sprintf(
 			offset_string, sizeof(offset_string), "%zu", offset + 2);
@@ -212,10 +217,12 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 			zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
 
 		// storage + endl
-		p_resource_manager->Write(
-			resource_handle_id, offset_string, sizeof(offset_string));
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kFlush);
+		//p_resource_manager->Write(
+		//	resource_handle_id, offset_string, sizeof(offset_string));
+		file.write(offset_string, sizeof(offset_string));
+	//	p_resource_manager->Write(resource_handle_id,
+	//		kotek::core::eFileWritingControlCharacterType::kFlush);
+		file.flush();
 	}
 
 	return offset;

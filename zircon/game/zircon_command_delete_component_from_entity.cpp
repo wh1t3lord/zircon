@@ -103,10 +103,10 @@ zircon_command_delete_component_from_entity::GetCommandType() noexcept
 }
 
 kotek::size_t zircon_command_delete_component_from_entity::Serialize(
-	kotek::uint32_t resource_handle_id,
+	kotek::cfstream_t* p_file,
 	kotek::core::ktkIResourceManager* p_resource_manager) noexcept
 {
-	KOTEK_ASSERT(resource_handle_id != kotek::size_t(-1),
+	KOTEK_ASSERT(p_file,
 		"you must pass a valid resource handl");
 	KOTEK_ASSERT(p_resource_manager, "must be valid!");
 
@@ -115,6 +115,8 @@ kotek::size_t zircon_command_delete_component_from_entity::Serialize(
 		"this must be initialized because it is issued as command from "
 		"console");
 	KOTEK_ASSERT(strlen(this->m_p_component_name), "must be not empty!");
+
+	kotek::cfstream_t& file = *p_file;
 
 	auto& object = this->m_serialized_state_of_deleted_component.get_object();
 
@@ -176,16 +178,18 @@ kotek::size_t zircon_command_delete_component_from_entity::Serialize(
 		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
 			' ';
 
-		p_resource_manager->Write(
-			resource_handle_id, offset_string, sizeof(offset_string));
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kNewLine);
-
-		p_resource_manager->Write(
-			resource_handle_id, this->m_serialized_component_as_string);
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kNewLine);
-
+	//	p_resource_manager->Write(
+	//		resource_handle_id, offset_string, sizeof(offset_string));
+		file.write(offset_string, sizeof(offset_string));
+	//	p_resource_manager->Write(resource_handle_id,
+	//		kotek::core::eFileWritingControlCharacterType::kNewLine);
+		file.flush();
+	//	p_resource_manager->Write(
+	//		resource_handle_id, this->m_serialized_component_as_string);
+		file << this->m_serialized_component_as_string;
+	//	p_resource_manager->Write(resource_handle_id,
+		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
+		file << std::endl;
 		null_symbol_index = kotek::ktk::sprintf(
 			offset_string, sizeof(offset_string), "%zu", offset + 2);
 
@@ -199,10 +203,12 @@ kotek::size_t zircon_command_delete_component_from_entity::Serialize(
 		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
 			zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
 
-		p_resource_manager->Write(
-			resource_handle_id, offset_string, sizeof(offset_string));
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kFlush);
+	//	p_resource_manager->Write(
+	//		resource_handle_id, offset_string, sizeof(offset_string));
+		file.write(offset_string, sizeof(offset_string));
+	//	p_resource_manager->Write(resource_handle_id,
+	//		kotek::core::eFileWritingControlCharacterType::kFlush);
+		file.flush();
 	}
 
 	return offset;

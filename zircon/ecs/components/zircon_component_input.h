@@ -31,12 +31,13 @@ public:
 
 	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
 
-	void set_input_type(Kotek::ktk::enum_base_t type) noexcept;
-	Kotek::ktk::enum_base_t get_input_type(void) const noexcept;
+	void set_input_type(kotek::enum_base_t type) noexcept;
+	kotek::enum_base_t get_input_type(void) const noexcept;
 
-	Kotek::ktk::enum_base_t get_input_type_previous(void) const noexcept;
+	kotek::enum_base_t get_input_type_previous(void) const noexcept;
 
-	bool is_key_holding(kotek::core::eInputAllKeys key, unsigned char frames=16) const;
+	bool is_key_holding(
+		kotek::core::eInputAllKeys key, unsigned char frames = 16) const;
 	bool is_key_pressed(kotek::core::eInputAllKeys key) const;
 	bool is_key_released(kotek::core::eInputAllKeys key) const;
 
@@ -45,7 +46,7 @@ public:
 
 	float get_delta_x(kotek::core::eInputControllerType type) const;
 	float get_delta_y(kotek::core::eInputControllerType type) const;
-	
+
 	bool is_invert_mouse_axis_x(void) const;
 	bool is_invert_mouse_axis_y(void) const;
 
@@ -60,25 +61,42 @@ private:
 	bool m_is_invert_mouse_axis_x;
 	bool m_is_invert_mouse_axis_y;
 	float m_sensetivity;
-	Kotek::ktk::enum_base_t m_input_type;
-	Kotek::ktk::enum_base_t m_input_type_previous;
+	kotek::enum_base_t m_input_type;
+	kotek::enum_base_t m_input_type_previous;
 	const kotek::core::ktkIInput* m_p_input_manager;
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_input& data)
+inline void tag_invoke(const kotek::json::value_from_tag&,
+	kotek::json::value& write_to, const zircon_component_input& data)
 {
-	KOTEK_ASSERT(false, "not implemented, continue");
+	#ifdef KOTEK_DEBUG
+	unsigned char p_storage_memory[1024];
+	#else
+	KOTEK_ASSERT(false, "provide optimized buffer for release");
+	#endif
+	kotek::json::static_resource storage(p_storage_memory);
+	kotek::json::object input(&storage);
+
+	input[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+
+	#ifdef KOTEK_DEBUG
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(input, data);
+	#endif
+
+	write_to = input;
 }
 
 inline zircon_component_input tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_input>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::json::value_to_tag<zircon_component_input>&,
+	const kotek::json::value& read_from)
 {
-	KOTEK_ASSERT(false, "not implemented, continue");
+	auto input = read_from.as_object();
 
 	zircon_component_input result;
+
+	result.SetEnabled(
+		input.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	return result;
 }

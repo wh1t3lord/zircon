@@ -27,14 +27,7 @@ private:
 		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
 			component_name_from_preprocessor,
 		entt::entity id) noexcept;
-	void CreateComponentByName(
-		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
-			component_name_from_preprocessor,
-		entt::entity id) noexcept;
-	void RemoveComponentByName(
-		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
-			component_name_from_preprocessor,
-		entt::entity id) noexcept;
+ 
 
 	void update_modal_windows(kotek::core::ktkIImguiWrapper* p_wrapper_imgui);
 

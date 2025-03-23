@@ -65,8 +65,8 @@ private:
 	ktk_filesystem_path get_full_path_of_file(
 		const char* filename_with_extension);
 
-	void reopen_current_file(kotek::uint32_t file_id);
-	void reopen_exchange_file(kotek::uint32_t file_id);
+	kotek::cfstream_t* reopen_current_file(kotek::cfstream_t* p_file);
+	kotek::cfstream_t* reopen_exchange_file(kotek::cfstream_t* p_file);
 
 	void clear_content_when_action_issued();
 	kotek::size_t get_offset_of_current_index_in_file();
@@ -90,8 +90,10 @@ private:
 	bool m_is_changed;
 	bool m_is_first_serialize_happened;
 	bool m_is_action_issued;
-	kotek::uint32_t m_file_resource_handle_id;
-	kotek::uint32_t m_file_exchange_resource_handle_id;
+
+	kotek::cfstream_t* m_p_file_temp;
+	kotek::cfstream_t* m_p_file_exchange;
+
 	Kotek::Core::ktkIFileSystem* m_p_filesystem;
 	Kotek::Core::ktkIResourceManager* m_p_resource_manager;
 	zircon_scene_manager* m_p_scene_manager;

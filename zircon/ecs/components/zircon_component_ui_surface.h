@@ -20,26 +20,37 @@ private:
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
 
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_ui_surface& data)
+inline void tag_invoke(const kotek::json::value_from_tag&,
+	kotek::json::value& write_to, const zircon_component_ui_surface& data)
 {
-	Kotek::ktk::json::object info;
+	#ifdef KOTEK_DEBUG
+	unsigned char p_storage_memory[1024];
+	#else
+	KOTEK_ASSERT(false, "");
+	#endif
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
+	kotek::json::static_resource storage(p_storage_memory);
+	kotek::json::object ui_surface(&storage);
 
-	write_to = info;
+	ui_surface[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+
+	#ifdef KOTEK_DEBUG
+	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(ui_surface, data);
+	#endif
+
+	write_to = ui_surface;
 }
 
 inline zircon_component_ui_surface tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_ui_surface>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::json::value_to_tag<zircon_component_ui_surface>&,
+	const kotek::json::value& read_from)
 {
 	auto data = read_from.as_object();
 
 	zircon_component_ui_surface result;
 
-	result.SetEnabled(data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.SetEnabled(
+		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	return result;
 }

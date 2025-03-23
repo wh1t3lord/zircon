@@ -24,19 +24,25 @@ public:
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_animation& data)
+inline void tag_invoke(const kotek::json::value_from_tag&,
+	kotek::json::value& write_to, const zircon_component_animation& data)
 {
-	Kotek::ktk::json::object info;
+	#ifdef KOTEK_DEBUG
+	unsigned char p_storage_memory[1024];
+	#else
+	KOTEK_ASSERT(false, "provide optimized buffer for release");
+	#endif
+	kotek::json::static_resource storage(p_storage_memory);
+	kotek::json::object animation(&storage);
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	animation[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
 
-	write_to = info;
+	write_to = animation;
 }
 
 inline zircon_component_animation tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_animation>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::json::value_to_tag<zircon_component_animation>&,
+	const kotek::json::value& read_from)
 {
 	auto data = read_from.as_object();
 

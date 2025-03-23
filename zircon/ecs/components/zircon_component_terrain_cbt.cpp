@@ -1,10 +1,10 @@
-#include "zircon_component_terrain_impl_cbt.h"
+#include "zircon_component_terrain_cbt.h"
 
-zircon_component_terrain_impl_cbt::zircon_component_terrain_impl_cbt() {}
+zircon_component_terrain_cbt::zircon_component_terrain_cbt() {}
 
-zircon_component_terrain_impl_cbt::~zircon_component_terrain_impl_cbt() {}
+zircon_component_terrain_cbt::~zircon_component_terrain_cbt() {}
 
-void zircon_component_terrain_impl_cbt::DrawImGui(
+void zircon_component_terrain_cbt::DrawImGui(
 	Kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
 	if (p_main_manager)

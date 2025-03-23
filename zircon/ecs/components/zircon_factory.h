@@ -6,11 +6,11 @@
 #include "zircon_component_input.h"
 #include "zircon_component_model.h"
 #include "zircon_component_transform.h"
-#include "zircon_component_visibility.h"
 #include "zircon_component_frustum.h"
 #include "zircon_component_animation.h"
-#include "zircon_component_terrain.h"
-#include "zircon_component_terrain_impl_cbt.h"
+#include "zircon_component_terrain_cbt.h"
+#include "zircon_component_terrain_gcm.h"
+#include "zircon_component_terrain_static.h"
 
 // render
 #include "zircon_component_bounding_sphere.h"
@@ -59,7 +59,8 @@ public:
 			static_cast<entt::entity>(id));
 	}
 
-	void* GetComponentByName(entt::entity id, const kotek::static_cstring_view_t& component_name) noexcept
+	void* GetComponentByName(entt::entity id,
+		const kotek::static_cstring_view_t& component_name) noexcept
 	{
 		KOTEK_ASSERT(component_name.empty() == false,
 			"you can't pass an empty string here");
@@ -85,11 +86,10 @@ public:
 	template <typename ComponentType>
 	bool HasComponent(entt::entity id) noexcept
 	{
-		return this->m_registry.all_of<ComponentType>(
-			id);
+		return this->m_registry.all_of<ComponentType>(id);
 	}
 
-	template<typename... ComponentTypes>
+	template <typename... ComponentTypes>
 	bool HasComponents(entt::entity id) noexcept
 	{
 		return this->m_registry.all_of<ComponentTypes...>(id);
@@ -98,7 +98,8 @@ public:
 	bool HasRequiredComponentsForCreation(
 		entt::entity id, entt::id_type component_hash_id) noexcept;
 
-	bool HasRequiredComponentsForCreation(entt::entity id, const kotek::static_cstring_view_t& component_name) noexcept;
+	bool HasRequiredComponentsForCreation(entt::entity id,
+		const kotek::static_cstring_view_t& component_name) noexcept;
 
 	bool HasComponent(entt::entity id, entt::id_type hashed_type) noexcept
 	{
@@ -133,7 +134,8 @@ public:
 	/// @param component_name_from_preprocessor
 	/// @return
 	bool HasComponent(entt::entity id,
-		const kotek::static_cstring_view_t& component_name_from_preprocessor) noexcept
+		const kotek::static_cstring_view_t&
+			component_name_from_preprocessor) noexcept
 	{
 		KOTEK_ASSERT(component_name_from_preprocessor.empty() == false,
 			"you can't pass an empty component name, because if "
@@ -215,7 +217,11 @@ public:
 				auto p_result =
 					p_existed_storage->value(static_cast<entt::entity>(id));
 
-				KOTEK_ASSERT(p_result, "must be valid pointer otherwise operation for push for storage of component[{}] failed and it returned a nullptr!", component_name);
+				KOTEK_ASSERT(p_result,
+					"must be valid pointer otherwise operation for push for "
+				    "storage of component[{}] failed and it returned a "
+				    "nullptr!",
+					component_name);
 
 				if (p_result)
 				{
@@ -253,8 +259,8 @@ public:
 								this->HasComponent<zircon_component_geometry>(
 									id),
 								"must have this component otherwise you broke "
-							    "the order of adding components first geometry "
-							    "then animation");
+								"the order of adding components first geometry "
+								"then animation");
 							break;
 						}
 						default:
@@ -334,7 +340,8 @@ public:
 		}
 	}
 
-	void RemoveComponentByName(entt::entity id, const kotek::static_cstring_view_t& component_name) noexcept
+	void RemoveComponentByName(entt::entity id,
+		const kotek::static_cstring_view_t& component_name) noexcept
 	{
 		KOTEK_ASSERT(component_name.empty() == false,
 			"you can't pass an empty string here");
@@ -432,8 +439,7 @@ public:
 		kotek::pair_t<kotek::static_cstring_view_t, Kotek::ktk::json::value>>
 	GetAllComponentsOfEntity(entt::entity entity_id) noexcept
 	{
-		kotek::vector_t<
-			kotek::pair_t<kotek::static_cstring_view_t,
+		kotek::vector_t<kotek::pair_t<kotek::static_cstring_view_t,
 			Kotek::ktk::json::value>>
 			result;
 
@@ -581,7 +587,7 @@ private:
 
 	void register_components();
 	void register_components_restrictions();
-	
+
 	void register_components_game_and_sdk();
 
 	void register_components_restrictions_game();

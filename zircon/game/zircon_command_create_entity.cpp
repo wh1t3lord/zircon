@@ -69,10 +69,10 @@ Kotek::ktk::enum_base_t zircon_command_create_entity::GetCommandType() noexcept
 }
 
 Kotek::ktk::size_t zircon_command_create_entity::Serialize(
-	Kotek::ktk::uint32_t resource_handle_id,
+	kotek::cfstream_t* p_file,
 	Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept
 {
-	KOTEK_ASSERT(resource_handle_id != Kotek::ktk::size_t(-1),
+	KOTEK_ASSERT(p_file,
 		"you must pass a valid resource manager pointer!");
 	KOTEK_ASSERT(p_resource_manager,
 		"you must pass a valid resource manager interface!");
@@ -82,6 +82,8 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 #else
 	unsigned char stack_memory[128];
 #endif
+
+	kotek::cfstream_t& file = *p_file;
 
 	Kotek::ktk::json::static_resource storage(stack_memory);
 	Kotek::ktk::json::value out(&storage);
@@ -131,15 +133,21 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
 			' ';
 
-		p_resource_manager->Write(
-			resource_handle_id, offset_string, sizeof(offset_string));
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kNewLine);
+	//	p_resource_manager->Write(
+	//		resource_handle_id, offset_string, sizeof(offset_string));
+		file.write(offset_string, sizeof(offset_string));
 
-		p_resource_manager->Write(
-			resource_handle_id, this->m_serialize_json_string_storage);
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kNewLine);
+
+		//p_resource_manager->Write(resource_handle_id,
+		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
+		file << std::endl;
+
+		//p_resource_manager->Write(
+		//	resource_handle_id, this->m_serialize_json_string_storage);
+		file << this->m_serialize_json_string_storage;
+		//p_resource_manager->Write(resource_handle_id,
+		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
+		file << std::endl;
 
 		null_symbol_index = kotek::ktk::sprintf(offset_string, sizeof(offset_string), "%zu", offset + 2);
 
@@ -155,10 +163,12 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 			zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
 
 		// storage + endl
-		p_resource_manager->Write(
-			resource_handle_id, offset_string, sizeof(offset_string));
-		p_resource_manager->Write(resource_handle_id,
-			kotek::core::eFileWritingControlCharacterType::kFlush);
+		//p_resource_manager->Write(
+		//	resource_handle_id, offset_string, sizeof(offset_string));
+		file.write(offset_string, sizeof(offset_string));
+		//p_resource_manager->Write(resource_handle_id,
+		//	kotek::core::eFileWritingControlCharacterType::kFlush);
+		file.flush();
 	}
 
 	return offset;

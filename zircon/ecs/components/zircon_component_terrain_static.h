@@ -7,13 +7,13 @@
 #include "zircon_component_interface.h"
 
 // this component defines the fact that entity is about terrain
-class zircon_component_terrain : public zircon_component_interface
+class zircon_component_terrain_static : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_terrain)
+	KOTEK_COMPONENT(zircon_component_terrain_static)
 
 public:
-	zircon_component_terrain();
-	~zircon_component_terrain();
+	zircon_component_terrain_static();
+	~zircon_component_terrain_static();
 
 	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
 
@@ -22,7 +22,8 @@ private:
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
 inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_terrain& data)
+	Kotek::ktk::json::value& write_to,
+	const zircon_component_terrain_static& data)
 {
 	Kotek::ktk::json::object info;
 
@@ -32,13 +33,13 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	write_to = info;
 }
 
-inline zircon_component_terrain tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_terrain>&,
+inline zircon_component_terrain_static tag_invoke(
+	const Kotek::ktk::json::value_to_tag<zircon_component_terrain_static>&,
 	const Kotek::ktk::json::value& read_from)
 {
 	auto data = read_from.as_object();
 
-	zircon_component_terrain result;
+	zircon_component_terrain_static result;
 
 	result.SetEnabled(data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
