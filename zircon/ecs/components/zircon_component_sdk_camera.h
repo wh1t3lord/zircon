@@ -4,7 +4,8 @@
 
 class zircon_component_sdk_camera : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_sdk_camera)
+	KOTEK_COMPONENT(zircon_component_sdk_camera,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_sdk_camera();
@@ -15,13 +16,23 @@ public:
 
 	void set_camera(const zircon_component_camera& data) noexcept;
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 	bool is_initialized(void) const;
 	void set_initialized(bool status);
 
 private:
+	bool m_is_enabled;
 	bool m_is_initialized;
+	kotek::uint8_t m_component_type;
 	zircon_component_camera m_camera;
 };
 

@@ -297,7 +297,7 @@ public:
 			zircon_component_interface* p_component =
 				static_cast<zircon_component_interface*>(p_data);
 
-			result = p_component->Serialize();
+			result = p_component->serialize();
 		}
 
 		return result;
@@ -321,7 +321,7 @@ public:
 			zircon_component_interface* p_component =
 				static_cast<zircon_component_interface*>(p_data);
 
-			result = p_component->Serialize(p_raw_memory, raw_memory_size);
+			result = p_component->serialize(p_raw_memory, raw_memory_size);
 		}
 
 		return result;
@@ -402,7 +402,7 @@ public:
 		zircon_component_interface* p_component =
 			static_cast<zircon_component_interface*>(p_raw_data);
 
-		p_component->Deserialize(serialized_data);
+		p_component->deserialize(serialized_data);
 	}
 
 	void CreateAllComponents(entt::entity entity_id,
@@ -476,7 +476,7 @@ public:
 						if (p_casted)
 						{
 							result.push_back(
-								{component_name, p_casted->Serialize()});
+								{component_name, p_casted->serialize()});
 						}
 					}
 				}
@@ -573,6 +573,8 @@ public:
 
 	const char* get_component_name_by_enum(
 		zircon_component_type_t component_type) const noexcept;
+
+	void validate_get_component_type_of_all_components() const;
 
 private:
 	template <typename ComponentType>

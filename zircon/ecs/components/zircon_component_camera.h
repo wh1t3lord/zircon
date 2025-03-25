@@ -15,10 +15,22 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_camera : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_camera)
+	KOTEK_COMPONENT(zircon_component_camera,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 public:
 	zircon_component_camera(void);
 	~zircon_component_camera(void);
+
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 	float get_yaw(void) const noexcept;
 	void set_yaw(float value) noexcept;
@@ -50,9 +62,10 @@ public:
 	const Kotek::ktk::math::matrix4x4f& get_projection(void) const noexcept;
 	void set_projection(const Kotek::ktk::math::mat4x4f_t& matrix) noexcept;
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 	float m_plane_near;
 	float m_plane_far;
 	float m_fov;
@@ -78,7 +91,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	kotek::ktk::json::static_resource storage(p_storage_memory);
 	Kotek::ktk::json::object camera(&storage);
 
-	camera[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	camera[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
 	camera["m_plane_near"] = data.get_plane_near();
 	camera["m_plane_far"] = data.get_plane_far();
 	camera["m_fov"] = data.get_field_of_view();
@@ -101,7 +114,7 @@ inline zircon_component_camera tag_invoke(
 
 	zircon_component_camera result;
 
-	result.SetEnabled(
+	result.set_enabled(
 		camera.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 	result.set_plane_far(camera.at("m_plane_far").to_number<float>());
 	result.set_plane_near(camera.at("m_plane_near").to_number<float>());

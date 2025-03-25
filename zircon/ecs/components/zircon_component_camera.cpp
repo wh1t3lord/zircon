@@ -3,6 +3,7 @@
 #include "zircon_component_geometry.h"
 
 zircon_component_camera::zircon_component_camera(void) :
+	m_is_enabled{true}, m_component_type{kComponentTypezircon_component_camera},
 	m_plane_near(0.1f), m_plane_far(1000.0f), m_fov(60.0f), m_yaw(-90.0f),
 	m_pitch(0.0f), m_front(0.0f, 0.0f, -1.0f), m_up(0.0f, 1.0f, 0.0f)
 {
@@ -120,7 +121,7 @@ void zircon_component_camera::set_projection(
 	this->m_projection = matrix;
 }
 
-void zircon_component_camera::DrawImGui(
+void zircon_component_camera::draw_imgui(
 	Kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
 	if (p_main_manager)
@@ -157,10 +158,10 @@ void zircon_component_camera::DrawImGui(
 						this->m_view[3][2], this->m_view[3][3]);
 
 					p_wrapper_imgui->Text("projection: \n\t[0]: %.3f %.3f %.3f "
-					                      "%.3f \n\t[1]: %.3f "
+										  "%.3f \n\t[1]: %.3f "
 										  "%.3f "
 										  "%.3f %.3f \n\t[2]: %.3f %.3f %.3f "
-					                      "%.3f \n\t[3]: %.3f %.3f "
+										  "%.3f \n\t[3]: %.3f %.3f "
 										  "%.3f %.3f",
 						this->m_projection[0][0], this->m_projection[0][1],
 						this->m_projection[0][2], this->m_projection[0][3],
@@ -185,11 +186,12 @@ void zircon_component_camera::DrawImGui(
 					p_wrapper_imgui->DragFloat(
 						"yaw", &this->m_yaw, 1.0f, -360.0f, 360.0f);
 
-					p_wrapper_imgui->DragFloat("fov", &this->m_fov, 1.0f, 0.1f, 120.0f);
+					p_wrapper_imgui->DragFloat(
+						"fov", &this->m_fov, 1.0f, 0.1f, 120.0f);
 
 					p_wrapper_imgui->SeparatorText("view");
-					p_wrapper_imgui->DragFloat4(
-						"[0]##view", this->m_view[0].data(), 1.0f, -10.0f, 10.0f);
+					p_wrapper_imgui->DragFloat4("[0]##view",
+						this->m_view[0].data(), 1.0f, -10.0f, 10.0f);
 					p_wrapper_imgui->DragFloat4("[1]##view",
 						this->m_view[1].data(), 1.0f, -10.0f, 10.0f);
 					p_wrapper_imgui->DragFloat4("[2]##view",
@@ -224,4 +226,39 @@ void zircon_component_camera::DrawImGui(
 			}
 		}
 	}
+}
+
+kotek::json::value zircon_component_camera::serialize(void) noexcept
+{
+	return kotek::json::value_from(*this);
+}
+
+void zircon_component_camera::deserialize(
+	const kotek::json::value& data) noexcept
+{
+	*this = kotek::json::value_to<zircon_component_camera>(data);
+}
+
+kotek::json::value zircon_component_camera::serialize(
+	unsigned char* p_raw_memory, kotek::size_t size)
+{
+	KOTEK_ASSERT(p_raw_memory, "you passed an invalid part of memory!");
+	kotek::json::static_resource res(p_raw_memory, size);
+	kotek::json::storage_ptr ptr(&res);
+	return kotek::json::value_from(*this, ptr);
+}
+
+kotek::uint8_t zircon_component_camera::get_component_type(void) const noexcept
+{
+	return m_component_type;
+}
+
+bool zircon_component_camera::is_enabled(void) const noexcept
+{
+	return this->m_is_enabled;
+}
+
+void zircon_component_camera::set_enabled(bool status) noexcept
+{
+	this->m_is_enabled = status;
 }

@@ -5,13 +5,22 @@
 /// \~russian @brief используется для создания интерфейса худа
 class zircon_component_ui_camera : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_ui_camera)
+	KOTEK_COMPONENT(zircon_component_ui_camera,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_ui_camera();
 	~zircon_component_ui_camera();
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 	const kotek::cstring_t& get_current_page(void) const noexcept;
 	void set_current_page(const kotek::cstring_t& page_name) noexcept;
@@ -25,6 +34,8 @@ public:
 	void clear_all(void) noexcept;
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 	kotek::cstring_t m_current_page;
 	kotek::unordered_set_t<kotek::cstring_t> m_predefined_pages;
 };
@@ -41,7 +52,7 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object ui_camera(&storage);
 
-	ui_camera[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	ui_camera[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
 
 	#ifdef KOTEK_DEBUG
 	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(ui_camera, data);
@@ -58,7 +69,7 @@ inline zircon_component_ui_camera tag_invoke(
 
 	zircon_component_ui_camera result;
 
-	result.SetEnabled(
+	result.set_enabled(
 		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	return result;

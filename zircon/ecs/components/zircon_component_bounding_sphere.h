@@ -4,13 +4,23 @@
 
 class zircon_component_bounding_sphere : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_bounding_sphere)
+	KOTEK_COMPONENT(zircon_component_bounding_sphere,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_bounding_sphere(void);
 	~zircon_component_bounding_sphere(void);
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 	kn_kotek::kn_ktk::float_t get_radius(void) const noexcept;
 	void set_radius(kn_kotek::kn_ktk::float_t value) noexcept;
@@ -21,6 +31,8 @@ public:
 	void include(const kn_kotek::kn_ktk::kn_math::vec3f_t& point) noexcept;
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 #ifdef KOTEK_DEBUG
 	kn_kotek::kn_ktk::int32_t m_quality;
 #endif
@@ -48,7 +60,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::ktk::json::object sphere(&storage);
 
-	sphere[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	sphere[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
 	sphere["m_radius"] = data.get_radius();
 	sphere["m_center"] = Kotek::ktk::json::value_from(data.get_center());
 

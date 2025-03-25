@@ -1,10 +1,14 @@
 #include "zircon_component_ui_camera.h"
 
-zircon_component_ui_camera::zircon_component_ui_camera() {}
+zircon_component_ui_camera::zircon_component_ui_camera() :
+	m_is_enabled{true},
+	m_component_type{kComponentTypezircon_component_ui_camera}
+{
+}
 
 zircon_component_ui_camera::~zircon_component_ui_camera() {}
 
-void zircon_component_ui_camera::DrawImGui(
+void zircon_component_ui_camera::draw_imgui(
 	Kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
 	if (p_main_manager)
@@ -41,7 +45,9 @@ void zircon_component_ui_camera::DrawImGui(
 				}
 				else
 				{
-					p_wrapper_imgui->Text(Kotek::ktk::format("current page: {}", this->m_current_page).c_str());
+					p_wrapper_imgui->Text(Kotek::ktk::format(
+						"current page: {}", this->m_current_page)
+							.c_str());
 				}
 
 				if (this->m_predefined_pages.empty())
@@ -57,9 +63,44 @@ void zircon_component_ui_camera::DrawImGui(
 					}
 				}
 			}
-
 		}
 	}
+}
+
+kotek::json::value zircon_component_ui_camera::serialize(void) noexcept
+{
+	return kotek::json::value_from(*this);
+}
+
+void zircon_component_ui_camera::deserialize(
+	const kotek::json::value& data) noexcept
+{
+	*this = kotek::json::value_to<zircon_component_ui_camera>(data);
+}
+
+kotek::json::value zircon_component_ui_camera::serialize(
+	unsigned char* p_raw_memory, kotek::size_t size)
+{
+	KOTEK_ASSERT(p_raw_memory, "you passed an invalid part of memory!");
+	kotek::json::static_resource res(p_raw_memory, size);
+	kotek::json::storage_ptr ptr(&res);
+	return kotek::json::value_from(*this, ptr);
+}
+
+kotek::uint8_t zircon_component_ui_camera::get_component_type(
+	void) const noexcept
+{
+	return this->m_component_type;
+}
+
+bool zircon_component_ui_camera::is_enabled(void) const noexcept
+{
+	return this->m_is_enabled;
+}
+
+void zircon_component_ui_camera::set_enabled(bool status) noexcept
+{
+	this->m_is_enabled = status;
 }
 
 const Kotek::ktk::cstring& zircon_component_ui_camera::get_current_page(
@@ -77,13 +118,13 @@ void zircon_component_ui_camera::set_current_page(
 	this->m_current_page = page_name;
 }
 
-void zircon_component_ui_camera::clear_current_page(void) noexcept 
+void zircon_component_ui_camera::clear_current_page(void) noexcept
 {
 	this->m_current_page.clear();
 }
 
-const Kotek::ktk::unordered_set<Kotek::ktk::cstring>& zircon_component_ui_camera::get_predefined_pages(
-	void) const noexcept
+const Kotek::ktk::unordered_set<Kotek::ktk::cstring>&
+zircon_component_ui_camera::get_predefined_pages(void) const noexcept
 {
 	return this->m_predefined_pages;
 }
@@ -95,12 +136,12 @@ void zircon_component_ui_camera::add_page(
 	this->m_predefined_pages.insert(page_name);
 }
 
-void zircon_component_ui_camera::clear_predefined_pages(void) noexcept 
+void zircon_component_ui_camera::clear_predefined_pages(void) noexcept
 {
 	this->m_predefined_pages.clear();
 }
 
-void zircon_component_ui_camera::clear_all(void) noexcept 
+void zircon_component_ui_camera::clear_all(void) noexcept
 {
 	this->clear_current_page();
 	this->clear_predefined_pages();

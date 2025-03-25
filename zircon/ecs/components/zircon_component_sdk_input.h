@@ -4,7 +4,8 @@
 
 class zircon_component_sdk_input : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_sdk_input)
+	KOTEK_COMPONENT(zircon_component_sdk_input,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_sdk_input();
@@ -14,9 +15,20 @@ public:
 	const zircon_component_input& get_input(void) const noexcept;
 	zircon_component_input& get_input(void) noexcept;
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
+
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 	zircon_component_input m_input;
 };
 

@@ -1,6 +1,8 @@
 #include "zircon_component_bounding_sphere.h"
 
 zircon_component_bounding_sphere::zircon_component_bounding_sphere(void) :
+	m_is_enabled{true},
+	m_component_type{kComponentTypezircon_component_bounding_sphere},
 #ifdef KOTEK_DEBUG
 	m_quality{},
 #endif
@@ -11,7 +13,7 @@ zircon_component_bounding_sphere::zircon_component_bounding_sphere(void) :
 
 zircon_component_bounding_sphere::~zircon_component_bounding_sphere(void) {}
 
-void zircon_component_bounding_sphere::DrawImGui(
+void zircon_component_bounding_sphere::draw_imgui(
 	Kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
 	if (p_main_manager)
@@ -35,6 +37,39 @@ void zircon_component_bounding_sphere::DrawImGui(
 		}
 	}
 }
+
+kotek::json::value zircon_component_bounding_sphere::serialize(void) noexcept
+{
+	return kotek::json::value_from(*this);
+}
+
+void zircon_component_bounding_sphere::deserialize(
+	const kotek::json::value& data) noexcept
+{
+	*this = kotek::json::value_to<zircon_component_bounding_sphere>(data);
+}
+
+kotek::json::value zircon_component_bounding_sphere::serialize(
+	unsigned char* p_raw_memory, kotek::size_t size)
+{
+	KOTEK_ASSERT(p_raw_memory, "you passed an invalid part of memory!");
+	kotek::json::static_resource res(p_raw_memory, size);
+	kotek::json::storage_ptr ptr(&res);
+	return kotek::json::value_from(*this, ptr);
+}
+
+kotek::uint8_t zircon_component_bounding_sphere::get_component_type(
+	void) const noexcept
+{
+	return this->m_component_type;
+}
+
+bool zircon_component_bounding_sphere::is_enabled(void) const noexcept
+{
+	return this->m_is_enabled;
+}
+
+void zircon_component_bounding_sphere::set_enabled(bool status) noexcept {this->m_is_enabled = status;}
 
 Kotek::ktk::float_t zircon_component_bounding_sphere::get_radius(
 	void) const noexcept

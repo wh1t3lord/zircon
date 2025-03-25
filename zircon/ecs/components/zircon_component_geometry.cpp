@@ -5,6 +5,8 @@
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
 zircon_component_geometry::zircon_component_geometry(void) :
+	m_is_enabled{true},
+	m_component_type{kComponentTypezircon_component_geometry},
 	m_is_use_model{true}, m_is_visible{true},
 	m_geometry_type{kotek::core::eStaticGeometryType::kUnknown},
 	m_p_geometry_name{}
@@ -74,14 +76,7 @@ void zircon_component_geometry::set_visible(bool status) noexcept
 	this->m_is_visible = status;
 }
 
-void zircon_component_geometry::Clear(void) noexcept
-{
-	this->m_index_count = {};
-	this->m_vertex_count = {};
-	this->m_path = "";
-}
-
-void zircon_component_geometry::DrawImGui(
+void zircon_component_geometry::draw_imgui(
 	kotek::core::ktkMainManager* p_main_manager) noexcept
 {
 	if (p_main_manager)
@@ -160,6 +155,42 @@ void zircon_component_geometry::DrawImGui(
 			}
 		}
 	}
+}
+
+kotek::json::value zircon_component_geometry::serialize(void) noexcept
+{
+	return kotek::json::value_from(*this);
+}
+
+void zircon_component_geometry::deserialize(
+	const kotek::json::value& data) noexcept
+{
+	*this = kotek::json::value_to<zircon_component_geometry>(data);
+}
+
+kotek::json::value zircon_component_geometry::serialize(
+	unsigned char* p_raw_memory, kotek::size_t size)
+{
+	KOTEK_ASSERT(p_raw_memory, "you passed an invalid part of memory!");
+	kotek::json::static_resource res(p_raw_memory, size);
+	kotek::json::storage_ptr ptr(&res);
+	return kotek::json::value_from(*this, ptr);
+}
+
+kotek::uint8_t zircon_component_geometry::get_component_type(
+	void) const noexcept
+{
+	return m_component_type;
+}
+
+bool zircon_component_geometry::is_enabled(void) const noexcept
+{
+	return this->m_is_enabled;
+}
+
+void zircon_component_geometry::set_enabled(bool status) noexcept
+{
+	this->m_is_enabled = status;
 }
 
 kotek::core::eStaticGeometryType

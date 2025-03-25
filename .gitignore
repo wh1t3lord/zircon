@@ -41,5 +41,7 @@ zircon_factory_register_lookuptable_component_enum_and_id_type.cpp
 zircon_factory_register_components_game_and_sdk.cpp
 zircon_factory_create_component_by_name.cpp
 zircon_factory_get_component_name_by_enum.cpp
+zircon_validate_get_component_type_of_all_components.cpp
+zircon_component_fields.h
 
 imgui.ini

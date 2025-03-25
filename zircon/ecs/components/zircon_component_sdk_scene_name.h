@@ -12,18 +12,29 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_sdk_scene_name : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_sdk_scene_name)
+	KOTEK_COMPONENT(zircon_component_sdk_scene_name,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_sdk_scene_name();
 	~zircon_component_sdk_scene_name();
 
-	void DrawImGui(kotek::core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(kotek::core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 	const char* get_name(void) const noexcept;
 	void set_name(const kotek::static_cstring_view_t& name) noexcept;
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 	kotek::static_cstring_t<ZIRCON_DEF_COMPONENT_SDK_SCENE_NAME_MAX_LENGTH>
 		m_name;
 };

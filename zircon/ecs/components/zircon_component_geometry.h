@@ -14,11 +14,23 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_geometry : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_geometry)
+	KOTEK_COMPONENT(zircon_component_geometry,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_geometry(void);
 	~zircon_component_geometry(void);
+
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 	kotek::size_t get_vertex_count(void) const noexcept;
 	void set_vertex_count(Kotek::size_t count) noexcept;
@@ -44,15 +56,14 @@ public:
 	kotek::uint8_t get_render_vertex_buffer_id(void) const noexcept;
 	kotek::uint8_t get_render_index_buffer_id(void) const noexcept;
 
-	void Clear(void) noexcept;
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
-
 	kotek::core::eStaticGeometryType get_geometry_type() const noexcept;
 	void set_geometry_type(kotek::core::eStaticGeometryType type) noexcept;
 
 private:
+	bool m_is_enabled;
 	bool m_is_use_model;
 	bool m_is_visible;
+	kotek::uint8_t m_component_type;
 	kotek::uint8_t m_render_internal_vertex_buffer_id;
 	kotek::uint8_t m_render_internal_index_buffer_id;
 

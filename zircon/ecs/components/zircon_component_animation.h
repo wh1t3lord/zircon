@@ -13,14 +13,27 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_animation : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_animation)
+	KOTEK_COMPONENT(zircon_component_animation,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_animation(void);
 	~zircon_component_animation(void);
 
-	void Clear(void) noexcept;
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
+
+private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
@@ -35,7 +48,7 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object animation(&storage);
 
-	animation[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	animation[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
 
 	write_to = animation;
 }
@@ -48,7 +61,7 @@ inline zircon_component_animation tag_invoke(
 
 	zircon_component_animation result;
 
-	result.SetEnabled(
+	result.set_enabled(
 		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	return result;

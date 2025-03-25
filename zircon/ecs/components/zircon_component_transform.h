@@ -15,7 +15,8 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_transform : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_transform)
+	KOTEK_COMPONENT(zircon_component_transform,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_transform(void);
@@ -31,9 +32,19 @@ public:
 	const kotek::math::quatf_t& get_rotation(void) const noexcept;
 	void set_rotation(const kotek::math::quatf_t& rot) noexcept;
 
-	void DrawImGui(kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 	kotek::math::vec3f_t m_position;
 	kotek::math::vec3f_t m_scale;
 	kotek::math::quatf_t m_rotation;
@@ -51,7 +62,7 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 {
 	kotek::json::object info;
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
 	info[kComponentTransformSerializationField_Position] =
 		kotek::json::value_from(data.get_position());
 	info[kComponentTransformSerializationField_Scale] =
@@ -74,7 +85,7 @@ inline zircon_component_transform tag_invoke(
 
 	zircon_component_transform result;
 
-	result.SetEnabled(
+	result.set_enabled(
 		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	result.set_position(kotek::json::value_to<kotek::math::vec3f_t>(

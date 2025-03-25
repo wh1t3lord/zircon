@@ -7,6 +7,7 @@ zircon_factory_game::zircon_factory_game(void) : m_p_config{}, m_p_input{}
 	this->register_components_restrictions();
 	this->register_components_and_their_enums();
 	this->register_lookuptable_component_enum_and_id_type();
+	this->validate_get_component_type_of_all_components();
 }
 
 zircon_factory_game::~zircon_factory_game(void) {}
@@ -181,3 +182,4 @@ void zircon_factory_game::validate_components_restrictions()
 #include "zircon_factory_register_lookuptable_component_enum_and_id_type.cpp"
 #include "zircon_factory_get_component_name_by_enum.cpp"
 #include "zircon_factory_register_components_game_and_sdk.cpp"
+#include "zircon_validate_get_component_type_of_all_components.cpp"

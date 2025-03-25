@@ -20,7 +20,8 @@ class zircon_factory_game;
 
 class zircon_component_input : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_input)
+	KOTEK_COMPONENT(zircon_component_input,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 	friend class zircon_factory_game;
 
@@ -29,7 +30,16 @@ public:
 	zircon_component_input(const kotek::core::ktkIInput* p_manager);
 	~zircon_component_input(void);
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 	void set_input_type(kotek::enum_base_t type) noexcept;
 	kotek::enum_base_t get_input_type(void) const noexcept;
@@ -58,6 +68,8 @@ private:
 	void register_input(const kotek::core::ktkIInput* p_input_manager);
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 	bool m_is_invert_mouse_axis_x;
 	bool m_is_invert_mouse_axis_y;
 	float m_sensetivity;
@@ -78,7 +90,7 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object input(&storage);
 
-	input[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	input[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
 
 	#ifdef KOTEK_DEBUG
 	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(input, data);
@@ -95,7 +107,7 @@ inline zircon_component_input tag_invoke(
 
 	zircon_component_input result;
 
-	result.SetEnabled(
+	result.set_enabled(
 		input.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
 
 	return result;

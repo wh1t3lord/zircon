@@ -9,15 +9,26 @@
 // this component defines the fact that entity is about terrain
 class zircon_component_terrain_gcm : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_terrain_gcm)
+	KOTEK_COMPONENT(zircon_component_terrain_gcm,
+		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
 public:
 	zircon_component_terrain_gcm();
 	~zircon_component_terrain_gcm();
 
-	void DrawImGui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	kotek::json::value serialize(void) noexcept override;
+	void deserialize(const kotek::json::value& data) noexcept override;
+	kotek::json::value serialize(
+		unsigned char* p_raw_memory, kotek::size_t size) override;
+	kotek::uint8_t get_component_type(void) const noexcept override;
+
+	bool is_enabled(void) const noexcept;
+	void set_enabled(bool status) noexcept;
 
 private:
+	bool m_is_enabled;
+	kotek::uint8_t m_component_type;
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY

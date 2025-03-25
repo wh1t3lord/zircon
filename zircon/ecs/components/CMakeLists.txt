@@ -14,7 +14,8 @@ set(zircon_register_lookuptable_component_enum_and_id_type "zircon_factory_regis
 set(zircon_get_component_name_by_enum "zircon_factory_get_component_name_by_enum.cpp")
 set(zircon_register_components_game_and_sdk "zircon_factory_register_components_game_and_sdk.cpp")
 set(zircon_create_component_by_name "zircon_factory_create_component_by_name.cpp")
-
+set(zircon_validate_get_component_type_of_all_components "zircon_validate_get_component_type_of_all_components.cpp")
+set(zircon_generate_header_component_fields "zircon_component_fields.h")
 set(to_include_module_files 
 	"zircon_ecs_components.h"
 	"main_ecs_dll.cpp"
@@ -29,9 +30,8 @@ set(to_include_game_ecs_files
 	"zircon_component_transform.h"
 	"zircon_component_geometry.h"
 	"zircon_component_geometry.cpp"
-	"zircon_component_model.h"
-	"zircon_component_model.cpp"
 	"zircon_component_actor.h"
+	"zircon_component_actor.cpp"
 	"zircon_component_terrain_cbt.h"
 	"zircon_component_terrain_cbt.cpp"
 	"zircon_component_terrain_static.h"
@@ -65,7 +65,7 @@ set(to_include_sdk_ecs_files
 	"zircon_component_sdk_input.cpp"
 )
 
-
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 file(WRITE ${zircon_enum_file_name} "#pragma once")
 file(WRITE ${zircon_components_to_enums_file_name} "void zircon_factory_game::register_components_and_their_enums() 
@@ -98,6 +98,11 @@ void zircon_factory_game::register_components_game_and_sdk()
 file(WRITE ${zircon_create_component_by_name} "
 	auto hash_component_name = kotek::ktk::hash<kotek::ktk::cstring_view>{}(component_name);
 	bool was_found=false;
+")
+file(WRITE ${zircon_validate_get_component_type_of_all_components} "
+	void zircon_factory_game::validate_get_component_type_of_all_components() const
+	{
+	#ifdef KOTEK_DEBUG
 ")
 
 file(APPEND ${zircon_enum_file_name} "
@@ -162,6 +167,12 @@ foreach (filename IN LISTS filenames_list)
 			this->CreateComponent<${filename}>(id);
 		}
 	")
+	file(APPEND ${zircon_validate_get_component_type_of_all_components} "
+		{
+			${filename} instance_${filename};
+			KOTEK_ASSERT(instance_${filename}.get_component_type() == zircon_component_type_t::kComponentType${filename}, \"you didn't initialize this component type field correctly check your ctor please!\");
+		}
+	")
 endforeach()
 
 
@@ -209,6 +220,22 @@ file(APPEND ${zircon_create_component_by_name} "
 		\"component)\");
 ")
 
+file(APPEND ${zircon_validate_get_component_type_of_all_components} "
+#endif
+}
+")
+
+execute_process(
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    RESULT_VARIABLE generate_fields_component_header_result
+    ERROR_VARIABLE error_output
+)
+
+if(NOT generate_fields_component_header_result EQUAL 0)
+    message(FATAL_ERROR "Header generation failed:\n${error_output}\n${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}")
+endif()
+
 add_library(${PROJECT_NAME} STATIC
 	${to_include_sdk_ecs_files}
 	${to_include_game_ecs_files}
@@ -216,10 +243,21 @@ add_library(${PROJECT_NAME} STATIC
 	${to_include_game_factory_files}
 	"zircon_component_interface.h"
 	${zircon_enum_file_name}
-
+	${zircon_generate_header_component_fields}
 	## we don't include some files because they're used in project with #include directive so they compile with project implicitly
 )
 
+
+# Add custom command to generate header
+add_custom_command(
+    TARGET ${PROJECT_NAME}
+	PRE_BUILD
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${zircon_generate_header_component_fields}
+	COMMAND_ECHO STDOUT
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating zircon component fields header"
+    VERBATIM
+)
 # TODO: add if when game.ktk builds as shared
 
 if (UNIX)
