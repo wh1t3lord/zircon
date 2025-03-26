@@ -94,19 +94,25 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object geometry(&storage);
 
-	geometry[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
-	geometry["m_is_visible"] = data.is_visible();
-	geometry["m_geometry_type"] =
+	geometry[ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
+	geometry[ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_IS_VISIBLE] =
+		data.is_visible();
+	geometry[ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_GEOMETRY_TYPE] =
 		static_cast<kotek::enum_base_t>(data.get_geometry_type());
 
 	#ifdef KOTEK_USE_SDK_IMGUI
-	geometry["m_vertex_count"] = data.get_vertex_count();
-	geometry["m_index_count"] = data.get_index_count();
-	geometry["m_path"] = data.get_path();
+	geometry[ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_VERTEX_COUNT] =
+		data.get_vertex_count();
+	geometry[ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_INDEX_COUNT] =
+		data.get_index_count();
+	geometry[ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_PATH] =
+		data.get_path();
 	#endif
 
 	#ifdef KOTEK_DEBUG
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(geometry, data);
+	geometry[ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
 	#endif
 
 	write_to = geometry;
@@ -120,18 +126,34 @@ inline zircon_component_geometry tag_invoke(
 
 	zircon_component_geometry result;
 
-	result.SetEnabled(
-		geometry.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
-	result.set_visible(geometry.at("m_is_visible").as_bool());
+	result.set_enabled(
+		geometry.at(ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_IS_ENABLED)
+			.as_bool());
+	result.set_visible(
+		geometry.at(ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_IS_VISIBLE)
+			.as_bool());
 	result.set_geometry_type(static_cast<kotek::core::eStaticGeometryType>(
-		geometry.at("m_geometry_type").to_number<kotek::enum_base_t>()));
+		geometry.at(ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_GEOMETRY_TYPE)
+			.to_number<kotek::enum_base_t>()));
 
 	#ifdef KOTEK_USE_SDK_IMGUI
 	result.set_vertex_count(
-		geometry.at("m_vertex_count").to_number<kotek::size_t>());
+		geometry.at(ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_VERTEX_COUNT)
+			.to_number<kotek::size_t>());
 	result.set_index_count(
-		geometry.at("m_index_count").to_number<kotek::size_t>());
-	result.set_path(geometry.at("m_path").as_string().c_str());
+		geometry.at(ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_INDEX_COUNT)
+			.to_number<kotek::size_t>());
+	result.set_path(
+		geometry.at(ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_PATH)
+			.as_string()
+			.c_str());
+	#endif
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		geometry.at(ZIRCON_DEF_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?");
 	#endif
 
 	return result;

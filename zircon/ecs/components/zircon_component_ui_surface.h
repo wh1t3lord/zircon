@@ -14,7 +14,8 @@ public:
 	zircon_component_ui_surface();
 	~zircon_component_ui_surface();
 
-	void draw_imgui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
 	kotek::json::value serialize(void) noexcept override;
 	void deserialize(const kotek::json::value& data) noexcept override;
 	kotek::json::value serialize(
@@ -43,10 +44,12 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object ui_surface(&storage);
 
-	ui_surface[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	ui_surface[ZIRCON_DEF_ZIRCON_COMPONENT_UI_SURFACE_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
 
 	#ifdef KOTEK_DEBUG
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(ui_surface, data);
+	ui_surface[ZIRCON_DEF_ZIRCON_COMPONENT_UI_SURFACE_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
 	#endif
 
 	write_to = ui_surface;
@@ -60,8 +63,16 @@ inline zircon_component_ui_surface tag_invoke(
 
 	zircon_component_ui_surface result;
 
-	result.SetEnabled(
-		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.set_enabled(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_UI_SURFACE_FIELD_M_IS_ENABLED)
+			.as_bool());
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_UI_SURFACE_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?");
+	#endif
 
 	return result;
 }

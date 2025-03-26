@@ -149,8 +149,8 @@ void zircon_sdk_ui_component_inspector::Draw(
 					{
 						bool required_components =
 							!this->m_p_factory
-								->HasComponent<zircon_component_geometry>(
-									selected_entity);
+								 ->HasComponent<zircon_component_geometry>(
+									 selected_entity);
 
 						if (required_components)
 						{
@@ -235,7 +235,7 @@ void zircon_sdk_ui_component_inspector::Draw(
 							static_cast<zircon_component_interface*>(
 								p_raw_data);
 
-						p_interface->DrawImGui(p_main_manager);
+						p_interface->draw_imgui(p_main_manager);
 					}
 				}
 			}
@@ -309,9 +309,11 @@ void zircon_sdk_ui_component_inspector::update_modal_windows(
 					this->m_p_factory->get_type_hash_by_enum(
 						component_for_adding))
 				{
-					p_wrapper_imgui->Text(
-						"Failed to add component [%s] because you need to add some "
-					    "of these components:", this->m_p_factory->get_component_name_by_enum(component_for_adding));
+					p_wrapper_imgui->Text("Failed to add component [%s] "
+					                      "because you need to add some "
+										  "of these components:",
+						this->m_p_factory->get_component_name_by_enum(
+							component_for_adding));
 
 					// Print each component on a separate line
 					(p_wrapper_imgui->Text(

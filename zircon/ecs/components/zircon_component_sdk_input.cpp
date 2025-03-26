@@ -41,7 +41,7 @@ kotek::json::value zircon_component_sdk_input::serialize(void) noexcept
 void zircon_component_sdk_input::deserialize(
 	const kotek::json::value& data) noexcept
 {
-	*this = kotek::json::value_to<zircon_component_animation>(data);
+	*this = kotek::json::value_to<zircon_component_sdk_input>(data);
 }
 
 kotek::json::value zircon_component_sdk_input::serialize(

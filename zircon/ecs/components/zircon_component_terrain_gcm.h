@@ -16,7 +16,8 @@ public:
 	zircon_component_terrain_gcm();
 	~zircon_component_terrain_gcm();
 
-	void draw_imgui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
 	kotek::json::value serialize(void) noexcept override;
 	void deserialize(const kotek::json::value& data) noexcept override;
 	kotek::json::value serialize(
@@ -33,13 +34,17 @@ private:
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
 inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to,
-	const zircon_component_terrain_gcm& data)
+	Kotek::ktk::json::value& write_to, const zircon_component_terrain_gcm& data)
 {
 	Kotek::ktk::json::object info;
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_GCM_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
+
+	#ifdef KOTEK_DEBUG
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_GCM_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
+	#endif
 
 	write_to = info;
 }
@@ -52,7 +57,17 @@ inline zircon_component_terrain_gcm tag_invoke(
 
 	zircon_component_terrain_gcm result;
 
-	result.SetEnabled(data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.set_enabled(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_GCM_FIELD_M_IS_ENABLED)
+			.as_bool());
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_GCM_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?"
+	);
+	#endif
 
 	return result;
 }

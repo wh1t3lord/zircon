@@ -38,8 +38,13 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object info;
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
+
+	#ifdef KOTEK_DEBUG
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
+	#endif
 
 	write_to = info;
 }
@@ -53,7 +58,16 @@ inline zircon_component_terrain_cbt tag_invoke(
 	zircon_component_terrain_cbt result;
 
 	result.set_enabled(
-		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_IS_ENABLED)
+			.as_bool());
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?"
+	);
+	#endif
 
 	return result;
 }

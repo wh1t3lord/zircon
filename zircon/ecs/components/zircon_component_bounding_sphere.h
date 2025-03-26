@@ -60,12 +60,16 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::ktk::json::object sphere(&storage);
 
-	sphere[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
-	sphere["m_radius"] = data.get_radius();
-	sphere["m_center"] = Kotek::ktk::json::value_from(data.get_center());
+	sphere[ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
+	sphere[ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_RADIUS] =
+		data.get_radius();
+	sphere[ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_CENTER] =
+		Kotek::ktk::json::value_from(data.get_center());
 
 	#ifdef KOTEK_DEBUG
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(sphere, data);
+	sphere[ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
 	#endif
 
 	write_to = sphere;
@@ -79,11 +83,21 @@ inline zircon_component_bounding_sphere tag_invoke(
 
 	zircon_component_bounding_sphere result;
 
-	result.SetEnabled(
-		sphere.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.set_enabled(sphere
+			.at(ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_IS_ENABLED)
+			.as_bool());
 	result.set_center(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
-		sphere.at("m_center")));
-	result.set_radius(sphere.at("m_radius").to_number<float>());
+		sphere.at(ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_CENTER)));
+	result.set_radius(
+		sphere.at(ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_RADIUS)
+			.to_number<float>());
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		sphere.at(ZIRCON_DEF_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?");
+	#endif
 
 	return result;
 }

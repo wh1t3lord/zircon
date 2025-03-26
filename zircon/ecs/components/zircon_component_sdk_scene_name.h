@@ -19,7 +19,8 @@ public:
 	zircon_component_sdk_scene_name();
 	~zircon_component_sdk_scene_name();
 
-	void draw_imgui(kotek::core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		kotek::core::ktkMainManager* main_manager) noexcept override;
 	kotek::json::value serialize(void) noexcept override;
 	void deserialize(const kotek::json::value& data) noexcept override;
 	kotek::json::value serialize(
@@ -46,8 +47,15 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object info;
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
-	info["m_name"] = data.get_name();
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_NAME] =
+		data.get_name();
+
+	#ifdef KOTEK_DEBUG
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
+	#endif
 
 	write_to = info;
 }
@@ -60,9 +68,19 @@ inline zircon_component_sdk_scene_name tag_invoke(
 
 	zircon_component_sdk_scene_name result;
 
-	result.SetEnabled(
-		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
-	result.set_name(data.at("m_name").as_string().c_str());
+	result.set_enabled(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_IS_ENABLED).as_bool());
+	result.set_name(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_NAME)
+			.as_string()
+			.c_str());
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?");
+	#endif
 
 	return result;
 }

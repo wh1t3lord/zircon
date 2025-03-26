@@ -48,7 +48,8 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object animation(&storage);
 
-	animation[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
+	animation[ZIRCON_DEF_ZIRCON_COMPONENT_ANIMATION_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
 
 	write_to = animation;
 }
@@ -62,7 +63,15 @@ inline zircon_component_animation tag_invoke(
 	zircon_component_animation result;
 
 	result.set_enabled(
-		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_ANIMATION_FIELD_M_IS_ENABLED)
+			.as_bool());
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_ANIMATION_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?");
+	#endif
 
 	return result;
 }

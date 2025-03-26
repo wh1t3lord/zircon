@@ -4,7 +4,6 @@
 #include "zircon_component_actor.h"
 #include "zircon_component_geometry.h"
 #include "zircon_component_input.h"
-#include "zircon_component_model.h"
 #include "zircon_component_transform.h"
 #include "zircon_component_frustum.h"
 #include "zircon_component_animation.h"

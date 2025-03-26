@@ -15,7 +15,8 @@ public:
 	const zircon_component_input& get_input(void) const noexcept;
 	zircon_component_input& get_input(void) noexcept;
 
-	void draw_imgui(Kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		Kotek::Core::ktkMainManager* main_manager) noexcept override;
 	kotek::json::value serialize(void) noexcept override;
 	void deserialize(const kotek::json::value& data) noexcept override;
 	kotek::json::value serialize(
@@ -25,7 +26,6 @@ public:
 	bool is_enabled(void) const noexcept;
 	void set_enabled(bool status) noexcept;
 
-
 private:
 	bool m_is_enabled;
 	kotek::uint8_t m_component_type;
@@ -33,26 +33,40 @@ private:
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_sdk_input& data)
+inline void tag_invoke(const kotek::json::value_from_tag&,
+	kotek::json::value& write_to, const zircon_component_sdk_input& data)
 {
-	Kotek::ktk::json::object info;
+	kotek::json::object info;
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.IsEnabled();
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_INPUT_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
+
+	#ifdef KOTEK_DEBUG
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_INPUT_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
+	#endif
 
 	write_to = info;
 }
 
 inline zircon_component_sdk_input tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_sdk_input>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::json::value_to_tag<zircon_component_sdk_input>&,
+	const kotek::json::value& read_from)
 {
 	auto data = read_from.as_object();
 
 	zircon_component_sdk_input result;
 
-	result.SetEnabled(data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+	result.set_enabled(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_INPUT_FIELD_M_IS_ENABLED)
+			.as_bool());
 
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_INPUT_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?");
+	#endif
 
 	return result;
 }

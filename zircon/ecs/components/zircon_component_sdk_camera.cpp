@@ -42,7 +42,7 @@ kotek::json::value zircon_component_sdk_camera::serialize(void) noexcept
 void zircon_component_sdk_camera::deserialize(
 	const kotek::json::value& data) noexcept
 {
-	*this = kotek::json::value_to<zircon_component_animation>(data);
+	*this = kotek::json::value_to<zircon_component_sdk_camera>(data);
 }
 
 kotek::json::value zircon_component_sdk_camera::serialize(

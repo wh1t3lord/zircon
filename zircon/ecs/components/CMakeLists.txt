@@ -253,7 +253,7 @@ add_custom_command(
     TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${zircon_generate_header_component_fields}
-	COMMAND_ECHO STDOUT
+#	COMMAND_ECHO STDOUT
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generating zircon component fields header"
     VERBATIM

@@ -32,7 +32,8 @@ public:
 	const kotek::math::quatf_t& get_rotation(void) const noexcept;
 	void set_rotation(const kotek::math::quatf_t& rot) noexcept;
 
-	void draw_imgui(kotek::Core::ktkMainManager* main_manager) noexcept override;
+	void draw_imgui(
+		kotek::Core::ktkMainManager* main_manager) noexcept override;
 	kotek::json::value serialize(void) noexcept override;
 	void deserialize(const kotek::json::value& data) noexcept override;
 	kotek::json::value serialize(
@@ -50,28 +51,24 @@ private:
 	kotek::math::quatf_t m_rotation;
 };
 
-constexpr const char* kComponentTransformSerializationField_Position =
-	"m_position";
-constexpr const char* kComponentTransformSerializationField_Scale = "m_scale";
-constexpr const char* kComponentTransformSerializationField_Rotation =
-	"m_rotation";
-
 #ifdef KOTEK_USE_BOOST_LIBRARY
 inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::value& write_to, const zircon_component_transform& data)
 {
 	kotek::json::object info;
 
-	info[ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD] = data.is_enabled();
-	info[kComponentTransformSerializationField_Position] =
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_IS_ENABLED] =
+		data.is_enabled();
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_POSITION] =
 		kotek::json::value_from(data.get_position());
-	info[kComponentTransformSerializationField_Scale] =
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_SCALE] =
 		kotek::json::value_from(data.get_scale());
-	info[kComponentTransformSerializationField_Rotation] =
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION] =
 		kotek::json::value_from(data.get_rotation());
 
 	#ifdef KOTEK_DEBUG
-	ZIRCON_DEF_TAG_INVOKE_REG_COMPONENT_NAME(info, data);
+	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_COMPONENT_TYPE] =
+		data.get_component_type();
 	#endif
 
 	write_to = info;
@@ -86,14 +83,23 @@ inline zircon_component_transform tag_invoke(
 	zircon_component_transform result;
 
 	result.set_enabled(
-		data.at(ZIRCON_DEF_JSON_SERIALIZE_ENABLED_FIELD).as_bool());
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_IS_ENABLED)
+			.as_bool());
 
 	result.set_position(kotek::json::value_to<kotek::math::vec3f_t>(
-		data.at(kComponentTransformSerializationField_Position)));
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_POSITION)));
 	result.set_scale(kotek::json::value_to<kotek::math::vec3f_t>(
-		data.at(kComponentTransformSerializationField_Scale)));
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_SCALE)));
 	result.set_rotation(kotek::json::value_to<kotek::math::quatf_t>(
-		data.at(kComponentTransformSerializationField_Rotation)));
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION)));
+
+	#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(
+		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_COMPONENT_TYPE)
+				.to_number<kotek::uint8_t>() == result.get_component_type(),
+		"component type is not equal, data corruption?"
+	);
+	#endif
 
 	return result;
 }
