@@ -90,11 +90,11 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object input(&storage);
 
-	input[ZIRCON_DEF_ZIRCON_COMPONENT_INPUT_FIELD_M_IS_ENABLED] =
+	input[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
 
 	#ifdef KOTEK_DEBUG
-	input[ZIRCON_DEF_ZIRCON_COMPONENT_INPUT_FIELD_M_COMPONENT_TYPE] =
+	input[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_COMPONENT_TYPE] =
 		data.get_component_type();
 	#endif
 
@@ -110,12 +110,12 @@ inline zircon_component_input tag_invoke(
 	zircon_component_input result;
 
 	result.set_enabled(
-		input.at(ZIRCON_DEF_ZIRCON_COMPONENT_INPUT_FIELD_M_IS_ENABLED)
+		input.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_IS_ENABLED)
 			.as_bool());
 
 	#ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		input.at(ZIRCON_DEF_ZIRCON_COMPONENT_INPUT_FIELD_M_COMPONENT_TYPE)
+		input.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_COMPONENT_TYPE)
 				.to_number<kotek::uint8_t>() == result.get_component_type(),
 		"component type is not equal, data corruption?");
 	#endif

@@ -43,13 +43,13 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 {
 	kotek::json::object info;
 
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_IS_ENABLED] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_CAMERA] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_CAMERA] =
 		kotek::json::value_from(data.get_camera());
 
 	#ifdef KOTEK_DEBUG
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_COMPONENT_TYPE] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_COMPONENT_TYPE] =
 		data.get_component_type();
 	#endif
 
@@ -65,14 +65,14 @@ inline zircon_component_sdk_camera tag_invoke(
 	zircon_component_sdk_camera result;
 
 	result.set_enabled(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_IS_ENABLED)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_IS_ENABLED)
 			.as_bool());
 	result.set_camera(kotek::json::value_to<zircon_component_camera>(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_CAMERA)));
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_CAMERA)));
 
 	#ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_COMPONENT_TYPE)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_CAMERA_FIELD_M_COMPONENT_TYPE)
 				.to_number<kotek::uint8_t>() == result.get_component_type(),
 		"component type is not equal, data corruption?");
 	#endif

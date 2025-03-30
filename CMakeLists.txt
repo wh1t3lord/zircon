@@ -3,6 +3,18 @@ project(zircon)
 
 set(KOTEK_ENGINE_ROOT_FOLDER_NAME "kotek")
 
+# TODO: when CMake will fix that we can restore but for now we can't use this due to breaking USE_FOLDERS feature...
+# TODO2: Rename cmake default filter folder CMakePredefinedTargets as just plain 'targets' word
+#set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+
+get_property(is_enabled GLOBAL PROPERTY USE_FOLDERS)
+if(is_enabled)
+else()
+endif()
+
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
 	set(CMAKE_BUILD_TYPE Debug)
 endif()
@@ -116,8 +128,10 @@ add_subdirectory("${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
 add_subdirectory("zircon/core")
 add_subdirectory("zircon/ecs/components")
 add_subdirectory("zircon/ecs/systems")
-add_subdirectory("zircon/game")
+add_subdirectory("zircon/editor")
+add_subdirectory("zircon/editor/commands")
+add_subdirectory("zircon/editor/ui")
+add_subdirectory("zircon/engine")
 add_subdirectory("zircon/render")
-
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${KOTEK_ENGINE_ROOT_FOLDER_NAME})
-add_dependencies(${KOTEK_ENGINE_ROOT_FOLDER_NAME} zircon.game)
+add_subdirectory("zircon/world")
+add_dependencies(${KOTEK_ENGINE_ROOT_FOLDER_NAME} zircon)

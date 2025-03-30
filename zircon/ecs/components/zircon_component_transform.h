@@ -57,17 +57,17 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 {
 	kotek::json::object info;
 
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_IS_ENABLED] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_POSITION] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_POSITION] =
 		kotek::json::value_from(data.get_position());
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_SCALE] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_SCALE] =
 		kotek::json::value_from(data.get_scale());
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION] =
 		kotek::json::value_from(data.get_rotation());
 
 	#ifdef KOTEK_DEBUG
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_COMPONENT_TYPE] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_COMPONENT_TYPE] =
 		data.get_component_type();
 	#endif
 
@@ -83,19 +83,19 @@ inline zircon_component_transform tag_invoke(
 	zircon_component_transform result;
 
 	result.set_enabled(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_IS_ENABLED)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_IS_ENABLED)
 			.as_bool());
 
 	result.set_position(kotek::json::value_to<kotek::math::vec3f_t>(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_POSITION)));
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_POSITION)));
 	result.set_scale(kotek::json::value_to<kotek::math::vec3f_t>(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_SCALE)));
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_SCALE)));
 	result.set_rotation(kotek::json::value_to<kotek::math::quatf_t>(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION)));
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION)));
 
 	#ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_COMPONENT_TYPE)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_COMPONENT_TYPE)
 				.to_number<kotek::uint8_t>() == result.get_component_type(),
 		"component type is not equal, data corruption?"
 	);

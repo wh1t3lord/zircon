@@ -46,11 +46,11 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object frustum(&storage);
 
-	frustum[ZIRCON_DEF_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_IS_ENABLED] =
+	frustum[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
 
 	#ifdef KOTEK_DEBUG
-	frustum[ZIRCON_DEF_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_COMPONENT_TYPE] =
+	frustum[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_COMPONENT_TYPE] =
 		data.get_component_type();
 	#endif
 
@@ -66,12 +66,12 @@ inline zircon_component_frustum tag_invoke(
 	zircon_component_frustum result;
 
 	result.set_enabled(
-		frustum.at(ZIRCON_DEF_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_COMPONENT_TYPE)
+		frustum.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_COMPONENT_TYPE)
 			.as_bool());
 
 	#ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		frustum.at(ZIRCON_DEF_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_COMPONENT_TYPE)
+		frustum.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_FRUSTUM_FIELD_M_COMPONENT_TYPE)
 				.to_number<kotek::uint8_t>() == result.get_component_type(),
 		"component type is not equal, data corruption?");
 	#endif

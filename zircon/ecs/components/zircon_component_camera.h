@@ -90,23 +90,23 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	kotek::ktk::json::static_resource storage(p_storage_memory);
 	Kotek::ktk::json::object camera(&storage);
 
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_IS_ENABLED] =
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_NEAR] =
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_NEAR] =
 		data.get_plane_near();
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_FAR] =
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_FAR] =
 		data.get_plane_far();
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_FOV] =
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FOV] =
 		data.get_field_of_view();
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_YAW] = data.get_yaw();
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_PITCH] = data.get_pitch();
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT] =
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_YAW] = data.get_yaw();
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PITCH] = data.get_pitch();
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT] =
 		Kotek::ktk::json::value_from(data.get_front());
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP] =
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP] =
 		Kotek::ktk::json::value_from(data.get_up());
 
 	#ifdef KOTEK_DEBUG
-	camera[ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_COMPONENT_TYPE] =
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_COMPONENT_TYPE] =
 		data.get_component_type();
 	#endif
 
@@ -122,29 +122,29 @@ inline zircon_component_camera tag_invoke(
 	zircon_component_camera result;
 
 	result.set_enabled(
-		camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_IS_ENABLED)
+		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_IS_ENABLED)
 			.as_bool());
 	result.set_plane_far(
-		camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_FAR)
+		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_FAR)
 			.to_number<float>());
 	result.set_plane_near(
-		camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_NEAR)
+		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PLANE_NEAR)
 			.to_number<float>());
 	result.set_field_of_view(
-		camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_FOV)
+		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FOV)
 			.to_number<float>());
-	result.set_yaw(camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_YAW)
+	result.set_yaw(camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_YAW)
 			.to_number<float>());
-	result.set_pitch(camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_PITCH)
+	result.set_pitch(camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PITCH)
 			.to_number<float>());
 	result.set_front(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
-		camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT)));
+		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT)));
 	result.set_up(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
-		camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP)));
+		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP)));
 
 	#ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		camera.at(ZIRCON_DEF_ZIRCON_COMPONENT_CAMERA_FIELD_M_COMPONENT_TYPE)
+		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_COMPONENT_TYPE)
 				.to_number<kotek::uint8_t>() == result.get_component_type(),
 		"component type is not equal, data corruption?");
 	#endif

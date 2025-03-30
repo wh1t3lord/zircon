@@ -33,16 +33,16 @@ private:
 };
 
 #ifdef KOTEK_USE_BOOST_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_terrain_cbt& data)
+inline void tag_invoke(const kotek::json::value_from_tag&,
+	kotek::json::value& write_to, const zircon_component_terrain_cbt& data)
 {
-	Kotek::ktk::json::object info;
+	kotek::json::object info;
 
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_IS_ENABLED] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
 
 	#ifdef KOTEK_DEBUG
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_COMPONENT_TYPE] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_COMPONENT_TYPE] =
 		data.get_component_type();
 	#endif
 
@@ -50,23 +50,22 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 }
 
 inline zircon_component_terrain_cbt tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_terrain_cbt>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::json::value_to_tag<zircon_component_terrain_cbt>&,
+	const kotek::json::value& read_from)
 {
 	auto data = read_from.as_object();
 
 	zircon_component_terrain_cbt result;
 
 	result.set_enabled(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_IS_ENABLED)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_IS_ENABLED)
 			.as_bool());
 
 	#ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_COMPONENT_TYPE)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TERRAIN_CBT_FIELD_M_COMPONENT_TYPE)
 				.to_number<kotek::uint8_t>() == result.get_component_type(),
-		"component type is not equal, data corruption?"
-	);
+		"component type is not equal, data corruption?");
 	#endif
 
 	return result;

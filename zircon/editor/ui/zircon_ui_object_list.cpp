@@ -1,0 +1,157 @@
+#include "zircon_ui_object_list.h"
+#include "../../../ecs/components/zircon_factory.h"
+#include "../../zircon_game_manager.h"
+#include "../../zircon_world_manager.h"
+#include "../../../core/zircon_sdk_ui.h"
+
+zircon_sdk_ui_object_list::zircon_sdk_ui_object_list(void) :
+	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{}
+{
+}
+
+zircon_sdk_ui_object_list::~zircon_sdk_ui_object_list(void) {}
+
+void zircon_sdk_ui_object_list::initialize(void) {}
+
+void zircon_sdk_ui_object_list::shutdown(void) {}
+
+void zircon_sdk_ui_object_list::Draw(
+	kotek::core::ktkMainManager* p_main_manager)
+{
+	auto* p_game_manager =
+		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
+
+	const auto& ids =
+		p_game_manager->GetSceneManager()->GetCurrentScene()->GetEntities();
+	auto* p_current_scene =
+		p_game_manager->GetSceneManager()->GetCurrentScene();
+
+	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
+		p_main_manager->Get_ImguiWrapper();
+
+	if (p_wrapper_imgui)
+	{
+		p_wrapper_imgui->ShowDemoWindow();
+
+		if (!this->m_is_show_window)
+			return;
+
+		if (p_wrapper_imgui->Begin("Entity List"))
+		{
+			if (p_wrapper_imgui->Button("Add"))
+			{
+				p_game_manager->GetConsole()->Execute_Command(
+					static_cast<kotek::ktk::enum_base_t>(
+						kotek::core::eConsoleCommandIndex::
+							kConsoleCommand_SDK_CreateEntity));
+			}
+
+			p_wrapper_imgui->SameLine();
+
+			if (p_wrapper_imgui->Button("Delete"))
+			{
+				if (p_game_manager)
+				{
+					zircon_factory_game* p_factory =
+						p_game_manager->get_factory_game();
+
+					if (p_factory)
+					{
+						if (p_factory->IsValidEntity(
+								this->m_selected_entity_id))
+						{
+							p_game_manager->GetConsole()->Execute_Command(
+								static_cast<kotek::ktk::enum_base_t>(
+									kotek::core::eConsoleCommandIndex::
+										kConsoleCommand_SDK_DeleteEntity),
+								{{static_cast<kotek::uint32_t>(
+									this->m_selected_entity_id)}});
+						}
+					}
+				}
+			}
+
+			if (p_wrapper_imgui->BeginTable("", 1))
+			{
+				char table_column_name[32]{};
+				kotek::ktk::sprintf(table_column_name,
+					sizeof(table_column_name), "Entity ID [%zu]",
+					this->m_amount_of_entites);
+				p_wrapper_imgui->TableSetupColumn(
+					table_column_name, ImGuiTableColumnFlags_WidthStretch);
+				p_wrapper_imgui->TableHeadersRow();
+
+				kotek::size_t i = 0;
+				for (auto id : ids)
+				{
+					p_wrapper_imgui->TableNextRow();
+					p_wrapper_imgui->TableSetColumnIndex(0);
+
+					kotek::static_cstring_t<128> converted_id;
+
+					bool has_sdk_name =
+						p_game_manager->get_factory_game()
+							->HasComponent<zircon_component_sdk_scene_name>(id);
+					if (has_sdk_name)
+					{
+						auto component =
+							p_game_manager->get_factory_game()
+								->GetComponent<
+
+									zircon_component_sdk_scene_name>(id);
+
+						converted_id = kotek::ktk::static_format<128>(
+							"[{}]", component.get_name());
+					}
+					else
+					{
+						converted_id = Kotek::ktk::static_format<128>(
+							"{}", static_cast<kotek::uint32_t>(id));
+					}
+
+					if (p_wrapper_imgui->Selectable(converted_id.c_str(),
+							id == this->m_selected_entity_id))
+					{
+						this->m_selected_entity_id = id;
+						p_game_manager->get_sdk_ui()->set_selected_entity(
+							this->m_selected_entity_id);
+					}
+
+					if (has_sdk_name)
+					{
+						p_wrapper_imgui->SameLine();
+						p_wrapper_imgui->TextDisabled(
+							"(%d)", static_cast<kotek::uint32_t>(id));
+					}
+
+					++i;
+				}
+
+				this->m_amount_of_entites = i;
+				p_wrapper_imgui->EndTable();
+			}
+		}
+
+		p_wrapper_imgui->End();
+	}
+}
+
+int zircon_sdk_ui_object_list::Get_ID(void) const
+{
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_ObjectList);
+}
+
+void zircon_sdk_ui_object_list::Show(void)
+{
+	this->m_is_show_window = true;
+}
+
+void zircon_sdk_ui_object_list::Hide(void)
+{
+	this->m_is_show_window = false;
+}
+
+bool zircon_sdk_ui_object_list::Is_Shown(void) const
+{
+	return this->m_is_show_window;
+}

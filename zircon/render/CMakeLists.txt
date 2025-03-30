@@ -116,6 +116,8 @@ add_library(${PROJECT_NAME} STATIC
 
 # TODO: add if when game.ktk builds as shared
 
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine/render")
+
 if (UNIX)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -136,4 +138,5 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<ko
 
 target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
 target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs.components)
+target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)
 target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render)

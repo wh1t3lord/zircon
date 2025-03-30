@@ -7,6 +7,11 @@ import clang.cindex
 from clang.cindex import Config, Index, CursorKind, TranslationUnit, TokenKind
 import datetime
 
+class Pair:
+    def __init__(self, first: str, second: str):
+        self.first = first
+        self.second = second
+
 class FieldEncoder:
     CHARSET = '0123456789abcdefghijklmnopqrstuvwxyz'
     
@@ -42,6 +47,8 @@ class HeaderGenerator:
         self.output_release = []
         self.unit_test_release_map = {}
         self.unit_test_str = []
+        self.helper_str = []
+        self.helper_map = {}
         self.repeated = []
         self.release_field_length = 3
         self.configure_libclang()
@@ -123,6 +130,7 @@ class HeaderGenerator:
         self.unit_test_release_map[class_name] = []
         self.output_debug.append(f"// {class_name}")
         self.output_release.append(f"// {class_name}")
+        self.helper_map[class_name] = []
         for child in class_cursor.get_children():
             if child.kind == CursorKind.FIELD_DECL:
                 self.add_field_macro(clean_class, child, current_field_index)
@@ -140,14 +148,16 @@ class HeaderGenerator:
         release_value = f'"{FieldEncoder.encode(numeric_id, length=self.release_field_length)}"'
         
         self.output_debug.append(
-            f"#define ZIRCON_DEF_{class_name.upper()}_FIELD_{field_name.upper()} {debug_value} // {field_index}"
+            f"// {field_index} = {field_name} \n#define ZIRCON_DEF_EDITOR_{class_name.upper()}_FIELD_{field_name.upper()} {debug_value}"
         )
         self.output_release.append(
-            f"#define ZIRCON_DEF_{class_name.upper()}_FIELD_{field_name.upper()} {release_value} // {field_index}"
+            f"// {field_index} = {field_name} \n#define ZIRCON_DEF_GAME_{class_name.upper()}_FIELD_{field_name.upper()} {release_value}"
         )
 
+        self.helper_map[class_name].append(Pair(debug_value, release_value))
+
         self.unit_test_release_map[class_name].append(
-            f"ZIRCON_DEF_{class_name.upper()}_FIELD_{field_name.upper()}"
+            f"ZIRCON_DEF_GAME_{class_name.upper()}_FIELD_{field_name.upper()}"
         )
 
     def generate_unit_test(self):
@@ -162,13 +172,92 @@ class HeaderGenerator:
                             if i < self.release_field_length - 1:
                                 build_expression += "|| "
 
-                        self.unit_test_str.append(f"static_assert({build_expression}, \"Field ID collision report to developers!\")")
+                        self.unit_test_str.append(f"static_assert({build_expression}, \"Field ID collision report to developers!\");")
+    def generate_helper(self):
+        self.helper_str=""
+        template_header_str = f"template<kun_kotek templated_constexpr_string_t<{self.release_field_length+1}> field>" # \0 including by plusing +1
+
+      #  for i in range(self.release_field_length):
+    #        template_header_str += f"char C{i}"
+    #        if i < self.release_field_length - 1:
+   #             template_header_str += ", "
+        #template_header_str += ">"
+
+        for class_name, fields in self.helper_map.items():
+            if len(fields) == 0:
+                continue
+
+            self.helper_str += f"\n/* {class_name.upper()}*/\n\n"
+            self.helper_str += f"{template_header_str} inline constexpr const char* zircon_decode_encoded_field_for_{class_name}(void) noexcept"
+            self.helper_str += "\n{\n"
+            self.helper_str += "\tif (std::is_constant_evaluated()) \n\t{\n"
+            index = 0
+            static_assert_str = "static_assert("
+
+            total_fields_count = len(fields)
+            current_field_index = 0
+            for pair in fields:
+
+                if (index > 0):
+                    self.helper_str += "\t\telse if constexpr ("
+                else:
+                    self.helper_str += "\t\tif constexpr ("
+                static_assert_str += " ("
+                init_arg = "{"
+                init_arg += f"{pair.second}"
+                init_arg += "}"
+                self.helper_str += f"field == kun_kotek templated_constexpr_string_t{init_arg}"
+                static_assert_str += f"(field == kun_kotek templated_constexpr_string_t{init_arg})"
+                static_assert_str += ") "
+
+                self.helper_str += "){ "
+                self.helper_str += f"\treturn {pair.first};"
+                self.helper_str += " }\n"
+                index += 1
+                current_field_index += 1
+                if current_field_index < total_fields_count:
+                    static_assert_str += " || "
+            static_assert_str += f", \"Unknown field for {class_name}\"); "
+            self.helper_str += "\t\telse { "
+            self.helper_str += f"{static_assert_str}"
+            self.helper_str += f"\treturn \"NOT_EXISTED_FIELD_FOR_{class_name.upper()}_OR_DIFFERET_VERSION_OR_KIND_OF_ENGINE\";"
+            self.helper_str += "}\n"
+            # end of compile time block of function
+
+            # begin of runtime block of function
+
+            self.helper_str += "\t}\n\telse \n\t{\n"
+            index = 0
+            for pair in fields:
+                if index > 0:
+                    self.helper_str += "\t\telse if ("
+                else:
+                    self.helper_str += "\t\tif ("
+
+                init_arg = "{"
+                init_arg += f"{pair.second}"
+                init_arg += "}"
+
+                self.helper_str += f"field.str == std::string_view{init_arg}"
+                self.helper_str += ") {"
+                self.helper_str += f"\t return {pair.first};"
+                self.helper_str += " }\n"
+                index += 1
+
+            self.helper_str += "\t\telse {"
+            self.helper_str += f"\t KOTEK_ASSERT(false, \"failed to obtain field probably different versions of engine?\"); return \"NOT_EXISTED_FIELD_FOR_{class_name.upper()}_OR_DIFFERET_VERSION_OR_KIND_OF_ENGINE\";"
+            self.helper_str += "}"
+            self.helper_str += "\n\t}\n"
+            self.helper_str += "}\n"
+
+            self.helper_str += f"\n/* {class_name.upper()}*/\n\n"
 
 
     def generate_header(self, output_path):
         """Write generated macros to file"""
         now = datetime.datetime.now()
         self.generate_unit_test()
+        self.generate_helper()
 
         content = [
             f"/*",
@@ -178,13 +267,12 @@ class HeaderGenerator:
             "\tdate: " + now.strftime("%m/%d/%Y, %H:%M:%S"),
             "\tATTENTION: Auto-generated field definitions - DO NOT EDIT!",
             f"*/",
-            "#pragma once",
-            "#ifdef KOTEK_DEBUG"
+            "#pragma once"
         ] + self.output_debug + [
-            "#else",
+
         ] + self.output_release + self.unit_test_str + [
-            "#endif"
-        ]
+            
+        ] + [self.helper_str]
         
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text('\n'.join(content))

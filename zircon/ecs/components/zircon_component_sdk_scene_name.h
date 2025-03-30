@@ -47,13 +47,13 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 {
 	Kotek::ktk::json::object info;
 
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_IS_ENABLED] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_NAME] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_NAME] =
 		data.get_name();
 
 	#ifdef KOTEK_DEBUG
-	info[ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_COMPONENT_TYPE] =
+	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_COMPONENT_TYPE] =
 		data.get_component_type();
 	#endif
 
@@ -69,15 +69,15 @@ inline zircon_component_sdk_scene_name tag_invoke(
 	zircon_component_sdk_scene_name result;
 
 	result.set_enabled(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_IS_ENABLED).as_bool());
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_IS_ENABLED).as_bool());
 	result.set_name(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_NAME)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_NAME)
 			.as_string()
 			.c_str());
 
 	#ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		data.at(ZIRCON_DEF_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_COMPONENT_TYPE)
+		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_SDK_SCENE_NAME_FIELD_M_COMPONENT_TYPE)
 				.to_number<kotek::uint8_t>() == result.get_component_type(),
 		"component type is not equal, data corruption?");
 	#endif

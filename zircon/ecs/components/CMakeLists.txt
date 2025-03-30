@@ -260,6 +260,8 @@ add_custom_command(
 )
 # TODO: add if when game.ktk builds as shared
 
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine/ecs")
+
 if (UNIX)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()

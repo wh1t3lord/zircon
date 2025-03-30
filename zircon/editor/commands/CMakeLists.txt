@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19.3)
 
-project(zircon.ecs.systems VERSION 1 LANGUAGES CXX)
+project(zircon.editor.commands VERSION 1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,8 +8,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(to_include_module_files 
-	"zircon_ecs_systems.h"
-	"main_ecs_dll.cpp"
+	"zircon_command_history.h"
+	"zircon_command_history.cpp"
+	"zircon_command_add_component_to_entity.h"
+	"zircon_command_add_component_to_entity.cpp"
+	"zircon_command_delete_component_from_entity.h"
+	"zircon_command_delete_component_from_entity.cpp"
+	"zircon_command_create_entity.h"
+	"zircon_command_create_entity.cpp"
+	"zircon_command_delete_entity.h"
+	"zircon_command_delete_entity.cpp"
+	"zircon_command_definitions.h"
+	"main_editor_dll.cpp"
 )
 
 
@@ -18,7 +28,7 @@ add_library(${PROJECT_NAME} STATIC
 )
 
 # TODO: add if when game.ktk builds as shared
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine/ecs")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine/editor")
 if (UNIX)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
