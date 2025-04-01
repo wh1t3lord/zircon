@@ -850,7 +850,8 @@ sdk::ui::zircon_frame* zircon_manager_game::GetMainWindow(void) const noexcept
 }
 #endif
 
-zircon_editor_ui_state_interface* zircon_manager_game::get_sdk_ui(void) const noexcept
+zircon_editor_ui_state_interface* zircon_manager_game::get_sdk_ui(
+	void) const noexcept
 {
 	return this->m_p_sdk_ui_manager;
 }
@@ -1094,7 +1095,7 @@ void zircon_manager_game::Destroy_Factory(void) noexcept
 
 void zircon_manager_game::Initialize_SceneManager(void) noexcept
 {
-	this->m_p_scene_manager = new zircon_world_manager(this->m_p_factory, this);
+	this->m_p_scene_manager = new zircon_world_manager(this->m_p_factory);
 
 	this->m_p_scene_manager->Initialize();
 }
@@ -1820,7 +1821,9 @@ void zircon_manager_game::Initialize_Session(void) noexcept
 			"you must initialize scene");
 
 		this->m_p_session_editor->initialize(
-			this->m_p_scene_manager->GetCurrentScene(), this);
+			this->m_p_scene_manager->GetCurrentScene(), this->m_p_main_manager,
+			this->m_p_editor_history_manager, this->m_p_factory,
+			this->m_p_console);
 	}
 	else
 	{
