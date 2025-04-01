@@ -1,6 +1,6 @@
 #include "zircon_world.h"
 #include "../ecs/components/zircon_factory.h"
-#include "../core/zircon_sdk_ui.h"
+#include "../editor/ui/zircon_editor_ui_state.h"
 
 zircon_world::zircon_world(void) :
 	m_actor_entity_id{}, m_p_game_factory{}

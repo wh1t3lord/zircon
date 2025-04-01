@@ -6,11 +6,11 @@ class zircon_world_manager;
 class zircon_factory_game;
 enum zircon_component_type_t;
 
-class zircon_command_history : public kotek::core::ktkISDKCommandHistoryManager
+class zircon_editor_command_history : public kotek::core::ktkISDKCommandHistoryManager
 {
 public:
-	zircon_command_history(void);
-	~zircon_command_history(void);
+	zircon_editor_command_history(void);
+	~zircon_editor_command_history(void);
 
 	void initialize(kotek::core::ktkIFileSystem* p_filesystem,
 		zircon_world_manager* p_scene_manager,

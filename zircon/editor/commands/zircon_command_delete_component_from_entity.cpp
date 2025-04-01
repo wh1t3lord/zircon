@@ -1,5 +1,5 @@
 #include "zircon_command_delete_component_from_entity.h"
-#include "../ecs/components/zircon_factory.h"
+#include "../../ecs/components/zircon_factory.h"
 
 // TODO: remove all cstring to static_cstring containers!!!
 zircon_command_delete_component_from_entity::

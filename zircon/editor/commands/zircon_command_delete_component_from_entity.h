@@ -1,7 +1,7 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
-#include "../ecs/components/zircon_component_interface.h"
+#include "../../ecs/components/zircon_component_interface.h"
 
 class zircon_factory_game;
 

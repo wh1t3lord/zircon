@@ -1,5 +1,5 @@
 #include "zircon_command_add_component_to_entity.h"
-#include "../ecs/components/zircon_factory.h"
+#include "../../ecs/components/zircon_factory.h"
 
 zircon_command_add_component_to_entity::zircon_command_add_component_to_entity(
 	zircon_factory_game* p_factory, entt::entity id,

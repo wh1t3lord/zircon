@@ -8,11 +8,11 @@ class ktkMainManager;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
-class zircon_sdk_ui_window_log : public kotek::core::ktkISDKUIElement
+class zircon_editor_ui_state_window_log : public kotek::core::ktkISDKUIElement
 {
 public:
-	zircon_sdk_ui_window_log();
-	~zircon_sdk_ui_window_log();
+	zircon_editor_ui_state_window_log();
+	~zircon_editor_ui_state_window_log();
 
 	void initialize(void) override;
 	void shutdown(void) override;

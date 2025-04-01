@@ -1,5 +1,5 @@
 #include "zircon_ui_window_render_stats.h"
-#include "../../../core/zircon_sdk_ui.h"
+#include "zircon_editor_ui_state.h"
 
 zircon_ui_window_render_stats::zircon_ui_window_render_stats() :
 	m_is_show_window(false)

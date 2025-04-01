@@ -1,7 +1,6 @@
 #include "zircon_component_geometry.h"
-#include "../../game/zircon_game_manager.h"
-#include "../../core/zircon_sdk_ui.h"
-
+#include "../../engine/zircon_game_manager.h"
+#include "../../editor/ui/zircon_editor_ui_state.h"
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
 zircon_component_geometry::zircon_component_geometry(void) :

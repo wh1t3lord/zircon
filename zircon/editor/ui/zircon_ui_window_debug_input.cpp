@@ -1,19 +1,19 @@
 #include "zircon_ui_window_debug_input.h"
-#include "../../../core/zircon_sdk_ui.h"
-#include "../../zircon_game_manager.h"
+#include "zircon_editor_ui_state.h"
+#include "../../engine/zircon_game_manager.h"
 
-zircon_sdk_ui_window_debug_input::zircon_sdk_ui_window_debug_input() :
+zircon_editor_ui_state_window_debug_input::zircon_editor_ui_state_window_debug_input() :
 	m_is_show_window{}, m_state_keys_buffer{}
 {
 }
 
-zircon_sdk_ui_window_debug_input::~zircon_sdk_ui_window_debug_input() {}
+zircon_editor_ui_state_window_debug_input::~zircon_editor_ui_state_window_debug_input() {}
 
-void zircon_sdk_ui_window_debug_input::initialize(void) {}
+void zircon_editor_ui_state_window_debug_input::initialize(void) {}
 
-void zircon_sdk_ui_window_debug_input::shutdown(void) {}
+void zircon_editor_ui_state_window_debug_input::shutdown(void) {}
 
-void zircon_sdk_ui_window_debug_input::Draw(
+void zircon_editor_ui_state_window_debug_input::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	if (!p_main_manager)
@@ -28,7 +28,7 @@ void zircon_sdk_ui_window_debug_input::Draw(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"engine: doesn't have initialize input manager (nullptr). Can't "
-			"open window = zircon_sdk_ui_window_debug_input");
+			"open window = zircon_editor_ui_state_window_debug_input");
 		return;
 	}
 
@@ -81,22 +81,22 @@ void zircon_sdk_ui_window_debug_input::Draw(
 	}
 }
 
-int zircon_sdk_ui_window_debug_input::Get_ID(void) const
+int zircon_editor_ui_state_window_debug_input::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Debug_Input);
 }
 
-void zircon_sdk_ui_window_debug_input::Show(void)
+void zircon_editor_ui_state_window_debug_input::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_sdk_ui_window_debug_input::Hide(void)
+void zircon_editor_ui_state_window_debug_input::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_sdk_ui_window_debug_input::Is_Shown(void) const
+bool zircon_editor_ui_state_window_debug_input::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }

@@ -1,10 +1,10 @@
 #pragma once
 
-class zircon_sdk_ui_window_prefab : public Kotek::Core::ktkISDKUIElement
+class zircon_editor_ui_state_window_prefab : public Kotek::Core::ktkISDKUIElement
 {
 public:
-	zircon_sdk_ui_window_prefab(void);
-	~zircon_sdk_ui_window_prefab(void);
+	zircon_editor_ui_state_window_prefab(void);
+	~zircon_editor_ui_state_window_prefab(void);
 
 	void initialize(void) override;
 	void shutdown(void) override;

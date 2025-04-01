@@ -1,33 +1,33 @@
 #include "zircon_game_manager.h"
 #include "../ecs/components/zircon_factory.h"
 #include "zircon_resource_manager.h"
-#include "zircon_world_manager.h"
-#include "zircon_session_editor.h"
+#include "../world/zircon_world_manager.h"
+#include "../editor/zircon_session_editor.h"
 #include "zircon_session_game.h"
 
-#include "ui/ImGui/zircon_ui_component_inspector.h"
-#include "ui/ImGui/zircon_ui_object_list.h"
-#include "ui/ImGui/zircon_ui_top_bar.h"
-#include "ui/ImGui/zircon_ui_window_prefab.h"
-#include "ui/ImGui/zircon_ui_window_prefab_browser.h"
-#include "ui/ImGui/zircon_ui_window_history_command_log.h"
-#include "ui/ImGui/zircon_ui_window_log.h"
-#include "ui/ImGui/zircon_ui_window_render_stats.h"
-#include "ui/ImGui/zircon_ui_window_settings.h"
-#include "ui/ImGui/zircon_ui_window_debug_input.h"
+#include "../editor/ui/zircon_ui_component_inspector.h"
+#include "../editor/ui/zircon_ui_object_list.h"
+#include "../editor/ui/zircon_ui_top_bar.h"
+#include "../editor/ui/zircon_ui_window_prefab.h"
+#include "../editor/ui/zircon_ui_window_prefab_browser.h"
+#include "../editor/ui/zircon_ui_window_history_command_log.h"
+#include "../editor/ui/zircon_ui_window_log.h"
+#include "../editor/ui/zircon_ui_window_render_stats.h"
+#include "../editor/ui/zircon_ui_window_settings.h"
+#include "../editor/ui/zircon_ui_window_debug_input.h"
 
-#include "ui/Manager/zircon_sdk_ui.h"
+#include "../editor/ui/zircon_editor_ui_state.h"
 
-#include "../core/zircon_sdk_ui.h"
+#include "../editor/ui/zircon_editor_ui_state.h"
 
 #include "../render/gles3/zircon_renderer.h"
 #include "../render/vk/zircon_renderer.h"
 
-#include "zircon_command_history.h"
-#include "zircon_command_create_entity.h"
-#include "zircon_command_delete_entity.h"
-#include "zircon_command_delete_component_from_entity.h"
-#include "zircon_command_add_component_to_entity.h"
+#include "../editor/commands/zircon_command_history.h"
+#include "../editor/commands/zircon_command_create_entity.h"
+#include "../editor/commands/zircon_command_delete_entity.h"
+#include "../editor/commands/zircon_command_delete_component_from_entity.h"
+#include "../editor/commands/zircon_command_add_component_to_entity.h"
 #include "../core/zircon_config.h"
 #include "../core/zircon_console.h"
 
@@ -820,10 +820,10 @@ kotek::core::ktkMainManager* zircon_manager_game::GetMainManager(
 	return this->m_p_main_manager;
 }
 
-zircon_command_history* zircon_manager_game::GetCommandHistoryManager(
+zircon_editor_command_history* zircon_manager_game::GetCommandHistoryManager(
 	void) const noexcept
 {
-	return this->m_p_sdk_history_manager;
+	return this->m_p_editor_history_manager;
 }
 
 zircon_interface_session* zircon_manager_game::GetSession_Editor(
@@ -850,7 +850,7 @@ sdk::ui::zircon_frame* zircon_manager_game::GetMainWindow(void) const noexcept
 }
 #endif
 
-zircon_sdk_ui_interface* zircon_manager_game::get_sdk_ui(void) const noexcept
+zircon_editor_ui_state_interface* zircon_manager_game::get_sdk_ui(void) const noexcept
 {
 	return this->m_p_sdk_ui_manager;
 }
@@ -899,17 +899,17 @@ void zircon_manager_game::Initialize_Renderer(void) noexcept
 
 	// TODO: think about ImGui preprocessor...
 	kotek::ktk::vector<kotek::core::ktkISDKUIElement*> elements;
-	elements.push_back(new zircon_sdk_ui_object_list());
-	elements.push_back(new zircon_sdk_ui_top_bar());
-	elements.push_back(new zircon_sdk_ui_window_prefab());
-	elements.push_back(new zircon_sdk_ui_component_inspector(
+	elements.push_back(new zircon_editor_ui_state_object_list());
+	elements.push_back(new zircon_editor_ui_state_top_bar());
+	elements.push_back(new zircon_editor_ui_state_window_prefab());
+	elements.push_back(new zircon_editor_ui_state_component_inspector(
 		this->m_p_sdk_ui_manager, this->m_p_factory));
-	elements.push_back(new zircon_sdk_ui_window_log());
+	elements.push_back(new zircon_editor_ui_state_window_log());
 	elements.push_back(new zircon_ui_window_history_command_log(
-		this->m_p_sdk_history_manager));
+		this->m_p_editor_history_manager));
 	elements.push_back(new zircon_ui_window_render_stats());
 	elements.push_back(new zircon_ui_window_settings());
-	elements.push_back(new zircon_sdk_ui_window_debug_input());
+	elements.push_back(new zircon_editor_ui_state_window_debug_input());
 
 	auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
 
@@ -1491,10 +1491,10 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 
 		auto* p_session = this->m_p_session_editor;
 
-		KOTEK_ASSERT(this->m_p_sdk_history_manager,
+		KOTEK_ASSERT(this->m_p_editor_history_manager,
 			"you must initialize command history manager");
 
-		auto* p_history_manager = this->m_p_sdk_history_manager;
+		auto* p_history_manager = this->m_p_editor_history_manager;
 
 		this->m_p_console->Register_Command(
 			[p_session, this](kotek::static_path_t path_to_file) -> bool
@@ -1794,7 +1794,7 @@ void zircon_manager_game::Initialize_SDKUIManager(
 		new sdk::ui::zircon_SDKUIManager(this->m_is_use_sdk,
 			this->m_is_use_sdk_imgui, this->m_p_sdk_main_window);
 #else
-	this->m_p_sdk_ui_manager = new zircon_sdk_ui();
+	this->m_p_sdk_ui_manager = new zircon_editor_ui_state();
 	this->m_p_sdk_ui_manager->initialize(p_factory);
 #endif
 }
@@ -1867,20 +1867,20 @@ void zircon_manager_game::Destroy_Session(void) noexcept
 
 void zircon_manager_game::Initialize_HistoryCommandManager(void) noexcept
 {
-	this->m_p_sdk_history_manager = new zircon_command_history();
-	this->m_p_sdk_history_manager->initialize(
+	this->m_p_editor_history_manager = new zircon_editor_command_history();
+	this->m_p_editor_history_manager->initialize(
 		this->m_p_main_manager->GetFileSystem(), this->m_p_scene_manager,
 		this->m_p_factory, this->m_p_main_manager->GetResourceManager());
 }
 
 void zircon_manager_game::Destroy_HistoryCommandManager(void) noexcept
 {
-	if (this->m_p_sdk_history_manager)
+	if (this->m_p_editor_history_manager)
 	{
-		this->m_p_sdk_history_manager->shutdown();
+		this->m_p_editor_history_manager->shutdown();
 
-		delete this->m_p_sdk_history_manager;
-		this->m_p_sdk_history_manager = nullptr;
+		delete this->m_p_editor_history_manager;
+		this->m_p_editor_history_manager = nullptr;
 	}
 }
 

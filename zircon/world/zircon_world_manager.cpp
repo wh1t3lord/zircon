@@ -15,7 +15,7 @@ void zircon_world_manager::Initialize()
 	this->m_p_current_scene = &this->m_scenes.back();
 
 	this->m_p_current_scene->Initialize(
-		this->m_p_game_factory, this->m_p_game_manager);
+		this->m_p_game_factory);
 }
 
 void zircon_world_manager::Shutdown(void)

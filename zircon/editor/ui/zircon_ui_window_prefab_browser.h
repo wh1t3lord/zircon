@@ -1,10 +1,10 @@
 #pragma once
 
-class zircon_sdk_ui_window_prefab_browser
+class zircon_editor_ui_state_window_prefab_browser
 {
 public:
-	zircon_sdk_ui_window_prefab_browser(void);
-	~zircon_sdk_ui_window_prefab_browser(void);
+	zircon_editor_ui_state_window_prefab_browser(void);
+	~zircon_editor_ui_state_window_prefab_browser(void);
 
  
 

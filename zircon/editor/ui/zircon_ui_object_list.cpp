@@ -1,21 +1,21 @@
 #include "zircon_ui_object_list.h"
-#include "../../../ecs/components/zircon_factory.h"
-#include "../../zircon_game_manager.h"
-#include "../../zircon_world_manager.h"
-#include "../../../core/zircon_sdk_ui.h"
+#include "../../ecs/components/zircon_factory.h"
+#include "../../engine/zircon_game_manager.h"
+#include "../../world/zircon_world_manager.h"
+#include "zircon_editor_ui_state.h"
 
-zircon_sdk_ui_object_list::zircon_sdk_ui_object_list(void) :
+zircon_editor_ui_state_object_list::zircon_editor_ui_state_object_list(void) :
 	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{}
 {
 }
 
-zircon_sdk_ui_object_list::~zircon_sdk_ui_object_list(void) {}
+zircon_editor_ui_state_object_list::~zircon_editor_ui_state_object_list(void) {}
 
-void zircon_sdk_ui_object_list::initialize(void) {}
+void zircon_editor_ui_state_object_list::initialize(void) {}
 
-void zircon_sdk_ui_object_list::shutdown(void) {}
+void zircon_editor_ui_state_object_list::shutdown(void) {}
 
-void zircon_sdk_ui_object_list::Draw(
+void zircon_editor_ui_state_object_list::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	auto* p_game_manager =
@@ -136,22 +136,22 @@ void zircon_sdk_ui_object_list::Draw(
 	}
 }
 
-int zircon_sdk_ui_object_list::Get_ID(void) const
+int zircon_editor_ui_state_object_list::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_ObjectList);
 }
 
-void zircon_sdk_ui_object_list::Show(void)
+void zircon_editor_ui_state_object_list::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_sdk_ui_object_list::Hide(void)
+void zircon_editor_ui_state_object_list::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_sdk_ui_object_list::Is_Shown(void) const
+bool zircon_editor_ui_state_object_list::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }

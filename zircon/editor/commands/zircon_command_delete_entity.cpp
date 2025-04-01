@@ -1,10 +1,10 @@
 #include "zircon_command_delete_entity.h"
-#include "../ecs/components/zircon_factory.h"
-#include "zircon_world.h"
-#include "zircon_command_history.h"
+#include "../../ecs/components/zircon_factory.h"
+#include "../../world/zircon_world.h"
+#include "../commands/zircon_command_history.h"
 
 zircon_command_delete_entity::zircon_command_delete_entity(
-	zircon_command_history* p_history, zircon_world* p_scene,
+	zircon_editor_command_history* p_history, zircon_world* p_scene,
 	zircon_factory_game* p_factory, entt::entity entity_to_delete) :
 	m_p_history{p_history},
 	m_p_scene{p_scene}, m_p_factory{p_factory},

@@ -1,10 +1,10 @@
 #pragma once
 
-class zircon_sdk_ui_window_sound : public Kotek::Core::ktkISDKUIElement
+class zircon_editor_ui_state_window_sound : public Kotek::Core::ktkISDKUIElement
 {
 public:
-	zircon_sdk_ui_window_sound(void);
-	~zircon_sdk_ui_window_sound(void);
+	zircon_editor_ui_state_window_sound(void);
+	~zircon_editor_ui_state_window_sound(void);
 
 	void initialize(void) override;
 	void shutdown(void) override;

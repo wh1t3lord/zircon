@@ -1,10 +1,10 @@
 #pragma once
 
-class zircon_sdk_ui_top_bar : public kotek::core::ktkISDKUIElement
+class zircon_editor_ui_state_top_bar : public kotek::core::ktkISDKUIElement
 {
 public:
-	zircon_sdk_ui_top_bar(void);
-	~zircon_sdk_ui_top_bar(void);
+	zircon_editor_ui_state_top_bar(void);
+	~zircon_editor_ui_state_top_bar(void);
 
 	void initialize(void) override;
 	void shutdown(void) override;

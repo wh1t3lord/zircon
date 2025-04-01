@@ -10,7 +10,7 @@ namespace zircon
 			class zircon_RenderWindow;
 			class zircon_frame;
 		} // namespace ui
-	}     // namespace sdk
+	} // namespace sdk
 } // namespace zircon
 #endif
 
@@ -25,15 +25,15 @@ KOTEK_END_NAMESPACE_KOTEK
 enum eZirconGameFeatures;
 enum eZirconSDKFeatures;
 
-class zircon_command_history;
+class zircon_editor_command_history;
 class zircon_renderer_gles3;
 class zircon_resource_manager;
 class zircon_config;
 class zircon_factory_game;
 class zircon_world_manager;
 class zircon_interface_session;
-class zircon_sdk_ui_interface;
-class zircon_sdk_ui;
+class zircon_editor_ui_state_interface;
+class zircon_editor_ui_state;
 class zircon_session_game;
 class zircon_session_editor;
 
@@ -54,7 +54,7 @@ public:
 	sdk::ui::zircon_frame* GetMainWindow(void) const noexcept;
 #endif
 
-	zircon_sdk_ui_interface* get_sdk_ui(void) const noexcept;
+	zircon_editor_ui_state_interface* get_sdk_ui(void) const noexcept;
 
 	int GetWindowWidth(void) const noexcept override;
 	int GetWindowHeight(void) const noexcept override;
@@ -79,7 +79,7 @@ public:
 
 	kotek::core::ktkMainManager* GetMainManager(void) const noexcept;
 
-	zircon_command_history* GetCommandHistoryManager(void) const noexcept;
+	zircon_editor_command_history* GetCommandHistoryManager(void) const noexcept;
 
 	zircon_interface_session* GetSession_Editor(void) const noexcept;
 	zircon_interface_session* GetSession_Game(void) const noexcept;
@@ -149,12 +149,15 @@ private:
 	sdk::ui::zircon_frame* m_p_sdk_main_window;
 #endif
 
-	zircon_sdk_ui* m_p_sdk_ui_manager;
 	zircon_factory_game* m_p_factory;
 	zircon_world_manager* m_p_scene_manager;
 	zircon_resource_manager* m_p_resource_manager;
-	zircon_session_editor* m_p_session_editor;
 	zircon_session_game* m_p_session_game;
 	zircon_config* m_p_config;
-	zircon_command_history* m_p_sdk_history_manager;
+
+#ifdef KOTEK_USE_SDK_IMGUI
+	zircon_editor_ui_state* m_p_sdk_ui_manager;
+	zircon_session_editor* m_p_session_editor;
+	zircon_editor_command_history* m_p_editor_history_manager;
+#endif
 };

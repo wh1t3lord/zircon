@@ -1,27 +1,33 @@
 #include "zircon_session_editor.h"
 #include "../world/zircon_world.h"
-#include "zircon_game_manager.h"
 #include "../ecs/components/zircon_factory.h"
 
 #include "commands/zircon_command_history.h"
 
 zircon_session_editor::zircon_session_editor(void) :
 	m_is_change_title_once_for_editing_status{}, m_p_scene{},
-	m_p_game_manager{}, m_p_main_manager{}
+	m_p_command_history{}, m_p_factory_game{}, m_p_main_manager{}
 {
 }
 
 zircon_session_editor::~zircon_session_editor(void) {}
 
-void zircon_session_editor::initialize(
-	zircon_world* p_current_scene, zircon_manager_game* p_game_manager)
+void zircon_session_editor::initialize(zircon_world* p_current_scene,
+	kotek::core::ktkMainManager* p_main_manager,
+	zircon_editor_command_history* p_command_history,
+	zircon_factory_game* p_factory_game, kotek::core::ktkConsole* p_console)
 {
 	KOTEK_ASSERT(p_current_scene, "you can't pass an invalid scene");
-	KOTEK_ASSERT(p_game_manager, "you can't pass an invalid game manager");
+	KOTEK_ASSERT(p_main_manager, "must be valid!");
+	KOTEK_ASSERT(p_command_history, "must be valid!");
+	KOTEK_ASSERT(p_factory_game, "must be valid!");
+	KOTEK_ASSERT(p_console, "must be valid!");
 
 	this->m_p_scene = p_current_scene;
-	this->m_p_game_manager = p_game_manager;
-	this->m_p_main_manager = p_game_manager->GetMainManager();
+	this->m_p_main_manager = p_main_manager;
+	this->m_p_command_history = p_command_history;
+	this->m_p_factory_game = p_factory_game;
+	this->m_p_console = p_console;
 }
 
 void zircon_session_editor::shutdown(void)
@@ -31,9 +37,9 @@ void zircon_session_editor::shutdown(void)
 		this->m_p_scene->Shutdown();
 	}
 
-	if (this->m_p_game_manager->GetCommandHistoryManager())
+	if (this->m_p_command_history)
 	{
-		this->m_p_game_manager->GetCommandHistoryManager()->shutdown();
+		this->m_p_command_history->shutdown();
 	}
 }
 
@@ -78,8 +84,6 @@ void zircon_session_editor::Serialize(
 
 	this->m_p_main_manager->GetResourceManager()->Get_ResourceSaver()->Save(
 		copied, kotek::core::ktkResourceHandle(&output, true));
-
-	auto* p_factory = this->m_p_game_manager->get_factory_game();
 }
 
 void zircon_session_editor::Serialize_Settings(Kotek::Core::ktkFileText& output,
@@ -108,7 +112,7 @@ void zircon_session_editor::Deserialize_Settings(
 			formatted += settings.at("scene_name").as_string().c_str();
 			formatted += "]";
 
-			this->m_p_game_manager->GetConsole()->Execute_Command(
+			this->m_p_console->Execute_Command(
 				static_cast<Kotek::ktk::enum_base_t>(
 					Kotek::Core::eConsoleCommandIndex::
 						kConsoleCommand_App_AddTextToExistedWindowTitle),
@@ -122,30 +126,32 @@ void zircon_session_editor::Deserialize_Settings(
 void zircon_session_editor::Serialize_Entities(
 	Kotek::Core::ktkFileText& output) noexcept
 {
-	KOTEK_ASSERT(this->m_p_game_manager->get_factory_game(),
-		"you must initialize factory here");
+	KOTEK_ASSERT(this->m_p_factory_game, "early calling?");
 
-	auto p_factory = this->m_p_game_manager->get_factory_game();
-
-	Kotek::ktk::json::array all_entities;
-
-	const auto& entities = this->m_p_scene->GetEntities();
-	for (auto id : entities)
+	auto p_factory = this->m_p_factory_game;
+	if (p_factory)
 	{
-		Kotek::ktk::json::object entity;
-		auto all_components = p_factory->GetAllComponentsOfEntity(id);
+		Kotek::ktk::json::array all_entities;
 
-		for (const auto& [component_name,
-				 serialized_component_to_native_json_value] : all_components)
+		const auto& entities = this->m_p_scene->GetEntities();
+		for (auto id : entities)
 		{
-			entity[component_name.data()] =
-				serialized_component_to_native_json_value;
+			Kotek::ktk::json::object entity;
+			auto all_components = p_factory->GetAllComponentsOfEntity(id);
+
+			for (const auto& [component_name,
+					 serialized_component_to_native_json_value] :
+				all_components)
+			{
+				entity[component_name.data()] =
+					serialized_component_to_native_json_value;
+			}
+
+			all_entities.push_back(entity);
 		}
 
-		all_entities.push_back(entity);
+		output.Write("Entities", all_entities);
 	}
-
-	output.Write("Entities", all_entities);
 }
 
 void zircon_session_editor::Deserialize_Entities(
@@ -172,7 +178,7 @@ void zircon_session_editor::Deserialize_Entities(
 
 				auto id = this->m_p_scene->CreateEntity();
 
-				this->m_p_game_manager->get_factory_game()->CreateAllComponents(
+				this->m_p_factory_game->CreateAllComponents(
 					id, serialized_data);
 			}
 		}
@@ -196,70 +202,65 @@ void zircon_session_editor::Deserialize(
 
 void zircon_session_editor::update_component_input_sdk(void) noexcept
 {
-	if (this->m_p_game_manager)
+	auto* p_game_factory = this->m_p_factory_game;
+
+	if (p_game_factory)
 	{
-		auto* p_game_factory = this->m_p_game_manager->get_factory_game();
+		auto& registry = p_game_factory->GetRegistry();
 
-		if (p_game_factory)
+		auto entities = registry.view<zircon_component_sdk_input>();
+
+		if (!entities.empty())
 		{
-			auto& registry = p_game_factory->GetRegistry();
+			auto id = entities[0];
 
-			auto entities = registry.view<zircon_component_sdk_input>();
+			auto& component_input =
+				entities.get<zircon_component_sdk_input>(id);
 
-			if (!entities.empty())
+			auto& input = component_input.get_input();
+
+			auto status = component_input.get_input().is_key_holding(
+				kotek::core::eInputAllKeys::kCM_KEY_RIGHT);
+
+			if (status)
 			{
-				auto id = entities[0];
-
-				auto& component_input =
-					entities.get<zircon_component_sdk_input>(id);
-
-				auto& input = component_input.get_input();
-
-				auto status = component_input.get_input().is_key_holding(
-					kotek::core::eInputAllKeys::kCM_KEY_RIGHT);
-
-				if (status)
+				if (input.get_input_type() !=
+					static_cast<Kotek::ktk::enum_base_t>(
+						Kotek::Core::eInputType::kInputType_DisabledCursor))
 				{
-					if (input.get_input_type() !=
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eInputType::kInputType_DisabledCursor))
+					input.set_input_type(static_cast<Kotek::ktk::enum_base_t>(
+						Kotek::Core::eInputType::kInputType_DisabledCursor));
+
+					auto* p_console = this->m_p_console;
+
+					if (p_console)
 					{
-						input.set_input_type(
-							static_cast<Kotek::ktk::enum_base_t>(Kotek::Core::
-									eInputType::kInputType_DisabledCursor));
-
-						auto* p_console = this->m_p_game_manager->GetConsole();
-
-						if (p_console)
-						{
-							p_console->Push_Command(
-								static_cast<Kotek::ktk::enum_base_t>(
-									Kotek::Core::eConsoleCommandIndex::
-										kConsoleCommand_Input_Type),
-								{input.get_input_type()});
-						}
+						p_console->Push_Command(
+							static_cast<Kotek::ktk::enum_base_t>(
+								Kotek::Core::eConsoleCommandIndex::
+									kConsoleCommand_Input_Type),
+							{input.get_input_type()});
 					}
 				}
-				else
+			}
+			else
+			{
+				if (input.get_input_type() !=
+					static_cast<Kotek::ktk::enum_base_t>(
+						Kotek::Core::eInputType::kInputType_Cursor))
 				{
-					if (input.get_input_type() !=
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eInputType::kInputType_Cursor))
+					input.set_input_type(static_cast<Kotek::ktk::enum_base_t>(
+						Kotek::Core::eInputType::kInputType_Cursor));
+
+					auto* p_console = this->m_p_console;
+
+					if (p_console)
 					{
-						input.set_input_type(
+						p_console->Push_Command(
 							static_cast<Kotek::ktk::enum_base_t>(
-								Kotek::Core::eInputType::kInputType_Cursor));
-
-						auto* p_console = this->m_p_game_manager->GetConsole();
-
-						if (p_console)
-						{
-							p_console->Push_Command(
-								static_cast<Kotek::ktk::enum_base_t>(
-									Kotek::Core::eConsoleCommandIndex::
-										kConsoleCommand_Input_Type),
-								{input.get_input_type()});
-						}
+								Kotek::Core::eConsoleCommandIndex::
+									kConsoleCommand_Input_Type),
+							{input.get_input_type()});
 					}
 				}
 			}
@@ -269,13 +270,12 @@ void zircon_session_editor::update_component_input_sdk(void) noexcept
 
 void zircon_session_editor::update_editing_status(void) noexcept
 {
-	auto* p_command_history =
-		this->m_p_game_manager->GetCommandHistoryManager();
+	auto* p_command_history = this->m_p_command_history;
 
 	if (p_command_history->is_changed() &&
 		!this->m_is_change_title_once_for_editing_status)
 	{
-		this->m_p_game_manager->GetConsole()->Push_Command(
+		this->m_p_console->Push_Command(
 			static_cast<Kotek::ktk::enum_base_t>(
 				Kotek::Core::eConsoleCommandIndex::
 					kConsoleCommand_App_AddTextToExistedWindowTitle),
@@ -297,166 +297,158 @@ void zircon_session_editor::update_component_camera(void) noexcept {}
 
 void zircon_session_editor::update_component_camera_sdk(void) noexcept
 {
-	if (this->m_p_game_manager)
+	auto* p_game_factory = this->m_p_factory_game;
+
+	if (p_game_factory)
 	{
-		auto* p_game_factory = this->m_p_game_manager->get_factory_game();
+		auto& registry = p_game_factory->GetRegistry();
 
-		if (p_game_factory)
+		auto entities = registry.view<zircon_component_sdk_camera>();
+
+		KOTEK_ASSERT(
+			entities.size() <= 1, "you must have only one editor camera");
+
+		if (!entities.empty())
 		{
-			auto& registry = p_game_factory->GetRegistry();
+			auto id = entities[0];
 
-			auto entities = registry.view<zircon_component_sdk_camera>();
-
-			KOTEK_ASSERT(
-				entities.size() <= 1, "you must have only one editor camera");
-
-			if (!entities.empty())
+			if (p_game_factory->HasComponent<zircon_component_sdk_input>(id) &&
+				p_game_factory->HasComponent<zircon_component_transform>(id))
 			{
-				auto id = entities[0];
+				const auto& component_input =
+					p_game_factory->GetComponent<zircon_component_sdk_input>(
+						static_cast<entt::entity>(id));
 
-				if (p_game_factory->HasComponent<zircon_component_sdk_input>(
-						id) &&
-					p_game_factory->HasComponent<zircon_component_transform>(
-						id))
+				const auto& input = component_input.get_input();
+
+				auto& component_transform =
+					p_game_factory->GetComponent<zircon_component_transform>(
+						static_cast<entt::entity>(id));
+
+				auto& component_camera =
+					entities.get<zircon_component_sdk_camera>(id);
+				auto& camera = component_camera.get_camera();
+
+				auto pitch = camera.get_pitch();
+				auto yaw = camera.get_yaw();
+
+				if (input.is_key_holding(
+						kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
 				{
-					const auto& component_input =
-						p_game_factory
-							->GetComponent<zircon_component_sdk_input>(
-								static_cast<entt::entity>(id));
+					yaw += input.get_delta_x(kotek::core::eInputControllerType::
+								   kControllerMouse) *
+						input.get_sensetivity();
+					pitch += input.get_delta_y(kotek::core::
+									 eInputControllerType::kControllerMouse) *
+						input.get_sensetivity();
+				}
 
-					const auto& input = component_input.get_input();
+				if (pitch > 89.0f)
+					pitch = 89.0f;
 
-					auto& component_transform =
-						p_game_factory
-							->GetComponent<zircon_component_transform>(
-								static_cast<entt::entity>(id));
+				if (pitch < -89.0f)
+					pitch = -89.0f;
 
-					auto& component_camera =
-						entities.get<zircon_component_sdk_camera>(id);
-					auto& camera = component_camera.get_camera();
+				camera.set_pitch(pitch);
+				camera.set_yaw(yaw);
 
-					auto pitch = camera.get_pitch();
-					auto yaw = camera.get_yaw();
+				Kotek::ktk::math::vec3f_t front;
+
+				front.x() = cos(Kotek::ktk::math::convert_to_radians(yaw)) *
+					cos(Kotek::ktk::math::convert_to_radians(pitch));
+				front.y() = sin(Kotek::ktk::math::convert_to_radians(pitch));
+				front.z() = sin(Kotek::ktk::math::convert_to_radians(yaw)) *
+					cos(Kotek::ktk::math::convert_to_radians(pitch));
+				auto height = this->m_p_main_manager->Get_WindowManager()
+								  ->ActiveWindow_GetHeight();
+				auto width = this->m_p_main_manager->Get_WindowManager()
+								 ->ActiveWindow_GetWidth();
+
+				// TODO: projection update only when we zoom
+				camera.set_projection(Kotek::ktk::math::perspective(
+					Kotek::ktk::math::convert_to_radians(
+						camera.get_field_of_view()),
+					width / height, camera.get_plane_near(),
+					camera.get_plane_far()));
+				camera.set_view(Kotek::ktk::math::look_at(
+					component_transform.get_position(),
+					component_transform.get_position() + front,
+					{0.0f, 1.0f, 0.0f}));
+
+				if (input.is_key_holding(
+						kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
+				{
+					float movement_speed = 0.1f;
+					const kotek::ktk::math::vector3f& right =
+						kotek::ktk::math::cross(front,
+							kotek::ktk::math::vector3f(0.0f, 1.0f, 0.0f));
 
 					if (input.is_key_holding(
-							kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
+							kotek::core::eInputAllKeys::kCK_KEY_A,
+							ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
 					{
-						yaw += input.get_delta_x(kotek::core::
-									   eInputControllerType::kControllerMouse) *
-							input.get_sensetivity();
-						pitch +=
-							input.get_delta_y(kotek::core::
-									eInputControllerType::kControllerMouse) *
-							input.get_sensetivity();
+						component_transform.get_position() -=
+							right * movement_speed;
 					}
 
-					if (pitch > 89.0f)
-						pitch = 89.0f;
-
-					if (pitch < -89.0f)
-						pitch = -89.0f;
-
-					camera.set_pitch(pitch);
-					camera.set_yaw(yaw);
-
-					Kotek::ktk::math::vec3f_t front;
-
-					front.x() = cos(Kotek::ktk::math::convert_to_radians(yaw)) *
-						cos(Kotek::ktk::math::convert_to_radians(pitch));
-					front.y() =
-						sin(Kotek::ktk::math::convert_to_radians(pitch));
-					front.z() = sin(Kotek::ktk::math::convert_to_radians(yaw)) *
-						cos(Kotek::ktk::math::convert_to_radians(pitch));
-					auto height = this->m_p_main_manager->Get_WindowManager()
-									  ->ActiveWindow_GetHeight();
-					auto width = this->m_p_main_manager->Get_WindowManager()
-									 ->ActiveWindow_GetWidth();
-
-					// TODO: projection update only when we zoom
-					camera.set_projection(Kotek::ktk::math::perspective(
-						Kotek::ktk::math::convert_to_radians(
-							camera.get_field_of_view()),
-						width / height, camera.get_plane_near(),
-						camera.get_plane_far()));
-					camera.set_view(Kotek::ktk::math::look_at(
-						component_transform.get_position(),
-						component_transform.get_position() + front,
-						{0.0f, 1.0f, 0.0f}));
+					if (input.is_key_holding(
+							kotek::core::eInputAllKeys::kCK_KEY_D,
+							ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
+					{
+						component_transform.get_position() +=
+							right * movement_speed;
+					}
 
 					if (input.is_key_holding(
-							kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
+							kotek::core::eInputAllKeys::kCK_KEY_W,
+							ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
 					{
-						float movement_speed = 0.1f;
-						const kotek::ktk::math::vector3f& right = kotek::ktk::math::cross(
-							front, kotek::ktk::math::vector3f(0.0f,1.0f,0.0f));
+						component_transform.get_position() +=
+							front * movement_speed;
+					}
 
-						if (input.is_key_holding(
-								kotek::core::eInputAllKeys::kCK_KEY_A,
-								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
-						{
-							component_transform.get_position() -=
-								right * movement_speed;
-						}
-
-						if (input.is_key_holding(
-								kotek::core::eInputAllKeys::kCK_KEY_D,
-								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
-						{
-							component_transform.get_position() +=
-								right * movement_speed;
-						}
-
-						if (input.is_key_holding(
-								kotek::core::eInputAllKeys::kCK_KEY_W,
-								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
-						{
-							component_transform.get_position() +=
-								front * movement_speed;
-						}
-
-						if (input.is_key_holding(
-								kotek::core::eInputAllKeys::kCK_KEY_S,
-								ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
-						{
-							component_transform.get_position() -= front * movement_speed;
-						}
+					if (input.is_key_holding(
+							kotek::core::eInputAllKeys::kCK_KEY_S,
+							ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES))
+					{
+						component_transform.get_position() -=
+							front * movement_speed;
 					}
 				}
-				else
+			}
+			else
+			{
+				auto& component_camera =
+					entities.get<zircon_component_sdk_camera>(id);
+
+				if (!component_camera.is_initialized())
 				{
-					auto& component_camera =
-						entities.get<zircon_component_sdk_camera>(id);
-
-					if (!component_camera.is_initialized())
-					{
-						zircon_component_camera& camera =
-							component_camera.get_camera();
-
-						camera.set_pitch(0.0f);
-						camera.set_yaw(-90.0f);
-
-						component_camera.set_initialized(true);
-					}
-
 					zircon_component_camera& camera =
 						component_camera.get_camera();
 
-					auto width = this->m_p_main_manager->Get_WindowManager()
-									 ->ActiveWindow_GetWidth();
-					auto height = this->m_p_main_manager->Get_WindowManager()
-									  ->ActiveWindow_GetHeight();
+					camera.set_pitch(0.0f);
+					camera.set_yaw(-90.0f);
 
-					camera.set_projection(kotek::ktk::math::perspective(
-						kotek::ktk::math::convert_to_radians(
-							camera.get_field_of_view()),
-						width / height, camera.get_plane_near(),
-						camera.get_plane_far()));
-
-					camera.set_view(kotek::ktk::math::look_at(
-						kotek::ktk::math::vector3f(0.0f, 0.0f, 3.0f),
-						kotek::ktk::math::vector3f(0.0f, 0.0f, -3.0f),
-						kotek::ktk::math::vector3f(0.0f, 1.0f, 0.0f)));
+					component_camera.set_initialized(true);
 				}
+
+				zircon_component_camera& camera = component_camera.get_camera();
+
+				auto width = this->m_p_main_manager->Get_WindowManager()
+								 ->ActiveWindow_GetWidth();
+				auto height = this->m_p_main_manager->Get_WindowManager()
+								  ->ActiveWindow_GetHeight();
+
+				camera.set_projection(kotek::math::perspective(
+					kotek::math::convert_to_radians(
+						camera.get_field_of_view()),
+					width / height, camera.get_plane_near(),
+					camera.get_plane_far()));
+
+				camera.set_view(kotek::ktk::math::look_at(
+					kotek::math::vector3f(0.0f, 0.0f, 3.0f),
+					kotek::math::vector3f(0.0f, 0.0f, -3.0f),
+					kotek::math::vector3f(0.0f, 1.0f, 0.0f)));
 			}
 		}
 	}

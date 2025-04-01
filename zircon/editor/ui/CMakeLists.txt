@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(to_include_module_files 
-	"zircon_sdk_ui.h"
-	"zircon_sdk_ui.cpp"
+	"zircon_editor_ui_state.h"
+	"zircon_editor_ui_state.cpp"
 	"zircon_ui_top_bar.h"
 	"zircon_ui_top_bar.cpp"
 	"zircon_ui_object_list.cpp"

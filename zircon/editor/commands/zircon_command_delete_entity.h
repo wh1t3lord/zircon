@@ -1,10 +1,10 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
-#include "../ecs/components/zircon_factory_definitions.h"
+#include "../../ecs/components/zircon_factory_definitions.h"
 
 class zircon_factory_game;
-class zircon_command_history;
+class zircon_editor_command_history;
 class zircon_world;
 
 enum zircon_component_type_t;
@@ -14,7 +14,7 @@ enum zircon_component_type_t;
 class zircon_command_delete_entity : public kotek::core::ktkISDKRedoUndo
 {
 public:
-	zircon_command_delete_entity(zircon_command_history* p_history,
+	zircon_command_delete_entity(zircon_editor_command_history* p_history,
 		zircon_world* p_scene, zircon_factory_game* p_factory,
 		entt::entity entity_to_delete);
 
@@ -33,7 +33,7 @@ public:
 	void Deserialize(const kotek::json::object& json_data) noexcept;
 
 private:
-	zircon_command_history* m_p_history;
+	zircon_editor_command_history* m_p_history;
 	zircon_world* m_p_scene;
 	zircon_factory_game* m_p_factory;
 	entt::entity m_entity_created;

@@ -1,7 +1,7 @@
 #include "zircon_ui_window_settings.h"
-#include "../../zircon_game_manager.h"
-#include "../../../core/zircon_config.h"
-#include "../../../core/zircon_sdk_ui.h"
+#include "../../engine/zircon_game_manager.h"
+#include "../../core/zircon_config.h"
+#include "zircon_editor_ui_state.h"
 
 zircon_ui_window_settings::zircon_ui_window_settings(void) :
 	m_is_window_show(false)

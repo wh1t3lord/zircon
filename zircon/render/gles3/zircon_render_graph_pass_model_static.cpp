@@ -4,7 +4,7 @@
 #include <kotek.render.gl/include/kotek_render_shader_manager.h>
 
 #include "../../ecs/components/zircon_factory.h"
-#include "../../game/zircon_game_manager.h"
+#include "../../engine/zircon_game_manager.h"
 
 zircon_render_graph_pass_model_static_gles3::
 	zircon_render_graph_pass_model_static_gles3(

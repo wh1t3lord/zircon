@@ -1,15 +1,15 @@
 #include "zircon_ui_window_history_command_log.h"
-#include "../../zircon_game_manager.h"
-#include "../../zircon_command_history.h"
-#include "../../../core/zircon_sdk_ui.h"
+#include "../../engine/zircon_game_manager.h"
+#include "../commands/zircon_command_history.h"
+#include "zircon_editor_ui_state.h"
 
 zircon_ui_window_history_command_log::zircon_ui_window_history_command_log(
-	zircon_command_history* p_manager_history) :
+	zircon_editor_command_history* p_manager_history) :
 	m_is_show_window(false),m_p_manager_history{p_manager_history}
 {
 	KOTEK_ASSERT(this->m_p_manager_history,
 		"you can't pass an invalid pointer to instance "
-		"zircon_command_history");
+		"zircon_editor_command_history");
 }
 
 zircon_ui_window_history_command_log::~zircon_ui_window_history_command_log() {}

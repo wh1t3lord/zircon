@@ -1,14 +1,14 @@
 #include "zircon_ui_component_inspector.h"
-#include "../../../ecs/components/zircon_factory.h"
-#include "../../zircon_game_manager.h"
-#include "../../zircon_world_manager.h"
-#include "../../../core/zircon_sdk_ui.h"
+#include "../../ecs/components/zircon_factory.h"
+#include "../../engine/zircon_game_manager.h"
+#include "../../world/zircon_world_manager.h"
+#include "zircon_editor_ui_state.h"
 
 constexpr const char* _kSDKModalWindowFailedToAddComponent =
 	"Warning##ComponentInspectorFailedToAddComponent";
 
-zircon_sdk_ui_component_inspector::zircon_sdk_ui_component_inspector(
-	zircon_sdk_ui_interface* p_sdk_ui, zircon_factory_game* p_factory) :
+zircon_editor_ui_state_component_inspector::zircon_editor_ui_state_component_inspector(
+	zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory_game* p_factory) :
 	m_is_show_window{}, m_combobox_current_item_type{},
 	m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
 	m_p_combobox_current_item{}, m_p_list_selected_item_allocator{}
@@ -21,13 +21,13 @@ zircon_sdk_ui_component_inspector::zircon_sdk_ui_component_inspector(
 		p_factory->GetRegisteredComponents().cbegin()->first.data();
 }
 
-zircon_sdk_ui_component_inspector::~zircon_sdk_ui_component_inspector() {}
+zircon_editor_ui_state_component_inspector::~zircon_editor_ui_state_component_inspector() {}
 
-void zircon_sdk_ui_component_inspector::initialize(void) {}
+void zircon_editor_ui_state_component_inspector::initialize(void) {}
 
-void zircon_sdk_ui_component_inspector::shutdown(void) {}
+void zircon_editor_ui_state_component_inspector::shutdown(void) {}
 
-void zircon_sdk_ui_component_inspector::Draw(
+void zircon_editor_ui_state_component_inspector::Draw(
 	Kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (!this->m_is_show_window)
@@ -256,27 +256,27 @@ void zircon_sdk_ui_component_inspector::Draw(
 	}
 }
 
-int zircon_sdk_ui_component_inspector::Get_ID(void) const
+int zircon_editor_ui_state_component_inspector::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_ComponentInspector);
 }
 
-void zircon_sdk_ui_component_inspector::Show(void)
+void zircon_editor_ui_state_component_inspector::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_sdk_ui_component_inspector::Hide(void)
+void zircon_editor_ui_state_component_inspector::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_sdk_ui_component_inspector::Is_Shown(void) const
+bool zircon_editor_ui_state_component_inspector::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }
 
-bool zircon_sdk_ui_component_inspector::HasComponentByName(
+bool zircon_editor_ui_state_component_inspector::HasComponentByName(
 	const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
 		component_name_from_preprocessor,
 	entt::entity id) noexcept
@@ -289,7 +289,7 @@ bool zircon_sdk_ui_component_inspector::HasComponentByName(
 	return result;
 }
 
-void zircon_sdk_ui_component_inspector::update_modal_windows(
+void zircon_editor_ui_state_component_inspector::update_modal_windows(
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui)
 {
 	if (p_wrapper_imgui)

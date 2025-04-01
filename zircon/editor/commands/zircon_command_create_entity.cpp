@@ -1,10 +1,10 @@
 #include "zircon_command_create_entity.h"
-#include "../ecs/components/zircon_factory.h"
-#include "zircon_world.h"
+#include "../../ecs/components/zircon_factory.h"
+#include "../../world/zircon_world.h"
 #include "zircon_command_history.h"
 
 zircon_command_create_entity::zircon_command_create_entity(
-	zircon_command_history* p_history, zircon_world* p_scene) :
+	zircon_editor_command_history* p_history, zircon_world* p_scene) :
 	m_created_entity{},
 	m_entity_previous_id{entt::null}, m_p_history{p_history},
 	m_p_scene{p_scene}, m_serialize_json_string_storage{}

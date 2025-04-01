@@ -1,17 +1,17 @@
 #include "zircon_ui_top_bar.h"
 
-#include "../../zircon_game_manager.h"
-#include "../../../core/zircon_sdk_ui.h"
+#include "../../engine/zircon_game_manager.h"
+#include "zircon_editor_ui_state.h"
 
-zircon_sdk_ui_top_bar::zircon_sdk_ui_top_bar(void) : m_is_show_window(true) {}
+zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(void) : m_is_show_window(true) {}
 
-zircon_sdk_ui_top_bar::~zircon_sdk_ui_top_bar(void) {}
+zircon_editor_ui_state_top_bar::~zircon_editor_ui_state_top_bar(void) {}
 
-void zircon_sdk_ui_top_bar::initialize(void) {}
+void zircon_editor_ui_state_top_bar::initialize(void) {}
 
-void zircon_sdk_ui_top_bar::shutdown(void) {}
+void zircon_editor_ui_state_top_bar::shutdown(void) {}
 
-void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
+void zircon_editor_ui_state_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 {
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
@@ -205,27 +205,27 @@ void zircon_sdk_ui_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
 	}
 }
 
-int zircon_sdk_ui_top_bar::Get_ID(void) const
+int zircon_editor_ui_state_top_bar::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Topbar);
 }
 
-void zircon_sdk_ui_top_bar::Show(void)
+void zircon_editor_ui_state_top_bar::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_sdk_ui_top_bar::Hide(void)
+void zircon_editor_ui_state_top_bar::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_sdk_ui_top_bar::Is_Shown(void) const
+bool zircon_editor_ui_state_top_bar::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }
 
-void zircon_sdk_ui_top_bar::update_modal_save_scene(
+void zircon_editor_ui_state_top_bar::update_modal_save_scene(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	auto* p_wrapper_imgui = p_main_manager->Get_ImguiWrapper();
@@ -279,7 +279,7 @@ void zircon_sdk_ui_top_bar::update_modal_save_scene(
 		}
 	}
 }
-void zircon_sdk_ui_top_bar::update_modals(
+void zircon_editor_ui_state_top_bar::update_modals(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	this->update_modal_save_scene(p_main_manager);

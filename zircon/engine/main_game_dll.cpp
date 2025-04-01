@@ -1,7 +1,7 @@
 #include "zircon_game.h"
 #include "zircon_game_manager.h"
 #include <kotek.render/include/kotek_render.h>
-#include "../core/zircon_sdk_ui.h"
+#include "../editor/ui/zircon_editor_ui_state.h"
 
 zircon_manager_game g_main_manager;
 

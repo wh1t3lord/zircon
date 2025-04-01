@@ -16,8 +16,8 @@ add_library(${PROJECT_NAME} STATIC
 	${to_include_module_files}
 	"zircon_config.h"
 	"zircon_config.cpp"
-	"zircon_sdk_ui.h"
-	"zircon_sdk_ui.cpp"
+	"zircon_editor_ui_state_interface.h"
+	"zircon_editor_ui_state_interface.cpp"
 	"zircon_session.h"
 	"zircon_session.cpp"
 	"zircon_console.h"

@@ -1,9 +1,9 @@
 #pragma once
 
-class zircon_sdk_ui_interface
+class zircon_editor_ui_state_interface
 {
 public:
-	virtual ~zircon_sdk_ui_interface() {}
+	virtual ~zircon_editor_ui_state_interface() {}
 
 	virtual entt::entity get_selected_entity() const = 0;
 	virtual void set_selected_entity(entt::entity id) = 0;

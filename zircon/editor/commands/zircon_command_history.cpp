@@ -1,5 +1,5 @@
 ﻿#include "zircon_command_history.h"
-#include "zircon_world_manager.h"
+#include "../../world/zircon_world_manager.h"
 
 #include "zircon_command_create_entity.h"
 #include "zircon_command_delete_entity.h"
@@ -13,7 +13,7 @@ constexpr const char* _kExchangeFileName = "exchange";
 
 #define ZIRCON_ENABLE_CH_TRACE
 
-zircon_command_history::zircon_command_history(void) :
+zircon_editor_command_history::zircon_editor_command_history(void) :
 	m_is_changed{}, m_is_first_serialize_happened{}, m_is_action_issued{},
 	m_p_file_temp{}, m_p_file_exchange{}, m_p_filesystem{}, m_p_scene_manager{},
 	m_p_factory_game{}, m_p_resource_manager{}, m_index{}, m_cursor_index{-1},
@@ -45,9 +45,9 @@ zircon_command_history::zircon_command_history(void) :
 		"redo, undo is moving to the beggining of file redo means moving to "
 		"the end of file");
 }
-zircon_command_history::~zircon_command_history(void) {}
+zircon_editor_command_history::~zircon_editor_command_history(void) {}
 
-void zircon_command_history::initialize(
+void zircon_editor_command_history::initialize(
 	kotek::core::ktkIFileSystem* p_filesystem,
 	zircon_world_manager* p_scene_manager, zircon_factory_game* p_factory_game,
 	kotek::core::ktkIResourceManager* p_resource_manager)
@@ -104,7 +104,7 @@ void zircon_command_history::initialize(
 	}
 }
 
-void zircon_command_history::shutdown(void)
+void zircon_editor_command_history::shutdown(void)
 {
 	this->m_p_resource_manager->Close_FileStream(this->m_p_file_temp);
 	this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
@@ -116,7 +116,7 @@ void zircon_command_history::shutdown(void)
 	}
 }
 
-void zircon_command_history::ExecuteCommand(
+void zircon_editor_command_history::ExecuteCommand(
 	kotek::core::ktkISDKRedoUndo* p_command)
 {
 	KOTEK_ASSERT(p_command, "you can't send an invalid command here");
@@ -202,7 +202,7 @@ void zircon_command_history::ExecuteCommand(
 	set_changed(true);
 }
 
-void zircon_command_history::Undo()
+void zircon_editor_command_history::Undo()
 {
 #ifdef ZIRCON_ENABLE_CH_TRACE
 	KOTEK_TRACE("undo: {}", this->m_cursor_index);
@@ -602,7 +602,7 @@ void zircon_command_history::Undo()
 	}
 }
 
-void zircon_command_history::Redo()
+void zircon_editor_command_history::Redo()
 {
 	/*
 	if (this->m_storage.empty() == false &&
@@ -1043,24 +1043,24 @@ void zircon_command_history::Redo()
 	}
 }
 
-void zircon_command_history::set_changed(bool status) noexcept
+void zircon_editor_command_history::set_changed(bool status) noexcept
 {
 	this->m_is_changed = status;
 }
 
-bool zircon_command_history::is_changed() const noexcept
+bool zircon_editor_command_history::is_changed() const noexcept
 {
 	return this->m_is_changed;
 }
 
 const kotek::array_t<kotek::core::ktkISDKRedoUndo*,
 	zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
-zircon_command_history::GetCommands(void) const noexcept
+zircon_editor_command_history::GetCommands(void) const noexcept
 {
 	return this->m_commands;
 }
 
-void zircon_command_history::update_dependent_commands(
+void zircon_editor_command_history::update_dependent_commands(
 	entt::entity id_what_will_be_deleted,
 	entt::entity id_that_replaces_what_will_be_deleted) noexcept
 {
@@ -1085,7 +1085,7 @@ void zircon_command_history::update_dependent_commands(
 		id_what_will_be_deleted, id_that_replaces_what_will_be_deleted);
 }
 
-unsigned char* zircon_command_history::allocate_memory_for_command(
+unsigned char* zircon_editor_command_history::allocate_memory_for_command(
 	kotek::size_t size_of_class, const char* p_debug_type_name) noexcept
 {
 	KOTEK_ASSERT(size_of_class != 0 && size_of_class != kotek::size_t(-1),
@@ -1154,17 +1154,17 @@ unsigned char* zircon_command_history::allocate_memory_for_command(
 	return pResultPlacementNewBuffer;
 }
 
-kotek::size_t zircon_command_history::get_current_index(void) const
+kotek::size_t zircon_editor_command_history::get_current_index(void) const
 {
 	return this->m_index;
 }
 
-kotek::ptrdiff_t zircon_command_history::get_cursor_index(void) const
+kotek::ptrdiff_t zircon_editor_command_history::get_cursor_index(void) const
 {
 	return this->m_cursor_index;
 }
 
-bool zircon_command_history::
+bool zircon_editor_command_history::
 	get_serialized_component_by_entity_and_component_type_id(
 		kotek::ktk::json::value&
 			constructed_value_on_stack_based_on_placement_new_memory,
@@ -1333,7 +1333,7 @@ bool zircon_command_history::
 	return result;
 }
 
-void zircon_command_history::unload_content()
+void zircon_editor_command_history::unload_content()
 {
 	// я нахожусь между первым и последним фреймом
 	if (this->m_cursor_index > 9 &&
@@ -1368,7 +1368,7 @@ void zircon_command_history::unload_content()
 #endif
 }
 
-void zircon_command_history::unload_content_before()
+void zircon_editor_command_history::unload_content_before()
 {
 	//	this->m_p_resource_manager->Close_Saver(
 	//		this->m_file_exchange_resource_handle_id);
@@ -1478,7 +1478,7 @@ void zircon_command_history::unload_content_before()
 	this->m_exchange_file_offset_after = this->m_p_file_exchange->tellg();
 }
 
-void zircon_command_history::unload_content_after(bool is_need_to_reopen)
+void zircon_editor_command_history::unload_content_after(bool is_need_to_reopen)
 {
 	KOTEK_ASSERT(this->m_p_file_exchange->is_open(),
 		"you must write some data that goes BEFORE this method");
@@ -1610,7 +1610,7 @@ void zircon_command_history::unload_content_after(bool is_need_to_reopen)
 	}
 }
 
-void zircon_command_history::insert_content(kotek::size_t from_offset,
+void zircon_editor_command_history::insert_content(kotek::size_t from_offset,
 	kotek::size_t to_offset, kotek::size_t cursor_offset_current)
 {
 	if (to_offset == size_t(-1))
@@ -1705,7 +1705,7 @@ void zircon_command_history::insert_content(kotek::size_t from_offset,
 	}
 }
 
-void zircon_command_history::insert_content_exchange(
+void zircon_editor_command_history::insert_content_exchange(
 	kotek::size_t offset_cursor_exchange,
 	kotek::size_t read_until_offset_in_file,
 	kotek::size_t cursor_offset_of_file)
@@ -1797,7 +1797,7 @@ void zircon_command_history::insert_content_exchange(
 	}
 }
 
-bool zircon_command_history::is_contain_control_character(const char* p_buffer,
+bool zircon_editor_command_history::is_contain_control_character(const char* p_buffer,
 	kotek::ktk::size_t& how_much_time_control_character_repeats,
 	kotek::ktk::size_t size_of_buffer, char control_character)
 {
@@ -1830,7 +1830,7 @@ bool zircon_command_history::is_contain_control_character(const char* p_buffer,
 	return result;
 }
 
-kotek::static_path_t zircon_command_history::get_full_path_of_file(
+kotek::static_path_t zircon_editor_command_history::get_full_path_of_file(
 	const char* filename_with_extension)
 {
 	KOTEK_ASSERT(this->m_path_to_streaming_folder.empty() == false,
@@ -1839,7 +1839,7 @@ kotek::static_path_t zircon_command_history::get_full_path_of_file(
 		filename_with_extension;
 }
 
-kotek::cfstream_t* zircon_command_history::reopen_current_file(
+kotek::cfstream_t* zircon_editor_command_history::reopen_current_file(
 	kotek::cfstream_t* p_file)
 {
 	KOTEK_ASSERT(
@@ -1870,7 +1870,7 @@ kotek::cfstream_t* zircon_command_history::reopen_current_file(
 	return p_result;
 }
 
-kotek::cfstream_t* zircon_command_history::reopen_exchange_file(
+kotek::cfstream_t* zircon_editor_command_history::reopen_exchange_file(
 	kotek::cfstream_t* p_file)
 {
 	KOTEK_ASSERT(
@@ -1900,7 +1900,7 @@ kotek::cfstream_t* zircon_command_history::reopen_exchange_file(
 	return p_result;
 }
 
-void zircon_command_history::clear_content_when_action_issued()
+void zircon_editor_command_history::clear_content_when_action_issued()
 {
 	if (this->m_is_action_issued)
 	{
@@ -2102,7 +2102,7 @@ void zircon_command_history::clear_content_when_action_issued()
 	}
 }
 
-kotek::size_t zircon_command_history::get_offset_of_current_index_in_file()
+kotek::size_t zircon_editor_command_history::get_offset_of_current_index_in_file()
 {
 	kotek::size_t result{};
 	if (this->m_p_resource_manager)
@@ -2369,7 +2369,7 @@ kotek::size_t zircon_command_history::get_offset_of_current_index_in_file()
 	return result;
 }
 
-kotek::size_t zircon_command_history::get_count_of_commands_in_file(
+kotek::size_t zircon_editor_command_history::get_count_of_commands_in_file(
 	kotek::size_t start_offset)
 {
 	kotek::size_t result{};
@@ -2609,7 +2609,7 @@ kotek::size_t zircon_command_history::get_count_of_commands_in_file(
 	return result;
 }
 
-void zircon_command_history::move_content_from_file_to_exchange(
+void zircon_editor_command_history::move_content_from_file_to_exchange(
 	kotek::size_t start_offset_in_file, kotek::size_t end_offset_in_file)
 {
 	if (this->m_p_resource_manager)
@@ -2708,7 +2708,7 @@ void zircon_command_history::move_content_from_file_to_exchange(
 	}
 }
 
-void zircon_command_history::move_content_from_exchange_to_file(
+void zircon_editor_command_history::move_content_from_exchange_to_file(
 	kotek::size_t start_offset_in_file, kotek::size_t end_offset_in_file)
 {
 	if (this->m_p_resource_manager)
@@ -2731,7 +2731,7 @@ void zircon_command_history::move_content_from_exchange_to_file(
 
 // todo: update before offset, after offset, set correct current_offset to file
 // after all modifications
-void zircon_command_history::update_dependent_serialized_commands(
+void zircon_editor_command_history::update_dependent_serialized_commands(
 	entt::entity id_what_will_be_deleted,
 	entt::entity id_that_replaces_what_will_be_deleted)
 {
@@ -3160,7 +3160,7 @@ void zircon_command_history::update_dependent_serialized_commands(
 	}
 }
 
-bool zircon_command_history::check_json_entry_has_entity_id(
+bool zircon_editor_command_history::check_json_entry_has_entity_id(
 	entt::entity id_what_will_be_deleted, int real_size_for_json_data,
 	kotek::size_t& current_offset, kotek::json::value& json)
 {
@@ -3287,7 +3287,7 @@ bool zircon_command_history::check_json_entry_has_entity_id(
 	return result;
 }
 
-bool zircon_command_history::
+bool zircon_editor_command_history::
 	check_json_entry_has_entity_id_and_component_type_id(entt::entity id,
 		zircon_component_type_t type_id, int real_size_for_json_data,
 		kotek::size_t& current_offset, kotek::ktk::json::value& json)
