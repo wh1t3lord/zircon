@@ -8,8 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(to_include_module_files 
-	"zircon_editor_ui_state.h"
-	"zircon_editor_ui_state.cpp"
+	"main_editor_dll.cpp"
+)
+
+set(to_include_windows_files
 	"zircon_ui_top_bar.h"
 	"zircon_ui_top_bar.cpp"
 	"zircon_ui_object_list.cpp"
@@ -36,12 +38,17 @@ set(to_include_module_files
 	"zircon_ui_window_settings.cpp"
 	"zircon_ui_window_debug_input.h"
 	"zircon_ui_window_debug_input.cpp"
-	"main_editor_dll.cpp"
 )
 
+set(to_include_manager_files
+	"zircon_editor_ui_state.h"
+	"zircon_editor_ui_state.cpp"
+)
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_module_files}
+	${to_include_manager_files}
+	${to_include_windows_files}
 )
 
 # TODO: add if when game.ktk builds as shared
@@ -51,6 +58,8 @@ if (UNIX)
 endif()
 
 source_group("Module" FILES ${to_include_module_files})
+source_group("Manager" FILES ${to_include_manager_files})
+source_group("Windows" FILES ${to_include_windows_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 

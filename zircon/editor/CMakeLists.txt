@@ -8,14 +8,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(to_include_module_files 
+	"main_editor_dll.cpp"
+)
+
+set(to_include_session_files
 	"zircon_session_editor.h"
 	"zircon_session_editor.cpp"
-	"main_editor_dll.cpp"
+	"zircon_session_editor_manager.h"
+	"zircon_session_editor_manager.cpp"
 )
 
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_module_files}
+	${to_include_session_files}
 )
 
 # TODO: add if when game.ktk builds as shared

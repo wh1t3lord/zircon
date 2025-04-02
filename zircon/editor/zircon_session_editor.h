@@ -18,6 +18,10 @@ KOTEK_END_NAMESPACE_KOTEK
 class zircon_session_editor : public zircon_interface_session
 {
 public:
+	zircon_session_editor(
+		const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
+			session_name,
+		kotek::uint8_t id);
 	zircon_session_editor(void);
 	~zircon_session_editor(void);
 
@@ -28,6 +32,10 @@ public:
 		kotek::core::ktkConsole* p_console);
 	void shutdown(void) override;
 	void update(void) override;
+
+	kotek::uint8_t get_id(void) const noexcept override;
+	eZirconSessionType get_type(void) const noexcept override;
+	const char* get_session_name(void) const noexcept override;
 
 	void Serialize(const ktk_filesystem_path& full_path_to_file) noexcept;
 
@@ -48,9 +56,11 @@ private:
 
 private:
 	bool m_is_change_title_once_for_editing_status;
+	kotek::uint8_t m_id;
 	zircon_world* m_p_scene;
 	zircon_editor_command_history* m_p_command_history;
 	zircon_factory_game* m_p_factory_game;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
+	kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH> m_name;
 };

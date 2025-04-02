@@ -8,16 +8,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(to_include_module_files 
+	"main_world_dll.cpp"
+)
+
+set(to_include_world_files
 	"zircon_world.h"
 	"zircon_world.cpp"
 	"zircon_world_manager.h"
 	"zircon_world_manager.cpp"
-	"main_world_dll.cpp"
 )
 
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_module_files}
+	${to_include_world_files}
 )
 
 # TODO: add if when game.ktk builds as shared

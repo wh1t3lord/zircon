@@ -4,9 +4,23 @@
 
 #include "commands/zircon_command_history.h"
 
+constexpr kotek::uint8_t _kInvalidSessionID =
+	std::numeric_limits<kotek::uint8_t>::max();
+
+zircon_session_editor::zircon_session_editor(
+	const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
+		session_name,
+	kotek::uint8_t id) :
+	m_is_change_title_once_for_editing_status{}, m_id{_kInvalidSessionID},
+	m_p_scene{}, m_p_command_history{}, m_p_factory_game{}, m_p_console{},
+	m_p_main_manager{}, m_name{"not_inited"}
+{
+}
+
 zircon_session_editor::zircon_session_editor(void) :
-	m_is_change_title_once_for_editing_status{}, m_p_scene{},
-	m_p_command_history{}, m_p_factory_game{}, m_p_main_manager{}
+	m_is_change_title_once_for_editing_status{}, m_id{_kInvalidSessionID},
+	m_p_scene{}, m_p_command_history{}, m_p_factory_game{}, m_p_main_manager{},
+	m_name{"not_inited"}
 {
 }
 
@@ -54,6 +68,21 @@ void zircon_session_editor::update(void)
 
 	this->update_component_input_sdk();
 	this->update_component_camera_sdk();
+}
+
+kotek::uint8_t zircon_session_editor::get_id(void) const noexcept
+{
+	return this->m_id;
+}
+
+eZirconSessionType zircon_session_editor::get_type(void) const noexcept
+{
+	return eZirconSessionType::kEditor;
+}
+
+const char* zircon_session_editor::get_session_name(void) const noexcept
+{
+	return this->m_name.c_str();
 }
 
 void zircon_session_editor::Serialize(
@@ -435,8 +464,7 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 								  ->ActiveWindow_GetHeight();
 
 				camera.set_projection(kotek::math::perspective(
-					kotek::math::convert_to_radians(
-						camera.get_field_of_view()),
+					kotek::math::convert_to_radians(camera.get_field_of_view()),
 					width / height, camera.get_plane_near(),
 					camera.get_plane_far()));
 

@@ -45,6 +45,8 @@ set(to_include_game_files
 set(to_include_game_session_game_files
 	"zircon_session_game.h"
 	"zircon_session_game.cpp"
+	"zircon_session_game_manager.h"
+	"zircon_session_game_manager.cpp"
 )
 
 set(to_include_module_files 

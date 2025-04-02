@@ -8,8 +8,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(to_include_module_files 
+	"main_editor_dll.cpp"
+)
+
+set(to_include_manager_files
 	"zircon_command_history.h"
 	"zircon_command_history.cpp"
+)
+
+set(to_include_commands_files
 	"zircon_command_add_component_to_entity.h"
 	"zircon_command_add_component_to_entity.cpp"
 	"zircon_command_delete_component_from_entity.h"
@@ -18,13 +25,13 @@ set(to_include_module_files
 	"zircon_command_create_entity.cpp"
 	"zircon_command_delete_entity.h"
 	"zircon_command_delete_entity.cpp"
-	"zircon_command_definitions.h"
-	"main_editor_dll.cpp"
 )
-
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_module_files}
+	${to_include_manager_files}
+	${to_include_commands_files}
+	"zircon_command_definitions.h"
 )
 
 # TODO: add if when game.ktk builds as shared
@@ -34,6 +41,8 @@ if (UNIX)
 endif()
 
 source_group("Module" FILES ${to_include_module_files})
+source_group("Manager" FILES ${to_include_manager_files})
+source_group("Commands" FILES ${to_include_commands_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
