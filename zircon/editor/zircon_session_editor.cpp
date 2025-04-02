@@ -36,11 +36,6 @@ void zircon_session_editor::shutdown(void)
 	{
 		this->m_p_scene->Shutdown();
 	}
-
-	if (this->m_p_command_history)
-	{
-		this->m_p_command_history->shutdown();
-	}
 }
 
 void zircon_session_editor::update(void)
