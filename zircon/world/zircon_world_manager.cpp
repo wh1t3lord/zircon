@@ -2,7 +2,7 @@
 #include "../ecs/components/zircon_factory.h"
 
 zircon_world_manager::zircon_world_manager(
-	zircon_factory_game* p_game_factory) :
+	zircon_factory* p_game_factory) :
 	m_p_game_factory{p_game_factory}, m_p_current_scene{}
 {
 }

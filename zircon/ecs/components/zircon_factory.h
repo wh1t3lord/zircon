@@ -26,14 +26,14 @@
 
 class zircon_config;
 
-class zircon_factory_game
+class zircon_factory
 {
 	using lock_guard = kotek::ktk::mt::lock_guard<kotek::ktk::mt::mutex>;
 
 public:
-	zircon_factory_game(void);
+	zircon_factory(void);
 
-	~zircon_factory_game(void);
+	~zircon_factory(void);
 
 	void Initialize(zircon_config* p_config, kotek::core::ktkConsole* p_console,
 		kotek::core::ktkIInput* p_input);

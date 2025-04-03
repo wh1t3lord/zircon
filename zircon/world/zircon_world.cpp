@@ -1,62 +1,79 @@
 #include "zircon_world.h"
-#include "../ecs/components/zircon_factory.h"
-#include "../editor/ui/zircon_editor_ui_state.h"
 
-zircon_world::zircon_world(void) :
-	m_actor_entity_id{}, m_p_game_factory{}
-{
-}
+zircon_world::zircon_world(void) : m_actor_entity_id{} {}
 
 zircon_world::~zircon_world(void) {}
 
-void zircon_world::Initialize(
-	zircon_factory_game* p_factory) noexcept
+void zircon_world::initialize(
+	const kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>&
+		name,
+	zircon_config* p_config, kotek::core::ktkConsole* p_console,
+	kotek::core::ktkIInput* p_input) noexcept
 {
-	KOTEK_ASSERT(
-		p_factory, "you can't pass an empty pointer of zircon_GameFactory!");
-
-	this->m_p_game_factory = p_factory;
 }
 
-void zircon_world::Shutdown(void) noexcept
+void zircon_world::shutdown(void) noexcept
 {
-	// TODO: think about render resource manager and handling
-	// model,texture deallocation
+#ifdef KOTEK_DEBUG
+	KOTEK_MESSAGE("destroying world: {}", this->m_name);
+#endif
+
+	this->m_factory.Shutdown();
 }
 
-const kotek::ktk::ustring& zircon_world::GetSceneName(void) const noexcept
+void zircon_world::initialize(
+	const kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>&
+		name,
+	zircon_config* p_config, kotek::core::ktkConsole* p_console,
+	kotek::core::ktkIInput* p_input) noexcept
 {
-	return this->m_scene_name;
+#ifdef KOTEK_DEBUG
+	KOTEK_MESSAGE("created world: {}", name);
+#endif
+
+	this->m_name = name;
+
+	this->m_factory.Initialize(p_config, p_console, p_input);
 }
 
-void zircon_world::SetSceneName(const kotek::ktk::ustring& scene_name) noexcept
+kotek::view_entities_t zircon_world::get_entities(void) const noexcept
 {
-	this->m_scene_name = scene_name;
+	return this->m_factory.GetAllEntities();
 }
 
-kotek::view_entities_t zircon_world::GetEntities(void) const noexcept
-{
-	return this->m_p_game_factory->GetAllEntities();
-}
-
-entt::entity zircon_world::GetActor(void) const noexcept
+entt::entity zircon_world::get_actor(void) const noexcept
 {
 	return this->m_actor_entity_id;
 }
 
-void zircon_world::SetActor(entt::entity actor_id) noexcept
+void zircon_world::set_actor(entt::entity actor_id) noexcept
 {
 	this->m_actor_entity_id = actor_id;
 }
 
-entt::entity zircon_world::CreateEntity(void)
+zircon_factory* zircon_world::get_factory(void) noexcept
 {
-	auto result = this->m_p_game_factory->CreateEntity();
+	return &this->m_factory;
+}
+
+const zircon_factory* zircon_world::get_factory(void) const noexcept
+{
+	return static_cast<const zircon_factory*>(&this->m_factory);
+}
+
+entt::entity zircon_world::create_entity(void)
+{
+	auto result = this->m_factory.CreateEntity();
 	return result;
 }
 
-bool zircon_world::RemoveEntity(entt::entity id)
+bool zircon_world::remove_entity(entt::entity id)
 {
-	auto result = this->m_p_game_factory->RemoveEntity(id);
+	auto result = this->m_factory.RemoveEntity(id);
 	return result;
+}
+
+const char* zircon_world::get_name(void) const noexcept
+{
+	return this->m_name.c_str();
 }

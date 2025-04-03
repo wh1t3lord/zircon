@@ -29,13 +29,15 @@ class zircon_editor_command_history;
 class zircon_renderer_gles3;
 class zircon_resource_manager;
 class zircon_config;
-class zircon_factory_game;
+class zircon_factory;
 class zircon_world_manager;
 class zircon_interface_session;
 class zircon_editor_ui_state_interface;
 class zircon_editor_ui_state;
 class zircon_session_game;
+class zircon_session_game_manager;
 class zircon_session_editor;
+class zircon_session_editor_manager;
 
 class zircon_manager_game : public kotek::core::ktkIGameManager
 {
@@ -71,7 +73,7 @@ public:
 	void UpdateAllSystems(void) noexcept;
 
 	zircon_world_manager* GetSceneManager(void) const noexcept;
-	zircon_factory_game* get_factory_game(void) const noexcept;
+	zircon_factory* get_factory_game(void) const noexcept;
 	kotek::core::ktkWindow* GetWindow(void) const noexcept;
 
 	void Serialize(void) noexcept;
@@ -110,7 +112,7 @@ private:
 
 	void Destroy_Console(void) noexcept;
 
-	void Initialize_SDKUIManager(zircon_factory_game* p_factory) noexcept;
+	void Initialize_SDKUIManager(zircon_factory* p_factory) noexcept;
 	void Destroy_SDKUIManager(void) noexcept;
 
 	void Initialize_Session(void) noexcept;
@@ -149,15 +151,12 @@ private:
 	sdk::ui::zircon_frame* m_p_sdk_main_window;
 #endif
 
-	zircon_factory_game* m_p_factory;
+	zircon_factory* m_p_factory;
 	zircon_world_manager* m_p_scene_manager;
 	zircon_resource_manager* m_p_resource_manager;
-	zircon_session_game* m_p_session_game;
 	zircon_config* m_p_config;
-
+	zircon_session_game_manager* m_p_session_game_manager;
 #ifdef KOTEK_USE_SDK_IMGUI
-	zircon_editor_ui_state* m_p_sdk_ui_manager;
-	zircon_session_editor* m_p_session_editor;
-	zircon_editor_command_history* m_p_editor_history_manager;
+	zircon_session_editor_manager* m_p_session_editor_manager;
 #endif
 };

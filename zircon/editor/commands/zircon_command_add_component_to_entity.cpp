@@ -2,7 +2,7 @@
 #include "../../ecs/components/zircon_factory.h"
 
 zircon_command_add_component_to_entity::zircon_command_add_component_to_entity(
-	zircon_factory_game* p_factory, entt::entity id,
+	zircon_factory* p_factory, entt::entity id,
 	const char* component_string) :
 	m_is_serialized{},
 	m_id{id}, m_p_component_name{component_string}, m_p_factory{p_factory},
@@ -15,7 +15,7 @@ zircon_command_add_component_to_entity::zircon_command_add_component_to_entity(
 }
 
 zircon_command_add_component_to_entity::zircon_command_add_component_to_entity(
-	zircon_factory_game* p_factory) :
+	zircon_factory* p_factory) :
 	m_is_serialized{},
 	m_id{entt::null}, m_p_component_name{}, m_p_factory{p_factory},
 	m_serialized_state_of_deleted_component{},

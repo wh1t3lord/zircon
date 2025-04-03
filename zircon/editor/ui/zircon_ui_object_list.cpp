@@ -52,7 +52,7 @@ void zircon_editor_ui_state_object_list::Draw(
 			{
 				if (p_game_manager)
 				{
-					zircon_factory_game* p_factory =
+					zircon_factory* p_factory =
 						p_game_manager->get_factory_game();
 
 					if (p_factory)

@@ -2,7 +2,7 @@
 
 #include "../../core/zircon_editor_ui_state_interface.h"
 
-class zircon_factory_game;
+class zircon_factory;
 
 /// @brief class for managining global state of UI
 class zircon_editor_ui_state : public zircon_editor_ui_state_interface
@@ -11,7 +11,7 @@ public:
 	zircon_editor_ui_state();
 	~zircon_editor_ui_state();
 
-	void initialize(zircon_factory_game* p_factory_game);
+	void initialize(zircon_factory* p_factory_game);
 	void destroy();
 
 	entt::entity get_selected_entity() const override;

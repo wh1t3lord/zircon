@@ -1,7 +1,7 @@
 #include "zircon_factory.h"
 #include "../../core/zircon_config.h"
 
-zircon_factory_game::zircon_factory_game(void) : m_p_config{}, m_p_input{}
+zircon_factory::zircon_factory(void) : m_p_config{}, m_p_input{}
 {
 	this->register_components();
 	this->register_components_restrictions();
@@ -10,9 +10,9 @@ zircon_factory_game::zircon_factory_game(void) : m_p_config{}, m_p_input{}
 	this->validate_get_component_type_of_all_components();
 }
 
-zircon_factory_game::~zircon_factory_game(void) {}
+zircon_factory::~zircon_factory(void) {}
 
-void zircon_factory_game::Initialize(
+void zircon_factory::Initialize(
 	zircon_config* p_config, kotek::core::ktkConsole* p_console, kotek::core::ktkIInput* p_input)
 {
 	KOTEK_ASSERT(
@@ -27,9 +27,9 @@ void zircon_factory_game::Initialize(
 	this->m_p_input = p_input;
 }
 
-void zircon_factory_game::Shutdown(void) {}
+void zircon_factory::Shutdown(void) {}
 
-bool zircon_factory_game::HasRequiredComponentsForCreation(
+bool zircon_factory::HasRequiredComponentsForCreation(
 	entt::entity id, entt::id_type component_hash_id) noexcept
 {
 	bool result{true};
@@ -76,7 +76,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(
 	return result;
 }
 
-bool zircon_factory_game::HasRequiredComponentsForCreation(entt::entity id,
+bool zircon_factory::HasRequiredComponentsForCreation(entt::entity id,
 	const kotek::static_cstring_view_t& component_name) noexcept
 {
 	bool result{};
@@ -91,7 +91,7 @@ bool zircon_factory_game::HasRequiredComponentsForCreation(entt::entity id,
 	return result;
 }
 
-void zircon_factory_game::register_components()
+void zircon_factory::register_components()
 {
 	this->register_components_game_and_sdk();
 
@@ -102,7 +102,7 @@ void zircon_factory_game::register_components()
 	}
 }
 
-void zircon_factory_game::register_components_restrictions()
+void zircon_factory::register_components_restrictions()
 {
 	this->register_components_restrictions_game();
 	this->register_components_restrictions_sdk();
@@ -116,7 +116,7 @@ void zircon_factory_game::register_components_restrictions()
 	}
 }
 
-void zircon_factory_game::register_components_restrictions_game()
+void zircon_factory::register_components_restrictions_game()
 {
 	KOTEK_ASSERT(this->m_component_name_to_id.empty() == false,
 		"you must register components first");
@@ -138,7 +138,7 @@ void zircon_factory_game::register_components_restrictions_game()
 			.push_back(entt::type_hash<zircon_component_transform>::value());
 }
 
-void zircon_factory_game::register_components_restrictions_sdk()
+void zircon_factory::register_components_restrictions_sdk()
 {
 	KOTEK_ASSERT(this->m_component_name_to_id.empty() == false,
 		"you must register components first");
@@ -156,7 +156,7 @@ void zircon_factory_game::register_components_restrictions_sdk()
 			.push_back(entt::type_hash<zircon_component_transform>::value());
 }
 
-void zircon_factory_game::validate_components_restrictions()
+void zircon_factory::validate_components_restrictions()
 {
 #ifdef KOTEK_DEBUG
 	for (const auto& [component_name, vector_ids] :

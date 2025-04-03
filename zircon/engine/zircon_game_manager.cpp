@@ -2,32 +2,33 @@
 #include "../ecs/components/zircon_factory.h"
 #include "zircon_resource_manager.h"
 #include "../world/zircon_world_manager.h"
-#include "../editor/zircon_session_editor.h"
+
 #include "zircon_session_game.h"
+#include "zircon_session_game_manager.h"
 
-#include "../editor/ui/zircon_ui_component_inspector.h"
-#include "../editor/ui/zircon_ui_object_list.h"
-#include "../editor/ui/zircon_ui_top_bar.h"
-#include "../editor/ui/zircon_ui_window_prefab.h"
-#include "../editor/ui/zircon_ui_window_prefab_browser.h"
-#include "../editor/ui/zircon_ui_window_history_command_log.h"
-#include "../editor/ui/zircon_ui_window_log.h"
-#include "../editor/ui/zircon_ui_window_render_stats.h"
-#include "../editor/ui/zircon_ui_window_settings.h"
-#include "../editor/ui/zircon_ui_window_debug_input.h"
-
-#include "../editor/ui/zircon_editor_ui_state.h"
-
-#include "../editor/ui/zircon_editor_ui_state.h"
+#ifdef KOTEK_USE_SDK_IMGUI
+	#include "../editor/zircon_session_editor.h"
+	#include "../editor/zircon_session_editor_manager.h"
+	#include "../editor/ui/zircon_ui_component_inspector.h"
+	#include "../editor/ui/zircon_ui_object_list.h"
+	#include "../editor/ui/zircon_ui_top_bar.h"
+	#include "../editor/ui/zircon_ui_window_prefab.h"
+	#include "../editor/ui/zircon_ui_window_prefab_browser.h"
+	#include "../editor/ui/zircon_ui_window_history_command_log.h"
+	#include "../editor/ui/zircon_ui_window_log.h"
+	#include "../editor/ui/zircon_ui_window_render_stats.h"
+	#include "../editor/ui/zircon_ui_window_settings.h"
+	#include "../editor/ui/zircon_ui_window_debug_input.h"
+	#include "../editor/ui/zircon_editor_ui_state.h"
+	#include "../editor/commands/zircon_command_history.h"
+	#include "../editor/commands/zircon_command_create_entity.h"
+	#include "../editor/commands/zircon_command_delete_entity.h"
+	#include "../editor/commands/zircon_command_delete_component_from_entity.h"
+	#include "../editor/commands/zircon_command_add_component_to_entity.h"
+#endif
 
 #include "../render/gles3/zircon_renderer.h"
 #include "../render/vk/zircon_renderer.h"
-
-#include "../editor/commands/zircon_command_history.h"
-#include "../editor/commands/zircon_command_create_entity.h"
-#include "../editor/commands/zircon_command_delete_entity.h"
-#include "../editor/commands/zircon_command_delete_component_from_entity.h"
-#include "../editor/commands/zircon_command_add_component_to_entity.h"
 #include "../core/zircon_config.h"
 #include "../core/zircon_console.h"
 
@@ -501,7 +502,13 @@ zircon_manager_game::zircon_manager_game(void) :
 	m_p_window_handle{}, m_p_sdk_render_window{}, m_p_sdk_main_window{},
 #endif
 	m_p_sdk_ui_manager{}, m_p_scene_manager{}, m_p_console{}, m_p_factory{},
-	m_p_resource_manager{}, m_is_use_sdk{}, m_is_use_sdk_imgui{}, m_p_config{}
+	m_p_resource_manager{}, m_is_use_sdk{}, m_is_use_sdk_imgui{}, m_p_config{},
+	m_p_session_game_manager{}
+
+#ifdef KOTEK_USE_SDK_IMGUI
+	,
+	m_p_session_editor_manager{}
+#endif
 {
 }
 
@@ -782,7 +789,7 @@ zircon_world_manager* zircon_manager_game::GetSceneManager(void) const noexcept
 	return this->m_p_scene_manager;
 }
 
-zircon_factory_game* zircon_manager_game::get_factory_game(void) const noexcept
+zircon_factory* zircon_manager_game::get_factory_game(void) const noexcept
 {
 	return this->m_p_factory;
 }
@@ -1079,7 +1086,7 @@ void zircon_manager_game::Destroy_Renderer(void) noexcept
 
 void zircon_manager_game::Initialize_Factory(void) noexcept
 {
-	this->m_p_factory = new zircon_factory_game();
+	this->m_p_factory = new zircon_factory();
 	this->m_p_factory->Initialize(this->m_p_config, this->m_p_console,
 		this->m_p_main_manager->Get_Input());
 }
@@ -1779,7 +1786,7 @@ void zircon_manager_game::Destroy_Console(void) noexcept
 }
 
 void zircon_manager_game::Initialize_SDKUIManager(
-	zircon_factory_game* p_factory) noexcept
+	zircon_factory* p_factory) noexcept
 {
 	// TODO: change to flag
 	this->m_is_use_sdk_imgui = this->m_p_main_manager->Get_EngineConfig()

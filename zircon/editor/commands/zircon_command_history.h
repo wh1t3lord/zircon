@@ -2,8 +2,8 @@
 
 #include "zircon_command_definitions.h"
 
-class zircon_world_manager;
-class zircon_factory_game;
+class zircon_world;
+class zircon_factory;
 enum zircon_component_type_t;
 
 class zircon_editor_command_history : public kotek::core::ktkISDKCommandHistoryManager
@@ -13,8 +13,8 @@ public:
 	~zircon_editor_command_history(void);
 
 	void initialize(kotek::core::ktkIFileSystem* p_filesystem,
-		zircon_world_manager* p_scene_manager,
-		zircon_factory_game* p_factory_game,
+		zircon_world* p_current_world,
+		zircon_factory* p_factory_game,
 		kotek::core::ktkIResourceManager* p_resource_manager);
 	void shutdown(void);
 
@@ -96,8 +96,8 @@ private:
 
 	Kotek::Core::ktkIFileSystem* m_p_filesystem;
 	Kotek::Core::ktkIResourceManager* m_p_resource_manager;
-	zircon_world_manager* m_p_scene_manager;
-	zircon_factory_game* m_p_factory_game;
+	zircon_world* m_p_current_world;
+	zircon_factory* m_p_factory_game;
 	kotek::size_t m_index;
 	kotek::ptrdiff_t m_cursor_index;
 	// last time max value

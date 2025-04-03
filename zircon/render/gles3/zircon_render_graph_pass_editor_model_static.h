@@ -14,7 +14,7 @@ KOTEK_END_NAMESPACE_RENDER_GL
 KOTEK_END_NAMESPACE_RENDER
 KOTEK_END_NAMESPACE_KOTEK
 
-class zircon_factory_game;
+class zircon_factory;
 
 class zircon_render_graph_pass_editor_model_static_gles3
 	: public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
@@ -54,7 +54,7 @@ private:
 	void render_instances();
 
 private:
-	zircon_factory_game* m_p_factory;
+	zircon_factory* m_p_factory;
 	kotek::render::gl::ktkRenderResourceManager* m_p_manager_render_resource;
 	kotek::render::gl::ktkRenderGeometryManager* m_p_manager_render_geometry;
 	kotek::render::gl::ktkRenderShaderManager* m_p_manager_render_shader;

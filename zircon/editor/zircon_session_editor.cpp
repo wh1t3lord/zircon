@@ -7,48 +7,43 @@
 constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
-zircon_session_editor::zircon_session_editor(
-	const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
-		session_name,
-	kotek::uint8_t id) :
-	m_is_change_title_once_for_editing_status{}, m_id{_kInvalidSessionID},
-	m_p_scene{}, m_p_command_history{}, m_p_factory_game{}, m_p_console{},
-	m_p_main_manager{}, m_name{"not_inited"}
-{
-}
-
 zircon_session_editor::zircon_session_editor(void) :
 	m_is_change_title_once_for_editing_status{}, m_id{_kInvalidSessionID},
-	m_p_scene{}, m_p_command_history{}, m_p_factory_game{}, m_p_main_manager{},
-	m_name{"not_inited"}
+	m_p_world{}, m_p_main_manager{}, m_name{"not_inited"}
 {
 }
 
 zircon_session_editor::~zircon_session_editor(void) {}
 
-void zircon_session_editor::initialize(zircon_world* p_current_scene,
+void zircon_session_editor::initialize(
+	const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
+		session_name,
+	kotek::uint8_t id, zircon_world* p_current_world,
 	kotek::core::ktkMainManager* p_main_manager,
-	zircon_editor_command_history* p_command_history,
-	zircon_factory_game* p_factory_game, kotek::core::ktkConsole* p_console)
+	kotek::core::ktkConsole* p_console,
+	kotek::core::ktkIFileSystem* p_filesystem,
+	kotek::core::ktkIResourceManager* p_resource_manager)
 {
-	KOTEK_ASSERT(p_current_scene, "you can't pass an invalid scene");
+	KOTEK_ASSERT(p_current_world, "you can't pass an invalid scene");
 	KOTEK_ASSERT(p_main_manager, "must be valid!");
-	KOTEK_ASSERT(p_command_history, "must be valid!");
-	KOTEK_ASSERT(p_factory_game, "must be valid!");
 	KOTEK_ASSERT(p_console, "must be valid!");
 
-	this->m_p_scene = p_current_scene;
+	this->m_name = session_name;
+	this->m_id = id;
+
+	this->m_p_world = p_current_world;
 	this->m_p_main_manager = p_main_manager;
-	this->m_p_command_history = p_command_history;
-	this->m_p_factory_game = p_factory_game;
 	this->m_p_console = p_console;
+	this->m_command_history_manager.initialize(p_filesystem, p_current_world,
+		p_current_world->get_factory(), p_resource_manager);
+	this->m_state.initialize(p_current_world->get_factory());
 }
 
 void zircon_session_editor::shutdown(void)
 {
-	if (this->m_p_scene)
+	if (this->m_p_world)
 	{
-		this->m_p_scene->Shutdown();
+		this->m_p_world->shutdown();
 	}
 }
 
@@ -150,14 +145,14 @@ void zircon_session_editor::Deserialize_Settings(
 void zircon_session_editor::Serialize_Entities(
 	Kotek::Core::ktkFileText& output) noexcept
 {
-	KOTEK_ASSERT(this->m_p_factory_game, "early calling?");
+	KOTEK_ASSERT(this->m_p_world->get_factory(), "early calling?");
 
-	auto p_factory = this->m_p_factory_game;
+	auto p_factory = this->m_p_world->get_factory();
 	if (p_factory)
 	{
 		Kotek::ktk::json::array all_entities;
 
-		const auto& entities = this->m_p_scene->GetEntities();
+		const auto& entities = this->m_p_world->get_entities();
 		for (auto id : entities)
 		{
 			Kotek::ktk::json::object entity;
@@ -200,9 +195,9 @@ void zircon_session_editor::Deserialize_Entities(
 					serialized_data.push_back({pair.key_c_str(), pair.value()});
 				}
 
-				auto id = this->m_p_scene->CreateEntity();
+				auto id = this->m_p_world->create_entity();
 
-				this->m_p_factory_game->CreateAllComponents(
+				this->m_p_world->get_factory()->CreateAllComponents(
 					id, serialized_data);
 			}
 		}
@@ -226,7 +221,7 @@ void zircon_session_editor::Deserialize(
 
 void zircon_session_editor::update_component_input_sdk(void) noexcept
 {
-	auto* p_game_factory = this->m_p_factory_game;
+	auto* p_game_factory = this->m_p_world->get_factory();
 
 	if (p_game_factory)
 	{
@@ -294,7 +289,7 @@ void zircon_session_editor::update_component_input_sdk(void) noexcept
 
 void zircon_session_editor::update_editing_status(void) noexcept
 {
-	auto* p_command_history = this->m_p_command_history;
+	auto* p_command_history = &this->m_command_history_manager;
 
 	if (p_command_history->is_changed() &&
 		!this->m_is_change_title_once_for_editing_status)
@@ -321,7 +316,7 @@ void zircon_session_editor::update_component_camera(void) noexcept {}
 
 void zircon_session_editor::update_component_camera_sdk(void) noexcept
 {
-	auto* p_game_factory = this->m_p_factory_game;
+	auto* p_game_factory = this->m_p_world->get_factory();
 
 	if (p_game_factory)
 	{

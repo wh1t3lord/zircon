@@ -1,16 +1,15 @@
 #pragma once
 
 #include "../core/zircon_session.h"
+#include "ui/zircon_editor_ui_state.h"
 
 class zircon_world;
-class zircon_manager_game;
-class zircon_editor_command_history;
-class zircon_factory_game;
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
 
 class ktkMainManager;
+class ktkConsole;
 
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
@@ -18,18 +17,17 @@ KOTEK_END_NAMESPACE_KOTEK
 class zircon_session_editor : public zircon_interface_session
 {
 public:
-	zircon_session_editor(
-		const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
-			session_name,
-		kotek::uint8_t id);
 	zircon_session_editor(void);
 	~zircon_session_editor(void);
 
-	void initialize(zircon_world* p_current_scene,
+	void initialize(
+		const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
+			session_name,
+		kotek::uint8_t id, zircon_world* p_current_scene,
 		kotek::core::ktkMainManager* p_main_manager,
-		zircon_editor_command_history* p_command_history,
-		zircon_factory_game* p_factory_game,
-		kotek::core::ktkConsole* p_console);
+		kotek::core::ktkConsole* p_console,
+		kotek::core::ktkIFileSystem* p_filesystem,
+		kotek::core::ktkIResourceManager* p_resource_manager);
 	void shutdown(void) override;
 	void update(void) override;
 
@@ -57,10 +55,10 @@ private:
 private:
 	bool m_is_change_title_once_for_editing_status;
 	kotek::uint8_t m_id;
-	zircon_world* m_p_scene;
-	zircon_editor_command_history* m_p_command_history;
-	zircon_factory_game* m_p_factory_game;
+	zircon_world* m_p_world;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
 	kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH> m_name;
+	zircon_editor_ui_state m_state;
+	zircon_editor_command_history m_command_history_manager;
 };

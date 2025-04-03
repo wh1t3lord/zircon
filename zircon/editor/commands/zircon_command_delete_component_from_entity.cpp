@@ -3,7 +3,7 @@
 
 // TODO: remove all cstring to static_cstring containers!!!
 zircon_command_delete_component_from_entity::
-	zircon_command_delete_component_from_entity(zircon_factory_game* p_factory,
+	zircon_command_delete_component_from_entity(zircon_factory* p_factory,
 		entt::entity id, const char* p_component_string) :
 	m_id{id},
 	m_p_factory{p_factory}, m_p_component_name{p_component_string},
@@ -19,7 +19,7 @@ zircon_command_delete_component_from_entity::
 
 zircon_command_delete_component_from_entity::
 	zircon_command_delete_component_from_entity(
-		zircon_factory_game* p_factory) :
+		zircon_factory* p_factory) :
 	m_id{entt::null},
 	m_p_factory{p_factory}, m_p_component_name{},
 	m_serialized_state_of_deleted_component{},

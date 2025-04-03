@@ -9,7 +9,7 @@ zircon_editor_ui_state::zircon_editor_ui_state() :
 
 zircon_editor_ui_state::~zircon_editor_ui_state() {}
 
-void zircon_editor_ui_state::initialize(zircon_factory_game* p_factory_game)
+void zircon_editor_ui_state::initialize(zircon_factory* p_factory_game)
 {
 	if (p_factory_game)
 	{

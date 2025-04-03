@@ -8,7 +8,7 @@ constexpr const char* _kSDKModalWindowFailedToAddComponent =
 	"Warning##ComponentInspectorFailedToAddComponent";
 
 zircon_editor_ui_state_component_inspector::zircon_editor_ui_state_component_inspector(
-	zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory_game* p_factory) :
+	zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory) :
 	m_is_show_window{}, m_combobox_current_item_type{},
 	m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
 	m_p_combobox_current_item{}, m_p_list_selected_item_allocator{}

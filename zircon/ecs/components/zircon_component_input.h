@@ -13,7 +13,7 @@ class ktkMainManager;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
-class zircon_factory_game;
+class zircon_factory;
 
 #define ZIRCON_DEF_INPUT_KEYBOARD_HOLDING_FRAMES 2
 #define ZIRCON_DEF_INPUT_MOUSE_HOLDING_FRAMES 16
@@ -23,7 +23,7 @@ class zircon_component_input : public zircon_component_interface
 	KOTEK_COMPONENT(zircon_component_input,
 		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 
-	friend class zircon_factory_game;
+	friend class zircon_factory;
 
 public:
 	zircon_component_input(void);

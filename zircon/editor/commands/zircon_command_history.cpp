@@ -1,5 +1,5 @@
 ﻿#include "zircon_command_history.h"
-#include "../../world/zircon_world_manager.h"
+#include "../../world/zircon_world.h"
 
 #include "zircon_command_create_entity.h"
 #include "zircon_command_delete_entity.h"
@@ -15,7 +15,7 @@ constexpr const char* _kExchangeFileName = "exchange";
 
 zircon_editor_command_history::zircon_editor_command_history(void) :
 	m_is_changed{}, m_is_first_serialize_happened{}, m_is_action_issued{},
-	m_p_file_temp{}, m_p_file_exchange{}, m_p_filesystem{}, m_p_scene_manager{},
+	m_p_file_temp{}, m_p_file_exchange{}, m_p_filesystem{}, m_p_current_world{},
 	m_p_factory_game{}, m_p_resource_manager{}, m_index{}, m_cursor_index{-1},
 	m_max_index{}, m_file_index{}, m_current_file_offset{},
 	m_after_frame_file_offset{}, m_before_frame_file_offset{},
@@ -48,16 +48,16 @@ zircon_editor_command_history::zircon_editor_command_history(void) :
 zircon_editor_command_history::~zircon_editor_command_history(void) {}
 
 void zircon_editor_command_history::initialize(
-	kotek::core::ktkIFileSystem* p_filesystem,
-	zircon_world_manager* p_scene_manager, zircon_factory_game* p_factory_game,
+	kotek::core::ktkIFileSystem* p_filesystem, zircon_world* p_current_world,
+	zircon_factory* p_factory_game,
 	kotek::core::ktkIResourceManager* p_resource_manager)
 {
 	KOTEK_ASSERT(p_filesystem, "you must pass a valid pointer!");
-	KOTEK_ASSERT(p_scene_manager, "you must pass a valid pointer!");
+	KOTEK_ASSERT(p_current_world, "you must pass a valid pointer!");
 	KOTEK_ASSERT(p_resource_manager, "you must pass a valid pointer!");
 
 	this->m_p_filesystem = p_filesystem;
-	this->m_p_scene_manager = p_scene_manager;
+	this->m_p_current_world = p_current_world;
 	this->m_p_resource_manager = p_resource_manager;
 	this->m_p_factory_game = p_factory_game;
 
@@ -515,10 +515,10 @@ void zircon_editor_command_history::Undo()
 						{
 							auto placement_storage =
 								this->m_storage[copy_index];
-							zircon_command_create_entity* p_command = new (
-								placement_storage)
-								zircon_command_create_entity(this,
-									this->m_p_scene_manager->GetCurrentScene());
+							zircon_command_create_entity* p_command =
+								new (placement_storage)
+									zircon_command_create_entity(
+										this, this->m_p_current_world);
 							p_command->Deserialize(json);
 
 							this->m_commands[copy_index] = p_command;
@@ -531,11 +531,11 @@ void zircon_editor_command_history::Undo()
 						{
 							auto placement_storage =
 								this->m_storage[copy_index];
-							zircon_command_delete_entity* p_command = new (
-								placement_storage)
-								zircon_command_delete_entity(this,
-									this->m_p_scene_manager->GetCurrentScene(),
-									this->m_p_factory_game, entt::null);
+							zircon_command_delete_entity* p_command =
+								new (placement_storage)
+									zircon_command_delete_entity(this,
+										this->m_p_current_world,
+										this->m_p_factory_game, entt::null);
 							p_command->Deserialize(json);
 
 							this->m_commands[copy_index] = p_command;
@@ -952,8 +952,8 @@ void zircon_editor_command_history::Redo()
 						auto placement_storage = this->m_storage[i];
 						zircon_command_create_entity* p_command =
 							new (placement_storage)
-								zircon_command_create_entity(this,
-									this->m_p_scene_manager->GetCurrentScene());
+								zircon_command_create_entity(
+									this, this->m_p_current_world);
 						p_command->Deserialize(json);
 
 						this->m_commands[i] = p_command;
@@ -966,7 +966,7 @@ void zircon_editor_command_history::Redo()
 						zircon_command_delete_entity* p_command =
 							new (placement_storage)
 								zircon_command_delete_entity(this,
-									this->m_p_scene_manager->GetCurrentScene(),
+									this->m_p_current_world,
 									this->m_p_factory_game, entt::null);
 
 						p_command->Deserialize(json);
@@ -1092,7 +1092,7 @@ unsigned char* zircon_editor_command_history::allocate_memory_for_command(
 		"you can't pass a invalid size!");
 	KOTEK_ASSERT(size_of_class <= zircon_DEF_MAXIMUM_COMMAND_SIZE,
 		"you passed size larger than standard we can't allocate!");
-	KOTEK_ASSERT(this->m_p_scene_manager->GetCurrentScene(),
+	KOTEK_ASSERT(this->m_p_current_world,
 		"must be a valid scene! early calling somehow!");
 
 	unsigned char* pResultPlacementNewBuffer{};
@@ -1797,7 +1797,8 @@ void zircon_editor_command_history::insert_content_exchange(
 	}
 }
 
-bool zircon_editor_command_history::is_contain_control_character(const char* p_buffer,
+bool zircon_editor_command_history::is_contain_control_character(
+	const char* p_buffer,
 	kotek::ktk::size_t& how_much_time_control_character_repeats,
 	kotek::ktk::size_t size_of_buffer, char control_character)
 {
@@ -2102,7 +2103,8 @@ void zircon_editor_command_history::clear_content_when_action_issued()
 	}
 }
 
-kotek::size_t zircon_editor_command_history::get_offset_of_current_index_in_file()
+kotek::size_t
+zircon_editor_command_history::get_offset_of_current_index_in_file()
 {
 	kotek::size_t result{};
 	if (this->m_p_resource_manager)
@@ -2887,7 +2889,7 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 
 				auto offset_for_json_data = std::atoi(buffer);
 				//	auto offset_from_exchange =
-				//this->m_p_resource_manager->Tellg(
+				// this->m_p_resource_manager->Tellg(
 				//		this->m_file_exchange_resource_handle_id);
 
 				auto offset_from_exchange = this->m_p_file_exchange->tellg();
@@ -2962,8 +2964,8 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 
 						zircon_command_create_entity* p_command =
 							new (placement_storage)
-								zircon_command_create_entity(this,
-									this->m_p_scene_manager->GetCurrentScene());
+								zircon_command_create_entity(
+									this, this->m_p_current_world);
 
 						p_command->SetEntityID(static_cast<kotek::uint32_t>(
 							id_that_replaces_what_will_be_deleted));
@@ -2987,12 +2989,11 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 						auto placement_storage =
 							this->m_p_memory_for_stack_command_creation;
 
-						zircon_command_delete_entity* p_command =
-							new (placement_storage)
-								zircon_command_delete_entity(this,
-									this->m_p_scene_manager->GetCurrentScene(),
-									this->m_p_factory_game,
-									id_that_replaces_what_will_be_deleted);
+						zircon_command_delete_entity* p_command = new (
+							placement_storage)
+							zircon_command_delete_entity(this,
+								this->m_p_current_world, this->m_p_factory_game,
+								id_that_replaces_what_will_be_deleted);
 
 						updated_size_of_entry =
 							p_command->Serialize(this->m_p_file_exchange,
@@ -3103,7 +3104,7 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 					if (current_offset + sizeof(buffer) == file_size)
 					{
 						//	auto update_offset =
-						//this->m_p_resource_manager->Tellg(
+						// this->m_p_resource_manager->Tellg(
 						//		this->m_file_exchange_resource_handle_id);
 
 						auto update_offset = this->m_p_file_exchange->tellg();
@@ -3248,10 +3249,11 @@ bool zircon_editor_command_history::check_json_entry_has_entity_id(
 			}
 			else
 			{
-			//	this->m_p_resource_manager->Read(
-			//		this->m_file_resource_handle_id,
-			//		stream_buffer_for_json_data, real_size_for_json_data);
-				this->m_p_file_temp->read(stream_buffer_for_json_data, real_size_for_json_data);
+				//	this->m_p_resource_manager->Read(
+				//		this->m_file_resource_handle_id,
+				//		stream_buffer_for_json_data, real_size_for_json_data);
+				this->m_p_file_temp->read(
+					stream_buffer_for_json_data, real_size_for_json_data);
 				parser.write(stream_buffer_for_json_data);
 				auto status = parser.done();
 				KOTEK_ASSERT(status, "must be valid json in stream buffer!");
@@ -3320,26 +3322,27 @@ bool zircon_editor_command_history::
 				{
 					if (counter > zircon_DEF_STREAM_JSON_STACK_SIZE)
 					{
-					//	this->m_p_resource_manager->Read(
-					//		this->m_file_resource_handle_id,
-					//		stream_buffer_for_json_data,
-					//		sizeof(stream_buffer_for_json_data));
+						//	this->m_p_resource_manager->Read(
+						//		this->m_file_resource_handle_id,
+						//		stream_buffer_for_json_data,
+						//		sizeof(stream_buffer_for_json_data));
 						this->m_p_file_temp->read(stream_buffer_for_json_data,
 							sizeof(stream_buffer_for_json_data));
 						copy_offset += zircon_DEF_STREAM_JSON_STACK_SIZE;
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id, copy_offset,
-					//		kotek::core::eFileSeekDirectionType::
-					//			kSeekDirectionBegin);
+						//	this->m_p_resource_manager->Seekg(
+						//		this->m_file_resource_handle_id, copy_offset,
+						//		kotek::core::eFileSeekDirectionType::
+						//			kSeekDirectionBegin);
 						this->m_p_file_temp->seekg(
 							copy_offset, std::ios_base::beg);
 					}
 					else
 					{
-					//	this->m_p_resource_manager->Read(
-					//		this->m_file_resource_handle_id,
-					//		stream_buffer_for_json_data, counter);
-						this->m_p_file_temp->read(stream_buffer_for_json_data, counter);
+						//	this->m_p_resource_manager->Read(
+						//		this->m_file_resource_handle_id,
+						//		stream_buffer_for_json_data, counter);
+						this->m_p_file_temp->read(
+							stream_buffer_for_json_data, counter);
 						copy_offset += counter;
 					}
 
@@ -3377,9 +3380,9 @@ bool zircon_editor_command_history::
 			}
 			else
 			{
-			//	this->m_p_resource_manager->Read(
-			//		this->m_file_resource_handle_id,
-			//		stream_buffer_for_json_data, real_size_for_json_data);
+				//	this->m_p_resource_manager->Read(
+				//		this->m_file_resource_handle_id,
+				//		stream_buffer_for_json_data, real_size_for_json_data);
 				this->m_p_file_temp->read(
 					stream_buffer_for_json_data, real_size_for_json_data);
 				parser.write(stream_buffer_for_json_data);

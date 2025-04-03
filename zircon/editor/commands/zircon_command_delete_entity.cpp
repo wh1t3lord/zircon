@@ -5,7 +5,7 @@
 
 zircon_command_delete_entity::zircon_command_delete_entity(
 	zircon_editor_command_history* p_history, zircon_world* p_scene,
-	zircon_factory_game* p_factory, entt::entity entity_to_delete) :
+	zircon_factory* p_factory, entt::entity entity_to_delete) :
 	m_p_history{p_history},
 	m_p_scene{p_scene}, m_p_factory{p_factory},
 	m_entity_created{entity_to_delete}, m_entity_previous_id{entt::null},
