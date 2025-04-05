@@ -22,10 +22,8 @@ public:
 
 	void initialize(kotek::core::ktkMainManager* p_main_manager);
 
-	bool create_session(
-		const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
-			session_name) override;
-
+	kotek::uint8_t create_session(void) override;
+	zircon_session_editor* get_session(kotek::uint8_t id) const noexcept;
 	void destroy_session(kotek::uint8_t id) override;
 
 	eZirconSessionType get_type() const noexcept override;

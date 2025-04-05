@@ -13,7 +13,7 @@ zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
 	bool is_imgui_enabled = false;
 	bool is_sdk_enabled = false;
 
-	Kotek::Core::ktkIEngineConfig* p_config =
+	Kotek::Core::ktkIFrameworkConfig* p_config =
 		this->m_p_main_manager->Get_EngineConfig();
 
 	if (p_config)
@@ -87,7 +87,7 @@ zircon_render_graph_pass_imgui_gles3::~zircon_render_graph_pass_imgui_gles3(
 	bool is_imgui_enabled = false;
 	bool is_sdk_enabled = false;
 
-	Kotek::Core::ktkIEngineConfig* p_config =
+	Kotek::Core::ktkIFrameworkConfig* p_config =
 		this->m_p_main_manager->Get_EngineConfig();
 
 	if (p_config)
@@ -137,7 +137,7 @@ void zircon_render_graph_pass_imgui_gles3::OnUpdate(
 	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 		p_previous_pass)
 {
-	Kotek::Core::ktkIEngineConfig* p_config =
+	Kotek::Core::ktkIFrameworkConfig* p_config =
 		this->m_p_main_manager->Get_EngineConfig();
 
 	bool is_imgui_enabled = false;
@@ -177,7 +177,7 @@ void zircon_render_graph_pass_imgui_gles3::OnRender(
 	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 		p_previous_pass)
 {
-	Kotek::Core::ktkIEngineConfig* p_config =
+	Kotek::Core::ktkIFrameworkConfig* p_config =
 		this->m_p_main_manager->Get_EngineConfig();
 
 	bool is_imgui_enabled = false;

@@ -81,7 +81,8 @@ public:
 
 	kotek::core::ktkMainManager* GetMainManager(void) const noexcept;
 
-	zircon_editor_command_history* GetCommandHistoryManager(void) const noexcept;
+	zircon_editor_command_history* GetCommandHistoryManager(
+		void) const noexcept;
 
 	zircon_interface_session* GetSession_Editor(void) const noexcept;
 	zircon_interface_session* GetSession_Game(void) const noexcept;
@@ -133,6 +134,11 @@ private:
 private:
 	bool m_is_use_sdk;
 	bool m_is_use_sdk_imgui;
+#ifdef KOTEK_USE_SDK_IMGUI
+	kotek::uint8_t m_session_editor_id;
+#endif
+
+	kotek::uint8_t m_session_game_id;
 	kotek::core::ktkProfiler* m_p_profiler;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
@@ -151,7 +157,7 @@ private:
 	sdk::ui::zircon_frame* m_p_sdk_main_window;
 #endif
 
-	zircon_factory* m_p_factory;
+	//zircon_factory* m_p_factory;
 	zircon_world_manager* m_p_scene_manager;
 	zircon_resource_manager* m_p_resource_manager;
 	zircon_config* m_p_config;

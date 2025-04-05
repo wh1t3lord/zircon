@@ -1,6 +1,17 @@
 #include "zircon_world.h"
 
-zircon_world::zircon_world(void) : m_actor_entity_id{} {}
+constexpr kotek::uint8_t _kInvalidWorldID =
+	std::numeric_limits<kotek::uint8_t>::max();
+
+zircon_world::zircon_world(kotek::uint8_t id) :
+	m_id{id}, m_actor_entity_id{}, m_name{"not_inited"}
+{
+}
+
+zircon_world::zircon_world(void) :
+	m_id{_kInvalidWorldID}, m_actor_entity_id{}, m_name{"not_inited"}
+{
+}
 
 zircon_world::~zircon_world(void) {}
 
@@ -59,6 +70,11 @@ zircon_factory* zircon_world::get_factory(void) noexcept
 const zircon_factory* zircon_world::get_factory(void) const noexcept
 {
 	return static_cast<const zircon_factory*>(&this->m_factory);
+}
+
+kotek::uint8_t zircon_world::get_id(void) const noexcept
+{
+	return this->m_id;
 }
 
 entt::entity zircon_world::create_entity(void)

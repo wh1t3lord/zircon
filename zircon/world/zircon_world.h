@@ -10,6 +10,7 @@
 class zircon_world
 {
 public:
+	zircon_world(kotek::uint8_t id);
 	zircon_world(void);
 	~zircon_world(void);
 
@@ -35,7 +36,10 @@ public:
 	zircon_factory* get_factory(void) noexcept;
 	const zircon_factory* get_factory(void) const noexcept;
 
+	kotek::uint8_t get_id(void) const noexcept;
+
 private:
+	kotek::uint8_t m_id;
 	entt::entity m_actor_entity_id;
 	kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH> m_name;
 	zircon_factory m_factory;

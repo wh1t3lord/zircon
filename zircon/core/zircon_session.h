@@ -28,9 +28,7 @@ class zircon_interface_session_manager
 public:
 	virtual ~zircon_interface_session_manager(void) {}
 
-	virtual bool create_session(
-		const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
-			session_name) = 0;
+	virtual kotek::uint8_t create_session(void) = 0;
 	virtual void destroy_session(kotek::uint8_t id) = 0;
 	virtual eZirconSessionType get_type() const noexcept = 0;
 	virtual void shutdown(void) = 0;

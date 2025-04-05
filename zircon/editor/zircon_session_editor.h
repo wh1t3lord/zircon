@@ -17,6 +17,7 @@ KOTEK_END_NAMESPACE_KOTEK
 class zircon_session_editor : public zircon_interface_session
 {
 public:
+	zircon_session_editor(kotek::uint8_t id);
 	zircon_session_editor(void);
 	~zircon_session_editor(void);
 
@@ -53,6 +54,7 @@ private:
 	void update_component_camera_sdk(void) noexcept;
 
 private:
+	bool m_was_initialized;
 	bool m_is_change_title_once_for_editing_status;
 	kotek::uint8_t m_id;
 	zircon_world* m_p_world;

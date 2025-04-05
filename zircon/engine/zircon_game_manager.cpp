@@ -523,17 +523,49 @@ void zircon_manager_game::Initialize(
 
 	this->Initialize_Console();
 	this->initialize_config();
-	this->Initialize_Factory();
-	this->Initialize_SceneManager();
+	//	this->Initialize_Factory();
+	//	this->Initialize_SceneManager();
 	this->Initialize_ResourceManager();
-	this->Initialize_HistoryCommandManager();
+	//	this->Initialize_HistoryCommandManager();
 
 	// TODO: do we really need it here???????
-	this->Initialize_SDKUIManager(this->m_p_factory);
+	//	this->Initialize_SDKUIManager(this->m_p_factory);
 
-	this->Initialize_Renderer();
+	//	this->Initialize_Renderer();
 
-	this->Initialize_Session();
+	// this->Initialize_Session();
+
+#ifdef KOTEK_USE_SDK_IMGUI
+	this->m_p_session_editor_manager = new zircon_session_editor_manager();
+	this->m_session_editor_id =
+		this->m_p_session_editor_manager->create_session();
+
+	kotek::core::ktkIFrameworkConfig* pFrameworkConfig =
+		p_main_manager->Get_EngineConfig();
+	KOTEK_ASSERT(pFrameworkConfig, "must be initialized");
+
+	if (pFrameworkConfig)
+	{
+		bool is_startup_imgui = pFrameworkConfig->IsFeatureEnabled(
+			kotek::core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
+
+		if (is_startup_imgui)
+		{
+			zircon_session_editor* p_session = this->m_p_session_editor_manager->get_session(this->m_session_editor_id);
+
+			if (p_session)
+			{
+				//p_session->initialize("editor", this->m_session_editor_id, );
+			}
+		}
+	}
+#endif
+
+	// if editor create only when simulate goes otherwise create now and load
+	// startup json config
+	this->m_p_session_game_manager = new zircon_session_game_manager();
+	this->m_session_game_id = this->m_p_session_game_manager->create_session();
+
 	this->Initialize_UI();
 
 	this->RegisterConsole_Commands();

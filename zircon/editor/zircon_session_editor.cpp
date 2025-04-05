@@ -7,13 +7,24 @@
 constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
-zircon_session_editor::zircon_session_editor(void) :
-	m_is_change_title_once_for_editing_status{}, m_id{_kInvalidSessionID},
+zircon_session_editor::zircon_session_editor(kotek::uint8_t id) :
+	m_was_initialized{}, m_is_change_title_once_for_editing_status{}, m_id{id},
 	m_p_world{}, m_p_main_manager{}, m_name{"not_inited"}
 {
 }
 
-zircon_session_editor::~zircon_session_editor(void) {}
+zircon_session_editor::zircon_session_editor(void) :
+	m_was_initialized{}, m_is_change_title_once_for_editing_status{},
+	m_id{_kInvalidSessionID}, m_p_world{}, m_p_main_manager{},
+	m_name{"not_inited"}
+{
+}
+
+zircon_session_editor::~zircon_session_editor(void)
+{
+	KOTEK_ASSERT(
+		!this->m_was_initialized, "you forgot to call ::shutdown method!");
+}
 
 void zircon_session_editor::initialize(
 	const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
@@ -24,26 +35,57 @@ void zircon_session_editor::initialize(
 	kotek::core::ktkIFileSystem* p_filesystem,
 	kotek::core::ktkIResourceManager* p_resource_manager)
 {
+	KOTEK_ASSERT(
+		session_name.empty() == false, "pass a reasonable name please!");
 	KOTEK_ASSERT(p_current_world, "you can't pass an invalid scene");
+	KOTEK_ASSERT(p_current_world->get_factory(),
+		"you must initialize factory inside of world!");
 	KOTEK_ASSERT(p_main_manager, "must be valid!");
 	KOTEK_ASSERT(p_console, "must be valid!");
+	KOTEK_ASSERT(this->m_id != _kInvalidSessionID ? this->m_id == id : true,
+		"you must pass a same id as you passed in ctor. Otherwise it means "
+		"that you won't obtain a right session by id. Default ctor was created "
+		"for handling rare case where a user needs pure deferred "
+		"initialization, but when it comes is unknown... So generally for "
+		"validation of your ::initialize calling you have to construct this "
+		"instance with ctor that accepts id in order to prevent some "
+		"misclicking behaviour");
+	KOTEK_ASSERT(this->m_was_initialized == false,
+		"you should call shutdown and then initialize or reinitialize method "
+	    "for calling twice. "
+		"Otherwise why do you need to call this method again?");
 
-	this->m_name = session_name;
-	this->m_id = id;
+	if (!this->m_was_initialized)
+	{
+		this->m_name = session_name;
+		this->m_id = id;
 
-	this->m_p_world = p_current_world;
-	this->m_p_main_manager = p_main_manager;
-	this->m_p_console = p_console;
-	this->m_command_history_manager.initialize(p_filesystem, p_current_world,
-		p_current_world->get_factory(), p_resource_manager);
-	this->m_state.initialize(p_current_world->get_factory());
+		this->m_p_world = p_current_world;
+		this->m_p_main_manager = p_main_manager;
+		this->m_p_console = p_console;
+		this->m_command_history_manager.initialize(p_filesystem,
+			p_current_world, p_current_world->get_factory(),
+			p_resource_manager);
+		this->m_state.initialize(p_current_world->get_factory());
+
+		this->m_was_initialized = true;
+	}
 }
 
 void zircon_session_editor::shutdown(void)
 {
-	if (this->m_p_world)
+	KOTEK_ASSERT(this->m_was_initialized,
+		"don't call this method when you didn't initialize the instance of "
+		"this class!");
+
+	if (this->m_was_initialized)
 	{
-		this->m_p_world->shutdown();
+		if (this->m_p_world)
+		{
+			this->m_p_world->shutdown();
+		}
+
+		this->m_was_initialized = false;
 	}
 }
 

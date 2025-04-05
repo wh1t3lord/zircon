@@ -1,25 +1,24 @@
 #pragma once
 
-#include "zircon_world.h"
+class zircon_world;
 
-class zircon_manager_game;
-class zircon_factory;
+#define ZIRCON_DEF_WORLD_MANAGER_MAX_WORLD_COUNT 1
 
 class zircon_world_manager
 {
 public:
-	zircon_world_manager(zircon_factory* p_game_factory);
+	zircon_world_manager(void);
 	~zircon_world_manager(void);
 
-	void Initialize(void);
-	void Shutdown(void);
+	void initialize(void);
+	void shutdown(void);
 
-	zircon_world* GetCurrentScene(void) const noexcept;
+	kotek::uint8_t create_world(void) noexcept;
+	zircon_world* get_world(kotek::uint8_t id) const noexcept;
+	void destroy_world(kotek::uint8_t id);
 
 private:
-	zircon_factory* m_p_game_factory;
-	zircon_world* m_p_current_scene;
-
-	// TODO: maybe better to use list instead of vector
-	Kotek::ktk::vector<zircon_world> m_scenes;
+	kotek::static_vector_t<zircon_world*,
+		ZIRCON_DEF_WORLD_MANAGER_MAX_WORLD_COUNT>
+		m_worlds;
 };
