@@ -16,6 +16,8 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_session_editor : public zircon_interface_session
 {
+	friend class zircon_session_editor_manager;
+
 public:
 	zircon_session_editor(kotek::uint8_t id);
 	zircon_session_editor(void);
@@ -46,6 +48,17 @@ public:
 	void Deserialize_Entities(Kotek::Core::ktkFileText& input) noexcept;
 
 	void Deserialize(const ktk_filesystem_path& full_path_to_file) noexcept;
+	kotek::uint8_t get_render_graph_id(void) const noexcept;
+	void set_render_graph_id(kotek::uint8_t id) noexcept;
+
+	zircon_editor_ui_state* get_ui_state(void) noexcept;
+	zircon_editor_command_history* get_command_history(void) noexcept;
+
+	const zircon_editor_ui_state* get_ui_state(void) const noexcept;
+	const zircon_editor_command_history* get_command_history(
+		void) const noexcept;
+
+	zircon_world* get_world(void) const noexcept;
 
 private:
 	void update_component_input_sdk(void) noexcept;
@@ -54,9 +67,14 @@ private:
 	void update_component_camera_sdk(void) noexcept;
 
 private:
+#ifdef KOTEK_DEBUG
+	bool m_was_allocated_by_manager;
+	bool m_was_destroyed_by_manager;
+#endif
 	bool m_was_initialized;
 	bool m_is_change_title_once_for_editing_status;
 	kotek::uint8_t m_id;
+	kotek::uint8_t m_render_graph_id;
 	zircon_world* m_p_world;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;

@@ -47,6 +47,8 @@ kotek::uint8_t zircon_session_editor_manager::create_session(void)
 	if (p_session)
 	{
 		KOTEK_MESSAGE("created session: {}", generated_session_id);
+
+		p_session->m_was_allocated_by_manager = true;
 	}
 #endif
 	if (!p_session)
@@ -128,6 +130,12 @@ void zircon_session_editor_manager::destroy_session(kotek::uint8_t id)
 
 				was_found = true;
 				++has_duplicate;
+
+				p_session->m_was_destroyed_by_manager = true;
+
+				KOTEK_ASSERT(p_session->m_was_initialized == false,
+					"you have to call ::shutdown in session instance before "
+					"destruction!");
 #endif
 
 				delete p_session;
@@ -155,6 +163,10 @@ void zircon_session_editor_manager::shutdown(void)
 	{
 		if (p_session)
 		{
+#ifdef KOTEK_DEBUG
+			p_session->m_was_destroyed_by_manager = true;
+#endif
+
 			p_session->shutdown();
 			delete p_session;
 		}

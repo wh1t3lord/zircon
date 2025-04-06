@@ -8,12 +8,18 @@ constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
 zircon_session_editor::zircon_session_editor(kotek::uint8_t id) :
+#ifdef KOTEK_DEBUG
+	m_was_allocated_by_manager{}, m_was_destroyed_by_manager{},
+#endif
 	m_was_initialized{}, m_is_change_title_once_for_editing_status{}, m_id{id},
 	m_p_world{}, m_p_main_manager{}, m_name{"not_inited"}
 {
 }
 
 zircon_session_editor::zircon_session_editor(void) :
+#ifdef KOTEK_DEBUG
+	m_was_allocated_by_manager{}, m_was_destroyed_by_manager{},
+#endif
 	m_was_initialized{}, m_is_change_title_once_for_editing_status{},
 	m_id{_kInvalidSessionID}, m_p_world{}, m_p_main_manager{},
 	m_name{"not_inited"}
@@ -24,6 +30,15 @@ zircon_session_editor::~zircon_session_editor(void)
 {
 	KOTEK_ASSERT(
 		!this->m_was_initialized, "you forgot to call ::shutdown method!");
+
+#ifdef KOTEK_DEBUG
+	KOTEK_ASSERT(this->m_was_allocated_by_manager
+			? this->m_was_destroyed_by_manager
+			: !this->m_was_destroyed_by_manager,
+		"if inited_by_manager was true it means this instance must be "
+		"destroyed through calling from manager but you can't by yourself call "
+		"a delete operator for destroying this instance.");
+#endif
 }
 
 void zircon_session_editor::initialize(
@@ -52,7 +67,7 @@ void zircon_session_editor::initialize(
 		"misclicking behaviour");
 	KOTEK_ASSERT(this->m_was_initialized == false,
 		"you should call shutdown and then initialize or reinitialize method "
-	    "for calling twice. "
+		"for calling twice. "
 		"Otherwise why do you need to call this method again?");
 
 	if (!this->m_was_initialized)
@@ -80,11 +95,6 @@ void zircon_session_editor::shutdown(void)
 
 	if (this->m_was_initialized)
 	{
-		if (this->m_p_world)
-		{
-			this->m_p_world->shutdown();
-		}
-
 		this->m_was_initialized = false;
 	}
 }
@@ -244,6 +254,44 @@ void zircon_session_editor::Deserialize_Entities(
 			}
 		}
 	}
+}
+
+kotek::uint8_t zircon_session_editor::get_render_graph_id(void) const noexcept
+{
+	return this->m_render_graph_id;
+}
+
+void zircon_session_editor::set_render_graph_id(kotek::uint8_t id) noexcept
+{
+	this->m_render_graph_id = id;
+}
+
+zircon_editor_ui_state* zircon_session_editor::get_ui_state(void) noexcept
+{
+	return &this->m_state;
+}
+
+zircon_editor_command_history* zircon_session_editor::get_command_history(
+	void) noexcept
+{
+	return &this->m_command_history_manager;
+}
+
+const zircon_editor_ui_state* zircon_session_editor::get_ui_state(
+	void) const noexcept
+{
+	return &this->m_state;
+}
+
+const zircon_editor_command_history* zircon_session_editor::get_command_history(
+	void) const noexcept
+{
+	return &this->m_command_history_manager;
+}
+
+zircon_world* zircon_session_editor::get_world(void) const noexcept
+{
+	return this->m_p_world;
 }
 
 void zircon_session_editor::Deserialize(

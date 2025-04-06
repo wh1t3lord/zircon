@@ -17,39 +17,35 @@
 #include <kotek.render.gl/include/kotek_render_device.h>
 #include <kotek.render.gl/include/kotek_render_resource_manager.h>
 
+// todo: move to config please
+constexpr kotek::uint8_t _kInvalidRenderGraphID =
+	std::numeric_limits<kotek::uint8_t>::max();
+
 zircon_renderer_gles3::zircon_renderer_gles3(
 	Kotek::Core::ktkMainManager* p_main_manager) :
+	m_previous_render_graph_id{_kInvalidRenderGraphID},
 	m_p_main_manager{p_main_manager},
 	m_p_render_device{static_cast<Kotek::Render::gl::ktkRenderDevice*>(
 		p_main_manager->getRenderDevice())},
-	m_p_render_resource_manager{}
+	m_p_render_resource_manager{}, m_p_current_render_graph{}
 {
 }
 
 zircon_renderer_gles3::~zircon_renderer_gles3(void) {}
 
 void zircon_renderer_gles3::Initialize(
-	const Kotek::ktk::vector<Kotek::Core::ktkISDKUIElement*>& ui_elements,
 	kotek::core::ktkWindowConsole* p_console, kotek::core::ktkConsole* p_con)
 {
-	this->m_imgui_ui_elements = ui_elements;
-
 	this->initialize_extensions(p_con);
-
-	this->Create_RenderGraph(this->m_imgui_ui_elements, p_console);
 
 	this->m_p_render_resource_manager =
 		dynamic_cast<Kotek::Render::gl::ktkRenderResourceManager*>(
 			this->m_p_main_manager->GetRenderResourceManager());
-
-	this->m_render_graph_simplified.Initialize(
-		this->m_p_main_manager, this->m_p_render_resource_manager);
 }
 
 void zircon_renderer_gles3::Shutdown(void)
 {
-	this->Destroy_RenderGraph();
-	this->Destroy_ImGuiUIElements();
+	this->destroy_render_graphs();
 }
 
 void zircon_renderer_gles3::draw()
@@ -59,8 +55,11 @@ void zircon_renderer_gles3::draw()
 	// updating all stuff for uploading...
 	this->m_p_render_resource_manager->Update();
 
-	this->m_render_graph_simplified.Update_All();
-	this->m_render_graph_simplified.Render_All();
+	if (this->m_p_current_render_graph)
+	{
+		this->m_p_current_render_graph->Update_All();
+		this->m_p_current_render_graph->Render_All();
+	}
 
 	this->End();
 }
@@ -73,9 +72,76 @@ const char* zircon_renderer_gles3::Get_Name(void) const noexcept
 }
 
 const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
-zircon_renderer_gles3::Get_UIImGuiElements() const
+zircon_renderer_gles3::get_ui_imgui_elements(
+	kotek::uint8_t render_graph_id) const
 {
-	return this->m_imgui_ui_elements;
+	KOTEK_ASSERT(render_graph_id < this->m_render_graphs.size(), "mismatch!");
+	return this->m_render_graphs[render_graph_id].ui_elements;
+}
+
+kotek::uint8_t zircon_renderer_gles3::create_render_graph(
+	kotek::uint8_t session_id,
+	kotek::static_vector_t<
+		kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
+		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>& passes,
+	const kotek::vector_t<kotek::core::ktkISDKUIElement*>& ui_elements)
+{
+	if (this->m_render_graphs.size() ==
+		ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT)
+	{
+		KOTEK_MESSAGE_WARNING("you can't add more render graph due to limit, "
+							  "max amount is {} current amount is {}",
+			ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT,
+			this->m_render_graphs.size());
+
+		return _kInvalidRenderGraphID;
+	}
+
+	zircon_render_graph_simplified_info_t info;
+
+	info.session_id = session_id;
+	info.in_use = false;
+	info.ui_elements = ui_elements;
+	info.graph.Initialize(
+		this->m_p_main_manager, this->m_p_render_resource_manager, passes);
+
+	kotek::uint8_t render_graph_id = this->m_render_graphs.size();
+	this->m_render_graphs.push_back(info);
+
+#ifdef KOTEK_DEBUG
+	KOTEK_MESSAGE("created render graph for session#{}", session_id);
+#endif
+
+	return render_graph_id;
+}
+
+void zircon_renderer_gles3::set_current_render_graph(
+	kotek::uint8_t render_graph_id)
+{
+	KOTEK_ASSERT(render_graph_id < this->m_render_graphs.size(),
+		"something is wrong and you passed invalid id");
+
+	this->m_p_current_render_graph =
+		&this->m_render_graphs[render_graph_id].graph;
+
+	if (this->m_previous_render_graph_id != _kInvalidRenderGraphID)
+	{
+		KOTEK_ASSERT(
+			this->m_render_graphs[this->m_previous_render_graph_id].in_use,
+			"must be true because you replace current that was in use!");
+		this->m_render_graphs[this->m_previous_render_graph_id].in_use = false;
+	}
+
+	KOTEK_ASSERT(this->m_render_graphs[render_graph_id].in_use == false,
+		"something is wrong and your logic is broken!");
+	this->m_render_graphs[render_graph_id].in_use = true;
+
+#ifdef KOTEK_DEBUG
+	KOTEK_MESSAGE("set current render graph for session#{}",
+		this->m_render_graphs[render_graph_id].session_id);
+#endif
+
+	this->m_previous_render_graph_id = render_graph_id;
 }
 
 template <unsigned char Size>
@@ -233,12 +299,26 @@ void zircon_renderer_gles3::End() noexcept
 		this->m_p_main_manager, this->m_p_render_device);
 }
 
-void zircon_renderer_gles3::Destroy_RenderGraph(void) noexcept
+void zircon_renderer_gles3::destroy_render_graphs(void) noexcept
 {
-	this->m_render_graph_simplified.Shutdown();
+	for (auto& info : this->m_render_graphs)
+	{
+		for (auto* p_sdk_ui_element : info.ui_elements)
+		{
+			if (p_sdk_ui_element)
+			{
+				p_sdk_ui_element->shutdown();
+				delete p_sdk_ui_element;
+			}
+		}
+		info.ui_elements.clear();
+		info.graph.Shutdown();
+	}
+
+	this->m_render_graphs.clear();
 }
 
-void zircon_renderer_gles3::Create_RenderGraph(
+void zircon_renderer_gles3::create_render_graph(
 	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& imgui_elements,
 	kotek::core::ktkWindowConsole* p_console) noexcept
 {
@@ -261,18 +341,20 @@ void zircon_renderer_gles3::Add_PassesEditor(
 			if (this->m_p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
 					kotek::core::kEngine_Feature_SDK_ImGui))
 			{
+				/*
 				this->m_render_graph_simplified.Add_Pass(
-					new zircon_render_graph_pass_editor_present_gles3(
-						u8"render_editor_pass_gles3_present"));
+				    new zircon_render_graph_pass_editor_present_gles3(
+				        u8"render_editor_pass_gles3_present"));
 
 				this->m_render_graph_simplified.Add_Pass(
-					new zircon_render_graph_pass_editor_model_static_gles3(
-						u8"render_editor_pass_gles3_static_geometry"));
+				    new zircon_render_graph_pass_editor_model_static_gles3(
+				        u8"render_editor_pass_gles3_static_geometry"));
 
 				this->m_render_graph_simplified.Add_Pass(
-					new zircon_render_graph_pass_editor_imgui_gles3(
-						u8"render_editor_pass_gles3_imgui",
-						this->m_p_main_manager, imgui_elements));
+				    new zircon_render_graph_pass_editor_imgui_gles3(
+				        u8"render_editor_pass_gles3_imgui",
+				        this->m_p_main_manager, imgui_elements));
+				*/
 			}
 		}
 	}
@@ -286,18 +368,9 @@ void zircon_renderer_gles3::Add_PassesGame(
 	// you can test the game as standalone
 	KOTEK_MESSAGE_WARNING(
 		"you didn't register game render passes for renderer!");
-
+	/*
 	this->m_render_graph_simplified.Add_Pass(
-		new zircon_render_graph_pass_console(
-			this->m_p_main_manager, p_console));
-}
-
-void zircon_renderer_gles3::Destroy_ImGuiUIElements(void) noexcept
-{
-	for (auto* p_element : this->m_imgui_ui_elements)
-	{
-		delete p_element;
-	}
-
-	this->m_imgui_ui_elements.clear();
+	    new zircon_render_graph_pass_console(
+	        this->m_p_main_manager, p_console));
+	        */
 }

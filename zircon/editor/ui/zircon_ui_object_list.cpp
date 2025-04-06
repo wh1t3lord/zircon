@@ -22,9 +22,9 @@ void zircon_editor_ui_state_object_list::Draw(
 		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
 	const auto& ids =
-		p_game_manager->GetSceneManager()->GetCurrentScene()->GetEntities();
+		p_game_manager->get_world_manager()->GetCurrentScene()->GetEntities();
 	auto* p_current_scene =
-		p_game_manager->GetSceneManager()->GetCurrentScene();
+		p_game_manager->get_world_manager()->GetCurrentScene();
 
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();

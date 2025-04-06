@@ -37,7 +37,7 @@ void zircon_editor_ui_state_component_inspector::Draw(
 		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
 
 	auto* p_current_scene =
-		p_game_manager->GetSceneManager()->GetCurrentScene();
+		p_game_manager->get_world_manager()->GetCurrentScene();
 
 	auto selected_entity = p_game_manager->get_sdk_ui()->get_selected_entity();
 

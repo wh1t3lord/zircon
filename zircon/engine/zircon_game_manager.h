@@ -56,8 +56,6 @@ public:
 	sdk::ui::zircon_frame* GetMainWindow(void) const noexcept;
 #endif
 
-	zircon_editor_ui_state_interface* get_sdk_ui(void) const noexcept;
-
 	int GetWindowWidth(void) const noexcept override;
 	int GetWindowHeight(void) const noexcept override;
 	kotek::core::ktkProfiler* GetProfiler(void) const noexcept override;
@@ -72,8 +70,7 @@ public:
 
 	void UpdateAllSystems(void) noexcept;
 
-	zircon_world_manager* GetSceneManager(void) const noexcept;
-	zircon_factory* get_factory_game(void) const noexcept;
+	zircon_world_manager* get_world_manager(void) const noexcept;
 	kotek::core::ktkWindow* GetWindow(void) const noexcept;
 
 	void Serialize(void) noexcept;
@@ -81,25 +78,11 @@ public:
 
 	kotek::core::ktkMainManager* GetMainManager(void) const noexcept;
 
-	zircon_editor_command_history* GetCommandHistoryManager(
-		void) const noexcept;
-
-	zircon_interface_session* GetSession_Editor(void) const noexcept;
-	zircon_interface_session* GetSession_Game(void) const noexcept;
-
 	zircon_config* get_config() const noexcept;
 
 private:
-	entt::entity Initialize_Actor(void) noexcept;
-
 	void Initialize_Renderer(void) noexcept;
 	void Destroy_Renderer(void) noexcept;
-
-	void Initialize_Factory(void) noexcept;
-	void Destroy_Factory(void) noexcept;
-
-	void Initialize_SceneManager(void) noexcept;
-	void Destroy_SceneManager(void) noexcept;
 
 	void Initialize_ResourceManager(void) noexcept;
 	void Destroy_ResourceManager(void) noexcept;
@@ -112,15 +95,6 @@ private:
 	void RegisterConsole_Commands_SDK(void) noexcept;
 
 	void Destroy_Console(void) noexcept;
-
-	void Initialize_SDKUIManager(zircon_factory* p_factory) noexcept;
-	void Destroy_SDKUIManager(void) noexcept;
-
-	void Initialize_Session(void) noexcept;
-	void Destroy_Session(void) noexcept;
-
-	void Initialize_HistoryCommandManager(void) noexcept;
-	void Destroy_HistoryCommandManager(void) noexcept;
 
 	void Initialize_UI(void) noexcept;
 	void Destroy_UI(void) noexcept;
@@ -137,14 +111,15 @@ private:
 #ifdef KOTEK_USE_SDK_IMGUI
 	kotek::uint8_t m_session_editor_id;
 #endif
-
+	kotek::uint8_t m_world_id;
 	kotek::uint8_t m_session_game_id;
+	kotek::uint8_t m_current_session_id;
 	kotek::core::ktkProfiler* m_p_profiler;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
 	kotek::core::ktkIRenderer* m_p_current_renderer;
 	kotek::core::ktkWindowConsole* m_p_window_console;
-
+	zircon_interface_session* m_p_current_session;
 	zircon_renderer_gles3* m_p_renderer_gles3;
 
 #ifdef KOTEK_USE_RENDER_VULKAN
@@ -158,7 +133,7 @@ private:
 #endif
 
 	//zircon_factory* m_p_factory;
-	zircon_world_manager* m_p_scene_manager;
+	zircon_world_manager* m_p_world_manager;
 	zircon_resource_manager* m_p_resource_manager;
 	zircon_config* m_p_config;
 	zircon_session_game_manager* m_p_session_game_manager;

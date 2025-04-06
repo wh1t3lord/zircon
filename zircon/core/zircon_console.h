@@ -36,7 +36,20 @@
 	OP(sdk_setfeature_addcomponentstoentity_thatrequiredforcreation) \
 	OP(sdk_showwindow)                                               \
 	OP(sdk_hidewindow)                                               \
-	OP(sdk_printregisteredwindows)
+	OP(sdk_printregisteredwindows)                                   \
+	OP(end_of_enum)                                                  \
+	OP(set_current_game_session_for_engine)                          \
+	OP(set_current_editor_session_for_engine)                        \
+	OP(create_session)                                               \
+	OP(destroy_session)                                              \
+	OP(connect_to_session)                                           \
+	OP(disconnect_from_session)                                      \
+	OP(load_world)                                                   \
+	OP(unload_world)                                                 \
+	OP(create_world)                                                 \
+	OP(destroy_world)                                                \
+	OP(set_world_to_session)                                         \
+	OP(set_current_render_graph_for_renderer)
 
 enum class eZirconConsoleCommands : kotek::enum_base_t
 {
@@ -45,7 +58,8 @@ enum class eZirconConsoleCommands : kotek::enum_base_t
 #undef _EZCC_GENERATE_ENUM
 };
 
-constexpr auto zircon_user_console_translation_callback = [](std::string_view str) -> int
+constexpr auto zircon_user_console_translation_callback =
+	[](std::string_view str) -> int
 {
 	const kotek::uint32_t hash = kotek::ktk::fnv1a_32(str);
 	switch (hash)
