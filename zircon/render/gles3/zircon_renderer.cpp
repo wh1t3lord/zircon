@@ -79,6 +79,16 @@ zircon_renderer_gles3::get_ui_imgui_elements(
 	return this->m_render_graphs[render_graph_id].ui_elements;
 }
 
+bool zircon_renderer_gles3::is_render_graph_presented(
+	kotek::uint8_t render_graph_id) const
+{
+	bool result{};
+
+	result = this->m_render_graphs.size() > render_graph_id;
+
+	return result;
+}
+
 kotek::uint8_t zircon_renderer_gles3::create_render_graph(
 	kotek::uint8_t session_id,
 	kotek::static_vector_t<

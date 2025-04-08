@@ -105,6 +105,11 @@ private:
 	void UpdateInput(void) noexcept;
 	void UpdateCamera(void) noexcept;
 
+	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+	get_ui_imgui_elements();
+	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+	get_ui_imgui_elements(kotek::uint8_t render_graph_id);
+
 private:
 	bool m_is_use_sdk;
 	bool m_is_use_sdk_imgui;

@@ -45,6 +45,8 @@ public:
 	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
 	get_ui_imgui_elements(kotek::uint8_t render_graph_id) const;
 
+	bool is_render_graph_presented(kotek::uint8_t render_graph_id) const;
+
 	kotek::uint8_t create_render_graph(kotek::uint8_t session_id,
 		kotek::static_vector_t<
 			kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,

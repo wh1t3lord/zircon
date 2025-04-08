@@ -206,7 +206,7 @@ kotek::ktk::uint8_t zircon_resource_manager::get_available_fstream(
 
 kotek::shared_ptr_t<kotek::core::ktkResourceHandle>
 zircon_resource_manager::Load(
-	const Kotek::Core::ktkLoadingRequest& request) noexcept
+	const kotek::core::ktkLoadingRequest& request) noexcept
 {
 	kotek::shared_ptr_t<kotek::core::ktkResourceHandle> result{};
 
@@ -222,6 +222,9 @@ zircon_resource_manager::Load(
 			{
 				if (this->m_p_manager_render_resource)
 				{
+					KOTEK_ASSERT(false,
+						"implement new streaming resource system please!");
+
 					auto p_resource_geometry =
 						this->m_p_manager_render_resource->LoadGeometry(
 							static_cast<Kotek::ktk::enum_base_t>(
