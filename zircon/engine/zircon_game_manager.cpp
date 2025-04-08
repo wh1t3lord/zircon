@@ -921,6 +921,61 @@ zircon_world_manager* zircon_manager_game::get_world_manager(
 	return this->m_p_world_manager;
 }
 
+zircon_session_editor_manager* zircon_manager_game::get_session_editor_manager(
+	void) const noexcept
+{
+	return this->m_p_session_editor_manager;
+}
+
+zircon_session_game_manager* zircon_manager_game::get_session_game_manager(
+	void) const noexcept
+{
+	return this->m_p_session_game_manager;
+}
+
+kotek::uint8_t zircon_manager_game::get_session_editor_id(void) const noexcept
+{
+	return this->m_session_editor_id;
+}
+
+kotek::uint8_t zircon_manager_game::get_session_game_id(void) const noexcept
+{
+	return this->m_session_game_id;
+}
+
+zircon_session_editor* zircon_manager_game::get_session_editor(
+	kotek::uint8_t session_id) const noexcept
+{
+	zircon_session_editor* p_result = nullptr;
+
+	KOTEK_ASSERT(this->m_p_session_editor_manager, "early calling? Initialize please");
+
+	if (!this->m_p_session_editor_manager)
+	{
+		KOTEK_MESSAGE_WARNING("failed to obtain session because you didn't initialize session editor manager!");
+		return p_result;
+	}
+
+	if (this->m_p_session_editor_manager)
+	{
+		p_result = this->m_p_session_editor_manager->get_session(session_id);
+
+		if (!p_result)
+		{
+			KOTEK_MESSAGE_WARNING("failed to obtain editor session by id: {}", session_id)
+		}
+	}
+
+
+	return p_result;
+}
+
+zircon_session_game* zircon_manager_game::get_session_game(
+	kotek::uint8_t session_id) const noexcept
+{
+	return nullptr;
+}
+
 kotek::core::ktkWindow* zircon_manager_game::GetWindow(void) const noexcept
 {
 	return static_cast<kotek::core::ktkWindow*>(
@@ -2483,7 +2538,7 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 				{
 					KOTEK_MESSAGE_WARNING(
 						"you didn't initialize session editor manager can't "
-				        "proceed further!");
+						"proceed further!");
 					return false;
 				}
 
@@ -2507,11 +2562,13 @@ void zircon_manager_game::RegisterConsole_Commands_SDK(void) noexcept
 					}
 				}
 
-				KOTEK_ASSERT(p_state, "failed to obtain ui state in editor session!");
+				KOTEK_ASSERT(
+					p_state, "failed to obtain ui state in editor session!");
 
 				if (!p_state)
 				{
-					KOTEK_MESSAGE_WARNING("failed to obtain ui state in editor session!");
+					KOTEK_MESSAGE_WARNING(
+						"failed to obtain ui state in editor session!");
 					return false;
 				}
 

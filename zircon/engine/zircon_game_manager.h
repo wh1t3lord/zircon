@@ -71,6 +71,18 @@ public:
 	void UpdateAllSystems(void) noexcept;
 
 	zircon_world_manager* get_world_manager(void) const noexcept;
+	zircon_session_editor_manager* get_session_editor_manager(
+		void) const noexcept;
+	zircon_session_game_manager* get_session_game_manager(void) const noexcept;
+
+	kotek::uint8_t get_session_editor_id(void) const noexcept;
+	kotek::uint8_t get_session_game_id(void) const noexcept;
+
+	zircon_session_editor* get_session_editor(
+		kotek::uint8_t session_id) const noexcept;
+	zircon_session_game* get_session_game(
+		kotek::uint8_t session_id) const noexcept;
+
 	kotek::core::ktkWindow* GetWindow(void) const noexcept;
 
 	void Serialize(void) noexcept;
