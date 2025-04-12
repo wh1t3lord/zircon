@@ -54,7 +54,6 @@ private:
 	void render_instances();
 
 private:
-	zircon_factory* m_p_factory;
 	kotek::render::gl::ktkRenderResourceManager* m_p_manager_render_resource;
 	kotek::render::gl::ktkRenderGeometryManager* m_p_manager_render_geometry;
 	kotek::render::gl::ktkRenderShaderManager* m_p_manager_render_shader;

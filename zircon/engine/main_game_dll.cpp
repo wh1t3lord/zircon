@@ -2,6 +2,7 @@
 #include "zircon_game_manager.h"
 #include <kotek.render/include/kotek_render.h>
 #include "../editor/ui/zircon_editor_ui_state.h"
+#include "../editor/zircon_session_editor.h"
 
 zircon_game_manager g_main_manager;
 
@@ -189,7 +190,13 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 				{
 					is_should_close = false;
 
-					if (p_game_manager->get_sdk_ui()
+					zircon_session_editor* p_session =
+						p_game_manager->get_session_editor(
+							p_game_manager->get_session_editor_id());
+
+					KOTEK_ASSERT(p_session, "you need to set session editor!");
+
+					if (p_session->get_ui_state()
 							->is_imgui_show_modal_save_scene() == false)
 					{
 						p_game_manager->GetConsole()->Push_Command(static_cast<

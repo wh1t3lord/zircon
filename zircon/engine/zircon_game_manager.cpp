@@ -546,7 +546,7 @@ void zircon_game_manager::Initialize(
 					static_cast<kotek::core::eEngineSupportedRenderer>(
 						p_engine_config->GetRendererVersion());
 
-				kotek::uint8_t render_graph_id{-1};
+				kotek::uint8_t render_graph_id(-1);
 				switch (renderer)
 				{
 				case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_0:
@@ -623,7 +623,7 @@ void zircon_game_manager::Initialize(
 
 	if (p_session_game)
 	{
-		kotek::uint8_t render_graph_id{-1};
+		kotek::uint8_t render_graph_id(-1);
 
 		auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
 
@@ -2314,8 +2314,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 
 				zircon_command_delete_entity* p_command =
 					new (p_placement_new_memory)
-						zircon_command_delete_entity(p_history_manager,
-							p_session->get_world(), p_factory, id);
+						zircon_command_delete_entity(this, id);
 
 				p_history_manager->ExecuteCommand(p_command);
 
@@ -2390,9 +2389,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 						sizeof(zircon_command_create_entity),
 						"zircon_command_create_entity");
 
-				zircon_command_create_entity* p_command =
-					new (p_placement_new_memory) zircon_command_create_entity(
-						p_history_manager, p_world);
+				zircon_command_create_entity* p_command = new (
+					p_placement_new_memory) zircon_command_create_entity(this);
 
 				p_history_manager->ExecuteCommand(p_command);
 
@@ -2498,7 +2496,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					zircon_command_add_component_to_entity* p_command =
 						new (p_placement_new_memory)
 							zircon_command_add_component_to_entity(
-								p_factory, id, component_name);
+								this, id, component_name);
 
 					p_history_manager->ExecuteCommand(p_command);
 				}
@@ -2594,7 +2592,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					zircon_command_delete_component_from_entity* p_command =
 						new (p_placement_new_memory)
 							zircon_command_delete_component_from_entity(
-								p_factory, id, p_component_name);
+								this, id, p_component_name);
 
 					p_history_manager->ExecuteCommand(p_command);
 				}

@@ -1,7 +1,7 @@
 #include "zircon_session_editor.h"
 #include "../world/zircon_world.h"
 #include "../ecs/components/zircon_factory.h"
-
+#include "../engine/zircon_game_manager.h"
 #include "commands/zircon_command_history.h"
 
 constexpr kotek::uint8_t _kInvalidSessionID =
@@ -79,8 +79,9 @@ void zircon_session_editor::initialize(
 		this->m_p_main_manager = p_main_manager;
 		this->m_p_console = p_console;
 		this->m_command_history_manager.initialize(p_filesystem,
-			p_current_world, p_current_world->get_factory(),
-			p_resource_manager);
+			p_resource_manager,
+			dynamic_cast<zircon_game_manager*>(
+				p_main_manager->GetGameManager()));
 		this->m_state.initialize(p_current_world->get_factory());
 
 		this->m_was_initialized = true;

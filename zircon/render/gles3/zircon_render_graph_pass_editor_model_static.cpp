@@ -5,19 +5,21 @@
 
 #include "../../ecs/components/zircon_factory.h"
 #include "../../engine/zircon_game_manager.h"
+#include "../../world/zircon_world.h"
+#include "../../editor/zircon_session_editor.h"
 
 zircon_render_graph_pass_editor_model_static_gles3::
 	zircon_render_graph_pass_editor_model_static_gles3(
 		const kotek::static_u8string_view_t& render_pass_name) :
 	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
 		render_pass_name.data()),
-	m_p_factory{}, m_p_manager_render_resource{}
+	m_p_manager_render_resource{}
 {
 }
 
 zircon_render_graph_pass_editor_model_static_gles3::
 	zircon_render_graph_pass_editor_model_static_gles3() :
-	m_p_factory{}, m_p_manager_render_resource{}
+	m_p_manager_render_resource{}
 {
 }
 
@@ -117,26 +119,58 @@ void zircon_render_graph_pass_editor_model_static_gles3::OnCreateResources(
 
 	KOTEK_ASSERT(p_manager_game, "must be valid!");
 
-	this->m_p_factory = p_manager_game->get_factory_game();
+	zircon_session_editor* p_session = p_manager_game->get_session_editor(
+		p_manager_game->get_session_editor_id());
 
-	if (this->m_p_factory)
+	KOTEK_ASSERT(p_session, "must be valid!");
+
+	if (!p_session)
 	{
-		this->m_p_factory->GetRegistry()
+		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
+			p_manager_game->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "session editor_{}#{} must have a world",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("session editor_{}#{} doesn't have world!",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_factory* p_factory = p_world->get_factory();
+
+	KOTEK_ASSERT(p_factory, "world doesn't have factory!");
+
+	if (!p_factory)
+	{
+		KOTEK_MESSAGE_WARNING("world doesn't have a factory!");
+		return;
+	}
+
+	if (p_factory)
+	{
+		p_factory->GetRegistry()
 			.on_construct<zircon_component_transform>()
 			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
 					on_transform_component_created>(this);
 
-		this->m_p_factory->GetRegistry()
+		p_factory->GetRegistry()
 			.on_update<zircon_component_transform>()
 			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
 					on_transform_component_updated>(this);
 
-		this->m_p_factory->GetRegistry()
+		p_factory->GetRegistry()
 			.on_construct<zircon_component_animation>()
 			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
 					on_animation_component_created>(this);
 
-		this->m_p_factory->GetRegistry()
+		p_factory->GetRegistry()
 			.on_destroy<zircon_component_animation>()
 			.connect<&zircon_render_graph_pass_editor_model_static_gles3::
 					on_animation_component_removed>(this);
@@ -235,17 +269,53 @@ void zircon_render_graph_pass_editor_model_static_gles3::
 	KOTEK_ASSERT(registry.valid(id),
 		"something is really wrong if you got this assert, try to reproduce "
 		"and report to EnTT developers");
+	KOTEK_ASSERT(this->m_p_manager_main,
+		"must be initialized at that time main manager");
+	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
+		this->m_p_manager_main->GetGameManager());
 
-	KOTEK_ASSERT(this->m_p_factory,
-		"happened early calling, change your code logic and assign transform "
-		"component after rendering initialization!");
+	KOTEK_ASSERT(p_manager_game, "must be valid!");
 
-	if (this->m_p_factory)
+	zircon_session_editor* p_session = p_manager_game->get_session_editor(
+		p_manager_game->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "must be valid!");
+
+	if (!p_session)
+	{
+		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
+			p_manager_game->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "session editor_{}#{} must have a world",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("session editor_{}#{} doesn't have world!",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_factory* p_factory = p_world->get_factory();
+
+	KOTEK_ASSERT(p_factory, "world doesn't have factory!");
+
+	if (!p_factory)
+	{
+		KOTEK_MESSAGE_WARNING("world doesn't have a factory!");
+		return;
+	}
+
+	if (p_factory)
 	{
 		// don't add instances that already have animation component they should
 		// have been added to dynamic geometry pass
-		if (this->m_p_factory->HasComponent<zircon_component_geometry>(id) &&
-			!this->m_p_factory->HasComponent<zircon_component_animation>(id))
+		if (p_factory->HasComponent<zircon_component_geometry>(id) &&
+			!p_factory->HasComponent<zircon_component_animation>(id))
 		{
 		}
 	}
@@ -260,11 +330,50 @@ void zircon_render_graph_pass_editor_model_static_gles3::
 	on_animation_component_created(entt::registry& registry, entt::entity id)
 {
 	KOTEK_ASSERT(registry.valid(id), "something is wrong");
-	KOTEK_ASSERT(this->m_p_factory, "early calling");
+	KOTEK_ASSERT(this->m_p_manager_main,
+		"must be initialized at that time main manager");
+	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
+		this->m_p_manager_main->GetGameManager());
 
-	if (this->m_p_factory)
+	KOTEK_ASSERT(p_manager_game, "must be valid!");
+
+	zircon_session_editor* p_session = p_manager_game->get_session_editor(
+		p_manager_game->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "must be valid!");
+
+	if (!p_session)
 	{
-		if (this->m_p_factory->HasComponent<zircon_component_geometry>(id))
+		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
+			p_manager_game->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "session editor_{}#{} must have a world",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("session editor_{}#{} doesn't have world!",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_factory* p_factory = p_world->get_factory();
+
+	KOTEK_ASSERT(p_factory, "world doesn't have factory!");
+
+	if (!p_factory)
+	{
+		KOTEK_MESSAGE_WARNING("world doesn't have a factory!");
+		return;
+	}
+
+	if (p_factory)
+	{
+		if (p_factory->HasComponent<zircon_component_geometry>(id))
 		{
 			// todo: add implementation when animation component removed from
 			// entity and we need that entity add to static geometry pass (and
@@ -277,11 +386,50 @@ void zircon_render_graph_pass_editor_model_static_gles3::
 	on_animation_component_removed(entt::registry& registry, entt::entity id)
 {
 	KOTEK_ASSERT(registry.valid(id), "something is wrong");
-	KOTEK_ASSERT(this->m_p_factory, "early calling?");
+	KOTEK_ASSERT(this->m_p_manager_main,
+		"must be initialized at that time main manager");
+	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
+		this->m_p_manager_main->GetGameManager());
 
-	if (this->m_p_factory)
+	KOTEK_ASSERT(p_manager_game, "must be valid!");
+
+	zircon_session_editor* p_session = p_manager_game->get_session_editor(
+		p_manager_game->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "must be valid!");
+
+	if (!p_session)
 	{
-		if (this->m_p_factory->HasComponent<zircon_component_geometry>(id))
+		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
+			p_manager_game->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "session editor_{}#{} must have a world",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("session editor_{}#{} doesn't have world!",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_factory* p_factory = p_world->get_factory();
+
+	KOTEK_ASSERT(p_factory, "world doesn't have factory!");
+
+	if (!p_factory)
+	{
+		KOTEK_MESSAGE_WARNING("world doesn't have a factory!");
+		return;
+	}
+
+	if (p_factory)
+	{
+		if (p_factory->HasComponent<zircon_component_geometry>(id))
 		{
 		}
 	}
@@ -289,10 +437,48 @@ void zircon_render_graph_pass_editor_model_static_gles3::
 
 void zircon_render_graph_pass_editor_model_static_gles3::update_sdk_camera()
 {
-	if (!this->m_p_factory)
-		return;
+	KOTEK_ASSERT(this->m_p_manager_main,
+		"must be initialized at that time main manager");
+	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
+		this->m_p_manager_main->GetGameManager());
 
-	auto& registry = this->m_p_factory->GetRegistry();
+	KOTEK_ASSERT(p_manager_game, "must be valid!");
+
+	zircon_session_editor* p_session = p_manager_game->get_session_editor(
+		p_manager_game->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "must be valid!");
+
+	if (!p_session)
+	{
+		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
+			p_manager_game->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "session editor_{}#{} must have a world",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("session editor_{}#{} doesn't have world!",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_factory* p_factory = p_world->get_factory();
+
+	KOTEK_ASSERT(p_factory, "world doesn't have factory!");
+
+	if (!p_factory)
+	{
+		KOTEK_MESSAGE_WARNING("world doesn't have a factory!");
+		return;
+	}
+
+	auto& registry = p_factory->GetRegistry();
 	auto entities = registry.view<zircon_component_sdk_camera>();
 
 	if (!entities.empty())
@@ -300,7 +486,7 @@ void zircon_render_graph_pass_editor_model_static_gles3::update_sdk_camera()
 		auto id = entities[0];
 
 		const auto& component_camera =
-			this->m_p_factory->GetComponent<zircon_component_sdk_camera>(id);
+			p_factory->GetComponent<zircon_component_sdk_camera>(id);
 
 		auto buffer_object_type =
 			this->m_shader_buffer_camera.Get_BufferObjectType();
@@ -337,9 +523,50 @@ void zircon_render_graph_pass_editor_model_static_gles3::update_sdk_camera()
 
 void zircon_render_graph_pass_editor_model_static_gles3::update_instances()
 {
-	if (this->m_p_factory)
+	KOTEK_ASSERT(this->m_p_manager_main,
+		"must be initialized at that time main manager");
+	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
+		this->m_p_manager_main->GetGameManager());
+
+	KOTEK_ASSERT(p_manager_game, "must be valid!");
+
+	zircon_session_editor* p_session = p_manager_game->get_session_editor(
+		p_manager_game->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "must be valid!");
+
+	if (!p_session)
 	{
-		auto& registry = this->m_p_factory->GetRegistry();
+		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
+			p_manager_game->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "session editor_{}#{} must have a world",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("session editor_{}#{} doesn't have world!",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_factory* p_factory = p_world->get_factory();
+
+	KOTEK_ASSERT(p_factory, "world doesn't have factory!");
+
+	if (!p_factory)
+	{
+		KOTEK_MESSAGE_WARNING("world doesn't have a factory!");
+		return;
+	}
+
+	if (p_factory)
+	{
+		auto& registry = p_factory->GetRegistry();
 
 		auto view =
 			registry
