@@ -239,7 +239,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid game manager pointer!");
-		return;
+		return kotek::size_t(-1);
 	}
 
 	zircon_session_editor* p_session =
@@ -254,7 +254,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session editor#{}",
 			this->m_p_game_manager->get_session_editor_id());
-		return;
+		return kotek::size_t(-1);
 	}
 
 	zircon_world* p_world = p_session->get_world();
@@ -267,7 +267,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid world in session editor_{}#{}",
 			p_session->get_session_name(), p_session->get_id());
-		return;
+		return kotek::size_t(-1);
 	}
 
 	zircon_factory* p_factory = p_world->get_factory();
@@ -593,7 +593,7 @@ zircon_command_add_component_to_entity::get_component_type()
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid game manager pointer!");
-		return;
+		return zircon_component_type_t::kComponentTypeUnknown;
 	}
 
 	zircon_session_editor* p_session =
@@ -608,7 +608,7 @@ zircon_command_add_component_to_entity::get_component_type()
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session editor#{}",
 			this->m_p_game_manager->get_session_editor_id());
-		return;
+		return zircon_component_type_t::kComponentTypeUnknown;
 	}
 
 	zircon_world* p_world = p_session->get_world();
@@ -621,7 +621,7 @@ zircon_command_add_component_to_entity::get_component_type()
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid world in session editor_{}#{}",
 			p_session->get_session_name(), p_session->get_id());
-		return;
+		return zircon_component_type_t::kComponentTypeUnknown;
 	}
 
 	zircon_factory* p_factory = p_world->get_factory();
