@@ -71,8 +71,8 @@ void zircon_render_graph_pass_editor_model_static_gles3::OnSetupInput(
 
     if (!this->m_p_factory)
     {
-        zircon_manager_game* p_game_manager =
-            dynamic_cast<zircon_manager_game*>(
+        zircon_game_manager* p_game_manager =
+            dynamic_cast<zircon_game_manager*>(
                 this->m_p_manager_main->GetGameManager());
 
         if (p_game_manager)
@@ -112,8 +112,8 @@ void zircon_render_graph_pass_editor_model_static_gles3::OnCreateResources(
 	KOTEK_ASSERT(
 		this->m_p_manager_render_shader, "must be a valid shader manager!");
 
-	zircon_manager_game* p_manager_game =
-		dynamic_cast<zircon_manager_game*>(p_manager_main->GetGameManager());
+	zircon_game_manager* p_manager_game =
+		dynamic_cast<zircon_game_manager*>(p_manager_main->GetGameManager());
 
 	KOTEK_ASSERT(p_manager_game, "must be valid!");
 

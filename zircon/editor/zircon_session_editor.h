@@ -2,6 +2,7 @@
 
 #include "../core/zircon_session.h"
 #include "ui/zircon_editor_ui_state.h"
+#include "commands\zircon_command_history.h"
 
 class zircon_world;
 

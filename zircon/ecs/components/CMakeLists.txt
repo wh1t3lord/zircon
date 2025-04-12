@@ -68,9 +68,9 @@ set(to_include_sdk_ecs_files
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 file(WRITE ${zircon_enum_file_name} "#pragma once")
-file(WRITE ${zircon_components_to_enums_file_name} "void zircon_factory_game::register_components_and_their_enums() 
+file(WRITE ${zircon_components_to_enums_file_name} "void zircon_factory::register_components_and_their_enums() 
 {")
-file(WRITE ${zircon_create_component_by_enum_file_name} "bool zircon_factory_game::create_component(entt::entity id,
+file(WRITE ${zircon_create_component_by_enum_file_name} "bool zircon_factory::create_component(entt::entity id,
 	zircon_component_type_t component_type_id,
 	kotek::ktk::json::value& serialized_component)
 {
@@ -82,16 +82,16 @@ file(WRITE ${zircon_create_component_by_enum_file_name} "bool zircon_factory_gam
 		{
 ")
 file(WRITE ${zircon_register_lookuptable_component_enum_and_id_type} "
-void zircon_factory_game::register_lookuptable_component_enum_and_id_type()
+void zircon_factory::register_lookuptable_component_enum_and_id_type()
 {
 ")
 file(WRITE ${zircon_get_component_name_by_enum} "
-const char* zircon_factory_game::get_component_name_by_enum(zircon_component_type_t component_type) const noexcept {
+const char* zircon_factory::get_component_name_by_enum(zircon_component_type_t component_type) const noexcept {
 	switch (component_type) {
 ")
 
 file(WRITE ${zircon_register_components_game_and_sdk} "
-void zircon_factory_game::register_components_game_and_sdk()
+void zircon_factory::register_components_game_and_sdk()
 {
 ")
 
@@ -100,7 +100,7 @@ file(WRITE ${zircon_create_component_by_name} "
 	bool was_found=false;
 ")
 file(WRITE ${zircon_validate_get_component_type_of_all_components} "
-	void zircon_factory_game::validate_get_component_type_of_all_components() const
+	void zircon_factory::validate_get_component_type_of_all_components() const
 	{
 	#ifdef KOTEK_DEBUG
 ")

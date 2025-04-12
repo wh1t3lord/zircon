@@ -1,35 +1,86 @@
 #include "zircon_command_delete_entity.h"
 #include "../../ecs/components/zircon_factory.h"
 #include "../../world/zircon_world.h"
+#include "../../engine/zircon_game_manager.h"
+#include "../zircon_session_editor.h"
 #include "../commands/zircon_command_history.h"
 
 zircon_command_delete_entity::zircon_command_delete_entity(
-	zircon_editor_command_history* p_history, zircon_world* p_scene,
-	zircon_factory* p_factory, entt::entity entity_to_delete) :
-	m_p_history{p_history},
-	m_p_scene{p_scene}, m_p_factory{p_factory},
+	zircon_game_manager* p_game_manager, entt::entity entity_to_delete) :
 	m_entity_created{entity_to_delete}, m_entity_previous_id{entt::null},
-	m_p_serialized_json_as_string{}, m_p_placement_new_memory{}
+	m_p_game_manager{p_game_manager}, m_p_serialized_json_as_string{},
+	m_p_placement_new_memory{}
 {
-	KOTEK_ASSERT(this->m_p_scene, "you can't pass an invalid scene here");
-	KOTEK_ASSERT(this->m_p_factory, "you can't pass an invalid factory here");
-	KOTEK_ASSERT(this->m_p_history, "you can't pass an invalid pointer here");
+	KOTEK_ASSERT(p_game_manager, "passed invalid game manager!");
 }
 
 zircon_command_delete_entity::~zircon_command_delete_entity() {}
 
 void zircon_command_delete_entity::Execute(void)
 {
-	if (this->m_p_scene)
+	if (!this->m_p_game_manager)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"failed to execute command due to invalid game manager!");
+		return;
+	}
+
+	zircon_session_editor* p_session =
+		this->m_p_game_manager->get_session_editor(
+			this->m_p_game_manager->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
+		this->m_p_game_manager->get_session_editor_id());
+
+	if (!p_session)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"failed to execute command due to invalid session editor#{}",
+			this->m_p_game_manager->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "failed to obtain world from session_{}#{}",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("failed to execute command due to invalid world "
+							  "in session editor_{}#{}",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_editor_command_history* p_history = p_session->get_command_history();
+
+	KOTEK_ASSERT(p_history,
+		"failed to obtain command history manager in session editor_{}#{}",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_history)
+	{
+		KOTEK_MESSAGE_WARNING("failed to execute due to invalid command "
+							  "history in session editor_{}#{}",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	KOTEK_ASSERT(p_world->get_factory(), "world must contain factory!");
+
+	if (p_world)
 	{
 		// todo: reimpl
 		// this->m_components = this->m_p_factory->GetAllComponentsOfEntity(
 		// this->m_entity_created);
 
-		this->m_components = this->m_p_factory->get_all_components_of_entity(
-			this->m_entity_created);
+		zircon_factory* p_factory = p_world->get_factory();
 
-		this->m_p_scene->RemoveEntity(this->m_entity_created);
+		this->m_components =
+			p_factory->get_all_components_of_entity(this->m_entity_created);
+
+		p_factory->RemoveEntity(this->m_entity_created);
 
 		if (this->m_entity_created != entt::null)
 		{
@@ -43,18 +94,67 @@ void zircon_command_delete_entity::Execute(void)
 
 void zircon_command_delete_entity::Undo(void)
 {
-	if (this->m_p_scene)
+	if (!this->m_p_game_manager)
 	{
-		KOTEK_ASSERT(this->m_p_history, "you must initialize it!");
+		KOTEK_MESSAGE_WARNING(
+			"failed to execute command due to invalid game manager!");
+		return;
+	}
 
-		this->m_entity_created = this->m_p_scene->CreateEntity();
+	zircon_session_editor* p_session =
+		this->m_p_game_manager->get_session_editor(
+			this->m_p_game_manager->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
+		this->m_p_game_manager->get_session_editor_id());
+
+	if (!p_session)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"failed to execute command due to invalid session editor#{}",
+			this->m_p_game_manager->get_session_editor_id());
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "failed to obtain world from session_{}#{}",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("failed to execute command due to invalid world "
+							  "in session editor_{}#{}",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	zircon_editor_command_history* p_history = p_session->get_command_history();
+
+	KOTEK_ASSERT(p_history,
+		"failed to obtain command history manager in session editor_{}#{}",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_history)
+	{
+		KOTEK_MESSAGE_WARNING("failed to execute due to invalid command "
+							  "history in session editor_{}#{}",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	KOTEK_ASSERT(p_world->get_factory(), "world must contain factory!");
+
+	if (p_world)
+	{
+		this->m_entity_created = p_world->create_entity();
 
 		if (this->m_entity_previous_id != entt::null &&
 			this->m_entity_created != this->m_entity_previous_id)
 		{
-			if (this->m_p_history)
+			if (p_history)
 			{
-				this->m_p_history->update_dependent_commands(
+				p_history->update_dependent_commands(
 					this->m_entity_previous_id, this->m_entity_created);
 
 				if (this->m_components.empty() == false)
@@ -66,14 +166,13 @@ void zircon_command_delete_entity::Undo(void)
 					{
 						kotek::ktk::json::value serialized_component(&storage);
 						bool status =
-							this->m_p_history
-								->get_serialized_component_by_entity_and_component_type_id(
+							p_history->get_serialized_component_by_entity_and_component_type_id(
 									serialized_component,
 									this->m_entity_created, type_id);
 
 						if (status)
 						{
-							this->m_p_factory->create_component(
+							p_world->get_factory()->create_component(
 								this->m_entity_created, type_id,
 								serialized_component);
 						}
@@ -118,12 +217,10 @@ kotek::enum_base_t zircon_command_delete_entity::GetCommandType() noexcept
 		kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_DeleteEntity);
 }
 
-kotek::size_t zircon_command_delete_entity::Serialize(
-	kotek::cfstream_t* p_file,
+kotek::size_t zircon_command_delete_entity::Serialize(kotek::cfstream_t* p_file,
 	kotek::core::ktkIResourceManager* p_resource_manager) noexcept
 {
-	KOTEK_ASSERT(p_file,
-		"you must pass a valid resource manager handle!");
+	KOTEK_ASSERT(p_file, "you must pass a valid resource manager handle!");
 	KOTEK_ASSERT(p_resource_manager,
 		"you must pass a valid resource manager interface!");
 
@@ -188,16 +285,16 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
 			' ';
 
-		//p_resource_manager->Write(
+		// p_resource_manager->Write(
 		//	resource_handle_id, offset_string, sizeof(offset_string));
 		file.write(offset_string, sizeof(offset_string));
-		//p_resource_manager->Write(resource_handle_id,
+		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
 		file << std::endl;
-	//	p_resource_manager->Write(
-	//		resource_handle_id, this->m_p_serialized_json_as_string);
+		//	p_resource_manager->Write(
+		//		resource_handle_id, this->m_p_serialized_json_as_string);
 		file << this->m_p_serialized_json_as_string;
-		//p_resource_manager->Write(resource_handle_id,
+		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
 		file << std::endl;
 
@@ -217,11 +314,11 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 			zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
 
 		// storage + endl
-		//p_resource_manager->Write(
+		// p_resource_manager->Write(
 		//	resource_handle_id, offset_string, sizeof(offset_string));
 		file.write(offset_string, sizeof(offset_string));
-	//	p_resource_manager->Write(resource_handle_id,
-	//		kotek::core::eFileWritingControlCharacterType::kFlush);
+		//	p_resource_manager->Write(resource_handle_id,
+		//		kotek::core::eFileWritingControlCharacterType::kFlush);
 		file.flush();
 	}
 

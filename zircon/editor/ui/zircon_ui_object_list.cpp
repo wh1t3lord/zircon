@@ -1,7 +1,9 @@
 #include "zircon_ui_object_list.h"
 #include "../../ecs/components/zircon_factory.h"
 #include "../../engine/zircon_game_manager.h"
+#include "../../world/zircon_world.h"
 #include "../../world/zircon_world_manager.h"
+#include "../zircon_session_editor.h"
 #include "zircon_editor_ui_state.h"
 
 zircon_editor_ui_state_object_list::zircon_editor_ui_state_object_list(void) :
@@ -19,12 +21,43 @@ void zircon_editor_ui_state_object_list::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	auto* p_game_manager =
-		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
+		static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
 
-	const auto& ids =
-		p_game_manager->get_world_manager()->GetCurrentScene()->GetEntities();
-	auto* p_current_scene =
-		p_game_manager->get_world_manager()->GetCurrentScene();
+	KOTEK_ASSERT(p_game_manager,
+		"you didn't initialize game manager pointer in main manager!");
+
+	if (!p_game_manager)
+	{
+		KOTEK_MESSAGE_WARNING("set game manager to main manager!");
+		return;
+	}
+
+	zircon_session_editor* p_session = p_game_manager->get_session_editor(
+		p_game_manager->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
+		p_game_manager->get_session_editor_id());
+
+	if (!p_session)
+	{
+		KOTEK_MESSAGE_WARNING("initialize session editor!");
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world,
+		"session editor_{}#{} must contain a valid pointer of zircon_world",
+		p_session->get_session_name(), p_session->get_id());
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING("set world to session editor_{}#{}",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	const auto& ids = p_world->get_entities();
 
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
@@ -52,8 +85,7 @@ void zircon_editor_ui_state_object_list::Draw(
 			{
 				if (p_game_manager)
 				{
-					zircon_factory* p_factory =
-						p_game_manager->get_factory_game();
+					zircon_factory* p_factory = p_world->get_factory();
 
 					if (p_factory)
 					{
@@ -90,12 +122,12 @@ void zircon_editor_ui_state_object_list::Draw(
 					kotek::static_cstring_t<128> converted_id;
 
 					bool has_sdk_name =
-						p_game_manager->get_factory_game()
+						p_world->get_factory()
 							->HasComponent<zircon_component_sdk_scene_name>(id);
 					if (has_sdk_name)
 					{
 						auto component =
-							p_game_manager->get_factory_game()
+							p_world->get_factory()
 								->GetComponent<
 
 									zircon_component_sdk_scene_name>(id);
@@ -113,7 +145,9 @@ void zircon_editor_ui_state_object_list::Draw(
 							id == this->m_selected_entity_id))
 					{
 						this->m_selected_entity_id = id;
-						p_game_manager->get_sdk_ui()->set_selected_entity(
+						KOTEK_ASSERT(
+							p_session->get_ui_state(), "must be valid!");
+						p_session->get_ui_state()->set_selected_entity(
 							this->m_selected_entity_id);
 					}
 

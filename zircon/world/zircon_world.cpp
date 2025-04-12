@@ -15,14 +15,6 @@ zircon_world::zircon_world(void) :
 
 zircon_world::~zircon_world(void) {}
 
-void zircon_world::initialize(
-	const kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>&
-		name,
-	zircon_config* p_config, kotek::core::ktkConsole* p_console,
-	kotek::core::ktkIInput* p_input) noexcept
-{
-}
-
 void zircon_world::shutdown(void) noexcept
 {
 #ifdef KOTEK_DEBUG

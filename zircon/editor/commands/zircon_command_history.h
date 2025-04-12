@@ -4,6 +4,7 @@
 
 class zircon_world;
 class zircon_factory;
+class zircon_game_manager;
 enum zircon_component_type_t;
 
 class zircon_editor_command_history : public kotek::core::ktkISDKCommandHistoryManager
@@ -13,9 +14,8 @@ public:
 	~zircon_editor_command_history(void);
 
 	void initialize(kotek::core::ktkIFileSystem* p_filesystem,
-		zircon_world* p_current_world,
-		zircon_factory* p_factory_game,
-		kotek::core::ktkIResourceManager* p_resource_manager);
+		kotek::core::ktkIResourceManager* p_resource_manager,
+		zircon_game_manager* p_game_manager);
 	void shutdown(void);
 
 	void ExecuteCommand(kotek::core::ktkISDKRedoUndo* p_command) override;
@@ -90,14 +90,12 @@ private:
 	bool m_is_changed;
 	bool m_is_first_serialize_happened;
 	bool m_is_action_issued;
-
+	zircon_game_manager* m_p_game_manager;
 	kotek::cfstream_t* m_p_file_temp;
 	kotek::cfstream_t* m_p_file_exchange;
 
 	Kotek::Core::ktkIFileSystem* m_p_filesystem;
 	Kotek::Core::ktkIResourceManager* m_p_resource_manager;
-	zircon_world* m_p_current_world;
-	zircon_factory* m_p_factory_game;
 	kotek::size_t m_index;
 	kotek::ptrdiff_t m_cursor_index;
 	// last time max value

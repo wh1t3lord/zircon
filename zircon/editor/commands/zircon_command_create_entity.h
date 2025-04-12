@@ -2,12 +2,12 @@
 
 class zircon_world;
 class zircon_editor_command_history;
+class zircon_game_manager;
 
 class zircon_command_create_entity : public kotek::core::ktkISDKRedoUndo
 {
 public:
-	zircon_command_create_entity(
-		zircon_editor_command_history* p_history, zircon_world* p_scene);
+	zircon_command_create_entity(zircon_game_manager* p_game_manager);
 	~zircon_command_create_entity();
 
 	void Execute() override;
@@ -27,8 +27,7 @@ public:
 private:
 	entt::entity m_created_entity;
 	entt::entity m_entity_previous_id;
-	zircon_editor_command_history* m_p_history;
-	zircon_world* m_p_scene;
+	zircon_game_manager* m_p_game_manager;
 	// json object to string
 	char m_serialize_json_string_storage[64];
 };

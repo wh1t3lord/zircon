@@ -39,11 +39,11 @@ class zircon_session_game_manager;
 class zircon_session_editor;
 class zircon_session_editor_manager;
 
-class zircon_manager_game : public kotek::core::ktkIGameManager
+class zircon_game_manager : public kotek::core::ktkIGameManager
 {
 public:
-	zircon_manager_game(void);
-	~zircon_manager_game(void);
+	zircon_game_manager(void);
+	~zircon_game_manager(void);
 
 	void Initialize(kotek::core::ktkMainManager* p_main_manager) override;
 	void Shutdown(kotek::core::ktkMainManager* p_main_manager) override;
@@ -91,6 +91,12 @@ public:
 	kotek::core::ktkMainManager* GetMainManager(void) const noexcept;
 
 	zircon_config* get_config() const noexcept;
+
+	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+	get_imgui_ui_elements_from_editor_session(kotek::uint8_t session_id) const noexcept;
+
+	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+	get_imgui_ui_elements_from_game_session(kotek::uint8_t session_id) const noexcept;
 
 private:
 	void Initialize_Renderer(void) noexcept;

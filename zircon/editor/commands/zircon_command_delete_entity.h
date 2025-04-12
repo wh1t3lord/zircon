@@ -6,6 +6,7 @@
 class zircon_factory;
 class zircon_editor_command_history;
 class zircon_world;
+class zircon_game_manager;
 
 enum zircon_component_type_t;
 
@@ -14,9 +15,8 @@ enum zircon_component_type_t;
 class zircon_command_delete_entity : public kotek::core::ktkISDKRedoUndo
 {
 public:
-	zircon_command_delete_entity(zircon_editor_command_history* p_history,
-		zircon_world* p_scene, zircon_factory* p_factory,
-		entt::entity entity_to_delete);
+	zircon_command_delete_entity(
+		zircon_game_manager* p_game_manager, entt::entity entity_to_delete);
 
 	~zircon_command_delete_entity();
 
@@ -33,11 +33,9 @@ public:
 	void Deserialize(const kotek::json::object& json_data) noexcept;
 
 private:
-	zircon_editor_command_history* m_p_history;
-	zircon_world* m_p_scene;
-	zircon_factory* m_p_factory;
 	entt::entity m_entity_created;
 	entt::entity m_entity_previous_id;
+	zircon_game_manager* m_p_game_manager;
 	kotek::static_vector_t<zircon_component_type_t,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_components;

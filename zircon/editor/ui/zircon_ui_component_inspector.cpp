@@ -1,14 +1,17 @@
 #include "zircon_ui_component_inspector.h"
 #include "../../ecs/components/zircon_factory.h"
 #include "../../engine/zircon_game_manager.h"
+#include "../../world/zircon_world.h"
 #include "../../world/zircon_world_manager.h"
+#include "../zircon_session_editor.h"
 #include "zircon_editor_ui_state.h"
 
 constexpr const char* _kSDKModalWindowFailedToAddComponent =
 	"Warning##ComponentInspectorFailedToAddComponent";
 
-zircon_editor_ui_state_component_inspector::zircon_editor_ui_state_component_inspector(
-	zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory) :
+zircon_editor_ui_state_component_inspector::
+	zircon_editor_ui_state_component_inspector(
+		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory) :
 	m_is_show_window{}, m_combobox_current_item_type{},
 	m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
 	m_p_combobox_current_item{}, m_p_list_selected_item_allocator{}
@@ -21,7 +24,10 @@ zircon_editor_ui_state_component_inspector::zircon_editor_ui_state_component_ins
 		p_factory->GetRegisteredComponents().cbegin()->first.data();
 }
 
-zircon_editor_ui_state_component_inspector::~zircon_editor_ui_state_component_inspector() {}
+zircon_editor_ui_state_component_inspector::
+	~zircon_editor_ui_state_component_inspector()
+{
+}
 
 void zircon_editor_ui_state_component_inspector::initialize(void) {}
 
@@ -33,13 +39,42 @@ void zircon_editor_ui_state_component_inspector::Draw(
 	if (!this->m_is_show_window)
 		return;
 
-	zircon_manager_game* p_game_manager =
-		static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
+	zircon_game_manager* p_game_manager =
+		static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
 
-	auto* p_current_scene =
-		p_game_manager->get_world_manager()->GetCurrentScene();
+	KOTEK_ASSERT(p_game_manager, "game manager must be initialized!");
 
-	auto selected_entity = p_game_manager->get_sdk_ui()->get_selected_entity();
+	if (!p_game_manager)
+	{
+		KOTEK_MESSAGE_WARNING("set game manager pointer to main manager!");
+		return;
+	}
+
+	zircon_session_editor* p_session = p_game_manager->get_session_editor(
+		p_game_manager->get_session_editor_id());
+
+	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
+		p_game_manager->get_session_editor_id());
+
+	if (!p_session)
+	{
+		KOTEK_MESSAGE_WARNING("initialize session editor !");
+		return;
+	}
+
+	zircon_world* p_world = p_session->get_world();
+
+	KOTEK_ASSERT(p_world, "failed to get world!");
+
+	if (!p_world)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"session editor_{}#{} must contain a valid pointer to zircon_world",
+			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	auto selected_entity = p_session->get_ui_state()->get_selected_entity();
 
 	Kotek::Core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
@@ -225,7 +260,7 @@ void zircon_editor_ui_state_component_inspector::Draw(
 				if (this->m_p_list_selected_item_allocator)
 				{
 					void* p_raw_data =
-						p_game_manager->get_factory_game()->GetComponentByName(
+						p_world->get_factory()->GetComponentByName(
 							selected_entity,
 							this->m_p_list_selected_item_allocator);
 
@@ -310,7 +345,7 @@ void zircon_editor_ui_state_component_inspector::update_modal_windows(
 						component_for_adding))
 				{
 					p_wrapper_imgui->Text("Failed to add component [%s] "
-					                      "because you need to add some "
+										  "because you need to add some "
 										  "of these components:",
 						this->m_p_factory->get_component_name_by_enum(
 							component_for_adding));

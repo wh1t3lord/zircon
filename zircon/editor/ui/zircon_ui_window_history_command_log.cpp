@@ -1,11 +1,12 @@
 #include "zircon_ui_window_history_command_log.h"
 #include "../../engine/zircon_game_manager.h"
 #include "../commands/zircon_command_history.h"
+#include "../zircon_session_editor.h"
 #include "zircon_editor_ui_state.h"
 
 zircon_ui_window_history_command_log::zircon_ui_window_history_command_log(
 	zircon_editor_command_history* p_manager_history) :
-	m_is_show_window(false),m_p_manager_history{p_manager_history}
+	m_is_show_window(false), m_p_manager_history{p_manager_history}
 {
 	KOTEK_ASSERT(this->m_p_manager_history,
 		"you can't pass an invalid pointer to instance "
@@ -30,13 +31,30 @@ void zircon_ui_window_history_command_log::Draw(
 	{
 		if (p_wrapper_imgui->Begin("History Command Log"))
 		{
-			auto* p_manager =
-				static_cast<zircon_manager_game*>(
-					main_manager->GetGameManager());
+			auto* p_manager = static_cast<zircon_game_manager*>(
+				main_manager->GetGameManager());
 
 			if (p_manager)
 			{
-				auto* p_history = p_manager->GetCommandHistoryManager();
+				zircon_session_editor* p_session =
+					p_manager->get_session_editor(
+						p_manager->get_session_editor_id());
+
+				KOTEK_ASSERT(p_session,
+					"failed to obtain session editor by id: {}",
+					p_manager->get_session_editor_id());
+
+				if (!p_session)
+				{
+					KOTEK_MESSAGE_WARNING("initialize session editor please!");
+					return;
+				}
+
+				auto* p_history = p_session->get_command_history();
+
+				KOTEK_ASSERT(p_history,
+					"session editor_{}#{} has invalid command history",
+					p_session->get_session_name(), p_session->get_id());
 
 				if (p_history)
 				{
@@ -44,7 +62,7 @@ void zircon_ui_window_history_command_log::Draw(
 
 					char button_name[64]{};
 					for (int i = 0;
-						 i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
+						i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
 					{
 						auto* p_command = commands[i];
 
@@ -56,7 +74,8 @@ void zircon_ui_window_history_command_log::Draw(
 
 							bool selected{};
 
-							auto current_index = p_history->get_cursor_index() % zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
+							auto current_index = p_history->get_cursor_index() %
+								zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
 							selected = i == current_index;
 
 							if (i > current_index)
@@ -81,12 +100,12 @@ int zircon_ui_window_history_command_log::Get_ID(void) const
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_CommandHistoryLog);
 }
 
-void zircon_ui_window_history_command_log::Show(void) 
+void zircon_ui_window_history_command_log::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_ui_window_history_command_log::Hide(void) 
+void zircon_ui_window_history_command_log::Hide(void)
 {
 	this->m_is_show_window = false;
 }

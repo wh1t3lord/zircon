@@ -21,7 +21,7 @@ void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
 
 	auto* p_wrapper_imgui = main_manager->Get_ImguiWrapper();
 	auto* p_game_manager =
-		static_cast<zircon_manager_game*>(main_manager->GetGameManager());
+		static_cast<zircon_game_manager*>(main_manager->GetGameManager());
 
 	if (p_wrapper_imgui)
 	{

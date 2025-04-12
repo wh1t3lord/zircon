@@ -3,7 +3,7 @@
 #include <kotek.render/include/kotek_render.h>
 #include "../editor/ui/zircon_editor_ui_state.h"
 
-zircon_manager_game g_main_manager;
+zircon_game_manager g_main_manager;
 
 constexpr const char* kUserInfoField_RendererForLoading =
 	("RendererForLoading");
@@ -16,7 +16,7 @@ constexpr const char* kUserInfoField_RendererFallbackVersion =
 bool SerializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 {
 	auto* p_casted =
-		dynamic_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
+		dynamic_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
 
 	KOTEK_ASSERT(p_casted, "you must get valid instance here after casting");
 
@@ -54,7 +54,7 @@ bool DeserializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 		"engine must pass a valid pointer to ktkMainManager instance!");
 
 	auto* p_casted =
-		dynamic_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
+		dynamic_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
 
 	KOTEK_ASSERT(p_casted, "you must get valid instance here after casting");
 
@@ -170,7 +170,7 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 			p_main_manager->GetGameManager()->GetConsole();
 
 		auto* p_game_manager =
-			static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
+			static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
 
 		Kotek::Core::ktkIWindowManager* p_window_manager =
 			p_main_manager->Get_WindowManager();

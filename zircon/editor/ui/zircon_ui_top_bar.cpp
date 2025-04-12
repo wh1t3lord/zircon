@@ -1,9 +1,13 @@
 #include "zircon_ui_top_bar.h"
 
 #include "../../engine/zircon_game_manager.h"
+#include "../zircon_session_editor.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(void) : m_is_show_window(true) {}
+zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(void) :
+	m_is_show_window(true)
+{
+}
 
 zircon_editor_ui_state_top_bar::~zircon_editor_ui_state_top_bar(void) {}
 
@@ -11,7 +15,8 @@ void zircon_editor_ui_state_top_bar::initialize(void) {}
 
 void zircon_editor_ui_state_top_bar::shutdown(void) {}
 
-void zircon_editor_ui_state_top_bar::Draw(kotek::core::ktkMainManager* p_main_manager)
+void zircon_editor_ui_state_top_bar::Draw(
+	kotek::core::ktkMainManager* p_main_manager)
 {
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
@@ -147,8 +152,15 @@ void zircon_editor_ui_state_top_bar::Draw(kotek::core::ktkMainManager* p_main_ma
 
 						if (p_renderer)
 						{
+							zircon_game_manager* p_game_manager =
+								dynamic_cast<zircon_game_manager*>(
+									p_main_manager->GetGameManager());
+
 							const auto& imgui_elements =
-								p_renderer->Get_UIImGuiElements();
+								p_game_manager
+									->get_imgui_ui_elements_from_editor_session(
+										p_game_manager
+											->get_session_editor_id());
 
 							for (const auto& p_element : imgui_elements)
 							{
@@ -233,9 +245,24 @@ void zircon_editor_ui_state_top_bar::update_modal_save_scene(
 	if (p_wrapper_imgui)
 	{
 		auto* p_game_manager =
-			static_cast<zircon_manager_game*>(p_main_manager->GetGameManager());
+			static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
 
-		if (p_game_manager->get_sdk_ui()->is_imgui_show_modal_save_scene())
+		zircon_session_editor* p_session = p_game_manager->get_session_editor(
+			p_game_manager->get_session_editor_id());
+
+		KOTEK_ASSERT(p_session, "must be valid!");
+
+		if (!p_session)
+		{
+			KOTEK_MESSAGE_WARNING("initialize session editor please!");
+			return;
+		}
+
+		zircon_editor_ui_state* p_state = p_session->get_ui_state();
+
+		KOTEK_ASSERT(p_state, "ui state wasn't initialized");
+
+		if (p_state->is_imgui_show_modal_save_scene())
 		{
 			p_wrapper_imgui->OpenPopup("Save Scene");
 		}
@@ -258,8 +285,7 @@ void zircon_editor_ui_state_top_bar::update_modal_save_scene(
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
 					{});
 
-				p_game_manager->get_sdk_ui()->set_imgui_show_modal_save_scene(
-					false);
+				p_state->set_imgui_show_modal_save_scene(false);
 			}
 
 			p_wrapper_imgui->SameLine();
@@ -271,8 +297,7 @@ void zircon_editor_ui_state_top_bar::update_modal_save_scene(
 							eConsoleCommandIndex::kConsoleCommand_App_Close),
 					{});
 
-				p_game_manager->get_sdk_ui()->set_imgui_show_modal_save_scene(
-					false);
+				p_state->set_imgui_show_modal_save_scene(false);
 			}
 
 			p_wrapper_imgui->EndPopup();

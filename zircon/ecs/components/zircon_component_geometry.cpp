@@ -1,6 +1,7 @@
 #include "zircon_component_geometry.h"
 #include "../../engine/zircon_game_manager.h"
 #include "../../editor/ui/zircon_editor_ui_state.h"
+#include "../../editor/zircon_session_editor.h"
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
 zircon_component_geometry::zircon_component_geometry(void) :
@@ -119,11 +120,26 @@ void zircon_component_geometry::draw_imgui(
 									kotek::core::eStaticGeometryType>(i);
 
 								auto* p_game_manager =
-									static_cast<zircon_manager_game*>(
+									static_cast<zircon_game_manager*>(
 										p_main_manager->GetGameManager());
 
-								auto entity_id = p_game_manager->get_sdk_ui()
-													 ->get_selected_entity();
+								zircon_session_editor* p_session =
+									p_game_manager->get_session_editor(
+										p_game_manager
+											->get_session_editor_id());
+
+								KOTEK_ASSERT(p_session, "must be initialized");
+								if (!p_session)
+								{
+									KOTEK_MESSAGE_WARNING(
+										"failed to obtain session editor by "
+									    "id: {}",
+										p_game_manager
+											->get_session_editor_id());
+									return;
+								}
+
+								auto entity_id = p_session->get_ui_state()->get_selected_entity();
 
 								p_main_manager->GetGameManager()
 									->GetConsole()
