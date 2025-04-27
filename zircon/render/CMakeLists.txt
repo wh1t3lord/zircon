@@ -78,6 +78,16 @@ set(to_include_opengles3_editor_passes_files
 	"gles3/zircon_render_graph_pass_editor_camera.cpp"
 )
 
+set(to_include_opengles3_editor_pass_interface
+	"gles3/zircon_render_graph_pass_editor.h"
+	"gles3/zircon_render_graph_pass_editor.cpp"
+)
+
+set(to_include_opengles3_game_pass_interface
+	"gles3/zircon_render_graph_pass.h"
+	"gles3/zircon_render_graph_pass.cpp"
+)
+
 
 ### OpenGL ES
 
@@ -106,7 +116,9 @@ add_library(${PROJECT_NAME} STATIC
 #	${to_include_vulkan_passes_files}
 	${to_include_shaders_gles}
 	${to_include_opengles3_game_passes_files}
+	${to_include_opengles3_game_pass_interface}
 	${to_include_opengles3_editor_passes_files}
+	${to_include_opengles3_editor_pass_interface}
 	${to_include_opengles3_implementation_files}
 	${to_include_render_ecs_shared}
 	${to_include_render_ecs_private}
@@ -129,7 +141,9 @@ source_group("OpenGL/3.3/Implementation" FILES ${to_include_opengl3_3_implementa
 source_group("OpenGL/3.3/Passes" FILES ${to_include_opengl3_3_passes_files})
 source_group("OpenGL ES/3/Implementation" FILES ${to_include_opengles3_implementation_files})
 source_group("OpenGL ES/3/Passes/Game" FILES ${to_include_opengles3_game_passes_files})
+source_group("OpenGL ES/3/Passes/Game/Interface" FILES ${to_include_opengles3_game_pass_interface})
 source_group("OpenGL ES/3/Passes/Editor" FILES ${to_include_opengles3_editor_passes_files})
+source_group("OpenGL ES/3/Passes/Editor/Interface" FILES ${to_include_opengles3_editor_pass_interface})
 source_group("OpenGL ES/3/Shaders" FILES ${to_include_shaders_gles})
 source_group("OpenGL ES/3/Passes/OS" FILES ${to_include_os})
 source_group("Module" FILES ${to_include_module_files})
@@ -137,6 +151,8 @@ source_group("Module" FILES ${to_include_module_files})
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
-target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs.components)
+target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
 target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)
+target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
+target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
 target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render)

@@ -25,6 +25,8 @@ void zircon_world::shutdown(void) noexcept
 }
 
 void zircon_world::initialize(
+	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_game_manager* p_manager_session_game,
 	const kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>&
 		name,
 	zircon_config* p_config, kotek::core::ktkConsole* p_console,
@@ -36,7 +38,8 @@ void zircon_world::initialize(
 
 	this->m_name = name;
 
-	this->m_factory.Initialize(p_config, p_console, p_input);
+	this->m_factory.Initialize(p_config, p_manager_session_game,
+		p_manager_session_editor, p_console, p_input);
 }
 
 kotek::view_entities_t zircon_world::get_entities(void) const noexcept

@@ -1,12 +1,14 @@
 #include "zircon_ui_top_bar.h"
-
-#include "../../engine/zircon_game_manager.h"
-#include "../zircon_session_editor.h"
+#include "../session/zircon_session_editor.h"
 #include "zircon_editor_ui_state.h"
+#include "../session/zircon_session_editor_manager.h"
 
-zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(void) :
-	m_is_show_window(true)
+zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(
+	zircon_session_editor_manager* p_manager_session_editor) :
+	m_is_show_window(true), m_p_manager_session_editor{p_manager_session_editor}
 {
+	KOTEK_ASSERT(p_manager_session_editor,
+		"must be valid session editor manager pointer");
 }
 
 zircon_editor_ui_state_top_bar::~zircon_editor_ui_state_top_bar(void) {}
@@ -152,54 +154,68 @@ void zircon_editor_ui_state_top_bar::Draw(
 
 						if (p_renderer)
 						{
-							zircon_game_manager* p_game_manager =
-								dynamic_cast<zircon_game_manager*>(
-									p_main_manager->GetGameManager());
+							auto* p_game_manager =
+								p_main_manager->GetGameManager();
 
-							const auto& imgui_elements =
-								p_game_manager
-									->get_imgui_ui_elements_from_editor_session(
-										p_game_manager
-											->get_session_editor_id());
-
-							for (const auto& p_element : imgui_elements)
+							if (p_game_manager &&
+								this->m_p_manager_session_editor)
 							{
-								const char* p_window_name =
-									Translate_ZirconWindowIDs(
-										static_cast<eZirconWindowIDs>(
-											p_element->Get_ID()));
+								zircon_session_editor* p_session =
+									this->m_p_manager_session_editor
+										->get_session(
+											this->m_p_manager_session_editor
+												->get_current_session_id());
 
-								char build_window_name[64];
+								KOTEK_ASSERT(p_session,
+									"failed to obtain session editor by id: {}",
+									this->m_p_manager_session_editor
+										->get_current_session_id());
 
-								kotek::ktk::sprintf(build_window_name,
-									sizeof(build_window_name), "%s##ViewImGui",
-									p_window_name);
+								const auto& imgui_elements =
+									p_session->get_imgui_ui_elements();
 
-								bool is_shown = p_element->Is_Shown();
-								if (p_wrapper_imgui->MenuItem(
-										build_window_name, nullptr, is_shown))
+								for (const auto& p_element : imgui_elements)
 								{
-									if (p_element->Is_Shown() == false)
+									const char* p_window_name =
+										Translate_ZirconWindowIDs(
+											static_cast<eZirconWindowIDs>(
+												p_element->Get_ID()));
+
+									char build_window_name[64];
+
+									kotek::ktk::sprintf(build_window_name,
+										sizeof(build_window_name),
+										"%s##ViewImGui", p_window_name);
+
+									bool is_shown = p_element->Is_Shown();
+									if (p_wrapper_imgui->MenuItem(
+											build_window_name, nullptr,
+											is_shown))
 									{
-										p_main_manager->GetGameManager()
-											->GetConsole()
-											->Push_Command(
-												static_cast<
-													kotek::ktk::enum_base_t>(
-													kotek::core::eConsoleCommandIndex::
-														kConsoleCommand_SDK_ShowWindow),
-												{p_element->Get_ID()});
-									}
-									else
-									{
-										p_main_manager->GetGameManager()
-											->GetConsole()
-											->Push_Command(
-												static_cast<
-													kotek::ktk::enum_base_t>(
-													kotek::core::eConsoleCommandIndex::
-														kConsoleCommand_SDK_HideWindow),
-												{p_element->Get_ID()});
+										if (p_element->Is_Shown() == false)
+										{
+											p_main_manager->GetGameManager()
+												->GetConsole()
+												->Push_Command(
+													static_cast<kotek::ktk::
+															enum_base_t>(
+														kotek::core::
+															eConsoleCommandIndex::
+																kConsoleCommand_SDK_ShowWindow),
+													{p_element->Get_ID()});
+										}
+										else
+										{
+											p_main_manager->GetGameManager()
+												->GetConsole()
+												->Push_Command(
+													static_cast<kotek::ktk::
+															enum_base_t>(
+														kotek::core::
+															eConsoleCommandIndex::
+																kConsoleCommand_SDK_HideWindow),
+													{p_element->Get_ID()});
+										}
 									}
 								}
 							}
@@ -244,63 +260,71 @@ void zircon_editor_ui_state_top_bar::update_modal_save_scene(
 
 	if (p_wrapper_imgui)
 	{
-		auto* p_game_manager =
-			static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
+		auto* p_game_manager = p_main_manager->GetGameManager();
 
-		zircon_session_editor* p_session = p_game_manager->get_session_editor(
-			p_game_manager->get_session_editor_id());
-
-		KOTEK_ASSERT(p_session, "must be valid!");
-
-		if (!p_session)
+		if (p_game_manager && this->m_p_manager_session_editor)
 		{
-			KOTEK_MESSAGE_WARNING("initialize session editor please!");
-			return;
-		}
+			zircon_session_editor* p_session =
+				this->m_p_manager_session_editor->get_session(
+					this->m_p_manager_session_editor->get_current_session_id());
 
-		zircon_editor_ui_state* p_state = p_session->get_ui_state();
+			KOTEK_ASSERT(p_session, "must be valid!");
 
-		KOTEK_ASSERT(p_state, "ui state wasn't initialized");
-
-		if (p_state->is_imgui_show_modal_save_scene())
-		{
-			p_wrapper_imgui->OpenPopup("Save Scene");
-		}
-
-		if (p_wrapper_imgui->BeginPopupModal(
-				"Save Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-		{
-			p_wrapper_imgui->Text(
-				"Do you want to save your work before quitting?");
-
-			if (p_wrapper_imgui->Button("Yes"))
+			if (!p_session)
 			{
-				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
-					static_cast<kotek::ktk::enum_base_t>(
-						kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_SaveScene));
-
-				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
-					static_cast<kotek::ktk::enum_base_t>(kotek::core::
-							eConsoleCommandIndex::kConsoleCommand_App_Close),
-					{});
-
-				p_state->set_imgui_show_modal_save_scene(false);
+				KOTEK_MESSAGE_WARNING("initialize session editor please!");
+				return;
 			}
 
-			p_wrapper_imgui->SameLine();
+			zircon_editor_ui_state* p_state = p_session->get_ui_state();
 
-			if (p_wrapper_imgui->Button("No"))
+			KOTEK_ASSERT(p_state, "ui state wasn't initialized");
+
+			if (p_state->is_imgui_show_modal_save_scene())
 			{
-				p_main_manager->GetGameManager()->GetConsole()->Push_Command(
-					static_cast<kotek::ktk::enum_base_t>(kotek::core::
-							eConsoleCommandIndex::kConsoleCommand_App_Close),
-					{});
-
-				p_state->set_imgui_show_modal_save_scene(false);
+				p_wrapper_imgui->OpenPopup("Save Scene");
 			}
 
-			p_wrapper_imgui->EndPopup();
+			if (p_wrapper_imgui->BeginPopupModal(
+					"Save Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				p_wrapper_imgui->Text(
+					"Do you want to save your work before quitting?");
+
+				if (p_wrapper_imgui->Button("Yes"))
+				{
+					p_main_manager->GetGameManager()
+						->GetConsole()
+						->Push_Command(static_cast<kotek::ktk::enum_base_t>(
+							kotek::core::eConsoleCommandIndex::
+								kConsoleCommand_SDK_SaveScene));
+
+					p_main_manager->GetGameManager()
+						->GetConsole()
+						->Push_Command(static_cast<kotek::ktk::enum_base_t>(
+										   kotek::core::eConsoleCommandIndex::
+											   kConsoleCommand_App_Close),
+							{});
+
+					p_state->set_imgui_show_modal_save_scene(false);
+				}
+
+				p_wrapper_imgui->SameLine();
+
+				if (p_wrapper_imgui->Button("No"))
+				{
+					p_main_manager->GetGameManager()
+						->GetConsole()
+						->Push_Command(static_cast<kotek::ktk::enum_base_t>(
+										   kotek::core::eConsoleCommandIndex::
+											   kConsoleCommand_App_Close),
+							{});
+
+					p_state->set_imgui_show_modal_save_scene(false);
+				}
+
+				p_wrapper_imgui->EndPopup();
+			}
 		}
 	}
 }

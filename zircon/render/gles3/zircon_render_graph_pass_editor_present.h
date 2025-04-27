@@ -1,9 +1,9 @@
 #pragma once
 
-#include <kotek.render.gl/include/kotek_render_graph_simplified_render_pass.h>
+#include "zircon_render_graph_pass_editor.h"
 
 class zircon_render_graph_pass_editor_present_gles3
-	: public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
+	: public zircon_render_graph_pass_editor
 {
 public:
 	zircon_render_graph_pass_editor_present_gles3(

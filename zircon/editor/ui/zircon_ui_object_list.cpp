@@ -1,13 +1,16 @@
 #include "zircon_ui_object_list.h"
-#include "../../ecs/components/zircon_factory.h"
-#include "../../engine/zircon_game_manager.h"
+#include "../../ecs/zircon_factory.h"
 #include "../../world/zircon_world.h"
 #include "../../world/zircon_world_manager.h"
-#include "../zircon_session_editor.h"
+#include "../session/zircon_session_editor.h"
+#include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_editor_ui_state_object_list::zircon_editor_ui_state_object_list(void) :
-	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{}
+zircon_editor_ui_state_object_list::zircon_editor_ui_state_object_list(
+	zircon_session_editor_manager* p_manager_session_editor,
+	kotek::core::ktkConsole* p_console) :
+	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{},
+	m_p_manager_session_editor{p_manager_session_editor}, m_p_console{p_console}
 {
 }
 
@@ -20,23 +23,17 @@ void zircon_editor_ui_state_object_list::shutdown(void) {}
 void zircon_editor_ui_state_object_list::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
-	auto* p_game_manager =
-		static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"you have to pass a valid session editor manager pointer!");
+	KOTEK_ASSERT(
+		this->m_p_console, "you have to pass a valid pointer of console!");
 
-	KOTEK_ASSERT(p_game_manager,
-		"you didn't initialize game manager pointer in main manager!");
-
-	if (!p_game_manager)
-	{
-		KOTEK_MESSAGE_WARNING("set game manager to main manager!");
-		return;
-	}
-
-	zircon_session_editor* p_session = p_game_manager->get_session_editor(
-		p_game_manager->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
-		p_game_manager->get_session_editor_id());
+		this->m_p_manager_session_editor->get_current_session_id());
 
 	if (!p_session)
 	{
@@ -73,17 +70,20 @@ void zircon_editor_ui_state_object_list::Draw(
 		{
 			if (p_wrapper_imgui->Button("Add"))
 			{
-				p_game_manager->GetConsole()->Execute_Command(
-					static_cast<kotek::ktk::enum_base_t>(
-						kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateEntity));
+				if (this->m_p_console)
+				{
+					this->m_p_console->Execute_Command(
+						static_cast<kotek::ktk::enum_base_t>(
+							kotek::core::eConsoleCommandIndex::
+								kConsoleCommand_SDK_CreateEntity));
+				}
 			}
 
 			p_wrapper_imgui->SameLine();
 
 			if (p_wrapper_imgui->Button("Delete"))
 			{
-				if (p_game_manager)
+				if (this->m_p_console)
 				{
 					zircon_factory* p_factory = p_world->get_factory();
 
@@ -92,7 +92,7 @@ void zircon_editor_ui_state_object_list::Draw(
 						if (p_factory->IsValidEntity(
 								this->m_selected_entity_id))
 						{
-							p_game_manager->GetConsole()->Execute_Command(
+							this->m_p_console->Execute_Command(
 								static_cast<kotek::ktk::enum_base_t>(
 									kotek::core::eConsoleCommandIndex::
 										kConsoleCommand_SDK_DeleteEntity),

@@ -1,10 +1,9 @@
 #include "zircon_ui_window_settings.h"
-#include "../../engine/zircon_game_manager.h"
 #include "../../core/zircon_config.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_ui_window_settings::zircon_ui_window_settings(void) :
-	m_is_window_show(false)
+zircon_ui_window_settings::zircon_ui_window_settings(zircon_config* p_config) :
+	m_is_window_show(false), m_p_config{p_config}
 {
 }
 
@@ -14,14 +13,15 @@ void zircon_ui_window_settings::initialize(void) {}
 
 void zircon_ui_window_settings::shutdown(void) {}
 
-void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
+void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (!this->m_is_window_show)
 		return;
 
-	auto* p_wrapper_imgui = main_manager->Get_ImguiWrapper();
-	auto* p_game_manager =
-		static_cast<zircon_game_manager*>(main_manager->GetGameManager());
+	KOTEK_ASSERT(this->m_p_config,
+		"you must pass a valid pointer of zircon_config instance!");
+
+	auto* p_wrapper_imgui = p_main_manager->Get_ImguiWrapper();
 
 	if (p_wrapper_imgui)
 	{
@@ -29,9 +29,9 @@ void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* main_manager)
 		{
 			if (p_wrapper_imgui->CollapsingHeader("Features"))
 			{
-				if (p_game_manager)
+				if (p_main_manager->GetGameManager())
 				{
-					auto* p_config = p_game_manager->get_config();
+					auto* p_config = this->m_p_config;
 
 					if (p_config)
 					{

@@ -75,9 +75,6 @@ public:
 		void) const noexcept;
 	zircon_session_game_manager* get_session_game_manager(void) const noexcept;
 
-	kotek::uint8_t get_session_editor_id(void) const noexcept;
-	kotek::uint8_t get_session_game_id(void) const noexcept;
-
 	zircon_session_editor* get_session_editor(
 		kotek::uint8_t session_id) const noexcept;
 	zircon_session_game* get_session_game(
@@ -93,10 +90,19 @@ public:
 	zircon_config* get_config() const noexcept;
 
 	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-	get_imgui_ui_elements_from_editor_session(kotek::uint8_t session_id) const noexcept;
+	get_imgui_ui_elements_from_editor_session(
+		kotek::uint8_t session_id) const noexcept;
 
 	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-	get_imgui_ui_elements_from_game_session(kotek::uint8_t session_id) const noexcept;
+	get_imgui_ui_elements_from_game_session(
+		kotek::uint8_t session_id) const noexcept;
+
+	void initialize_render_graph(kotek::uint8_t render_graph_id,
+		kotek::core::ktkMainManager* p_main_manager,
+		kotek::core::ktkIRenderResourceManager*
+			p_render_resource_manager) noexcept;
+
+	bool is_render_graph_initialized(kotek::uint8_t render_graph_id);
 
 private:
 	void Initialize_Renderer(void) noexcept;
@@ -131,12 +137,7 @@ private:
 private:
 	bool m_is_use_sdk;
 	bool m_is_use_sdk_imgui;
-#ifdef KOTEK_USE_SDK_IMGUI
-	kotek::uint8_t m_session_editor_id;
-#endif
 	kotek::uint8_t m_world_id;
-	kotek::uint8_t m_session_game_id;
-	kotek::uint8_t m_current_session_id;
 	kotek::core::ktkProfiler* m_p_profiler;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
@@ -155,7 +156,7 @@ private:
 	sdk::ui::zircon_frame* m_p_sdk_main_window;
 #endif
 
-	//zircon_factory* m_p_factory;
+	// zircon_factory* m_p_factory;
 	zircon_world_manager* m_p_world_manager;
 	zircon_resource_manager* m_p_resource_manager;
 	zircon_config* m_p_config;

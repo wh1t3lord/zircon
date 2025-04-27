@@ -1,16 +1,21 @@
 #include "zircon_ui_window_history_command_log.h"
-#include "../../engine/zircon_game_manager.h"
 #include "../commands/zircon_command_history.h"
-#include "../zircon_session_editor.h"
+#include "../session/zircon_session_editor.h"
+#include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
 
 zircon_ui_window_history_command_log::zircon_ui_window_history_command_log(
-	zircon_editor_command_history* p_manager_history) :
-	m_is_show_window(false), m_p_manager_history{p_manager_history}
+	zircon_editor_command_history* p_manager_history,
+	zircon_session_editor_manager* p_manager_session_editor) :
+	m_is_show_window(false), m_p_manager_history{p_manager_history},
+	m_p_manager_session_editor{p_manager_session_editor}
 {
 	KOTEK_ASSERT(this->m_p_manager_history,
 		"you can't pass an invalid pointer to instance "
 		"zircon_editor_command_history");
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"you can't pass an invalid pointer to instance "
+		"zircon_session_editor_manager");
 }
 
 zircon_ui_window_history_command_log::~zircon_ui_window_history_command_log() {}
@@ -31,18 +36,19 @@ void zircon_ui_window_history_command_log::Draw(
 	{
 		if (p_wrapper_imgui->Begin("History Command Log"))
 		{
-			auto* p_manager = static_cast<zircon_game_manager*>(
-				main_manager->GetGameManager());
+			auto* p_manager = 
+				main_manager->GetGameManager();
 
 			if (p_manager)
 			{
 				zircon_session_editor* p_session =
-					p_manager->get_session_editor(
-						p_manager->get_session_editor_id());
+					this->m_p_manager_session_editor->get_session(
+						this->m_p_manager_session_editor
+							->get_current_session_id());
 
 				KOTEK_ASSERT(p_session,
 					"failed to obtain session editor by id: {}",
-					p_manager->get_session_editor_id());
+					this->m_p_manager_session_editor->get_current_session_id());
 
 				if (!p_session)
 				{

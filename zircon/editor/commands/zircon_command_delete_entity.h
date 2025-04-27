@@ -1,12 +1,12 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
-#include "../../ecs/components/zircon_factory_definitions.h"
+#include "../../ecs/zircon_factory_definitions.h"
 
 class zircon_factory;
 class zircon_editor_command_history;
 class zircon_world;
-class zircon_game_manager;
+class zircon_session_editor_manager;
 
 enum zircon_component_type_t;
 
@@ -16,7 +16,7 @@ class zircon_command_delete_entity : public kotek::core::ktkISDKRedoUndo
 {
 public:
 	zircon_command_delete_entity(
-		zircon_game_manager* p_game_manager, entt::entity entity_to_delete);
+		zircon_session_editor_manager* p_manager_session_editor, entt::entity entity_to_delete);
 
 	~zircon_command_delete_entity();
 
@@ -35,7 +35,7 @@ public:
 private:
 	entt::entity m_entity_created;
 	entt::entity m_entity_previous_id;
-	zircon_game_manager* m_p_game_manager;
+	zircon_session_editor_manager* m_p_manager_session_editor;
 	kotek::static_vector_t<zircon_component_type_t,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_components;

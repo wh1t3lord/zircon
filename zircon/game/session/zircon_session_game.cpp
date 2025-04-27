@@ -1,7 +1,9 @@
 #include "zircon_session_game.h"
-#include "../world/zircon_world.h"
+#include "../../world/zircon_world.h"
+#include "../../core/zircon_console.h"
 
 // todo: move to config please
+// todo#2: create constexpr for render graph id invalid constant
 constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
@@ -9,8 +11,9 @@ zircon_session_game::zircon_session_game(kotek::uint8_t id) :
 #ifdef KOTEK_DEBUG
 	m_was_allocated_by_manager{}, m_was_destroyed_by_manager{},
 #endif
-	m_was_initialized{}, m_id{id}, m_render_graph_id{_kInvalidSessionID},
-	m_p_world{}, m_name{"not_inited"}
+	m_was_initialized{}, m_was_render_graph_initialized{}, m_id{id},
+	m_render_graph_id{static_cast<kotek::uint8_t>(-1)}, m_p_main_manager{},
+	m_p_console{}, m_p_world{}, m_name{"not_inited"}
 {
 }
 
@@ -18,8 +21,10 @@ zircon_session_game::zircon_session_game(void) :
 #ifdef KOTEK_DEBUG
 	m_was_allocated_by_manager{}, m_was_destroyed_by_manager{},
 #endif
-	m_was_initialized{}, m_id{_kInvalidSessionID}, m_p_world{},
-	m_name{"not_inited"}
+	m_was_initialized{}, m_was_render_graph_initialized{},
+	m_id{_kInvalidSessionID},
+	m_render_graph_id{static_cast<kotek::uint8_t>(-1)}, m_p_main_manager{},
+	m_p_console{}, m_p_world{}, m_name{"not_inited"}
 {
 }
 
@@ -64,12 +69,19 @@ void zircon_session_game::shutdown(void)
 	}
 }
 
-void zircon_session_game::update(void) {}
+void zircon_session_game::update(void)
+{
+#ifdef KOTEK_USE_SDK_IMGUI
+	this->try_to_initialize_render_graph();
+#endif
+}
 
 void zircon_session_game::initialize(
 	const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
 		session_name,
-	kotek::uint8_t id, zircon_world* p_current_world)
+	kotek::uint8_t id, kotek::core::ktkMainManager* p_main_manager,
+	kotek::core::ktkConsole* p_console, zircon_world* p_current_world,
+	bool is_need_to_initialize_render_graph)
 {
 	KOTEK_ASSERT(session_name.empty() == false,
 		"you must pass a reasonable name please!");
@@ -88,6 +100,8 @@ void zircon_session_game::initialize(
 		"you should call shutdown and then initialize or reinitialize method "
 		"for calling twice. "
 		"Otherwise why do you need to call this method again?");
+	KOTEK_ASSERT(p_main_manager, "you must pass a valid main manager!");
+	KOTEK_ASSERT(p_console, "you must pass a valid console!");
 
 	if (!this->m_was_initialized)
 	{
@@ -95,6 +109,28 @@ void zircon_session_game::initialize(
 		this->m_id = id;
 
 		this->m_p_world = p_current_world;
+		this->m_p_main_manager = p_main_manager;
+		this->m_p_console = p_console;
+
+		if (is_need_to_initialize_render_graph)
+		{
+			if (this->m_p_console)
+			{
+				this->m_p_console->Push_Command(
+					static_cast<kotek::enum_base_t>(
+						eZirconConsoleCommands::initialize_render_graph),
+					{this->m_render_graph_id});
+
+				// supposed that game session is 'optimized' session so it is
+				// expected that you pass render graph for shipping aka release
+				// so there's no point for implementing features like changing
+				// render graphs and etc it is useful only for SDK development
+				// cycle/build
+#ifdef KOTEK_USE_SDK_IMGUI
+				this->m_was_render_graph_initialized = true;
+#endif
+			}
+		}
 
 		this->m_was_initialized = true;
 #ifdef KOTEK_DEBUG
@@ -111,10 +147,36 @@ kotek::uint8_t zircon_session_game::get_render_graph_id(void) const noexcept
 
 void zircon_session_game::set_render_graph_id(kotek::uint8_t id) noexcept
 {
-	this->m_render_graph_id = id;
+	if (this->m_render_graph_id != id)
+	{
+		this->m_render_graph_id = id;
+		this->m_was_render_graph_initialized = false;
+	}
 }
 
 zircon_world* zircon_session_game::get_world(void) const noexcept
 {
 	return this->m_p_world;
+}
+
+void zircon_session_game::try_to_initialize_render_graph(void) noexcept
+{
+#ifdef KOTEK_USE_SDK_IMGUI
+	if (!this->m_was_render_graph_initialized)
+	{
+		KOTEK_ASSERT(this->m_p_console,
+			"supposed that you should initialize m_p_console field so early "
+			"calling");
+
+		if (this->m_p_console)
+		{
+			this->m_p_console->Push_Command(
+				static_cast<kotek::enum_base_t>(
+					eZirconConsoleCommands::initialize_render_graph),
+				{this->m_render_graph_id});
+		}
+
+		this->m_was_render_graph_initialized = true;
+	}
+#endif
 }

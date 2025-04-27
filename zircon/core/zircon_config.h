@@ -59,17 +59,24 @@ public:
 	void deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 		Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept;
 
+	bool is_current_session_editor(void) const;
+	void set_current_session(
+		kotek::uint8_t session_id, bool is_editor) noexcept;
+
 private:
 	void initialize_default() noexcept;
 
 private:
+	bool m_is_session_editor;
+	kotek::uint8_t m_current_session_id;
 	eZirconGameFeatures m_features_game;
 	eZirconSDKFeatures m_features_sdk;
 
+	// todo: replace on more optimized bitset or just array of flags with O(1)
 	Kotek::ktk::unordered_map<eZirconSDKFeatures,
 		Kotek::ktk::variant<int, double, float, Kotek::ktk::cstring>>
 		m_features_data_sdk;
-
+	// todo: replace on more optimized bitset or just array of flags with O(1)
 	Kotek::ktk::unordered_map<eZirconSDKFeatures,
 		Kotek::ktk::variant<int, double, float, Kotek::ktk::cstring>>
 		m_features_data_game;

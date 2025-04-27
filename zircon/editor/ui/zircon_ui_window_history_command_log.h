@@ -1,13 +1,14 @@
 #pragma once
 
 class zircon_editor_command_history;
+class zircon_session_editor_manager;
 
 class zircon_ui_window_history_command_log
 	: public Kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_ui_window_history_command_log(
-		zircon_editor_command_history* p_manager_history);
+		zircon_editor_command_history* p_manager_history, zircon_session_editor_manager* p_manager_session_editor);
 	~zircon_ui_window_history_command_log();
 
 	void initialize(void) override;
@@ -22,4 +23,5 @@ public:
 private:
 	bool m_is_show_window;
 	zircon_editor_command_history* m_p_manager_history;
+	zircon_session_editor_manager* m_p_manager_session_editor;
 };

@@ -1,5 +1,7 @@
 #include "zircon_factory.h"
-#include "../../core/zircon_config.h"
+#include "../core/zircon_config.h"
+#include "../editor/session/zircon_session_editor_manager.h"
+#include "../game/session/zircon_session_game_manager.h"
 
 zircon_factory::zircon_factory(void) : m_p_config{}, m_p_input{}
 {
@@ -12,19 +14,26 @@ zircon_factory::zircon_factory(void) : m_p_config{}, m_p_input{}
 
 zircon_factory::~zircon_factory(void) {}
 
-void zircon_factory::Initialize(
-	zircon_config* p_config, kotek::core::ktkConsole* p_console, kotek::core::ktkIInput* p_input)
+void zircon_factory::Initialize(zircon_config* p_config,
+	zircon_session_game_manager* p_manager_session_game,
+	zircon_session_editor_manager* p_manager_session_editor,
+	kotek::core::ktkConsole* p_console, kotek::core::ktkIInput* p_input)
 {
 	KOTEK_ASSERT(
 		p_config, "you can't pass an invalid instance of zircon_config!");
 	KOTEK_ASSERT(
 		p_console, "you can't pass an invalid instance of ktkConsole!");
 	KOTEK_ASSERT(p_input, "you can't pass an invalid instance of ktkIInput!");
-
+	KOTEK_ASSERT(p_manager_session_game,
+		"you can't pass a invalid pointer of session game manager");
+	KOTEK_ASSERT(p_manager_session_editor,
+		"you can't pass an invalid pointer of session editor manager");
 
 	this->m_p_config = p_config;
 	this->m_p_console = p_console;
 	this->m_p_input = p_input;
+	this->m_p_manager_session_editor = p_manager_session_editor;
+	this->m_p_manager_session_game = p_manager_session_game;
 }
 
 void zircon_factory::Shutdown(void) {}
@@ -111,8 +120,8 @@ void zircon_factory::register_components_restrictions()
 	for (const auto& [component_name, list_hashes] :
 		this->m_component_creation_restriction_by_component_name)
 	{
-		this->m_component_creation_restriction_by_hash
-			[this->m_component_name_to_id.at(component_name)] = list_hashes;
+		this->m_component_creation_restriction_by_hash[this
+				->m_component_name_to_id.at(component_name)] = list_hashes;
 	}
 }
 

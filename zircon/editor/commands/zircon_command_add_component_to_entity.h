@@ -3,17 +3,19 @@
 #include "zircon_command_definitions.h"
 
 class zircon_factory;
-class zircon_game_manager;
+class zircon_session_editor_manager;
 enum zircon_component_type_t;
 
 class zircon_command_add_component_to_entity
 	: public kotek::core::ktkISDKRedoUndo
 {
 public:
-	zircon_command_add_component_to_entity(zircon_game_manager* p_game_manager,
+	zircon_command_add_component_to_entity(
+		zircon_session_editor_manager* p_manager_session_editor,
 		entt::entity id, const char* component_string);
 	// for command history
-	zircon_command_add_component_to_entity(zircon_game_manager* p_game_manager);
+	zircon_command_add_component_to_entity(
+		zircon_session_editor_manager* p_manager_session_editor);
 
 	~zircon_command_add_component_to_entity();
 
@@ -37,7 +39,7 @@ private:
 	bool m_is_serialized;
 	entt::entity m_id;
 	const char* m_p_component_name;
-	zircon_game_manager* m_p_game_manager;
+	zircon_session_editor_manager* m_p_manager_session_editor;
 	kotek::ktk::json::value m_serialized_state_of_deleted_component;
 	char m_serialized_component_as_string
 		[ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE];

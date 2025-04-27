@@ -1,14 +1,17 @@
 #pragma once
 
-#include "../../ecs/components/zircon_component_interface.h"
+#include "../../ecs/zircon_component_interface.h"
 
 class zircon_factory;
 class zircon_editor_ui_state_interface;
+class zircon_session_editor_manager;
 
-class zircon_editor_ui_state_component_inspector : public kotek::core::ktkISDKUIElement
+class zircon_editor_ui_state_component_inspector
+	: public kotek::core::ktkISDKUIElement
 {
 public:
 	zircon_editor_ui_state_component_inspector(
+		zircon_session_editor_manager* p_manager_session_editor,
 		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory);
 	~zircon_editor_ui_state_component_inspector();
 
@@ -27,7 +30,6 @@ private:
 		const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
 			component_name_from_preprocessor,
 		entt::entity id) noexcept;
- 
 
 	void update_modal_windows(kotek::core::ktkIImguiWrapper* p_wrapper_imgui);
 
@@ -36,6 +38,7 @@ private:
 	entt::id_type m_combobox_current_item_type;
 	zircon_editor_ui_state_interface* m_p_manager_sdk_ui;
 	zircon_factory* m_p_factory;
+	zircon_session_editor_manager* m_p_manager_session_editor;
 	const char* m_p_combobox_current_item;
 	const char* m_p_list_selected_item_allocator;
 };

@@ -1,42 +1,43 @@
 #include "zircon_command_create_entity.h"
-#include "../../ecs/components/zircon_factory.h"
+#include "../../ecs/zircon_factory.h"
 #include "../../world/zircon_world.h"
-#include "../../engine/zircon_game_manager.h"
-#include "../zircon_session_editor.h"
+#include "../session/zircon_session_editor.h"
+#include "../session/zircon_session_editor_manager.h"
 #include "zircon_command_history.h"
 
 zircon_command_create_entity::zircon_command_create_entity(
-	zircon_game_manager* p_game_manager) :
-	m_created_entity{}, m_entity_previous_id{entt::null}, m_p_game_manager{},
+	zircon_session_editor_manager* p_session_manager_editor) :
+	m_created_entity{}, m_entity_previous_id{entt::null},
+	m_p_editor_session_manager{p_session_manager_editor},
 	m_serialize_json_string_storage{}
 {
-	KOTEK_ASSERT(p_game_manager, "must be valid pointer of game manager");
-
-	this->m_p_game_manager = p_game_manager;
+	KOTEK_ASSERT(p_session_manager_editor,
+		"must be valid pointer of editor session manager");
 }
 
 zircon_command_create_entity::~zircon_command_create_entity() {}
 
 void zircon_command_create_entity::Execute()
 {
-	if (!this->m_p_game_manager)
+	if (!this->m_p_editor_session_manager)
 	{
-		KOTEK_MESSAGE_ERROR("failed to excute due to invalid game manager!");
+		KOTEK_MESSAGE_ERROR(
+			"failed to excute due to invalid editor session manager!");
 		return;
 	}
 
 	zircon_session_editor* p_session =
-		this->m_p_game_manager->get_session_editor(
-			this->m_p_game_manager->get_session_editor_id());
+		this->m_p_editor_session_manager->get_session(
+			this->m_p_editor_session_manager->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
-		this->m_p_game_manager->get_session_editor_id());
+		this->m_p_editor_session_manager->get_current_session_id());
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session editor#{}",
-			this->m_p_game_manager->get_session_editor_id());
+			this->m_p_editor_session_manager->get_current_session_id());
 		return;
 	}
 
@@ -87,24 +88,24 @@ void zircon_command_create_entity::Execute()
 
 void zircon_command_create_entity::Undo()
 {
-	if (!this->m_p_game_manager)
+	if (!this->m_p_editor_session_manager)
 	{
 		KOTEK_MESSAGE_ERROR("failed to excute due to invalid game manager!");
 		return;
 	}
 
 	zircon_session_editor* p_session =
-		this->m_p_game_manager->get_session_editor(
-			this->m_p_game_manager->get_session_editor_id());
+		this->m_p_editor_session_manager->get_session(
+			this->m_p_editor_session_manager->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
-		this->m_p_game_manager->get_session_editor_id());
+		this->m_p_editor_session_manager->get_current_session_id());
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session editor#{}",
-			this->m_p_game_manager->get_session_editor_id());
+			this->m_p_editor_session_manager->get_current_session_id());
 		return;
 	}
 

@@ -1,9 +1,11 @@
 #pragma once
 
+class zircon_config;
+
 class zircon_ui_window_settings : public Kotek::Core::ktkISDKUIElement
 {
 public:
-	zircon_ui_window_settings(void);
+	zircon_ui_window_settings(zircon_config* p_config);
 	~zircon_ui_window_settings(void);
 
 	void initialize(void) override;
@@ -17,4 +19,5 @@ public:
 
 private:
 	bool m_is_window_show;
+	zircon_config* m_p_config;
 };

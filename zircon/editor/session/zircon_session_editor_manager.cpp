@@ -1,16 +1,17 @@
 #include "zircon_session_editor_manager.h"
 #include "zircon_session_editor.h"
+#include "../../core/zircon_config.h"
 
 static_assert(std::numeric_limits<kotek::uint8_t>::max() >
 		ZIRCON_DEF_EDITOR_SESSION_MANAGER_MAX_SESSION_COUNT,
 	"overflow, too much sessions, are you even sure you need it ? report to "
 	"developers https://github.com/wh1t3lord/zircon/issues");
 
-constexpr kotek::uint8_t _KInvalidSessionID =
+constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
 zircon_session_editor_manager::zircon_session_editor_manager() :
-	m_p_main_manager{}
+	m_current_session_id{_kInvalidSessionID}, m_p_main_manager{}
 {
 }
 
@@ -22,11 +23,12 @@ zircon_session_editor_manager::~zircon_session_editor_manager()
 }
 
 void zircon_session_editor_manager::initialize(
-	kotek::core::ktkMainManager* p_main_manager)
+	zircon_config* p_config, kotek::core::ktkMainManager* p_main_manager)
 {
 	KOTEK_ASSERT(p_main_manager, "you have to pass a valid main manager");
 
 	this->m_p_main_manager = p_main_manager;
+	this->m_p_config = p_config;
 }
 
 kotek::uint8_t zircon_session_editor_manager::create_session(void)
@@ -43,19 +45,19 @@ kotek::uint8_t zircon_session_editor_manager::create_session(void)
 	KOTEK_ASSERT(p_session, "failed to allocate memory for session: {}",
 		generated_session_id);
 
-#ifdef KOTEK_DEBUG
 	if (p_session)
 	{
+#ifdef KOTEK_DEBUG
 		KOTEK_MESSAGE("created session: {}", generated_session_id);
-
-		p_session->m_was_allocated_by_manager = true;
-	}
 #endif
-	if (!p_session)
+		p_session->m_was_allocated_by_manager = true;
+		this->m_sessions.push_back(p_session);
+	}
+	else
 	{
 		KOTEK_MESSAGE_ERROR(
 			"failed to allocate session: {}", generated_session_id);
-		generated_session_id = _KInvalidSessionID;
+		generated_session_id = _kInvalidSessionID;
 	}
 
 	return generated_session_id;
@@ -173,6 +175,9 @@ void zircon_session_editor_manager::shutdown(void)
 	}
 
 	this->m_sessions.clear();
+
+	this->m_p_main_manager = nullptr;
+	this->m_p_config = nullptr;
 }
 
 void zircon_session_editor_manager::update(void)
@@ -184,4 +189,16 @@ void zircon_session_editor_manager::update(void)
 			p_session->update();
 		}
 	}
+}
+
+kotek::uint8_t zircon_session_editor_manager::get_current_session_id(
+	void) const noexcept
+{
+	return this->m_current_session_id;
+}
+
+void zircon_session_editor_manager::set_current_session_id(
+	kotek::uint8_t id) noexcept
+{
+	this->m_current_session_id = id;
 }

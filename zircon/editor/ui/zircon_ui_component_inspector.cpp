@@ -1,9 +1,9 @@
 #include "zircon_ui_component_inspector.h"
-#include "../../ecs/components/zircon_factory.h"
-#include "../../engine/zircon_game_manager.h"
+#include "../../ecs/zircon_factory.h"
 #include "../../world/zircon_world.h"
 #include "../../world/zircon_world_manager.h"
-#include "../zircon_session_editor.h"
+#include "../session/zircon_session_editor.h"
+#include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
 
 constexpr const char* _kSDKModalWindowFailedToAddComponent =
@@ -11,14 +11,18 @@ constexpr const char* _kSDKModalWindowFailedToAddComponent =
 
 zircon_editor_ui_state_component_inspector::
 	zircon_editor_ui_state_component_inspector(
+		zircon_session_editor_manager* p_manager_session_editor,
 		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory) :
 	m_is_show_window{}, m_combobox_current_item_type{},
 	m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
+	m_p_manager_session_editor{p_manager_session_editor},
 	m_p_combobox_current_item{}, m_p_list_selected_item_allocator{}
 {
 	KOTEK_ASSERT(
 		p_factory, "you can't pass an invalid pointer to zircon_GameFactory");
 	KOTEK_ASSERT(p_sdk_ui, "must be initialized!");
+	KOTEK_ASSERT(p_manager_session_editor,
+		"you must pass a valid pointer of session editor manager!");
 
 	this->m_p_combobox_current_item =
 		p_factory->GetRegisteredComponents().cbegin()->first.data();
@@ -39,8 +43,7 @@ void zircon_editor_ui_state_component_inspector::Draw(
 	if (!this->m_is_show_window)
 		return;
 
-	zircon_game_manager* p_game_manager =
-		static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
+	auto* p_game_manager = p_main_manager->GetGameManager();
 
 	KOTEK_ASSERT(p_game_manager, "game manager must be initialized!");
 
@@ -50,11 +53,12 @@ void zircon_editor_ui_state_component_inspector::Draw(
 		return;
 	}
 
-	zircon_session_editor* p_session = p_game_manager->get_session_editor(
-		p_game_manager->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
-		p_game_manager->get_session_editor_id());
+		this->m_p_manager_session_editor->get_current_session_id());
 
 	if (!p_session)
 	{

@@ -1,6 +1,7 @@
 #include "zircon_config.h"
 
 zircon_config::zircon_config(void) :
+	m_is_session_editor{}, m_current_session_id{kotek::uint8_t(-1)},
 	m_features_game{eZirconGameFeatures::kGame_Feature_Unknown},
 	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_Unknown}
 {
@@ -151,6 +152,18 @@ void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 			}
 		}
 	}
+}
+
+bool zircon_config::is_current_session_editor(void) const
+{
+	return this->m_is_session_editor;
+}
+
+void zircon_config::set_current_session(
+	kotek::uint8_t session_id, bool is_editor) noexcept
+{
+	this->m_current_session_id = session_id;
+	this->m_is_session_editor = is_editor;
 }
 
 void zircon_config::initialize_default() noexcept

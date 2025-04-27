@@ -3,23 +3,22 @@
 #include <kotek.render.gl/include/kotek_render_geometry_manager.h>
 #include <kotek.render.gl/include/kotek_render_shader_manager.h>
 
-#include "../../ecs/components/zircon_factory.h"
-#include "../../engine/zircon_game_manager.h"
+#include "../../ecs/zircon_factory.h"
 #include "../../world/zircon_world.h"
-#include "../../editor/zircon_session_editor.h"
+#include "../../editor/session/zircon_session_editor.h"
+#include "../../editor/session/zircon_session_editor_manager.h"
 
 zircon_render_graph_pass_editor_model_static_gles3::
 	zircon_render_graph_pass_editor_model_static_gles3(
 		const kotek::static_u8string_view_t& render_pass_name) :
-	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
-		render_pass_name.data()),
+	zircon_render_graph_pass_editor(render_pass_name),
 	m_p_manager_render_resource{}
 {
 }
 
 zircon_render_graph_pass_editor_model_static_gles3::
 	zircon_render_graph_pass_editor_model_static_gles3() :
-	m_p_manager_render_resource{}
+	zircon_render_graph_pass_editor(), m_p_manager_render_resource{}
 {
 }
 
@@ -114,20 +113,19 @@ void zircon_render_graph_pass_editor_model_static_gles3::OnCreateResources(
 	KOTEK_ASSERT(
 		this->m_p_manager_render_shader, "must be a valid shader manager!");
 
-	zircon_game_manager* p_manager_game =
-		dynamic_cast<zircon_game_manager*>(p_manager_main->GetGameManager());
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"must be a valid session editor manager!");
 
-	KOTEK_ASSERT(p_manager_game, "must be valid!");
-
-	zircon_session_editor* p_session = p_manager_game->get_session_editor(
-		p_manager_game->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "must be valid!");
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
-			p_manager_game->get_session_editor_id());
+			this->m_p_manager_session_editor->get_current_session_id());
 		return;
 	}
 
@@ -271,20 +269,20 @@ void zircon_render_graph_pass_editor_model_static_gles3::
 		"and report to EnTT developers");
 	KOTEK_ASSERT(this->m_p_manager_main,
 		"must be initialized at that time main manager");
-	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
-		this->m_p_manager_main->GetGameManager());
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"did you call OnRegisterManagers for this kind of render graph pass? "
+		"session manager editor is not initialized (nullptr)!");
 
-	KOTEK_ASSERT(p_manager_game, "must be valid!");
-
-	zircon_session_editor* p_session = p_manager_game->get_session_editor(
-		p_manager_game->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "must be valid!");
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
-			p_manager_game->get_session_editor_id());
+			this->m_p_manager_session_editor->get_current_session_id());
 		return;
 	}
 
@@ -332,20 +330,20 @@ void zircon_render_graph_pass_editor_model_static_gles3::
 	KOTEK_ASSERT(registry.valid(id), "something is wrong");
 	KOTEK_ASSERT(this->m_p_manager_main,
 		"must be initialized at that time main manager");
-	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
-		this->m_p_manager_main->GetGameManager());
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"Did you call OnRegisterManagers because session manager editor is not "
+		"initialized (nullptr)!");
 
-	KOTEK_ASSERT(p_manager_game, "must be valid!");
-
-	zircon_session_editor* p_session = p_manager_game->get_session_editor(
-		p_manager_game->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "must be valid!");
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
-			p_manager_game->get_session_editor_id());
+			this->m_p_manager_session_editor->get_current_session_id());
 		return;
 	}
 
@@ -388,20 +386,20 @@ void zircon_render_graph_pass_editor_model_static_gles3::
 	KOTEK_ASSERT(registry.valid(id), "something is wrong");
 	KOTEK_ASSERT(this->m_p_manager_main,
 		"must be initialized at that time main manager");
-	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
-		this->m_p_manager_main->GetGameManager());
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"Did you call OnRegisterManagers because session manager editor is not "
+		"initialized!");
 
-	KOTEK_ASSERT(p_manager_game, "must be valid!");
-
-	zircon_session_editor* p_session = p_manager_game->get_session_editor(
-		p_manager_game->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "must be valid!");
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
-			p_manager_game->get_session_editor_id());
+			this->m_p_manager_session_editor->get_current_session_id());
 		return;
 	}
 
@@ -439,20 +437,20 @@ void zircon_render_graph_pass_editor_model_static_gles3::update_sdk_camera()
 {
 	KOTEK_ASSERT(this->m_p_manager_main,
 		"must be initialized at that time main manager");
-	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
-		this->m_p_manager_main->GetGameManager());
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"Did you call OnRegisterManagers because session manager editor is not "
+		"initialized!");
 
-	KOTEK_ASSERT(p_manager_game, "must be valid!");
-
-	zircon_session_editor* p_session = p_manager_game->get_session_editor(
-		p_manager_game->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "must be valid!");
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
-			p_manager_game->get_session_editor_id());
+			this->m_p_manager_session_editor->get_current_session_id());
 		return;
 	}
 
@@ -525,20 +523,20 @@ void zircon_render_graph_pass_editor_model_static_gles3::update_instances()
 {
 	KOTEK_ASSERT(this->m_p_manager_main,
 		"must be initialized at that time main manager");
-	zircon_game_manager* p_manager_game = dynamic_cast<zircon_game_manager*>(
-		this->m_p_manager_main->GetGameManager());
+	KOTEK_ASSERT(this->m_p_manager_session_editor,
+		"Did you call OnRegisterManagers because sessino editor manager is not "
+		"initialized!");
 
-	KOTEK_ASSERT(p_manager_game, "must be valid!");
-
-	zircon_session_editor* p_session = p_manager_game->get_session_editor(
-		p_manager_game->get_session_editor_id());
+	zircon_session_editor* p_session =
+		this->m_p_manager_session_editor->get_session(
+			this->m_p_manager_session_editor->get_current_session_id());
 
 	KOTEK_ASSERT(p_session, "must be valid!");
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING("can't obtain session by id: {}",
-			p_manager_game->get_session_editor_id());
+			this->m_p_manager_session_editor->get_current_session_id());
 		return;
 	}
 

@@ -1,6 +1,6 @@
 #include "zircon_editor_ui_state.h"
 
-#include "../../ecs/components/zircon_factory.h"
+#include "../../ecs/zircon_factory.h"
 
 zircon_editor_ui_state::zircon_editor_ui_state() :
 	m_is_imgui_show_modal_save_scene{}, m_selected_entity{entt::null}

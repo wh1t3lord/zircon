@@ -40,13 +40,14 @@ kotek::uint8_t zircon_world_manager::create_world(void) noexcept
 	KOTEK_ASSERT(
 		p_world, "failed to allocate memory for world: {}", generated_world_id);
 
-#ifdef KOTEK_DEBUG
 	if (p_world)
 	{
+#ifdef KOTEK_DEBUG
 		KOTEK_MESSAGE("created world: {}", generated_world_id);
-	}
 #endif
-	if (!p_world)
+		this->m_worlds.push_back(p_world);
+	}
+	else
 	{
 		KOTEK_MESSAGE_ERROR("failed to allocate world: {}", generated_world_id);
 		generated_world_id = _kInvalidWorldID;

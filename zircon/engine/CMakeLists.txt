@@ -42,13 +42,6 @@ set(to_include_game_files
 	"zircon_game_manager.cpp"
 )
 
-set(to_include_game_session_game_files
-	"zircon_session_game.h"
-	"zircon_session_game.cpp"
-	"zircon_session_game_manager.h"
-	"zircon_session_game_manager.cpp"
-)
-
 set(to_include_module_files 
 	"zircon_game.h"
 	"main_game_dll.cpp"
@@ -59,13 +52,11 @@ add_library(${PROJECT_NAME} ${KOTEK_DEVELOPMENT_TYPE}
 	${to_include_game_resource_management_files}
 	${to_include_module_files}
 	${to_include_game_session_editor_files}
-	${to_include_game_session_game_files}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine")
 
 source_group("Game/Session/Interface" FILES ${to_include_game_session_interface_files})
-source_group("Game/Session/Game" FILES ${to_include_game_session_game_files})
 source_group("Game/Scene" FILES ${to_include_game_scene_files})
 source_group("Game/Resource Management" FILES ${to_include_game_resource_management_files})
 source_group("Game/Core" FILES ${to_include_game_files})
@@ -73,6 +64,7 @@ source_group("Module" FILES ${to_include_module_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
+target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
 target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render)
 target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
 target_link_libraries(${PROJECT_NAME} PUBLIC kotek.ui)

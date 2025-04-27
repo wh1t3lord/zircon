@@ -1,14 +1,13 @@
 #include "zircon_render_graph_pass_imgui.h"
+#include "../../game/session/zircon_session_game.h"
+#include "../../game/session/zircon_session_game_manager.h"
 
 zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
 	const kotek::static_u8string_view_t& render_pass_name,
-	kotek::core::ktkMainManager* p_main_manager,
-	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& elements) :
-	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
-		render_pass_name.data()),
+	kotek::core::ktkMainManager* p_main_manager) :
+	zircon_render_graph_pass(render_pass_name.data()),
 	m_p_main_manager{p_main_manager},
-	m_p_imgui_wrapper{p_main_manager->Get_ImguiWrapper()},
-	m_p_imgui_ui_elements{&elements}
+	m_p_imgui_wrapper{p_main_manager->Get_ImguiWrapper()}
 {
 	bool is_imgui_enabled = false;
 	bool is_sdk_enabled = false;
@@ -120,8 +119,6 @@ zircon_render_graph_pass_imgui_gles3::~zircon_render_graph_pass_imgui_gles3(
 		}
 	}
 
-	this->m_p_imgui_ui_elements = nullptr;
-
 	p_config->SetFeatureStatus(
 		Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized,
 		false);
@@ -161,10 +158,19 @@ void zircon_render_graph_pass_imgui_gles3::OnUpdate(
 			this->m_p_imgui_wrapper->NewFrame();
 		}
 
-		for (auto* p_element : *this->m_p_imgui_ui_elements)
-		{
-			p_element->Draw(this->m_p_main_manager);
-		}
+		KOTEK_ASSERT(this->m_p_manager_session_game,
+			"Did you call OnRegisterManagers because game session manager is "
+			"not initialized!");
+
+		zircon_session_game* p_session =
+			this->m_p_manager_session_game->get_session(
+				this->m_p_manager_session_game->get_current_session_id());
+
+		KOTEK_ASSERT(p_session, "failed to obtain session game by id: {}",
+			this->m_p_manager_session_game->get_current_session_id());
+
+		// todo: provide imgui elements like in editor session impl
+		KOTEK_ASSERT(false, "not implemented!");
 
 		if (this->m_p_imgui_wrapper)
 		{

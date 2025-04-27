@@ -2,7 +2,8 @@
 #include "zircon_game_manager.h"
 #include <kotek.render/include/kotek_render.h>
 #include "../editor/ui/zircon_editor_ui_state.h"
-#include "../editor/zircon_session_editor.h"
+#include "../editor/session/zircon_session_editor.h"
+#include "../editor/session/zircon_session_editor_manager.h"
 
 zircon_game_manager g_main_manager;
 
@@ -190,9 +191,13 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 				{
 					is_should_close = false;
 
+					// todo: optimize execution for shipping configuration since
+					// we will have only one game session and one render graph
+					// without these "changing" abilities and switching scenes
 					zircon_session_editor* p_session =
 						p_game_manager->get_session_editor(
-							p_game_manager->get_session_editor_id());
+							p_game_manager->get_session_editor_manager()
+								->get_current_session_id());
 
 					KOTEK_ASSERT(p_session, "you need to set session editor!");
 

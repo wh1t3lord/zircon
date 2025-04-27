@@ -1,8 +1,8 @@
 #include "zircon_session_editor.h"
-#include "../world/zircon_world.h"
-#include "../ecs/components/zircon_factory.h"
-#include "../engine/zircon_game_manager.h"
-#include "commands/zircon_command_history.h"
+#include "../../world/zircon_world.h"
+#include "../../ecs/zircon_factory.h"
+#include "../../core/zircon_console.h"
+#include "../commands/zircon_command_history.h"
 
 constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
@@ -11,8 +11,10 @@ zircon_session_editor::zircon_session_editor(kotek::uint8_t id) :
 #ifdef KOTEK_DEBUG
 	m_was_allocated_by_manager{}, m_was_destroyed_by_manager{},
 #endif
-	m_was_initialized{}, m_is_change_title_once_for_editing_status{}, m_id{id},
-	m_p_world{}, m_p_main_manager{}, m_name{"not_inited"}
+	m_was_render_graph_initialized{}, m_was_initialized{},
+	m_is_change_title_once_for_editing_status{}, m_id{id},
+	m_render_graph_id{static_cast<kotek::uint8_t>(-1)}, m_p_world{},
+	m_p_main_manager{}, m_name{"not_inited"}
 {
 }
 
@@ -20,9 +22,10 @@ zircon_session_editor::zircon_session_editor(void) :
 #ifdef KOTEK_DEBUG
 	m_was_allocated_by_manager{}, m_was_destroyed_by_manager{},
 #endif
-	m_was_initialized{}, m_is_change_title_once_for_editing_status{},
-	m_id{_kInvalidSessionID}, m_p_world{}, m_p_main_manager{},
-	m_name{"not_inited"}
+	m_was_render_graph_initialized{}, m_was_initialized{},
+	m_is_change_title_once_for_editing_status{}, m_id{_kInvalidSessionID},
+	m_render_graph_id{static_cast<kotek::uint8_t>(-1)}, m_p_world{},
+	m_p_main_manager{}, m_name{"not_inited"}
 {
 }
 
@@ -30,6 +33,8 @@ zircon_session_editor::~zircon_session_editor(void)
 {
 	KOTEK_ASSERT(
 		!this->m_was_initialized, "you forgot to call ::shutdown method!");
+	KOTEK_ASSERT(
+		this->m_imgui_ui_elements.empty(), "you forgot to destroy elements!");
 
 #ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(this->m_was_allocated_by_manager
@@ -45,6 +50,7 @@ void zircon_session_editor::initialize(
 	const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
 		session_name,
 	kotek::uint8_t id, zircon_world* p_current_world,
+	zircon_session_editor_manager* p_manager_session_editor,
 	kotek::core::ktkMainManager* p_main_manager,
 	kotek::core::ktkConsole* p_console,
 	kotek::core::ktkIFileSystem* p_filesystem,
@@ -69,6 +75,8 @@ void zircon_session_editor::initialize(
 		"you should call shutdown and then initialize or reinitialize method "
 		"for calling twice. "
 		"Otherwise why do you need to call this method again?");
+	KOTEK_ASSERT(p_manager_session_editor,
+		"you must pass a valid pointer of session editor manager!");
 
 	if (!this->m_was_initialized)
 	{
@@ -78,10 +86,8 @@ void zircon_session_editor::initialize(
 		this->m_p_world = p_current_world;
 		this->m_p_main_manager = p_main_manager;
 		this->m_p_console = p_console;
-		this->m_command_history_manager.initialize(p_filesystem,
-			p_resource_manager,
-			dynamic_cast<zircon_game_manager*>(
-				p_main_manager->GetGameManager()));
+		this->m_command_history_manager.initialize(
+			p_manager_session_editor, p_filesystem, p_resource_manager);
 		this->m_state.initialize(p_current_world->get_factory());
 
 		this->m_was_initialized = true;
@@ -96,12 +102,22 @@ void zircon_session_editor::shutdown(void)
 
 	if (this->m_was_initialized)
 	{
+		for (kotek::core::ktkISDKUIElement* p_element :
+			this->m_imgui_ui_elements)
+		{
+			delete p_element;
+		}
+
+		this->m_imgui_ui_elements.clear();
+
 		this->m_was_initialized = false;
 	}
 }
 
 void zircon_session_editor::update(void)
 {
+	this->try_to_initialize_render_graph();
+
 	if (this->m_p_main_manager)
 	{
 		auto* p_input = this->m_p_main_manager->Get_Input();
@@ -264,7 +280,11 @@ kotek::uint8_t zircon_session_editor::get_render_graph_id(void) const noexcept
 
 void zircon_session_editor::set_render_graph_id(kotek::uint8_t id) noexcept
 {
-	this->m_render_graph_id = id;
+	if (this->m_render_graph_id != id)
+	{
+		this->m_render_graph_id = id;
+		this->m_was_render_graph_initialized = false;
+	}
 }
 
 zircon_editor_ui_state* zircon_session_editor::get_ui_state(void) noexcept
@@ -293,6 +313,19 @@ const zircon_editor_command_history* zircon_session_editor::get_command_history(
 zircon_world* zircon_session_editor::get_world(void) const noexcept
 {
 	return this->m_p_world;
+}
+
+void zircon_session_editor::set_imgui_ui_elements(
+	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+		imgui_elements) noexcept
+{
+	this->m_imgui_ui_elements = imgui_elements;
+}
+
+const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+zircon_session_editor::get_imgui_ui_elements(void) const noexcept
+{
+	return this->m_imgui_ui_elements;
 }
 
 void zircon_session_editor::Deserialize(
@@ -560,5 +593,25 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 					kotek::math::vector3f(0.0f, 1.0f, 0.0f)));
 			}
 		}
+	}
+}
+
+void zircon_session_editor::try_to_initialize_render_graph(void) noexcept
+{
+	if (!this->m_was_render_graph_initialized)
+	{
+		KOTEK_ASSERT(this->m_p_console,
+			"console must be initialized for initializing render graph from "
+			"session!");
+
+		if (this->m_p_console)
+		{
+			this->m_p_console->Push_Command(
+				static_cast<kotek::enum_base_t>(
+					eZirconConsoleCommands::initialize_render_graph),
+				{this->m_render_graph_id});
+		}
+
+		this->m_was_render_graph_initialized = true;
 	}
 }

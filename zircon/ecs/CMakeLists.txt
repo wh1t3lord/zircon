@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19.3)
 
-project(zircon.ecs.components VERSION 1 LANGUAGES CXX)
+project(zircon.ecs VERSION 1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -226,7 +226,7 @@ file(APPEND ${zircon_validate_get_component_type_of_all_components} "
 ")
 
 execute_process(
-	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     RESULT_VARIABLE generate_fields_component_header_result
     ERROR_VARIABLE error_output
@@ -242,6 +242,7 @@ add_library(${PROJECT_NAME} STATIC
 	${to_include_module_files}
 	${to_include_game_factory_files}
 	"zircon_component_interface.h"
+	"zircon_component_interface.cpp"
 	${zircon_enum_file_name}
 	${zircon_generate_header_component_fields}
 	## we don't include some files because they're used in project with #include directive so they compile with project implicitly
@@ -252,7 +253,7 @@ add_library(${PROJECT_NAME} STATIC
 add_custom_command(
     TARGET ${PROJECT_NAME}
 	PRE_BUILD
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${zircon_generate_header_component_fields}
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${zircon_generate_header_component_fields}
 #	COMMAND_ECHO STDOUT
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Generating zircon component fields header"
@@ -266,16 +267,18 @@ if (UNIX)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
-source_group("Game/ECS" FILES 
+source_group("Game/Components" FILES 
 	${to_include_game_ecs_files}
 	"zircon_component_interface.h"
+	"zircon_component_interface.cpp"
 	${zircon_enum_file_name}
 )
 source_group("Game/Factory" FILES ${to_include_game_factory_files})
-source_group("SDK/ECS" FILES ${to_include_sdk_ecs_files})
+source_group("SDK/Components" FILES ${to_include_sdk_ecs_files})
 source_group("Module" FILES ${to_include_module_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
-
+target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game.session)
+target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor.session)

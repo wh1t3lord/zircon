@@ -24,18 +24,31 @@ constexpr kotek::uint8_t _kInvalidRenderGraphID =
 zircon_renderer_gles3::zircon_renderer_gles3(
 	Kotek::Core::ktkMainManager* p_main_manager) :
 	m_previous_render_graph_id{_kInvalidRenderGraphID},
-	m_p_main_manager{p_main_manager},
+	m_p_main_manager{p_main_manager}, m_p_session_game_manager{},
+	m_p_session_editor_manager{},
 	m_p_render_device{static_cast<Kotek::Render::gl::ktkRenderDevice*>(
 		p_main_manager->getRenderDevice())},
 	m_p_render_resource_manager{}, m_p_current_render_graph{}
 {
+	this->m_render_graphs.reserve(
+		ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT);
 }
 
 zircon_renderer_gles3::~zircon_renderer_gles3(void) {}
 
-void zircon_renderer_gles3::Initialize(
-	kotek::core::ktkWindowConsole* p_console, kotek::core::ktkConsole* p_con)
+void zircon_renderer_gles3::Initialize(kotek::core::ktkWindowConsole* p_console,
+	kotek::core::ktkConsole* p_con,
+	zircon_session_game_manager* p_manager_game_session,
+	zircon_session_editor_manager* p_manager_editor_session)
 {
+#ifdef KOTEK_USE_SDK_IMGUI
+	KOTEK_ASSERT(p_manager_editor_session,
+		"expected to valid editor session manager pointer");
+	this->m_p_session_editor_manager = p_manager_editor_session;
+#endif
+
+	this->m_p_session_game_manager = p_manager_game_session;
+
 	this->initialize_extensions(p_con);
 
 	this->m_p_render_resource_manager =
@@ -71,14 +84,6 @@ const char* zircon_renderer_gles3::Get_Name(void) const noexcept
 	return Kotek::kRenderer_OpenGLES_3_Name;
 }
 
-const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
-zircon_renderer_gles3::get_ui_imgui_elements(
-	kotek::uint8_t render_graph_id) const
-{
-	KOTEK_ASSERT(render_graph_id < this->m_render_graphs.size(), "mismatch!");
-	return this->m_render_graphs[render_graph_id].ui_elements;
-}
-
 bool zircon_renderer_gles3::is_render_graph_presented(
 	kotek::uint8_t render_graph_id) const
 {
@@ -89,12 +94,29 @@ bool zircon_renderer_gles3::is_render_graph_presented(
 	return result;
 }
 
+bool zircon_renderer_gles3::is_render_graph_initialized(
+	kotek::uint8_t render_graph_id) const
+{
+	bool result{};
+
+	result = this->is_render_graph_presented(render_graph_id);
+
+	KOTEK_ASSERT(
+		result, "render graph by id: {} wasn't presented in renderer!");
+
+	if (result)
+	{
+		result = this->m_render_graphs[render_graph_id].graph.Is_Initialized();
+	}
+
+	return result;
+}
+
 kotek::uint8_t zircon_renderer_gles3::create_render_graph(
-	kotek::uint8_t session_id,
+	kotek::uint8_t session_id, bool is_game_session,
 	kotek::static_vector_t<
 		kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
-		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>& passes,
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>& ui_elements)
+		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>& passes)
 {
 	if (this->m_render_graphs.size() ==
 		ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT)
@@ -107,22 +129,57 @@ kotek::uint8_t zircon_renderer_gles3::create_render_graph(
 		return _kInvalidRenderGraphID;
 	}
 
-	zircon_render_graph_simplified_info_t info;
+	kotek::uint8_t render_graph_id = this->m_render_graphs.size();
+	this->m_render_graphs.push_back(zircon_render_graph_simplified_info_t());
+
+	zircon_render_graph_simplified_info_t& info =
+		this->m_render_graphs[render_graph_id];
 
 	info.session_id = session_id;
 	info.in_use = false;
-	info.ui_elements = ui_elements;
-	info.graph.Initialize(
-		this->m_p_main_manager, this->m_p_render_resource_manager, passes);
+	info.is_game_session = is_game_session;
 
-	kotek::uint8_t render_graph_id = this->m_render_graphs.size();
-	this->m_render_graphs.push_back(info);
+	//	info.graph.Initialize(
+	//	this->m_p_main_manager, this->m_p_render_resource_manager, passes);
 
 #ifdef KOTEK_DEBUG
-	KOTEK_MESSAGE("created render graph for session#{}", session_id);
+	KOTEK_MESSAGE("created render graph for session_{}#{}", session_id,
+		is_game_session ? "game" : "editor");
 #endif
 
 	return render_graph_id;
+}
+
+void zircon_renderer_gles3::initialize_render_graph(
+	kotek::uint8_t render_graph_id, kotek::core::ktkMainManager* p_main_manager,
+	kotek::core::ktkIRenderResourceManager* p_render_resource_manager,
+	zircon_session_game_manager* p_manager_game_session,
+	zircon_session_editor_manager* p_manager_editor_session)
+{
+	bool is_presented = this->is_render_graph_presented(render_graph_id);
+	
+	KOTEK_ASSERT(p_manager_game_session, "pass a valid game session manager!");
+	KOTEK_ASSERT(
+		p_manager_editor_session, "pass a valid editor session manager!");
+
+	KOTEK_ASSERT(is_presented, "render graph is not presented!");
+
+	if (is_presented)
+	{
+		KOTEK_ASSERT(this->is_render_graph_initialized(render_graph_id),
+			"you try to initialize an already initialized graph#{}",
+			render_graph_id);
+
+		auto& info = this->m_render_graphs[render_graph_id];
+
+		info.graph.Initialize(p_main_manager, p_render_resource_manager);
+
+		auto& passes = info.graph.Get_Passes();
+
+		
+
+
+	}
 }
 
 void zircon_renderer_gles3::set_current_render_graph(
@@ -313,15 +370,6 @@ void zircon_renderer_gles3::destroy_render_graphs(void) noexcept
 {
 	for (auto& info : this->m_render_graphs)
 	{
-		for (auto* p_sdk_ui_element : info.ui_elements)
-		{
-			if (p_sdk_ui_element)
-			{
-				p_sdk_ui_element->shutdown();
-				delete p_sdk_ui_element;
-			}
-		}
-		info.ui_elements.clear();
 		info.graph.Shutdown();
 	}
 

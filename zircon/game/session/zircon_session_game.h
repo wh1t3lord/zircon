@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/zircon_session.h"
+#include "../../core/zircon_session.h"
 
 class zircon_world;
 
@@ -22,13 +22,17 @@ public:
 	void initialize(
 		const kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>&
 			session_name,
-		kotek::uint8_t id, zircon_world* p_current_world);
+		kotek::uint8_t id, kotek::core::ktkMainManager* p_main_manager,
+		kotek::core::ktkConsole* p_console, zircon_world* p_current_world,
+		bool is_need_to_initialize_render_graph);
 
 	kotek::uint8_t get_render_graph_id(void) const noexcept;
 	void set_render_graph_id(kotek::uint8_t id) noexcept;
 
 	zircon_world* get_world(void) const noexcept;
 
+private:
+	void try_to_initialize_render_graph(void) noexcept;
 
 private:
 #ifdef KOTEK_DEBUG
@@ -37,8 +41,11 @@ private:
 #endif
 
 	bool m_was_initialized;
+	bool m_was_render_graph_initialized;
 	kotek::uint8_t m_id;
 	kotek::uint8_t m_render_graph_id;
+	kotek::core::ktkMainManager* m_p_main_manager;
+	kotek::core::ktkConsole* m_p_console;
 	zircon_world* m_p_world;
 	kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH> m_name;
 };

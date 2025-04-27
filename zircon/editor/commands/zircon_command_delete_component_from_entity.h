@@ -1,20 +1,20 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
-#include "../../ecs/components/zircon_component_interface.h"
+#include "../../ecs/zircon_component_interface.h"
 
-class zircon_game_manager;
+class zircon_session_editor_manager;
 class zircon_factory;
 
 class zircon_command_delete_component_from_entity
 	: public Kotek::Core::ktkISDKRedoUndo
 {
 public:
-	zircon_command_delete_component_from_entity(zircon_game_manager* p_game_manager,
+	zircon_command_delete_component_from_entity(zircon_session_editor_manager* p_manager_session_editor,
 		entt::entity id, const char* p_component_name);
 
 	// for command history
-	zircon_command_delete_component_from_entity(zircon_game_manager* p_game_manager);
+	zircon_command_delete_component_from_entity(zircon_session_editor_manager* p_manager_session_editor);
 
 	~zircon_command_delete_component_from_entity();
 
@@ -34,7 +34,7 @@ public:
 
 private:
 	entt::entity m_id;
-	zircon_game_manager* m_p_game_manager;
+	zircon_session_editor_manager* m_p_manager_session_editor;
 	const char* m_p_component_name;
 	kotek::ktk::json::value m_serialized_state_of_deleted_component;
 	char m_serialized_component_as_string

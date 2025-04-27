@@ -1,5 +1,6 @@
 #include "zircon_session_game_manager.h"
 #include "zircon_session_game.h"
+#include "../../core/zircon_config.h"
 
 static_assert(std::numeric_limits<kotek::uint8_t>::max() >
 		ZIRCON_DEF_SESSION_GAME_MANAGER_MAX_SESSION_COUNT,
@@ -10,7 +11,7 @@ constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
 zircon_session_game_manager::zircon_session_game_manager(void) :
-	m_p_main_manager{}
+	m_current_session_id{_kInvalidSessionID}, m_p_main_manager{}
 {
 }
 
@@ -22,12 +23,14 @@ zircon_session_game_manager::~zircon_session_game_manager(void)
 }
 
 void zircon_session_game_manager::initialize(
-	kotek::core::ktkMainManager* p_main_manager)
+	zircon_config* p_config, kotek::core::ktkMainManager* p_main_manager)
 {
 	KOTEK_ASSERT(
 		p_main_manager, "you have to pass a valid instance of main manager!");
+	KOTEK_ASSERT(p_config, "must be valid config");
 
 	this->m_p_main_manager = p_main_manager;
+	this->m_p_config = p_config;
 }
 
 kotek::uint8_t zircon_session_game_manager::create_session(void)
@@ -180,6 +183,9 @@ void zircon_session_game_manager::shutdown(void)
 	}
 
 	this->m_sessions.clear();
+
+	this->m_p_main_manager = nullptr;
+	this->m_p_config = nullptr;
 }
 
 void zircon_session_game_manager::update(void)
@@ -191,4 +197,16 @@ void zircon_session_game_manager::update(void)
 			p_session->update();
 		}
 	}
+}
+
+kotek::uint8_t zircon_session_game_manager::get_current_session_id(
+	void) const noexcept
+{
+	return this->m_current_session_id;
+}
+
+void zircon_session_game_manager::set_current_session_id(
+	kotek::uint8_t session_id) noexcept
+{
+	this->m_current_session_id = session_id;
 }

@@ -4,18 +4,19 @@
 
 class zircon_world;
 class zircon_factory;
-class zircon_game_manager;
+class zircon_session_editor_manager;
 enum zircon_component_type_t;
 
-class zircon_editor_command_history : public kotek::core::ktkISDKCommandHistoryManager
+class zircon_editor_command_history
+	: public kotek::core::ktkISDKCommandHistoryManager
 {
 public:
 	zircon_editor_command_history(void);
 	~zircon_editor_command_history(void);
 
-	void initialize(kotek::core::ktkIFileSystem* p_filesystem,
-		kotek::core::ktkIResourceManager* p_resource_manager,
-		zircon_game_manager* p_game_manager);
+	void initialize(zircon_session_editor_manager* p_manager_session_editor,
+		kotek::core::ktkIFileSystem* p_filesystem,
+		kotek::core::ktkIResourceManager* p_resource_manager);
 	void shutdown(void);
 
 	void ExecuteCommand(kotek::core::ktkISDKRedoUndo* p_command) override;
@@ -90,7 +91,7 @@ private:
 	bool m_is_changed;
 	bool m_is_first_serialize_happened;
 	bool m_is_action_issued;
-	zircon_game_manager* m_p_game_manager;
+	zircon_session_editor_manager* m_p_manager_session_editor;
 	kotek::cfstream_t* m_p_file_temp;
 	kotek::cfstream_t* m_p_file_exchange;
 

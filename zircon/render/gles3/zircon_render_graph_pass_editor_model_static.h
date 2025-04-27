@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kotek.render.gl/include/kotek_render_graph_simplified_render_pass.h>
+#include "zircon_render_graph_pass_editor.h"
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_RENDER
@@ -17,7 +17,7 @@ KOTEK_END_NAMESPACE_KOTEK
 class zircon_factory;
 
 class zircon_render_graph_pass_editor_model_static_gles3
-	: public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
+	: public zircon_render_graph_pass_editor
 {
 public:
 	zircon_render_graph_pass_editor_model_static_gles3(

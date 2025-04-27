@@ -1,6 +1,5 @@
 #include "zircon_ui_window_debug_input.h"
 #include "zircon_editor_ui_state.h"
-#include "../../engine/zircon_game_manager.h"
 
 zircon_editor_ui_state_window_debug_input::zircon_editor_ui_state_window_debug_input() :
 	m_is_show_window{}, m_state_keys_buffer{}

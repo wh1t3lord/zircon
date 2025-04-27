@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ecs/components/zircon_factory.h"
+#include "../ecs/zircon_factory.h"
 
 /// todo: move to generalized config to zircon.core project please (later)
 #define ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH 16
@@ -14,7 +14,8 @@ public:
 	zircon_world(void);
 	~zircon_world(void);
 
-	void initialize(
+	void initialize(zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_game_manager* p_manager_session_game,
 		const kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>&
 			name,
 		zircon_config* p_config, kotek::core::ktkConsole* p_console,

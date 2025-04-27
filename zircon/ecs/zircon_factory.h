@@ -25,6 +25,8 @@
 #include "zircon_factory_definitions.h"
 
 class zircon_config;
+class zircon_session_game_manager;
+class zircon_session_editor_manager;
 
 class zircon_factory
 {
@@ -35,8 +37,10 @@ public:
 
 	~zircon_factory(void);
 
-	void Initialize(zircon_config* p_config, kotek::core::ktkConsole* p_console,
-		kotek::core::ktkIInput* p_input);
+	void Initialize(zircon_config* p_config,
+		zircon_session_game_manager* p_manager_session_game,
+		zircon_session_editor_manager* p_manager_session_editor,
+		kotek::core::ktkConsole* p_console, kotek::core::ktkIInput* p_input);
 	void Shutdown(void);
 
 	bool IsValidEntity(entt::entity id) noexcept
@@ -218,8 +222,8 @@ public:
 
 				KOTEK_ASSERT(p_result,
 					"must be valid pointer otherwise operation for push for "
-				    "storage of component[{}] failed and it returned a "
-				    "nullptr!",
+					"storage of component[{}] failed and it returned a "
+					"nullptr!",
 					component_name);
 
 				if (p_result)
@@ -229,6 +233,10 @@ public:
 
 					if (p_interface)
 					{
+						p_interface->register_managers(
+							this->m_p_manager_session_game,
+							this->m_p_manager_session_editor);
+
 						switch (p_interface->get_component_type())
 						{
 						case kComponentTypezircon_component_sdk_input:
@@ -602,6 +610,8 @@ private:
 
 private:
 	zircon_config* m_p_config;
+	zircon_session_game_manager* m_p_manager_session_game;
+	zircon_session_editor_manager* m_p_manager_session_editor;
 	entt::id_type m_lookuptable_id_types_by_component_enum
 		[zircon_component_type_t::kComponentTypeUnknown];
 	kotek::core::ktkConsole* m_p_console;
