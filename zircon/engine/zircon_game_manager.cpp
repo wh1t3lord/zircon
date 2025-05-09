@@ -556,6 +556,24 @@ void zircon_game_manager::Initialize(
 					static_cast<kotek::core::eEngineSupportedRenderer>(
 						p_engine_config->GetRendererVersion());
 
+				kotek::vector_t<kotek::core::ktkISDKUIElement*> ui_elements = {
+					new zircon_editor_ui_state_object_list(
+						this->m_p_session_editor_manager, this->m_p_console),
+					new zircon_editor_ui_state_top_bar(
+						this->m_p_session_editor_manager),
+					new zircon_editor_ui_state_window_prefab(),
+					new zircon_editor_ui_state_component_inspector(
+						this->m_p_session_editor_manager,
+						p_session->get_ui_state(), p_world->get_factory()),
+					new zircon_editor_ui_state_window_log(),
+					new zircon_ui_window_history_command_log(
+						p_session->get_command_history(),
+						this->m_p_session_editor_manager),
+					new zircon_ui_window_render_stats(),
+					new zircon_ui_window_settings(this->m_p_config),
+					new zircon_editor_ui_state_window_debug_input()};
+				p_session->set_imgui_ui_elements(ui_elements);
+
 				kotek::uint8_t render_graph_id(-1);
 				switch (renderer)
 				{
@@ -577,23 +595,6 @@ void zircon_game_manager::Initialize(
 								new zircon_render_graph_pass_editor_imgui_gles3(),
 								new zircon_render_graph_pass_editor_present_gles3()};
 
-						kotek::vector_t<kotek::core::ktkISDKUIElement*>
-							ui_elements = {
-								new zircon_editor_ui_state_object_list(),
-								new zircon_editor_ui_state_top_bar(),
-								new zircon_editor_ui_state_window_prefab(),
-								new zircon_editor_ui_state_component_inspector(
-									p_session->get_ui_state(),
-									p_world->get_factory()),
-								new zircon_editor_ui_state_window_log(),
-								new zircon_ui_window_history_command_log(
-									p_session->get_command_history()),
-								new zircon_ui_window_render_stats(),
-								new zircon_ui_window_settings(),
-								new zircon_editor_ui_state_window_debug_input()};
-
-						p_session->set_imgui_ui_elements(ui_elements);
-
 						render_graph_id =
 							this->m_p_renderer_gles3->create_render_graph(
 								session_editor_id, false, passes);
@@ -609,9 +610,9 @@ void zircon_game_manager::Initialize(
 
 				p_session->set_render_graph_id(render_graph_id);
 
-				p_session->initialize("editor", this->m_session_editor_id,
-					p_world, this->m_p_main_manager, this->m_p_console,
-					this->m_p_main_manager->GetFileSystem(),
+				p_session->initialize("editor", session_editor_id, p_world,
+					this->m_p_session_editor_manager, this->m_p_main_manager,
+					this->m_p_console, this->m_p_main_manager->GetFileSystem(),
 					this->m_p_resource_manager);
 
 				if (this->m_p_console)
@@ -620,7 +621,7 @@ void zircon_game_manager::Initialize(
 						static_cast<kotek::ktk::enum_base_t>(
 							eZirconConsoleCommands::
 								set_current_editor_session_for_engine),
-						{this->m_session_editor_id});
+						{session_editor_id});
 				}
 			}
 		}
@@ -630,10 +631,10 @@ void zircon_game_manager::Initialize(
 	// if editor create only when simulate goes otherwise create now and load
 	// startup json config
 	this->m_p_session_game_manager = new zircon_session_game_manager();
-	this->m_session_game_id = this->m_p_session_game_manager->create_session();
+	auto session_game_id = this->m_p_session_game_manager->create_session();
 
 	zircon_session_game* p_session_game =
-		this->m_p_session_game_manager->get_session(this->m_session_game_id);
+		this->m_p_session_game_manager->get_session(session_game_id);
 
 	KOTEK_ASSERT(p_session_game, "can't allocate game session!");
 
@@ -650,6 +651,9 @@ void zircon_game_manager::Initialize(
 			static_cast<kotek::core::eEngineSupportedRenderer>(
 				p_engine_config->GetRendererVersion());
 
+		kotek::vector_t<kotek::core::ktkISDKUIElement*> ui_elements;
+		p_session_game->set_imgui_ui_elements(ui_elements);
+
 		switch (renderer)
 		{
 		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_0:
@@ -661,12 +665,12 @@ void zircon_game_manager::Initialize(
 				KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 				passes = {new zircon_render_graph_pass_present_gles3()};
 
-			kotek::vector_t<kotek::core::ktkISDKUIElement*> ui_elements;
-
 			KOTEK_ASSERT(this->m_p_renderer_gles3, "must be valid");
 
+			KOTEK_ASSERT(p_session_game, "must be valid!");
+
 			render_graph_id = this->m_p_renderer_gles3->create_render_graph(
-				p_session_game->get_id(), true, passes, ui_elements);
+				session_game_id, true, passes);
 
 			break;
 		}
@@ -688,7 +692,7 @@ void zircon_game_manager::Initialize(
 				{render_graph_id});
 		}
 
-		p_session_game->initialize("game", this->m_session_game_id,
+		p_session_game->initialize("game", session_game_id,
 			this->m_p_main_manager, this->m_p_console, p_world,
 
 #ifdef KOTEK_USE_SDK_IMGUI
@@ -1026,96 +1030,6 @@ zircon_config* zircon_game_manager::get_config() const noexcept
 	return this->m_p_config;
 }
 
-const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-zircon_game_manager::get_imgui_ui_elements_from_editor_session(
-	kotek::uint8_t session_id) const noexcept
-{
-	kotek::vector_t<kotek::core::ktkISDKUIElement*> empty;
-
-	KOTEK_ASSERT(this->m_p_session_editor_manager,
-		"must be initialize session editor manager, early calling");
-
-	if (!this->m_p_session_editor_manager)
-		return empty;
-
-	zircon_session_editor* p_session =
-		this->m_p_session_editor_manager->get_session(session_id);
-
-	KOTEK_ASSERT(
-		p_session, "failed to obtain session editor by id: {}", session_id);
-
-	if (!p_session)
-		return empty;
-
-	return p_session->get_imgui_ui_elements();
-}
-
-const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-zircon_game_manager::get_imgui_ui_elements_from_game_session(
-	kotek::uint8_t session_id) const noexcept
-{
-	kotek::vector_t<kotek::core::ktkISDKUIElement*> empty;
-
-	KOTEK_ASSERT(this->m_p_session_game_manager,
-		"must be initialize session game manager, early calling");
-
-	if (!this->m_p_session_game_manager)
-		return empty;
-
-	zircon_session_game* p_session =
-		this->m_p_session_game_manager->get_session(session_id);
-
-	KOTEK_ASSERT(
-		p_session, "failed to obtain session game by id: {}", session_id);
-
-	if (!p_session)
-		return empty;
-
-	kotek::core::ktkIFrameworkConfig* p_config =
-		this->m_p_main_manager->Get_EngineConfig();
-
-	KOTEK_ASSERT(p_config, "framework config wasn't initialized!");
-
-	kotek::core::eEngineSupportedRenderer version =
-		static_cast<kotek::core::eEngineSupportedRenderer>(
-			p_config->GetRendererVersion());
-
-	switch (version)
-	{
-	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_0:
-	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
-	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
-	{
-		KOTEK_ASSERT(this->m_p_renderer_gles3,
-			"renderer for gles 3.0 wasn't initialized");
-
-		if (this->m_p_renderer_gles3)
-		{
-			bool is_presented =
-				this->m_p_renderer_gles3->is_render_graph_presented(
-					p_session->get_render_graph_id());
-			KOTEK_ASSERT(is_presented,
-				"render graph must be presented for selected session!");
-
-			if (!is_presented)
-				return empty;
-
-			return this->m_p_renderer_gles3->get_ui_imgui_elements(
-				p_session->get_render_graph_id());
-		}
-
-		break;
-	}
-	default:
-	{
-		KOTEK_ASSERT(false, "unsupported renderer");
-		break;
-	}
-	}
-
-	return empty;
-}
-
 void zircon_game_manager::initialize_render_graph(
 	kotek::uint8_t render_graph_id, kotek::core::ktkMainManager* p_main_manager,
 	kotek::core::ktkIRenderResourceManager* p_render_resource_manager) noexcept
@@ -1149,8 +1063,10 @@ void zircon_game_manager::initialize_render_graph(
 
 		if (this->m_p_renderer_gles3)
 		{
-			this->m_p_renderer_gles3->initialize_render_graph(
-				render_graph_id, p_main_manager, p_render_resource_manager);
+			this->m_p_renderer_gles3->initialize_render_graph(render_graph_id,
+				p_main_manager, p_render_resource_manager,
+				this->m_p_session_game_manager,
+				this->m_p_session_editor_manager);
 		}
 
 		break;
@@ -1295,8 +1211,9 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 			this->m_p_renderer_gles3 =
 				new zircon_renderer_gles3(this->m_p_main_manager);
 
-			this->m_p_renderer_gles3->Initialize(
-				this->m_p_window_console, this->m_p_console);
+			this->m_p_renderer_gles3->Initialize(this->m_p_window_console,
+				this->m_p_console, this->m_p_session_game_manager,
+				this->m_p_session_editor_manager);
 			this->m_p_current_renderer = this->m_p_renderer_gles3;
 			break;
 		}
@@ -2025,21 +1942,23 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 
 				zircon_session_editor* p_session = nullptr;
 
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					p_session = this->m_p_session_editor_manager->get_session(
-						this->m_session_editor_id);
+						session_editor_id);
 				}
 
 				KOTEK_ASSERT(p_session,
 					"failed to obtain editor session by id: {}",
-					this->m_session_editor_id);
+					session_editor_id);
 
 				if (!p_session)
 				{
 					KOTEK_MESSAGE_WARNING(
 						"failed to obtain editor session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 					return false;
 				}
 
@@ -2072,19 +1991,22 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				zircon_session_editor* p_session = nullptr;
 				zircon_editor_command_history* p_history_manager = nullptr;
 
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
+
 				if (this->m_p_session_editor_manager)
 				{
 					p_session = this->m_p_session_editor_manager->get_session(
-						this->m_session_editor_id);
+						session_editor_id);
 				}
 
 				KOTEK_ASSERT(p_session, "failed to obtain session by id: {}",
-					this->m_session_editor_id);
+					session_editor_id);
 
 				if (!p_session)
 				{
 					KOTEK_MESSAGE_WARNING("failed to obtain session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 					return false;
 				}
 
@@ -2206,16 +2128,17 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				zircon_editor_command_history* p_history_manager = nullptr;
-
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					zircon_session_editor* p_session =
 						this->m_p_session_editor_manager->get_session(
-							this->m_session_editor_id);
+							session_editor_id);
 
 					KOTEK_ASSERT(p_session,
 						"failed to obtain editor session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 
 					if (p_session)
 					{
@@ -2225,7 +2148,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					{
 						KOTEK_MESSAGE_WARNING(
 							"failed to obtain editor session by id: {}",
-							this->m_session_editor_id);
+							session_editor_id);
 						return false;
 					}
 				}
@@ -2261,16 +2184,17 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				zircon_editor_command_history* p_history_manager = nullptr;
-
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					zircon_session_editor* p_session =
 						this->m_p_session_editor_manager->get_session(
-							this->m_session_editor_id);
+							session_editor_id);
 
 					KOTEK_ASSERT(p_session,
 						"failed to obtain editor session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 
 					if (p_session)
 					{
@@ -2280,7 +2204,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					{
 						KOTEK_MESSAGE_WARNING(
 							"failed to obtain editor session by id: {}",
-							this->m_session_editor_id);
+							session_editor_id);
 						return false;
 					}
 				}
@@ -2321,10 +2245,12 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				zircon_editor_command_history* p_history_manager = nullptr;
 				zircon_factory* p_factory = nullptr;
 
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					p_session = this->m_p_session_editor_manager->get_session(
-						this->m_session_editor_id);
+						session_editor_id);
 				}
 
 				KOTEK_ASSERT(p_session, "must be initialized!");
@@ -2332,7 +2258,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				if (!p_session)
 				{
 					KOTEK_MESSAGE_WARNING("failed to obtain session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 					return false;
 				}
 
@@ -2381,8 +2307,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 						"zircon_command_delete_entity");
 
 				zircon_command_delete_entity* p_command =
-					new (p_placement_new_memory)
-						zircon_command_delete_entity(this, id);
+					new (p_placement_new_memory) zircon_command_delete_entity(
+						this->m_p_session_editor_manager, id);
 
 				p_history_manager->ExecuteCommand(p_command);
 
@@ -2407,16 +2333,17 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 
 				zircon_editor_command_history* p_history_manager = nullptr;
 				zircon_world* p_world = nullptr;
-
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					zircon_session_editor* p_session =
 						this->m_p_session_editor_manager->get_session(
-							this->m_session_editor_id);
+							session_editor_id);
 
 					KOTEK_ASSERT(p_session,
 						"failed to obtain editor session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 
 					if (p_session)
 					{
@@ -2427,7 +2354,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					{
 						KOTEK_MESSAGE_WARNING(
 							"failed to obtain editor session by id: {}",
-							this->m_session_editor_id);
+							session_editor_id);
 						return false;
 					}
 				}
@@ -2457,8 +2384,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 						sizeof(zircon_command_create_entity),
 						"zircon_command_create_entity");
 
-				zircon_command_create_entity* p_command = new (
-					p_placement_new_memory) zircon_command_create_entity(this);
+				zircon_command_create_entity* p_command =
+					new (p_placement_new_memory) zircon_command_create_entity(
+						this->m_p_session_editor_manager);
 
 				p_history_manager->ExecuteCommand(p_command);
 
@@ -2483,16 +2411,17 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 
 				zircon_editor_command_history* p_history_manager = nullptr;
 				zircon_factory* p_factory = nullptr;
-
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					zircon_session_editor* p_session =
 						this->m_p_session_editor_manager->get_session(
-							this->m_session_editor_id);
+							session_editor_id);
 
 					KOTEK_ASSERT(p_session,
 						"failed to obtain editor session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 
 					if (p_session)
 					{
@@ -2515,7 +2444,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					{
 						KOTEK_MESSAGE_WARNING(
 							"failed to obtain editor session by id: {}",
-							this->m_session_editor_id);
+							session_editor_id);
 						return false;
 					}
 				}
@@ -2564,7 +2493,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					zircon_command_add_component_to_entity* p_command =
 						new (p_placement_new_memory)
 							zircon_command_add_component_to_entity(
-								this, id, component_name);
+								this->m_p_session_editor_manager, id,
+								component_name);
 
 					p_history_manager->ExecuteCommand(p_command);
 				}
@@ -2591,16 +2521,17 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 
 				zircon_editor_command_history* p_history_manager = nullptr;
 				zircon_factory* p_factory = nullptr;
-
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					zircon_session_editor* p_session =
 						this->m_p_session_editor_manager->get_session(
-							this->m_session_editor_id);
+							session_editor_id);
 
 					KOTEK_ASSERT(p_session,
 						"failed to obtain editor session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 
 					if (p_session)
 					{
@@ -2623,7 +2554,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					{
 						KOTEK_MESSAGE_WARNING(
 							"failed to obtain editor session by id: {}",
-							this->m_session_editor_id);
+							session_editor_id);
 						return false;
 					}
 				}
@@ -2660,7 +2591,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					zircon_command_delete_component_from_entity* p_command =
 						new (p_placement_new_memory)
 							zircon_command_delete_component_from_entity(
-								this, id, p_component_name);
+								this->m_p_session_editor_manager, id,
+								p_component_name);
 
 					p_history_manager->ExecuteCommand(p_command);
 				}
@@ -2686,22 +2618,23 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				zircon_session_editor* p_session = nullptr;
-
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					p_session = this->m_p_session_editor_manager->get_session(
-						this->m_session_editor_id);
+						session_editor_id);
 				}
 
 				KOTEK_ASSERT(p_session,
 					"failed to obtain editor session by id: {}",
-					this->m_session_editor_id);
+					session_editor_id);
 
 				if (!p_session)
 				{
 					KOTEK_MESSAGE_WARNING(
 						"failed to obtain editor session by id: {}",
-						this->m_session_editor_id);
+						session_editor_id);
 					return false;
 				}
 
@@ -2743,11 +2676,13 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				}
 
 				zircon_editor_ui_state* p_state = nullptr;
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager->get_current_session_id();
 				if (this->m_p_session_editor_manager)
 				{
 					zircon_session_editor* p_session =
 						this->m_p_session_editor_manager->get_session(
-							this->m_session_editor_id);
+							session_editor_id);
 
 					if (p_session)
 					{
@@ -2757,7 +2692,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					{
 						KOTEK_MESSAGE_WARNING(
 							"failed to obtain editor session by id: {}",
-							this->m_session_editor_id);
+							session_editor_id);
 						return false;
 					}
 				}
@@ -2860,8 +2795,7 @@ zircon_game_manager::get_ui_imgui_elements()
 
 			if (p_session)
 			{
-				return this->get_ui_imgui_elements(
-					p_session->get_render_graph_id());
+				return p_session->get_imgui_ui_elements();
 			}
 
 			break;
@@ -2877,8 +2811,7 @@ zircon_game_manager::get_ui_imgui_elements()
 
 			if (p_session)
 			{
-				return this->get_ui_imgui_elements(
-					p_session->get_render_graph_id());
+				return p_session->get_imgui_ui_elements();
 			}
 
 			break;
@@ -2894,46 +2827,4 @@ zircon_game_manager::get_ui_imgui_elements()
 	}
 
 	return empty;
-}
-
-const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-zircon_game_manager::get_ui_imgui_elements(kotek::uint8_t render_graph_id)
-{
-	auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
-
-	KOTEK_ASSERT(p_engine_config,
-		"you must initialize engine config for using this method");
-
-	kotek::core::eEngineSupportedRenderer renderer =
-		static_cast<kotek::core::eEngineSupportedRenderer>(
-			p_engine_config->GetRendererVersion());
-
-	switch (renderer)
-	{
-	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_0:
-	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
-	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
-	{
-		KOTEK_ASSERT(this->m_p_renderer_gles3, "must be iniitialized");
-
-		if (this->m_p_renderer_gles3)
-		{
-			if (this->m_p_renderer_gles3->is_render_graph_presented(
-					render_graph_id))
-			{
-				return this->m_p_renderer_gles3->get_ui_imgui_elements(
-					render_graph_id);
-			}
-		}
-
-		break;
-	}
-	default:
-	{
-		KOTEK_ASSERT(false, "unsupported renderer");
-		break;
-	}
-	}
-
-	return {};
 }

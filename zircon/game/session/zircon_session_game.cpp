@@ -159,6 +159,20 @@ zircon_world* zircon_session_game::get_world(void) const noexcept
 	return this->m_p_world;
 }
 
+void zircon_session_game::set_imgui_ui_elements(
+	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+		imgui_elements) noexcept
+{
+	KOTEK_ASSERT(this->m_imgui_ui_elements.empty(), "already initialized!");
+	this->m_imgui_ui_elements = imgui_elements;
+}
+
+const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+zircon_session_game::get_imgui_ui_elements(void) const noexcept
+{
+	return this->m_imgui_ui_elements;
+}
+
 void zircon_session_game::try_to_initialize_render_graph(void) noexcept
 {
 #ifdef KOTEK_USE_SDK_IMGUI

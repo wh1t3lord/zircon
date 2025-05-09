@@ -175,10 +175,6 @@ void zircon_renderer_gles3::initialize_render_graph(
 		info.graph.Initialize(p_main_manager, p_render_resource_manager);
 
 		auto& passes = info.graph.Get_Passes();
-
-		
-
-
 	}
 }
 

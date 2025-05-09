@@ -89,14 +89,6 @@ public:
 
 	zircon_config* get_config() const noexcept;
 
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-	get_imgui_ui_elements_from_editor_session(
-		kotek::uint8_t session_id) const noexcept;
-
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-	get_imgui_ui_elements_from_game_session(
-		kotek::uint8_t session_id) const noexcept;
-
 	void initialize_render_graph(kotek::uint8_t render_graph_id,
 		kotek::core::ktkMainManager* p_main_manager,
 		kotek::core::ktkIRenderResourceManager*
@@ -131,8 +123,6 @@ private:
 
 	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
 	get_ui_imgui_elements();
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-	get_ui_imgui_elements(kotek::uint8_t render_graph_id);
 
 private:
 	bool m_is_use_sdk;

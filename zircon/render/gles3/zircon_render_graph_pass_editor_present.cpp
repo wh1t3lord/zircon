@@ -1,19 +1,19 @@
 #include "zircon_render_graph_pass_editor_present.h"
 
-zircon_render_graph_pass_editor_present_gles3::zircon_render_graph_pass_editor_present_gles3(
-	const kotek::static_u8string_view_t& render_pass_name) :
-	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
-		render_pass_name.data())
+zircon_render_graph_pass_editor_present_gles3::
+	zircon_render_graph_pass_editor_present_gles3(
+		const kotek::static_u8string_view_t& render_pass_name) :
+	zircon_render_graph_pass_editor(render_pass_name.data())
 {
 }
 
-zircon_render_graph_pass_editor_present_gles3::zircon_render_graph_pass_editor_present_gles3(
-	void)
+zircon_render_graph_pass_editor_present_gles3::
+	zircon_render_graph_pass_editor_present_gles3(void)
 {
 }
 
-zircon_render_graph_pass_editor_present_gles3::~zircon_render_graph_pass_editor_present_gles3(
-	void)
+zircon_render_graph_pass_editor_present_gles3::
+	~zircon_render_graph_pass_editor_present_gles3(void)
 {
 }
 

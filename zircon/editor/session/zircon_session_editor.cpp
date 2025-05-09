@@ -319,6 +319,7 @@ void zircon_session_editor::set_imgui_ui_elements(
 	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
 		imgui_elements) noexcept
 {
+	KOTEK_ASSERT(this->m_imgui_ui_elements.empty(), "already initialized!");
 	this->m_imgui_ui_elements = imgui_elements;
 }
 
