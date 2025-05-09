@@ -139,8 +139,7 @@ kotek::uint8_t zircon_renderer_gles3::create_render_graph(
 	info.in_use = false;
 	info.is_game_session = is_game_session;
 
-	//	info.graph.Initialize(
-	//	this->m_p_main_manager, this->m_p_render_resource_manager, passes);
+	info.graph.Add_Passes(passes);
 
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE("created render graph for session_{}#{}", session_id,
@@ -166,15 +165,13 @@ void zircon_renderer_gles3::initialize_render_graph(
 
 	if (is_presented)
 	{
-		KOTEK_ASSERT(this->is_render_graph_initialized(render_graph_id),
+		KOTEK_ASSERT(!this->is_render_graph_initialized(render_graph_id),
 			"you try to initialize an already initialized graph#{}",
 			render_graph_id);
 
 		auto& info = this->m_render_graphs[render_graph_id];
 
 		info.graph.Initialize(p_main_manager, p_render_resource_manager);
-
-		auto& passes = info.graph.Get_Passes();
 	}
 }
 

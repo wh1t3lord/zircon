@@ -509,6 +509,11 @@ void zircon_game_manager::Initialize(
 
 	// this->Initialize_Session();
 
+#ifdef KOTEK_USE_SDK_IMGUI
+	this->m_p_session_editor_manager = new zircon_session_editor_manager();
+#endif
+	this->m_p_session_game_manager = new zircon_session_game_manager();
+
 	this->Initialize_Renderer();
 
 	this->Initialize_UI();
@@ -524,7 +529,6 @@ void zircon_game_manager::Initialize(
 	KOTEK_ASSERT(p_world, "can't allocate world or something else");
 
 #ifdef KOTEK_USE_SDK_IMGUI
-	this->m_p_session_editor_manager = new zircon_session_editor_manager();
 	kotek::uint8_t session_editor_id =
 		this->m_p_session_editor_manager->create_session();
 	bool is_startup_imgui{};
@@ -630,7 +634,6 @@ void zircon_game_manager::Initialize(
 
 	// if editor create only when simulate goes otherwise create now and load
 	// startup json config
-	this->m_p_session_game_manager = new zircon_session_game_manager();
 	auto session_game_id = this->m_p_session_game_manager->create_session();
 
 	zircon_session_game* p_session_game =
