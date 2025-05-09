@@ -217,7 +217,7 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 						static_cast<kotek::enum_base_t>(
 							kotek::core::eConsoleCommandIndex::
 								kConsoleCommand_App_Close),
-						{kotek::static_cstring_t<8>{"false"}});
+						{});
 				}
 			}
 
