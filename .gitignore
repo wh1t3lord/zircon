@@ -45,3 +45,4 @@ zircon_validate_get_component_type_of_all_components.cpp
 zircon_component_fields.h
 
 imgui.ini
+report_memleak_*
