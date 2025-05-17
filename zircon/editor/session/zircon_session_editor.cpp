@@ -96,10 +96,6 @@ void zircon_session_editor::initialize(
 
 void zircon_session_editor::shutdown(void)
 {
-	KOTEK_ASSERT(this->m_was_initialized,
-		"don't call this method when you didn't initialize the instance of "
-		"this class!");
-
 	if (this->m_was_initialized)
 	{
 		for (kotek::core::ktkISDKUIElement* p_element :
@@ -109,7 +105,7 @@ void zircon_session_editor::shutdown(void)
 		}
 
 		this->m_imgui_ui_elements.clear();
-
+		this->m_p_world = nullptr;
 		this->m_was_initialized = false;
 	}
 }

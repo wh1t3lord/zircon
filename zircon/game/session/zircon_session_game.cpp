@@ -60,11 +60,20 @@ eZirconSessionType zircon_session_game::get_type(void) const noexcept
 
 void zircon_session_game::shutdown(void)
 {
-	KOTEK_ASSERT(
-		this->m_was_initialized, "call it only for initialized instance!");
-
 	if (this->m_was_initialized)
 	{
+		for (kotek::core::ktkISDKUIElement* p_element :
+			this->m_imgui_ui_elements)
+		{
+			if (p_element)
+			{
+				delete p_element;
+			}
+		}
+
+		this->m_imgui_ui_elements.clear();
+		this->m_p_world = nullptr;
+
 		this->m_was_initialized = false;
 	}
 }

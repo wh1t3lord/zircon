@@ -714,6 +714,38 @@ void zircon_game_manager::Shutdown(kotek::core::ktkMainManager* p_main_manager)
 {
 	this->Destroy_UI();
 	//	this->Destroy_HistoryCommandManager();
+
+	if (this->m_p_world_manager)
+	{
+		this->m_p_world_manager->shutdown();
+
+		delete this->m_p_world_manager;
+		this->m_p_world_manager = nullptr;
+	}
+
+	if (this->m_p_session_editor_manager)
+	{
+		this->m_p_session_editor_manager->shutdown();
+
+		delete this->m_p_session_editor_manager;
+		this->m_p_session_editor_manager = nullptr;
+	}
+
+	if (this->m_p_session_game_manager)
+	{
+		this->m_p_session_game_manager->shutdown();
+
+		delete this->m_p_session_game_manager;
+		this->m_p_session_game_manager = nullptr;
+	}
+
+	if (this->m_p_window_console)
+	{
+		this->m_p_window_console->Shutdown();
+		delete this->m_p_window_console;
+		this->m_p_window_console = nullptr;
+	}
+
 	this->Destroy_Renderer();
 	this->Destroy_ResourceManager();
 	//	this->Destroy_SDKUIManager();

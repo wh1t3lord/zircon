@@ -17,7 +17,7 @@ zircon_session_editor_manager::zircon_session_editor_manager() :
 
 zircon_session_editor_manager::~zircon_session_editor_manager()
 {
-	KOTEK_ASSERT(this->m_sessions.size(),
+	KOTEK_ASSERT(this->m_sessions.empty(),
 		"sessions weren't deallocated as well as shutdown wasn't called for "
 		"manager!");
 }

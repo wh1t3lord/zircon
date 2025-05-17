@@ -11,7 +11,11 @@ static_assert(std::numeric_limits<kotek::uint8_t>::max() >
 
 zircon_world_manager::zircon_world_manager(void) {}
 
-zircon_world_manager::~zircon_world_manager(void) {}
+zircon_world_manager::~zircon_world_manager(void)
+{
+	KOTEK_ASSERT(
+		this->m_worlds.empty(), "you must deallocate and call shutdown!");
+}
 
 void zircon_world_manager::initialize()
 {
@@ -22,6 +26,21 @@ void zircon_world_manager::initialize()
 
 void zircon_world_manager::shutdown(void)
 {
+	for (zircon_world* p_world : this->m_worlds)
+	{
+		KOTEK_ASSERT(p_world,
+			"expected always valid otherwise why nullptr place wasn're "
+			"replaced by allocated?");
+
+		if (p_world)
+		{
+			p_world->shutdown();
+			delete p_world;
+		}
+	}
+
+	this->m_worlds.clear();
+
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE("destroyed!");
 #endif
@@ -104,6 +123,31 @@ void zircon_world_manager::destroy_world(kotek::uint8_t id)
 	if (p_world)
 	{
 		p_world->shutdown();
+
+		auto it = std::find_if(this->m_worlds.begin(), this->m_worlds.end(),
+			[id](const zircon_world* p_world) -> bool
+			{
+				KOTEK_ASSERT(p_world,
+					"expected always valid otherwise why nullptr place wasn're "
+					"replaced by allocated?");
+
+				if (p_world)
+				{
+					if (p_world->get_id() == id)
+					{
+						return true;
+					}
+				}
+
+				return false;
+			});
+
+		KOTEK_ASSERT(it != this->m_worlds.end(),
+			"failed to obtain world by id, did you change it in shutdown? It "
+			"is wrong in such case...");
+
+		this->m_worlds.erase(it);
+		delete p_world;
 	}
 #ifdef KOTEK_DEBUG
 	else

@@ -17,7 +17,7 @@ zircon_session_game_manager::zircon_session_game_manager(void) :
 
 zircon_session_game_manager::~zircon_session_game_manager(void)
 {
-	KOTEK_ASSERT(this->m_sessions.size(),
+	KOTEK_ASSERT(this->m_sessions.empty(),
 		"sessions weren't deallocated as well as shutdown wasn't called for "
 		"manager!");
 }
