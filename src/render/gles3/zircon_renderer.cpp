@@ -156,7 +156,7 @@ void zircon_renderer_gles3::initialize_render_graph(
 	zircon_session_editor_manager* p_manager_editor_session)
 {
 	bool is_presented = this->is_render_graph_presented(render_graph_id);
-	
+
 	KOTEK_ASSERT(p_manager_game_session, "pass a valid game session manager!");
 	KOTEK_ASSERT(
 		p_manager_editor_session, "pass a valid editor session manager!");
@@ -170,6 +170,46 @@ void zircon_renderer_gles3::initialize_render_graph(
 			render_graph_id);
 
 		auto& info = this->m_render_graphs[render_graph_id];
+
+		const auto& passes = info.graph.Get_Passes();
+
+		// user pre-initialization with user defined initialization where by design
+		// we can't and don't want to use interfaces or something else in order
+		// to call our "native" with user defined classes and structs
+		for (kotek::render::gl::ktkRenderGraphSimplifiedRenderPass* p_pass :
+			passes)
+		{
+			KOTEK_ASSERT(p_pass, "must be valid!");
+
+			constexpr const char* _kDebugNameZirconRenderGraphPass =
+				"zircon_render_graph_pass";
+			constexpr const char* _kDebugNameZirconRenderGraphPassEditor =
+				"zircon_render_graph_pass_editor";
+
+			KOTEK_ASSERT(info.is_game_session
+					? !!(dynamic_cast<zircon_render_graph_pass*>(p_pass))
+					: !!(dynamic_cast<zircon_render_graph_pass_editor*>(
+						  p_pass)),
+				"failed to cast! expected type is {} for {} session",
+				info.is_game_session ? _kDebugNameZirconRenderGraphPass
+									 : _kDebugNameZirconRenderGraphPassEditor,
+				info.is_game_session ? "game" : "editor");
+
+			if (info.is_game_session)
+			{
+				zircon_render_graph_pass* p_game_pass =
+					static_cast<zircon_render_graph_pass*>(p_pass);
+
+				p_game_pass->OnRegisterManagers(p_manager_game_session);
+			}
+			else
+			{
+				zircon_render_graph_pass_editor* p_editor_pass =
+					static_cast<zircon_render_graph_pass_editor*>(p_pass);
+
+				p_editor_pass->OnRegisterManagers(p_manager_editor_session);
+			}
+		}
 
 		info.graph.Initialize(p_main_manager, p_render_resource_manager);
 	}

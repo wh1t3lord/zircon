@@ -12,7 +12,7 @@ public:
 		const kotek::static_u8string_view_t& render_pass_name);
 	zircon_render_graph_pass_editor();
 	~zircon_render_graph_pass_editor();
-
+	
 	virtual void OnRegisterManagers(
 		zircon_session_editor_manager* p_manager_session_editor) noexcept;
 
