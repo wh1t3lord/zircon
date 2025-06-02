@@ -92,9 +92,9 @@ set(to_include_opengles3_game_pass_interface
 ### OpenGL ES
 
 ### shaders
-set(to_include_shaders_gles
-	"../../data_game/shaders/glsl/*.vert"
-	"../../data_game/shaders/glsl/*.frag"
+file(GLOB to_include_shaders_gles
+	"../../data_game/shaders/glsl/gles3/*.vert"
+	"../../data_game/shaders/glsl/gles3/*.frag"
 )
 
 ### shaders

@@ -122,7 +122,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 message("[${PROJECT_NAME}]: output dir is '${CMAKE_BINARY_DIR}'")
 
-include_directories(${KOTEK_ENGINE_ROOT_FOLDER_NAME}/engine)
+include_directories(${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src)
 
 add_subdirectory("${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
 add_subdirectory("src/core")
@@ -136,4 +136,4 @@ add_subdirectory("src/editor/session")
 add_subdirectory("src/engine")
 add_subdirectory("src/render")
 add_subdirectory("src/world")
-add_dependencies(${KOTEK_ENGINE_ROOT_FOLDER_NAME} src)
+add_dependencies(${KOTEK_ENGINE_ROOT_FOLDER_NAME} zircon)
