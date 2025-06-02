@@ -65,7 +65,7 @@ void zircon_editor_command_history::initialize(
 
 	kotek::ktk::filesystem::static_path<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
 		path_to_file = this->m_p_filesystem->GetFolderByEnum(
-			kotek::core::eFolderIndex::kFolderIndex_UserData_SDK_Scenes);
+			kotek::core::eFolderIndex::kFolderIndex_DataUser_SDK_Scenes);
 	path_to_file /= "current";
 
 	this->m_path_to_streaming_folder.append(

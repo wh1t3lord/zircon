@@ -71,7 +71,7 @@ void zircon_config::serialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 			if (p_saver)
 			{
 				auto path_to_file = p_filesystem->GetFolderByEnum(
-					Kotek::Core::eFolderIndex::kFolderIndex_UserData);
+					Kotek::Core::eFolderIndex::kFolderIndex_DataUser);
 
 				path_to_file /= kZirconConfig_FileName;
 
@@ -115,7 +115,7 @@ void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
 			if (p_loader)
 			{
 				auto path_to_file = p_filesystem->GetFolderByEnum(
-					Kotek::Core::eFolderIndex::kFolderIndex_UserData);
+					Kotek::Core::eFolderIndex::kFolderIndex_DataUser);
 
 				path_to_file /= kZirconConfig_FileName;
 

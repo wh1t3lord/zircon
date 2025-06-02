@@ -1167,7 +1167,7 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 	this->m_p_window_console = new kotek::core::ktkWindowConsole();
 
 	auto path = this->m_p_main_manager->GetFileSystem()->GetFolderByEnum(
-		kotek::core::eFolderIndex::kFolderIndex_UserData);
+		kotek::core::eFolderIndex::kFolderIndex_DataUser);
 
 	path /= KOTEK_USE_LOG_OUTPUT_FILE_NAME;
 

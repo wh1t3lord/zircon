@@ -93,8 +93,8 @@ set(to_include_opengles3_game_pass_interface
 
 ### shaders
 set(to_include_shaders_gles
-	"../../game_data/shaders/glsl/simple_geometry.vert"
-	"../../game_data/shaders/glsl/simple_geometry.frag"
+	"../../data_game/shaders/glsl/*.vert"
+	"../../data_game/shaders/glsl/*.frag"
 )
 
 ### shaders
