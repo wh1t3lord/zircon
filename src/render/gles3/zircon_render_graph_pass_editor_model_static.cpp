@@ -178,9 +178,9 @@ void zircon_render_graph_pass_editor_model_static_gles3::OnCreateResources(
 	{
 		kotek::static_cstring_t<512> stack_buffer;
 		auto shader_vertex = this->m_p_manager_render_shader->Create_Shader(
-			stack_buffer, "simple_geometry.vert");
+			stack_buffer, "gles3/simple_geometry.vert");
 		auto shader_pixel = this->m_p_manager_render_shader->Create_Shader(
-			stack_buffer, "simple_geometry.frag");
+			stack_buffer, "gles3/simple_geometry.frag");
 
 		this->m_shaders_geometry_color_only =
 			this->m_p_manager_render_shader->Create_Program(

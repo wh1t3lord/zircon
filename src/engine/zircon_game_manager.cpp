@@ -595,9 +595,9 @@ void zircon_game_manager::Initialize(
 								ktkRenderGraphSimplifiedRenderPass*,
 							KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 							passes = {
+								new zircon_render_graph_pass_editor_present_gles3(),
 								new zircon_render_graph_pass_editor_model_static_gles3(),
-								new zircon_render_graph_pass_editor_imgui_gles3(),
-								new zircon_render_graph_pass_editor_present_gles3()};
+								new zircon_render_graph_pass_editor_imgui_gles3()};
 
 						render_graph_id =
 							this->m_p_renderer_gles3->create_render_graph(
@@ -689,10 +689,19 @@ void zircon_game_manager::Initialize(
 		KOTEK_ASSERT(this->m_p_console, "must be valid");
 		if (this->m_p_console)
 		{
-			this->m_p_console->Push_Command(
-				static_cast<kotek::enum_base_t>(eZirconConsoleCommands::
-						set_current_render_graph_for_renderer),
-				{render_graph_id});
+#ifdef KOTEK_USE_SDK_IMGUI
+			if (!is_startup_imgui)
+			{
+#endif
+				
+				this->m_p_console->Push_Command(
+					static_cast<kotek::enum_base_t>(eZirconConsoleCommands::
+							set_current_render_graph_for_renderer),
+					{render_graph_id});
+
+#ifdef KOTEK_USE_SDK_IMGUI
+			}
+#endif
 		}
 
 		p_session_game->initialize("game", session_game_id,
@@ -1868,6 +1877,9 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 	auto p_command_set_current_render_graph_for_renderer =
 		[p_main_manager, this](kotek::uint8_t render_graph_id) -> bool
 	{
+		KOTEK_ASSERT(this->m_p_current_session,
+			"you must set session before setting render graph!");
+
 		kotek::core::eEngineSupportedRenderer renderer_version =
 			static_cast<kotek::core::eEngineSupportedRenderer>(
 				p_main_manager->Get_EngineConfig()->GetRendererVersion());
@@ -1882,6 +1894,56 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 
 			if (this->m_p_renderer_gles3)
 			{
+#ifdef KOTEK_DEBUG
+				if (this->m_p_current_session->get_type() ==
+					eZirconSessionType::kEditor)
+				{
+					zircon_session_editor* p_casted_session =
+						static_cast<zircon_session_editor*>(
+							this->m_p_current_session);
+
+					if (p_casted_session)
+					{
+						KOTEK_ASSERT(
+							this->m_p_renderer_gles3
+								->is_render_graph_for_session_editor(
+									p_casted_session->get_render_graph_id()),
+							"you assign different type of render graph to "
+							"editor session! You must specify that render "
+							"graph is editor session otherwise it is threated "
+							"for production quality (optimized)");
+						KOTEK_ASSERT(this->m_p_renderer_gles3
+										 ->is_render_graph_for_session_editor(
+											 render_graph_id),
+							"current session is editor but requested render "
+							"graph was created for game session!");
+					}
+				}
+				else
+				{
+					zircon_session_game* p_casted_session =
+						static_cast<zircon_session_game*>(
+							this->m_p_current_session);
+
+					if (p_casted_session)
+					{
+						KOTEK_ASSERT(
+							this->m_p_renderer_gles3
+								->is_render_graph_for_session_game(
+									p_casted_session->get_render_graph_id()),
+							"you assign different type of render graph to game "
+							"session! You must specify that render graph is "
+							"game session otherwise it is threated for editor "
+							"quality (not optimized)");
+						KOTEK_ASSERT(this->m_p_renderer_gles3
+										 ->is_render_graph_for_session_game(
+											 render_graph_id),
+							"current session is game but requested render "
+							"graph was created for editor session!");
+					}
+				}
+#endif
+
 				this->m_p_renderer_gles3->set_current_render_graph(
 					render_graph_id);
 			}

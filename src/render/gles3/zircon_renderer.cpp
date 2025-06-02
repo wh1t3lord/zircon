@@ -70,8 +70,11 @@ void zircon_renderer_gles3::draw()
 
 	if (this->m_p_current_render_graph)
 	{
-		this->m_p_current_render_graph->Update_All();
-		this->m_p_current_render_graph->Render_All();
+		if (this->m_p_current_render_graph->Is_Initialized())
+		{
+			this->m_p_current_render_graph->Update_All();
+			this->m_p_current_render_graph->Render_All();
+		}
 	}
 
 	this->End();
@@ -110,6 +113,30 @@ bool zircon_renderer_gles3::is_render_graph_initialized(
 	}
 
 	return result;
+}
+
+bool zircon_renderer_gles3::is_render_graph_for_session_editor(
+	kotek::uint8_t render_graph_id) const
+{
+	bool result{};
+
+	result = this->is_render_graph_presented(render_graph_id);
+	KOTEK_ASSERT(result,
+		"render graph by id {} must be presented in renderer!");
+
+	if (result)
+	{
+		result =
+			this->m_render_graphs[render_graph_id].is_game_session == false;
+	}
+
+	return result;
+}
+
+bool zircon_renderer_gles3::is_render_graph_for_session_game(
+	kotek::uint8_t render_graph_id) const
+{
+	return !(this->is_render_graph_for_session_editor(render_graph_id));
 }
 
 kotek::uint8_t zircon_renderer_gles3::create_render_graph(
@@ -245,7 +272,7 @@ void zircon_renderer_gles3::set_current_render_graph(
 }
 
 template <unsigned char Size>
-bool validate_extensions(const const char* (&extension_names)[Size],
+bool validate_extensions(const char* (&extension_names)[Size],
 	kotek::core::ktkConsole* p_console)
 {
 	KOTEK_ASSERT(p_console, "must be valid!");

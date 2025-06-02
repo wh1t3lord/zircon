@@ -49,6 +49,9 @@ public:
 
 	bool is_render_graph_presented(kotek::uint8_t render_graph_id) const;
 	bool is_render_graph_initialized(kotek::uint8_t render_graph_id) const;
+	bool is_render_graph_for_session_editor(
+		kotek::uint8_t render_graph_id) const;
+	bool is_render_graph_for_session_game(kotek::uint8_t render_graph_id) const;
 
 	kotek::uint8_t create_render_graph(kotek::uint8_t session_id,
 		bool is_game_session,
