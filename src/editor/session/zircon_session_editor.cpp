@@ -98,6 +98,7 @@ void zircon_session_editor::shutdown(void)
 {
 	if (this->m_was_initialized)
 	{
+		this->m_command_history_manager.shutdown();
 		for (kotek::core::ktkISDKUIElement* p_element :
 			this->m_imgui_ui_elements)
 		{
