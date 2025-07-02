@@ -50,32 +50,32 @@ set(to_include_opengles3_implementation_files
 	"gles3/zircon_render_resource_manager.cpp"
 )
 
-set(to_include_opengles3_game_passes_files
-	"gles3/zircon_render_graph_pass_imgui.h"
-	"gles3/zircon_render_graph_pass_imgui.cpp"
-	"gles3/zircon_render_graph_pass_present.h"
-	"gles3/zircon_render_graph_pass_present.cpp"
-	"gles3/zircon_render_graph_pass_model_static.cpp"
-	"gles3/zircon_render_graph_pass_model_static.h"
-	"gles3/zircon_render_graph_pass_terrain.h"
-	"gles3/zircon_render_graph_pass_terrain.cpp"
-	"gles3/zircon_render_graph_pass_debug.h"
-	"gles3/zircon_render_graph_pass_debug.cpp"
+set(to_include_opengles3_game_passes_no_streaming_files
+	"gles3/passes/no_streaming/zircon_render_graph_pass_imgui.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_imgui.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_present.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_present.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_model_static.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_model_static.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_terrain.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_terrain.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_debug.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_debug.cpp"
 )
 
-set(to_include_opengles3_editor_passes_files
-	"gles3/zircon_render_graph_pass_editor_imgui.h"
-	"gles3/zircon_render_graph_pass_editor_imgui.cpp"
-	"gles3/zircon_render_graph_pass_editor_present.h"
-	"gles3/zircon_render_graph_pass_editor_present.cpp"
-	"gles3/zircon_render_graph_pass_editor_model_static.cpp"
-	"gles3/zircon_render_graph_pass_editor_model_static.h"
-	"gles3/zircon_render_graph_pass_editor_debug.h"
-	"gles3/zircon_render_graph_pass_editor_debug.cpp"
-	"gles3/zircon_render_graph_pass_editor_grid.h"
-	"gles3/zircon_render_graph_pass_editor_grid.cpp"
-	"gles3/zircon_render_graph_pass_editor_camera.h"
-	"gles3/zircon_render_graph_pass_editor_camera.cpp"
+set(to_include_opengles3_editor_passes_no_streaming_files
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_imgui.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_present.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_present.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_model_static.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_debug.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_grid.cpp"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_camera.h"
+	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_camera.cpp"
 )
 
 set(to_include_opengles3_editor_pass_interface
@@ -111,17 +111,23 @@ set(to_include_module_files
 	"main_render_dll.cpp"
 )
 
+set(to_include_passes_files_opengles3 
+	${to_include_opengles3_game_passes_no_streaming_files}
+	${to_include_opengles3_editor_passes_no_streaming_files}
+)
+
+set(to_include_passes_vulkan
+	"todo: include and merge other like I did to_include_passes_files_opengles3"
+)
+
 add_library(${PROJECT_NAME} STATIC
 #	${to_include_vulkan_files}
 #	${to_include_vulkan_passes_files}
 	${to_include_shaders_gles}
-	${to_include_opengles3_game_passes_files}
 	${to_include_opengles3_game_pass_interface}
-	${to_include_opengles3_editor_passes_files}
 	${to_include_opengles3_editor_pass_interface}
 	${to_include_opengles3_implementation_files}
-	${to_include_render_ecs_shared}
-	${to_include_render_ecs_private}
+	${to_include_passes_files_opengles3}
 	${to_include_module_files}
 	${to_include_os}
 )
@@ -137,12 +143,13 @@ endif()
 # TODO: restore Vulkan when Vulkan development comes
 #source_group("Vulkan/Implementation" FILES ${to_include_vulkan_files})
 #source_group("Vulkan/Passes" FILES ${to_include_vulkan_passes_files})
+#source_group("Vulkan/Passes/RTX" FILES ${to_include_vulkan_editor_passes_rtx_no_streaming_files})
 source_group("OpenGL/3.3/Implementation" FILES ${to_include_opengl3_3_implementation_files})
 source_group("OpenGL/3.3/Passes" FILES ${to_include_opengl3_3_passes_files})
 source_group("OpenGL ES/3/Implementation" FILES ${to_include_opengles3_implementation_files})
-source_group("OpenGL ES/3/Passes/Game" FILES ${to_include_opengles3_game_passes_files})
+source_group("OpenGL ES/3/Passes/Game/No Streaming" FILES ${to_include_opengles3_game_passes_no_streaming_files})
 source_group("OpenGL ES/3/Passes/Game/Interface" FILES ${to_include_opengles3_game_pass_interface})
-source_group("OpenGL ES/3/Passes/Editor" FILES ${to_include_opengles3_editor_passes_files})
+source_group("OpenGL ES/3/Passes/Editor/No Streaming" FILES ${to_include_opengles3_editor_passes_no_streaming_files})
 source_group("OpenGL ES/3/Passes/Editor/Interface" FILES ${to_include_opengles3_editor_pass_interface})
 source_group("OpenGL ES/3/Shaders" FILES ${to_include_shaders_gles})
 source_group("OpenGL ES/3/Passes/OS" FILES ${to_include_os})

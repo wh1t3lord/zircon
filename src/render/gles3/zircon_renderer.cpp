@@ -1,15 +1,15 @@
 #include "zircon_renderer.h"
 
 // Game Passes
-#include "zircon_render_graph_pass_imgui.h"
-#include "zircon_render_graph_pass_present.h"
-#include "zircon_render_graph_pass_model_static.h"
+#include "passes/no_streaming/zircon_render_graph_pass_imgui.h"
+#include "passes/no_streaming/zircon_render_graph_pass_present.h"
+#include "passes/no_streaming/zircon_render_graph_pass_model_static.h"
 
 // Editor Passes
-#include "zircon_render_graph_pass_editor_imgui.h"
-#include "zircon_render_graph_pass_editor_present.h"
-#include "zircon_render_graph_pass_editor_model_static.h"
-#include "zircon_render_graph_pass_editor_debug.h"
+#include "passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
+#include "passes/no_streaming/zircon_render_graph_pass_editor_present.h"
+#include "passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
+#include "passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
 
 // OS Passes
 #include "../os/zircon_render_graph_pass_console.h"

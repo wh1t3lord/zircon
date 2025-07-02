@@ -3,10 +3,10 @@
 #include <kotek.render.gl/include/kotek_render_geometry_manager.h>
 #include <kotek.render.gl/include/kotek_render_shader_manager.h>
 
-#include "../../ecs/zircon_factory.h"
-#include "../../world/zircon_world.h"
-#include "../../editor/session/zircon_session_editor.h"
-#include "../../editor/session/zircon_session_editor_manager.h"
+#include "../../../../ecs/zircon_factory.h"
+#include "../../../../world/zircon_world.h"
+#include "../../../../editor/session/zircon_session_editor.h"
+#include "../../../../editor/session/zircon_session_editor_manager.h"
 
 zircon_render_graph_pass_editor_model_static_gles3::
 	zircon_render_graph_pass_editor_model_static_gles3(

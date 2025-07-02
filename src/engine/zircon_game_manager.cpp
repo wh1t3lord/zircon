@@ -31,14 +31,14 @@
 #include "../render/gles3/zircon_renderer.h"
 
 #ifdef KOTEK_USE_SDK_IMGUI
-	#include "../render/gles3/zircon_render_graph_pass_editor_debug.h"
-	#include "../render/gles3/zircon_render_graph_pass_editor_grid.h"
-	#include "../render/gles3/zircon_render_graph_pass_editor_imgui.h"
-	#include "../render/gles3/zircon_render_graph_pass_editor_model_static.h"
-	#include "../render/gles3/zircon_render_graph_pass_editor_present.h"
+	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
+	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
+	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
+	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
+	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_present.h"
 #endif
 
-#include "../render/gles3/zircon_render_graph_pass_present.h"
+#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_present.h"
 
 // gles3
 

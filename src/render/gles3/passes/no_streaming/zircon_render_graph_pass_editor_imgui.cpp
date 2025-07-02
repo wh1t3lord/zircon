@@ -1,19 +1,72 @@
-#include "zircon_render_graph_pass_imgui.h"
-#include "../../game/session/zircon_session_game.h"
-#include "../../game/session/zircon_session_game_manager.h"
+#include "zircon_render_graph_pass_editor_imgui.h"
+#include "../../../../editor/session/zircon_session_editor.h"
+#include "../../../../editor/session/zircon_session_editor_manager.h"
 
-zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
-	const kotek::static_u8string_view_t& render_pass_name,
-	kotek::core::ktkMainManager* p_main_manager) :
-	zircon_render_graph_pass(render_pass_name.data()),
-	m_p_main_manager{p_main_manager},
-	m_p_imgui_wrapper{p_main_manager->Get_ImguiWrapper()}
+zircon_render_graph_pass_editor_imgui_gles3::
+	zircon_render_graph_pass_editor_imgui_gles3() :
+	zircon_render_graph_pass_editor(), m_p_main_manager{}, m_p_imgui_wrapper{}
+{
+}
+
+zircon_render_graph_pass_editor_imgui_gles3::
+	~zircon_render_graph_pass_editor_imgui_gles3(void)
 {
 	bool is_imgui_enabled = false;
 	bool is_sdk_enabled = false;
 
 	Kotek::Core::ktkIFrameworkConfig* p_config =
 		this->m_p_main_manager->Get_EngineConfig();
+
+	if (p_config)
+	{
+		is_imgui_enabled = p_config->IsFeatureEnabled(
+			Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
+		is_sdk_enabled = p_config->IsFeatureEnabled(
+			Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
+	}
+
+	if (is_imgui_enabled)
+	{
+		if (this->m_p_imgui_wrapper)
+		{
+			this->m_p_imgui_wrapper->ImGui_ImplOpenGL3_Shutdown();
+
+			if (is_sdk_enabled)
+			{
+			}
+			else
+			{
+#ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
+				this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
+#else
+	#error not implemented
+#endif
+			}
+
+			this->m_p_imgui_wrapper->DestroyContext();
+		}
+	}
+
+	p_config->SetFeatureStatus(
+		Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized,
+		false);
+}
+
+void zircon_render_graph_pass_editor_imgui_gles3::OnCreateResources(
+	kotek::core::ktkMainManager* p_main_manager,
+	kotek::core::ktkIRenderResourceManager* p_manager_resource)
+{
+	KOTEK_ASSERT(p_main_manager, "must be valid!");
+	KOTEK_ASSERT(p_main_manager->Get_ImguiWrapper(), "must be valid!");
+
+	this->m_p_main_manager = p_main_manager;
+	this->m_p_imgui_wrapper = p_main_manager->Get_ImguiWrapper();
+
+	bool is_imgui_enabled = false;
+	bool is_sdk_enabled = false;
+
+	Kotek::Core::ktkIFrameworkConfig* p_config =
+		p_main_manager->Get_EngineConfig();
 
 	if (p_config)
 	{
@@ -80,57 +133,7 @@ zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
 	}
 }
 
-zircon_render_graph_pass_imgui_gles3::~zircon_render_graph_pass_imgui_gles3(
-	void)
-{
-	bool is_imgui_enabled = false;
-	bool is_sdk_enabled = false;
-
-	Kotek::Core::ktkIFrameworkConfig* p_config =
-		this->m_p_main_manager->Get_EngineConfig();
-
-	if (p_config)
-	{
-		is_imgui_enabled = p_config->IsFeatureEnabled(
-			Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
-		is_sdk_enabled = p_config->IsFeatureEnabled(
-			Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
-	}
-
-	if (is_imgui_enabled)
-	{
-		if (this->m_p_imgui_wrapper)
-		{
-			this->m_p_imgui_wrapper->ImGui_ImplOpenGL3_Shutdown();
-
-			if (is_sdk_enabled)
-			{
-			}
-			else
-			{
-#ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
-				this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
-#else
-	#error not implemented
-#endif
-			}
-
-			this->m_p_imgui_wrapper->DestroyContext();
-		}
-	}
-
-	p_config->SetFeatureStatus(
-		Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui_Initialized,
-		false);
-}
-
-void zircon_render_graph_pass_imgui_gles3::OnCreateResources(
-	kotek::core::ktkMainManager* p_manager_main,
-	kotek::core::ktkIRenderResourceManager* p_manager_resource)
-{
-}
-
-void zircon_render_graph_pass_imgui_gles3::OnUpdate(
+void zircon_render_graph_pass_editor_imgui_gles3::OnUpdate(
 	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 		p_previous_pass)
 {
@@ -158,19 +161,34 @@ void zircon_render_graph_pass_imgui_gles3::OnUpdate(
 			this->m_p_imgui_wrapper->NewFrame();
 		}
 
-		KOTEK_ASSERT(this->m_p_manager_session_game,
-			"Did you call OnRegisterManagers because game session manager is "
-			"not initialized!");
 
-		zircon_session_game* p_session =
-			this->m_p_manager_session_game->get_session(
-				this->m_p_manager_session_game->get_current_session_id());
+		KOTEK_ASSERT(this->m_p_manager_session_editor,
+			"Did you call OnRegisterManagers because session manager editor is "
+		    "not initialized!");
 
-		KOTEK_ASSERT(p_session, "failed to obtain session game by id: {}",
-			this->m_p_manager_session_game->get_current_session_id());
+		zircon_session_editor* p_session =
+			this->m_p_manager_session_editor->get_session(
+				this->m_p_manager_session_editor->get_current_session_id());
+		
+		KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
+			this->m_p_manager_session_editor->get_current_session_id());
 
-		// todo: provide imgui elements like in editor session impl
-		KOTEK_ASSERT(false, "not implemented!");
+		if (!p_session)
+		{
+			KOTEK_MESSAGE_WARNING("failed to obtain session editor by id: {}",
+				this->m_p_manager_session_editor->get_current_session_id());
+			return;
+		}
+
+		auto& imgui_ui_elements = p_session->get_imgui_ui_elements();
+
+		for (auto* p_element : imgui_ui_elements)
+		{
+			if (p_element)
+			{
+				p_element->Draw(this->m_p_main_manager);
+			}
+		}
 
 		if (this->m_p_imgui_wrapper)
 		{
@@ -179,7 +197,7 @@ void zircon_render_graph_pass_imgui_gles3::OnUpdate(
 	}
 }
 
-void zircon_render_graph_pass_imgui_gles3::OnRender(
+void zircon_render_graph_pass_editor_imgui_gles3::OnRender(
 	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
 		p_previous_pass)
 {

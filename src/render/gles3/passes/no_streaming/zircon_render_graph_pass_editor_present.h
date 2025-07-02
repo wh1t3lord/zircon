@@ -1,6 +1,6 @@
 #pragma once
 
-#include "zircon_render_graph_pass_editor.h"
+#include "../../zircon_render_graph_pass_editor.h"
 
 class zircon_render_graph_pass_editor_present_gles3
 	: public zircon_render_graph_pass_editor
