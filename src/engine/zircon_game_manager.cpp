@@ -595,9 +595,9 @@ void zircon_game_manager::Initialize(
 								ktkRenderGraphSimplifiedRenderPass*,
 							KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 							passes = {
-								new zircon_render_graph_pass_editor_present_gles3(),
-								new zircon_render_graph_pass_editor_model_static_gles3(),
-								new zircon_render_graph_pass_editor_imgui_gles3()};
+								new no_streaming::zircon_render_graph_pass_editor_present_gles3(),
+								new  no_streaming::zircon_render_graph_pass_editor_model_static_gles3(),
+								new no_streaming::zircon_render_graph_pass_editor_imgui_gles3()};
 
 						render_graph_id =
 							this->m_p_renderer_gles3->create_render_graph(
@@ -666,7 +666,7 @@ void zircon_game_manager::Initialize(
 			kotek::static_vector_t<
 				kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
 				KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
-				passes = {new zircon_render_graph_pass_present_gles3()};
+				passes = {new no_streaming::zircon_render_graph_pass_present_gles3()};
 
 			KOTEK_ASSERT(this->m_p_renderer_gles3, "must be valid");
 
