@@ -351,7 +351,8 @@ public:
     }
 };
 
-int main(int argc, char* argv[]) {
+int generate_ecs_fields(int argc, char* argv[])
+{
     if (argc < 7) {
         std::cerr << "Usage: " << argv[0] << " --src <source_dir> --kotek_src <source_dir> --output <output_file>\n";
         return 1;
@@ -379,6 +380,72 @@ int main(int argc, char* argv[]) {
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
+    }
+
+    return 0;
+}
+
+int generate_sdk_fields(int argc, char* argv[])
+{
+    
+
+    return 0;
+}
+
+int main(int argc, char* argv[])
+{
+    int what_to_generate = -1;
+
+    for (int i = 0; i < argc; ++i)
+    {
+        if (!strcmp(argv[i], "--type"))
+        {
+            if (i + 1 < argc)
+            {
+                int type = atoi(argv[i+1]);
+                what_to_generate = type;
+            }
+        }
+    }
+
+    switch (what_to_generate)
+    {
+        case 0:
+        {
+            int result_ecs = generate_ecs_fields(argc, argv);
+
+            if (result_ecs != 0)
+            {
+                std::cout << "failed to generate file for ecs" << std::endl;
+                return -1;
+            }
+
+            break;
+        }
+        case 1:
+        {
+            int result_sdk = generate_sdk_fields(argc, argv);
+
+            if (result_sdk != 0)
+            {
+                std::cout << "failed to generate file for sdk" << std::endl;
+                return -2;
+            }
+
+            break;
+        }
+        default:
+        {
+            int result_ecs = generate_ecs_fields(argc, argv);
+
+            if (result_ecs != 0)
+            {
+                std::cout << "failed to generate file for ecs" << std::endl;
+                return -1;
+            }
+
+            break;
+        }
     }
 
     return 0;
