@@ -9,8 +9,8 @@ public:
 		zircon_session_editor_manager* p_manager_session_editor, kotek::core::ktkConsole* p_console);
 	~zircon_editor_ui_state_object_list(void);
 
-	void initialize(void) override;
-	void shutdown(void) override;
+	void Initialize(void) override;
+	void Shutdown(void) override;
 	void Draw(kotek::core::ktkMainManager* main_manager) override;
 	int Get_ID(void) const override;
 

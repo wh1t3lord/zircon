@@ -59,7 +59,7 @@ enum class eZirconConsoleCommands : kotek::enum_base_t
 #undef _EZCC_GENERATE_ENUM
 };
 
-constexpr auto zircon_user_console_translation_callback =
+inline constexpr auto zircon_user_console_translation_callback =
 	[](std::string_view str) -> int
 {
 	const kotek::uint32_t hash = kotek::ktk::fnv1a_32(str);

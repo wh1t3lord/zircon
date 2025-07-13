@@ -15,8 +15,8 @@ public:
 		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory);
 	~zircon_editor_ui_state_component_inspector();
 
-	void initialize(void) override;
-	void shutdown(void) override;
+	void Initialize(void) override;
+	void Shutdown(void) override;
 	void Draw(Kotek::Core::ktkMainManager* p_main_manager) override;
 
 	int Get_ID(void) const override;

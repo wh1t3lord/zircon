@@ -8,9 +8,9 @@ zircon_editor_ui_state_window_debug_input::zircon_editor_ui_state_window_debug_i
 
 zircon_editor_ui_state_window_debug_input::~zircon_editor_ui_state_window_debug_input() {}
 
-void zircon_editor_ui_state_window_debug_input::initialize(void) {}
+void zircon_editor_ui_state_window_debug_input::Initialize(void) {}
 
-void zircon_editor_ui_state_window_debug_input::shutdown(void) {}
+void zircon_editor_ui_state_window_debug_input::Shutdown(void) {}
 
 void zircon_editor_ui_state_window_debug_input::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
@@ -35,7 +35,7 @@ void zircon_editor_ui_state_window_debug_input::Draw(
 
 	if (p_wrapper_imgui)
 	{
-		if (p_wrapper_imgui->Begin("Debug - Input"))
+		if (p_wrapper_imgui->Begin("Debug -> Input"))
 		{
 			p_input->WriteKeyAsStringToBuffer_IfPressed(
 				kotek::core::eInputControllerType::kControllerKeyboard,

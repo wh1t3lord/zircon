@@ -33,9 +33,9 @@ zircon_editor_ui_state_component_inspector::
 {
 }
 
-void zircon_editor_ui_state_component_inspector::initialize(void) {}
+void zircon_editor_ui_state_component_inspector::Initialize(void) {}
 
-void zircon_editor_ui_state_component_inspector::shutdown(void) {}
+void zircon_editor_ui_state_component_inspector::Shutdown(void) {}
 
 void zircon_editor_ui_state_component_inspector::Draw(
 	Kotek::Core::ktkMainManager* p_main_manager)

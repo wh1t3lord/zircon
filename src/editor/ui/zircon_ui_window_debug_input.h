@@ -6,8 +6,8 @@ public:
 	zircon_editor_ui_state_window_debug_input();
 	~zircon_editor_ui_state_window_debug_input();
 
-	void initialize(void) override;
-	void shutdown(void) override;
+	void Initialize(void) override;
+	void Shutdown(void) override;
 	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
 	int Get_ID(void) const override;
 

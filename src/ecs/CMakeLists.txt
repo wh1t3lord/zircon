@@ -225,16 +225,12 @@ file(APPEND ${zircon_validate_get_component_type_of_all_components} "
 }
 ")
 
-execute_process(
-	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    RESULT_VARIABLE generate_fields_component_header_result
-    ERROR_VARIABLE error_output
-)
-
-if(NOT generate_fields_component_header_result EQUAL 0)
-    message(FATAL_ERROR "Header generation failed:\n${error_output}\n${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}")
-endif()
+#execute_process(
+#	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#    RESULT_VARIABLE generate_fields_component_header_result
+#    ERROR_VARIABLE error_output
+#)
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_sdk_ecs_files}
@@ -250,15 +246,44 @@ add_library(${PROJECT_NAME} STATIC
 
 
 # Add custom command to generate header
-add_custom_command(
-    TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${zircon_generate_header_component_fields}
+
+#add_custom_command(
+#    TARGET ${PROJECT_NAME}
+#	PRE_BUILD
+#    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/component_fields_generator/generate_zircon.py --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/engine/kotek.core.defines_dependent.ecs/include/ --output ${zircon_generate_header_component_fields}
 #	COMMAND_ECHO STDOUT
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Generating zircon component fields header"
-    VERBATIM
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#    COMMENT "Generating zircon component fields header"
+#    VERBATIM
+#)
+
+#add_custom_command(
+#	TARGET ${PROJECT_NAME}
+#	PRE_BUILD 
+#	COMMAND ${CMAKE_BINARY_DIR}
+ #   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  #  COMMENT "Generating zircon component fields header"
+  #  VERBATIM
+#)
+
+add_custom_command(
+	TARGET ${PROJECT_NAME}
+	PRE_BUILD 
+	COMMAND ${CMAKE_COMMAND} 
+		-S ${CMAKE_SOURCE_DIR}/src/tools/cpp_generators/ecs_fields_generator
+		-B ${CMAKE_BINARY_DIR}/zircon_tools
+		-DKOTEK_DEPS_FOLDER=${KOTEK_DEPS_FOLDER}
+		-DKOTEK_DEPS_FOLDER_ENABLE=${KOTEK_DEPS_FOLDER_ENABLE}
+		-DKOTEK_ENGINE_ROOT_FOLDER_NAME=${KOTEK_ENGINE_ROOT_FOLDER_NAME}
+		-DKOTEK_NUGET_PLATFORM_NAME=${KOTEK_NUGET_PLATFORM_NAME}
+		-DKOTEK_NUGET_COMPILER_NAME=${KOTEK_NUGET_COMPILER_NAME}
+		-DKOTEK_NUGET_ARCH_BIT_NUMBER=${KOTEK_NUGET_ARCH_BIT_NUMBER}
+	COMMAND ${CMAKE_COMMAND}
+		--build ${CMAKE_BINARY_DIR}/zircon_tools
+		--config $<CONFIG>
+    COMMENT "Building zircon_generator"
 )
+
 # TODO: add if when game.ktk builds as shared
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine/ecs")

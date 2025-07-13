@@ -7,9 +7,9 @@ zircon_editor_ui_state_window_log::zircon_editor_ui_state_window_log() : m_is_sh
 
 zircon_editor_ui_state_window_log::~zircon_editor_ui_state_window_log() {}
 
-void zircon_editor_ui_state_window_log::initialize(void) {}
+void zircon_editor_ui_state_window_log::Initialize(void) {}
 
-void zircon_editor_ui_state_window_log::shutdown(void) {}
+void zircon_editor_ui_state_window_log::Shutdown(void) {}
 
 void zircon_editor_ui_state_window_log::Draw(Kotek::Core::ktkMainManager* main_manager)
 {

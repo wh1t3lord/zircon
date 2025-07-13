@@ -8,9 +8,9 @@ zircon_editor_ui_state_window_prefab::zircon_editor_ui_state_window_prefab(void)
 
 zircon_editor_ui_state_window_prefab::~zircon_editor_ui_state_window_prefab(void) {}
 
-void zircon_editor_ui_state_window_prefab::initialize(void) {}
+void zircon_editor_ui_state_window_prefab::Initialize(void) {}
 
-void zircon_editor_ui_state_window_prefab::shutdown(void) {}
+void zircon_editor_ui_state_window_prefab::Shutdown(void) {}
 
 void zircon_editor_ui_state_window_prefab::Draw(
 	kotek::core::ktkMainManager* p_main_manager)

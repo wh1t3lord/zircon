@@ -2,6 +2,7 @@
 #include "../session/zircon_session_editor.h"
 #include "zircon_editor_ui_state.h"
 #include "../session/zircon_session_editor_manager.h"
+#include "zircon_ui_window_debug_input.h"
 
 zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(
 	zircon_session_editor_manager* p_manager_session_editor) :
@@ -13,9 +14,9 @@ zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(
 
 zircon_editor_ui_state_top_bar::~zircon_editor_ui_state_top_bar(void) {}
 
-void zircon_editor_ui_state_top_bar::initialize(void) {}
+void zircon_editor_ui_state_top_bar::Initialize(void) {}
 
-void zircon_editor_ui_state_top_bar::shutdown(void) {}
+void zircon_editor_ui_state_top_bar::Shutdown(void) {}
 
 void zircon_editor_ui_state_top_bar::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
@@ -147,7 +148,7 @@ void zircon_editor_ui_state_top_bar::Draw(
 				if (p_wrapper_imgui->BeginMenu(
 						"View##ZirconImGuiSDK_MainBar_View"))
 				{
-					if (p_wrapper_imgui->BeginMenu("Show windows"))
+					if (p_wrapper_imgui->BeginMenu("Show windows All"))
 					{
 						auto* p_renderer =
 							p_main_manager->GetGameManager()->GetRenderer();
@@ -219,6 +220,44 @@ void zircon_editor_ui_state_top_bar::Draw(
 									}
 								}
 							}
+						}
+
+						p_wrapper_imgui->EndMenu();
+					}
+
+					if (p_wrapper_imgui->BeginMenu("Debug"))
+					{
+						if (p_wrapper_imgui->BeginMenu("Input"))
+						{
+							auto* p_renderer =
+								p_main_manager->GetGameManager()->GetRenderer();
+
+							if (p_renderer)
+							{
+								auto* p_game_manager =
+									p_main_manager->GetGameManager();
+
+								if (p_game_manager &&
+									this->m_p_manager_session_editor)
+								{
+									zircon_session_editor* p_session =
+										this->m_p_manager_session_editor
+											->get_session(
+												this->m_p_manager_session_editor
+													->get_current_session_id());
+
+									KOTEK_ASSERT(p_session,
+										"failed to obtain session editor by "
+										"id: {}",
+										this->m_p_manager_session_editor
+											->get_current_session_id());
+
+									const auto& imgui_elements =
+										p_session->get_imgui_ui_elements();
+								}
+							}
+
+							p_wrapper_imgui->EndMenu();
 						}
 
 						p_wrapper_imgui->EndMenu();

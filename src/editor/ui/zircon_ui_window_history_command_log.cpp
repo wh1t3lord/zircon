@@ -20,9 +20,9 @@ zircon_ui_window_history_command_log::zircon_ui_window_history_command_log(
 
 zircon_ui_window_history_command_log::~zircon_ui_window_history_command_log() {}
 
-void zircon_ui_window_history_command_log::initialize(void) {}
+void zircon_ui_window_history_command_log::Initialize(void) {}
 
-void zircon_ui_window_history_command_log::shutdown(void) {}
+void zircon_ui_window_history_command_log::Shutdown(void) {}
 
 void zircon_ui_window_history_command_log::Draw(
 	Kotek::Core::ktkMainManager* main_manager)

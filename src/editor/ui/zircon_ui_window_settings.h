@@ -8,8 +8,8 @@ public:
 	zircon_ui_window_settings(zircon_config* p_config);
 	~zircon_ui_window_settings(void);
 
-	void initialize(void) override;
-	void shutdown(void) override;
+	void Initialize(void) override;
+	void Shutdown(void) override;
 	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
 
 	int Get_ID(void) const override;

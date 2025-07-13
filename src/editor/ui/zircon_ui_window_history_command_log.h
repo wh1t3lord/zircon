@@ -11,8 +11,8 @@ public:
 		zircon_editor_command_history* p_manager_history, zircon_session_editor_manager* p_manager_session_editor);
 	~zircon_ui_window_history_command_log();
 
-	void initialize(void) override;
-	void shutdown(void) override;
+	void Initialize(void) override;
+	void Shutdown(void) override;
 	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
 	int Get_ID(void) const override;
 

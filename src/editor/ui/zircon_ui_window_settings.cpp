@@ -9,9 +9,9 @@ zircon_ui_window_settings::zircon_ui_window_settings(zircon_config* p_config) :
 
 zircon_ui_window_settings::~zircon_ui_window_settings(void) {}
 
-void zircon_ui_window_settings::initialize(void) {}
+void zircon_ui_window_settings::Initialize(void) {}
 
-void zircon_ui_window_settings::shutdown(void) {}
+void zircon_ui_window_settings::Shutdown(void) {}
 
 void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_manager)
 {

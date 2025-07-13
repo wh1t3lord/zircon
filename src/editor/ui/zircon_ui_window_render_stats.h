@@ -6,8 +6,8 @@ public:
 	zircon_ui_window_render_stats();
 	~zircon_ui_window_render_stats();
 
-	void initialize(void) override;
-	void shutdown(void) override;
+	void Initialize(void) override;
+	void Shutdown(void) override;
 	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
 
 	int Get_ID(void) const override;

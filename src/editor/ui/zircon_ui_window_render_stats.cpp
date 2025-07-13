@@ -8,9 +8,9 @@ zircon_ui_window_render_stats::zircon_ui_window_render_stats() :
 
 zircon_ui_window_render_stats::~zircon_ui_window_render_stats() {}
 
-void zircon_ui_window_render_stats::initialize(void) {}
+void zircon_ui_window_render_stats::Initialize(void) {}
 
-void zircon_ui_window_render_stats::shutdown(void) {}
+void zircon_ui_window_render_stats::Shutdown(void) {}
 
 void zircon_ui_window_render_stats::Draw(
 	kotek::core::ktkMainManager* p_main_manager)

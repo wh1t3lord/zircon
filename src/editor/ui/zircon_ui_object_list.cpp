@@ -16,9 +16,9 @@ zircon_editor_ui_state_object_list::zircon_editor_ui_state_object_list(
 
 zircon_editor_ui_state_object_list::~zircon_editor_ui_state_object_list(void) {}
 
-void zircon_editor_ui_state_object_list::initialize(void) {}
+void zircon_editor_ui_state_object_list::Initialize(void) {}
 
-void zircon_editor_ui_state_object_list::shutdown(void) {}
+void zircon_editor_ui_state_object_list::Shutdown(void) {}
 
 void zircon_editor_ui_state_object_list::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
