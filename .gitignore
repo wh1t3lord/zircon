@@ -44,6 +44,7 @@ zircon_factory_create_component_by_name.cpp
 zircon_factory_get_component_name_by_enum.cpp
 zircon_validate_get_component_type_of_all_components.cpp
 zircon_component_fields.h
+zircon_editor_enums.h
 
 imgui.ini
 report_memleak_*
