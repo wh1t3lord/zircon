@@ -9,8 +9,8 @@
 constexpr const char* _kSDKModalWindowFailedToAddComponent =
 	"Warning##ComponentInspectorFailedToAddComponent";
 
-zircon_editor_ui_state_component_inspector::
-	zircon_editor_ui_state_component_inspector(
+zircon_editor_ui_window_component_inspector::
+	zircon_editor_ui_window_component_inspector(
 		zircon_session_editor_manager* p_manager_session_editor,
 		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory) :
 	m_is_show_window{}, m_combobox_current_item_type{},
@@ -28,16 +28,16 @@ zircon_editor_ui_state_component_inspector::
 		p_factory->GetRegisteredComponents().cbegin()->first.data();
 }
 
-zircon_editor_ui_state_component_inspector::
-	~zircon_editor_ui_state_component_inspector()
+zircon_editor_ui_window_component_inspector::
+	~zircon_editor_ui_window_component_inspector()
 {
 }
 
-void zircon_editor_ui_state_component_inspector::Initialize(void) {}
+void zircon_editor_ui_window_component_inspector::Initialize(void) {}
 
-void zircon_editor_ui_state_component_inspector::Shutdown(void) {}
+void zircon_editor_ui_window_component_inspector::Shutdown(void) {}
 
-void zircon_editor_ui_state_component_inspector::Draw(
+void zircon_editor_ui_window_component_inspector::Draw(
 	Kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (!this->m_is_show_window)
@@ -295,27 +295,27 @@ void zircon_editor_ui_state_component_inspector::Draw(
 	}
 }
 
-int zircon_editor_ui_state_component_inspector::Get_ID(void) const
+int zircon_editor_ui_window_component_inspector::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_ComponentInspector);
 }
 
-void zircon_editor_ui_state_component_inspector::Show(void)
+void zircon_editor_ui_window_component_inspector::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_editor_ui_state_component_inspector::Hide(void)
+void zircon_editor_ui_window_component_inspector::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_editor_ui_state_component_inspector::Is_Shown(void) const
+bool zircon_editor_ui_window_component_inspector::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }
 
-bool zircon_editor_ui_state_component_inspector::HasComponentByName(
+bool zircon_editor_ui_window_component_inspector::HasComponentByName(
 	const kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>&
 		component_name_from_preprocessor,
 	entt::entity id) noexcept
@@ -328,7 +328,7 @@ bool zircon_editor_ui_state_component_inspector::HasComponentByName(
 	return result;
 }
 
-void zircon_editor_ui_state_component_inspector::update_modal_windows(
+void zircon_editor_ui_window_component_inspector::update_modal_windows(
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui)
 {
 	if (p_wrapper_imgui)

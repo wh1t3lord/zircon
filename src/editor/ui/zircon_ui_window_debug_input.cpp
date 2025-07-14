@@ -1,18 +1,18 @@
 #include "zircon_ui_window_debug_input.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_editor_ui_state_window_debug_input::zircon_editor_ui_state_window_debug_input() :
+zircon_editor_ui_window_debug_input::zircon_editor_ui_window_debug_input() :
 	m_is_show_window{}, m_state_keys_buffer{}
 {
 }
 
-zircon_editor_ui_state_window_debug_input::~zircon_editor_ui_state_window_debug_input() {}
+zircon_editor_ui_window_debug_input::~zircon_editor_ui_window_debug_input() {}
 
-void zircon_editor_ui_state_window_debug_input::Initialize(void) {}
+void zircon_editor_ui_window_debug_input::Initialize(void) {}
 
-void zircon_editor_ui_state_window_debug_input::Shutdown(void) {}
+void zircon_editor_ui_window_debug_input::Shutdown(void) {}
 
-void zircon_editor_ui_state_window_debug_input::Draw(
+void zircon_editor_ui_window_debug_input::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	if (!p_main_manager)
@@ -27,7 +27,7 @@ void zircon_editor_ui_state_window_debug_input::Draw(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"engine: doesn't have initialize input manager (nullptr). Can't "
-			"open window = zircon_editor_ui_state_window_debug_input");
+			"open window = zircon_editor_ui_window_debug_input");
 		return;
 	}
 
@@ -80,22 +80,22 @@ void zircon_editor_ui_state_window_debug_input::Draw(
 	}
 }
 
-int zircon_editor_ui_state_window_debug_input::Get_ID(void) const
+int zircon_editor_ui_window_debug_input::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Debug_Input);
 }
 
-void zircon_editor_ui_state_window_debug_input::Show(void)
+void zircon_editor_ui_window_debug_input::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_editor_ui_state_window_debug_input::Hide(void)
+void zircon_editor_ui_window_debug_input::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_editor_ui_state_window_debug_input::Is_Shown(void) const
+bool zircon_editor_ui_window_debug_input::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }

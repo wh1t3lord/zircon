@@ -6,14 +6,14 @@ class zircon_factory;
 class zircon_editor_ui_state_interface;
 class zircon_session_editor_manager;
 
-class zircon_editor_ui_state_component_inspector
+class zircon_editor_ui_window_component_inspector
 	: public kotek::core::ktkISDKUIElement
 {
 public:
-	zircon_editor_ui_state_component_inspector(
+	zircon_editor_ui_window_component_inspector(
 		zircon_session_editor_manager* p_manager_session_editor,
 		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory);
-	~zircon_editor_ui_state_component_inspector();
+	~zircon_editor_ui_window_component_inspector();
 
 	void Initialize(void) override;
 	void Shutdown(void) override;

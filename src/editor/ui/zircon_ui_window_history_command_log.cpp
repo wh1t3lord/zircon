@@ -4,7 +4,7 @@
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_ui_window_history_command_log::zircon_ui_window_history_command_log(
+zircon_editor_ui_window_history_command_log::zircon_editor_ui_window_history_command_log(
 	zircon_editor_command_history* p_manager_history,
 	zircon_session_editor_manager* p_manager_session_editor) :
 	m_is_show_window(false), m_p_manager_history{p_manager_history},
@@ -18,13 +18,13 @@ zircon_ui_window_history_command_log::zircon_ui_window_history_command_log(
 		"zircon_session_editor_manager");
 }
 
-zircon_ui_window_history_command_log::~zircon_ui_window_history_command_log() {}
+zircon_editor_ui_window_history_command_log::~zircon_editor_ui_window_history_command_log() {}
 
-void zircon_ui_window_history_command_log::Initialize(void) {}
+void zircon_editor_ui_window_history_command_log::Initialize(void) {}
 
-void zircon_ui_window_history_command_log::Shutdown(void) {}
+void zircon_editor_ui_window_history_command_log::Shutdown(void) {}
 
-void zircon_ui_window_history_command_log::Draw(
+void zircon_editor_ui_window_history_command_log::Draw(
 	Kotek::Core::ktkMainManager* main_manager)
 {
 	if (!this->m_is_show_window)
@@ -101,22 +101,22 @@ void zircon_ui_window_history_command_log::Draw(
 	}
 }
 
-int zircon_ui_window_history_command_log::Get_ID(void) const
+int zircon_editor_ui_window_history_command_log::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_CommandHistoryLog);
 }
 
-void zircon_ui_window_history_command_log::Show(void)
+void zircon_editor_ui_window_history_command_log::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_ui_window_history_command_log::Hide(void)
+void zircon_editor_ui_window_history_command_log::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_ui_window_history_command_log::Is_Shown(void) const
+bool zircon_editor_ui_window_history_command_log::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }

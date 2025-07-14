@@ -561,21 +561,21 @@ void zircon_game_manager::Initialize(
 						p_engine_config->GetRendererVersion());
 
 				kotek::vector_t<kotek::core::ktkISDKUIElement*> ui_elements = {
-					new zircon_editor_ui_state_object_list(
+					new zircon_editor_ui_window_object_list(
 						this->m_p_session_editor_manager, this->m_p_console),
-					new zircon_editor_ui_state_top_bar(
+					new zircon_editor_ui_window_top_bar(
 						this->m_p_session_editor_manager),
-					new zircon_editor_ui_state_window_prefab(),
-					new zircon_editor_ui_state_component_inspector(
+					new zircon_editor_ui_window_prefab(),
+					new zircon_editor_ui_window_component_inspector(
 						this->m_p_session_editor_manager,
 						p_session->get_ui_state(), p_world->get_factory()),
-					new zircon_editor_ui_state_window_log(),
-					new zircon_ui_window_history_command_log(
+					new zircon_editor_ui_window_log(),
+					new zircon_editor_ui_window_history_command_log(
 						p_session->get_command_history(),
 						this->m_p_session_editor_manager),
-					new zircon_ui_window_render_stats(),
-					new zircon_ui_window_settings(this->m_p_config),
-					new zircon_editor_ui_state_window_debug_input()};
+					new zircon_editor_ui_window_render_stats(),
+					new zircon_editor_ui_window_settings(this->m_p_config),
+					new zircon_editor_ui_window_debug_input()};
 				p_session->set_imgui_ui_elements(ui_elements);
 
 				kotek::uint8_t render_graph_id(-1);

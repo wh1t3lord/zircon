@@ -1,18 +1,18 @@
 #include "zircon_ui_window_render_stats.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_ui_window_render_stats::zircon_ui_window_render_stats() :
+zircon_editor_ui_window_render_stats::zircon_editor_ui_window_render_stats() :
 	m_is_show_window(false)
 {
 }
 
-zircon_ui_window_render_stats::~zircon_ui_window_render_stats() {}
+zircon_editor_ui_window_render_stats::~zircon_editor_ui_window_render_stats() {}
 
-void zircon_ui_window_render_stats::Initialize(void) {}
+void zircon_editor_ui_window_render_stats::Initialize(void) {}
 
-void zircon_ui_window_render_stats::Shutdown(void) {}
+void zircon_editor_ui_window_render_stats::Shutdown(void) {}
 
-void zircon_ui_window_render_stats::Draw(
+void zircon_editor_ui_window_render_stats::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	if (!this->m_is_show_window)
@@ -127,22 +127,22 @@ void zircon_ui_window_render_stats::Draw(
 	}
 }
 
-int zircon_ui_window_render_stats::Get_ID(void) const
+int zircon_editor_ui_window_render_stats::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_RenderStats);
 }
 
-void zircon_ui_window_render_stats::Show(void)
+void zircon_editor_ui_window_render_stats::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_ui_window_render_stats::Hide(void)
+void zircon_editor_ui_window_render_stats::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_ui_window_render_stats::Is_Shown(void) const
+bool zircon_editor_ui_window_render_stats::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }

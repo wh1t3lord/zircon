@@ -2,18 +2,18 @@
 #include "../../core/zircon_config.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_ui_window_settings::zircon_ui_window_settings(zircon_config* p_config) :
+zircon_editor_ui_window_settings::zircon_editor_ui_window_settings(zircon_config* p_config) :
 	m_is_window_show(false), m_p_config{p_config}
 {
 }
 
-zircon_ui_window_settings::~zircon_ui_window_settings(void) {}
+zircon_editor_ui_window_settings::~zircon_editor_ui_window_settings(void) {}
 
-void zircon_ui_window_settings::Initialize(void) {}
+void zircon_editor_ui_window_settings::Initialize(void) {}
 
-void zircon_ui_window_settings::Shutdown(void) {}
+void zircon_editor_ui_window_settings::Shutdown(void) {}
 
-void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_manager)
+void zircon_editor_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (!this->m_is_window_show)
 		return;
@@ -107,22 +107,22 @@ void zircon_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_manager
 	}
 }
 
-int zircon_ui_window_settings::Get_ID(void) const
+int zircon_editor_ui_window_settings::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Settings);
 }
 
-void zircon_ui_window_settings::Show(void)
+void zircon_editor_ui_window_settings::Show(void)
 {
 	this->m_is_window_show = true;
 }
 
-void zircon_ui_window_settings::Hide(void)
+void zircon_editor_ui_window_settings::Hide(void)
 {
 	this->m_is_window_show = false;
 }
 
-bool zircon_ui_window_settings::Is_Shown(void) const
+bool zircon_editor_ui_window_settings::Is_Shown(void) const
 {
 	return this->m_is_window_show;
 }

@@ -2,11 +2,11 @@
 
 class zircon_config;
 
-class zircon_ui_window_settings : public Kotek::Core::ktkISDKUIElement
+class zircon_editor_ui_window_settings : public Kotek::Core::ktkISDKUIElement
 {
 public:
-	zircon_ui_window_settings(zircon_config* p_config);
-	~zircon_ui_window_settings(void);
+	zircon_editor_ui_window_settings(zircon_config* p_config);
+	~zircon_editor_ui_window_settings(void);
 
 	void Initialize(void) override;
 	void Shutdown(void) override;

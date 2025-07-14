@@ -4,7 +4,7 @@
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_ui_window_debug_input.h"
 
-zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(
+zircon_editor_ui_window_top_bar::zircon_editor_ui_window_top_bar(
 	zircon_session_editor_manager* p_manager_session_editor) :
 	m_is_show_window(true), m_p_manager_session_editor{p_manager_session_editor}
 {
@@ -12,13 +12,13 @@ zircon_editor_ui_state_top_bar::zircon_editor_ui_state_top_bar(
 		"must be valid session editor manager pointer");
 }
 
-zircon_editor_ui_state_top_bar::~zircon_editor_ui_state_top_bar(void) {}
+zircon_editor_ui_window_top_bar::~zircon_editor_ui_window_top_bar(void) {}
 
-void zircon_editor_ui_state_top_bar::Initialize(void) {}
+void zircon_editor_ui_window_top_bar::Initialize(void) {}
 
-void zircon_editor_ui_state_top_bar::Shutdown(void) {}
+void zircon_editor_ui_window_top_bar::Shutdown(void) {}
 
-void zircon_editor_ui_state_top_bar::Draw(
+void zircon_editor_ui_window_top_bar::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
@@ -272,27 +272,27 @@ void zircon_editor_ui_state_top_bar::Draw(
 	}
 }
 
-int zircon_editor_ui_state_top_bar::Get_ID(void) const
+int zircon_editor_ui_window_top_bar::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Topbar);
 }
 
-void zircon_editor_ui_state_top_bar::Show(void)
+void zircon_editor_ui_window_top_bar::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_editor_ui_state_top_bar::Hide(void)
+void zircon_editor_ui_window_top_bar::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_editor_ui_state_top_bar::Is_Shown(void) const
+bool zircon_editor_ui_window_top_bar::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }
 
-void zircon_editor_ui_state_top_bar::update_modal_save_scene(
+void zircon_editor_ui_window_top_bar::update_modal_save_scene(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	auto* p_wrapper_imgui = p_main_manager->Get_ImguiWrapper();
@@ -367,7 +367,7 @@ void zircon_editor_ui_state_top_bar::update_modal_save_scene(
 		}
 	}
 }
-void zircon_editor_ui_state_top_bar::update_modals(
+void zircon_editor_ui_window_top_bar::update_modals(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	this->update_modal_save_scene(p_main_manager);

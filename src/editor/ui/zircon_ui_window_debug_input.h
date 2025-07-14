@@ -1,10 +1,10 @@
 #pragma once
 
-class zircon_editor_ui_state_window_debug_input : public kotek::core::ktkISDKUIElement
+class zircon_editor_ui_window_debug_input : public kotek::core::ktkISDKUIElement
 {
 public:
-	zircon_editor_ui_state_window_debug_input();
-	~zircon_editor_ui_state_window_debug_input();
+	zircon_editor_ui_window_debug_input();
+	~zircon_editor_ui_window_debug_input();
 
 	void Initialize(void) override;
 	void Shutdown(void) override;

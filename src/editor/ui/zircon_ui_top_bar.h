@@ -2,11 +2,11 @@
 
 class zircon_session_editor_manager;
 
-class zircon_editor_ui_state_top_bar : public kotek::core::ktkISDKUIElement
+class zircon_editor_ui_window_top_bar : public kotek::core::ktkISDKUIElement
 {
 public:
-	zircon_editor_ui_state_top_bar(zircon_session_editor_manager* p_manager_session_editor);
-	~zircon_editor_ui_state_top_bar(void);
+	zircon_editor_ui_window_top_bar(zircon_session_editor_manager* p_manager_session_editor);
+	~zircon_editor_ui_window_top_bar(void);
 
 	void Initialize(void) override;
 	void Shutdown(void) override;

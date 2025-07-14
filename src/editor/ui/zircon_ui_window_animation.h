@@ -1,10 +1,10 @@
 #pragma once
 
-class zircon_editor_ui_state_window_animation : public Kotek::Core::ktkISDKUIElement
+class zircon_editor_ui_window_animation : public Kotek::Core::ktkISDKUIElement
 {
 public:
-	zircon_editor_ui_state_window_animation(void);
-	~zircon_editor_ui_state_window_animation(void);
+	zircon_editor_ui_window_animation(void);
+	~zircon_editor_ui_window_animation(void);
 
 	void Initialize(void) override;
 	void Shutdown(void) override;

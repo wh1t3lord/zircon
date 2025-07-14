@@ -3,13 +3,13 @@
 class zircon_editor_command_history;
 class zircon_session_editor_manager;
 
-class zircon_ui_window_history_command_log
+class zircon_editor_ui_window_history_command_log
 	: public Kotek::Core::ktkISDKUIElement
 {
 public:
-	zircon_ui_window_history_command_log(
+	zircon_editor_ui_window_history_command_log(
 		zircon_editor_command_history* p_manager_history, zircon_session_editor_manager* p_manager_session_editor);
-	~zircon_ui_window_history_command_log();
+	~zircon_editor_ui_window_history_command_log();
 
 	void Initialize(void) override;
 	void Shutdown(void) override;

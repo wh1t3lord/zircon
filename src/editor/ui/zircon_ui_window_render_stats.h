@@ -1,10 +1,10 @@
 #pragma once
 
-class zircon_ui_window_render_stats : public Kotek::Core::ktkISDKUIElement
+class zircon_editor_ui_window_render_stats : public Kotek::Core::ktkISDKUIElement
 {
 public:
-	zircon_ui_window_render_stats();
-	~zircon_ui_window_render_stats();
+	zircon_editor_ui_window_render_stats();
+	~zircon_editor_ui_window_render_stats();
 
 	void Initialize(void) override;
 	void Shutdown(void) override;

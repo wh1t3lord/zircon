@@ -6,7 +6,7 @@
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_editor_ui_state_object_list::zircon_editor_ui_state_object_list(
+zircon_editor_ui_window_object_list::zircon_editor_ui_window_object_list(
 	zircon_session_editor_manager* p_manager_session_editor,
 	kotek::core::ktkConsole* p_console) :
 	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{},
@@ -14,13 +14,13 @@ zircon_editor_ui_state_object_list::zircon_editor_ui_state_object_list(
 {
 }
 
-zircon_editor_ui_state_object_list::~zircon_editor_ui_state_object_list(void) {}
+zircon_editor_ui_window_object_list::~zircon_editor_ui_window_object_list(void) {}
 
-void zircon_editor_ui_state_object_list::Initialize(void) {}
+void zircon_editor_ui_window_object_list::Initialize(void) {}
 
-void zircon_editor_ui_state_object_list::Shutdown(void) {}
+void zircon_editor_ui_window_object_list::Shutdown(void) {}
 
-void zircon_editor_ui_state_object_list::Draw(
+void zircon_editor_ui_window_object_list::Draw(
 	kotek::core::ktkMainManager* p_main_manager)
 {
 	KOTEK_ASSERT(this->m_p_manager_session_editor,
@@ -170,22 +170,22 @@ void zircon_editor_ui_state_object_list::Draw(
 	}
 }
 
-int zircon_editor_ui_state_object_list::Get_ID(void) const
+int zircon_editor_ui_window_object_list::Get_ID(void) const
 {
 	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_ObjectList);
 }
 
-void zircon_editor_ui_state_object_list::Show(void)
+void zircon_editor_ui_window_object_list::Show(void)
 {
 	this->m_is_show_window = true;
 }
 
-void zircon_editor_ui_state_object_list::Hide(void)
+void zircon_editor_ui_window_object_list::Hide(void)
 {
 	this->m_is_show_window = false;
 }
 
-bool zircon_editor_ui_state_object_list::Is_Shown(void) const
+bool zircon_editor_ui_window_object_list::Is_Shown(void) const
 {
 	return this->m_is_show_window;
 }
