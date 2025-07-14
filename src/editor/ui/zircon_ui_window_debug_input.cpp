@@ -82,7 +82,7 @@ void zircon_editor_ui_window_debug_input::Draw(
 
 int zircon_editor_ui_window_debug_input::Get_ID(void) const
 {
-	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Debug_Input);
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_DebugInput);
 }
 
 void zircon_editor_ui_window_debug_input::Show(void)

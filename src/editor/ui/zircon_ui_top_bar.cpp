@@ -274,7 +274,7 @@ void zircon_editor_ui_window_top_bar::Draw(
 
 int zircon_editor_ui_window_top_bar::Get_ID(void) const
 {
-	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Topbar);
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_TopBar);
 }
 
 void zircon_editor_ui_window_top_bar::Show(void)

@@ -103,7 +103,7 @@ void zircon_editor_ui_window_history_command_log::Draw(
 
 int zircon_editor_ui_window_history_command_log::Get_ID(void) const
 {
-	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_CommandHistoryLog);
+	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_HistoryCommandLog);
 }
 
 void zircon_editor_ui_window_history_command_log::Show(void)
