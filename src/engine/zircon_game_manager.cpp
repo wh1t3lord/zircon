@@ -686,24 +686,6 @@ void zircon_game_manager::Initialize(
 
 		p_session_game->set_render_graph_id(render_graph_id);
 
-		KOTEK_ASSERT(this->m_p_console, "must be valid");
-		if (this->m_p_console)
-		{
-#ifdef KOTEK_USE_SDK_IMGUI
-			if (!is_startup_imgui)
-			{
-#endif
-				
-				this->m_p_console->Push_Command(
-					static_cast<kotek::enum_base_t>(eZirconConsoleCommands::
-							set_current_render_graph_for_renderer),
-					{render_graph_id});
-
-#ifdef KOTEK_USE_SDK_IMGUI
-			}
-#endif
-		}
-
 		p_session_game->initialize("game", session_game_id,
 			this->m_p_main_manager, this->m_p_console, p_world,
 
@@ -714,6 +696,24 @@ void zircon_game_manager::Initialize(
 #endif
 
 		);
+
+		KOTEK_ASSERT(this->m_p_console, "must be valid");
+		if (this->m_p_console)
+		{
+#ifdef KOTEK_USE_SDK_IMGUI
+			if (!is_startup_imgui)
+			{
+#endif
+				
+				this->m_p_console->Push_Command(
+					static_cast<kotek::enum_base_t>(eZirconConsoleCommands::
+							set_current_game_session_for_engine),
+					{session_game_id});
+
+#ifdef KOTEK_USE_SDK_IMGUI
+			}
+#endif
+		}
 	}
 
 	this->RegisterConsole_Commands_SDK();
