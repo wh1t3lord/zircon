@@ -399,11 +399,143 @@ int generate_ecs_fields(int argc, const char* p_src, const char* p_header, const
     return 0;
 }
 
+// Helper: Convert snake_case or lower_with_underscores to PascalCase
+std::string to_pascal_case(const std::string& input)
+{
+	std::string result;
+	bool capitalize = true;
+	for (char c : input)
+	{
+		if (c == '_')
+		{
+			capitalize = true;
+		}
+		else
+		{
+			result += capitalize ? std::toupper(c) : c;
+			capitalize = false;
+		}
+	}
+	return result;
+}
+
 int generate_sdk_fields(int argc, char* argv[])
 {
-    
+	if (argc < 3)
+	{
+		std::cerr
+			<< "Usage: --sdk_src <sdk_header_folder> --output <output_file>\n";
+		return 1;
+	}
 
-    return 0;
+	std::string sdk_src_dir = argv[4];
+	std::string output_file = argv[6];
+
+    std::cout << "sdk_src_dir = " << sdk_src_dir << std::endl;
+    std::cout << "output_file = " << output_file << std::endl;
+
+	if (!fs::exists(sdk_src_dir))
+	{
+		std::cerr << "Source directory does not exist: " << sdk_src_dir
+				  << std::endl;
+		return 1;
+	}
+
+	std::vector<fs::path> header_files;
+	for (const auto& entry : fs::directory_iterator(sdk_src_dir))
+	{
+		if (entry.is_regular_file() &&
+			(entry.path().extension() == ".h" ||
+				entry.path().extension() == ".hpp"))
+		{
+			header_files.push_back(entry.path());
+		}
+	}
+
+	std::vector<std::string> enum_fields;
+
+	CXIndex index = clang_createIndex(0, 0);
+	std::vector<const char*> args = {"-x", "c++", "-std=c++20"};
+
+	for (const auto& file_path : header_files)
+	{
+		CXTranslationUnit tu =
+			clang_parseTranslationUnit(index, file_path.string().c_str(),
+				args.data(), args.size(), nullptr, 0, CXTranslationUnit_None);
+
+		if (!tu)
+		{
+			std::cerr << "Failed to parse: " << file_path << std::endl;
+			continue;
+		}
+
+		CXCursor cursor = clang_getTranslationUnitCursor(tu);
+		clang_visitChildren(
+			cursor,
+			[](CXCursor c, CXCursor /*parent*/, CXClientData client_data)
+			{
+				auto* fields =
+					static_cast<std::vector<std::string>*>(client_data);
+				if (clang_getCursorKind(c) == CXCursor_ClassDecl)
+				{
+					CXString cx_class_name = clang_getCursorSpelling(c);
+					std::string class_name = clang_getCString(cx_class_name);
+					clang_disposeString(cx_class_name);
+
+					const std::string prefix = "zircon_editor_ui_window_";
+					if (class_name.find(prefix) == 0 &&
+						class_name.size() > prefix.size())
+					{
+						std::string suffix = class_name.substr(prefix.size());
+						std::string pascal = to_pascal_case(suffix);
+						std::string enum_field = "kWindow_SDK_" + pascal;
+						fields->push_back(enum_field);
+					}
+				}
+				return CXChildVisit_Recurse;
+			},
+			&enum_fields);
+		clang_disposeTranslationUnit(tu);
+	}
+	clang_disposeIndex(index);
+
+	// Write to output file
+	std::ofstream out(output_file);
+	if (!out.good())
+	{
+		std::cerr << "FAILED TO CREATE FILE: " << output_file << std::endl;
+		return 1;
+	}
+
+	out << "/*\n"
+		<< " * Auto-generated enum for Zircon Editor UI Windows\n"
+		<< " * Do not edit manually!\n"
+		<< "*/\n\n"
+		<< "#pragma once\n\n"
+		<< "enum class eZirconWindowIDs : int {\n";
+
+	for (const auto& field : enum_fields)
+	{
+		out << "    " << field << ",\n";
+	}
+	out << "    kTotalAmountOfEnum\n";
+	out << "};\n\n";
+
+    // Add Translate_ZirconWindowIDs function
+	out << "inline const char* Translate_ZirconWindowIDs(eZirconWindowIDs "
+	       "id)\n{\n"
+		<< "    switch (id)\n    {\n";
+	for (const auto& field : enum_fields)
+	{
+		out << "        case eZirconWindowIDs::" << field
+			<< ": return \"" << field << "\";\n";
+	}
+	out << "        default: return \"kWindow_SDK_UNDEFINED_ENUM\";\n";
+	out << "    }\n}\n";
+
+	out.close();
+	std::cout << "SDK window enum file generated: " << output_file << std::endl;
+	return 0;
 }
 
 int main(int argc, char* argv[])

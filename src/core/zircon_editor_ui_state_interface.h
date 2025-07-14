@@ -15,21 +15,4 @@ public:
 	virtual bool is_imgui_show_modal_save_scene(void) const = 0;
 };
 
-enum class eZirconWindowIDs : int
-{
-	kWindow_SDK_Log,
-	kWindow_SDK_Debug_Input,
-	kWindow_SDK_Prefab,
-	kWindow_SDK_CommandHistoryLog,
-	kWindow_SDK_Sound,
-	kWindow_SDK_3DModelAnimation,
-	kWindow_SDK_Topbar,
-	kWindow_SDK_ObjectList,
-	kWindow_SDK_Settings,
-	kWindow_SDK_ComponentInspector,
-	kWindow_SDK_RenderStats,
-	kTotalAmountOfEnum
-};
-
-
-const char* Translate_ZirconWindowIDs(eZirconWindowIDs id);
+#include "zircon_editor_enums.h"

@@ -23,6 +23,25 @@ add_library(${PROJECT_NAME} STATIC
 	"zircon_console.h"
 )
 
+add_custom_command(
+	TARGET ${PROJECT_NAME}
+	PRE_BUILD 
+	COMMAND ${CMAKE_COMMAND} 
+		-S ${CMAKE_SOURCE_DIR}/src/tools/cpp_generators/ecs_fields_generator
+		-B ${CMAKE_BINARY_DIR}/zircon_tools
+		-DKOTEK_DEPS_FOLDER=${KOTEK_DEPS_FOLDER}
+		-DKOTEK_DEPS_FOLDER_ENABLE=${KOTEK_DEPS_FOLDER_ENABLE}
+		-DKOTEK_ENGINE_ROOT_FOLDER_NAME=${KOTEK_ENGINE_ROOT_FOLDER_NAME}
+		-DKOTEK_NUGET_PLATFORM_NAME=${KOTEK_NUGET_PLATFORM_NAME}
+		-DKOTEK_NUGET_COMPILER_NAME=${KOTEK_NUGET_COMPILER_NAME}
+		-DKOTEK_NUGET_ARCH_BIT_NUMBER=${KOTEK_NUGET_ARCH_BIT_NUMBER}
+	COMMAND ${CMAKE_COMMAND}
+		--build ${CMAKE_BINARY_DIR}/zircon_tools
+		--config $<CONFIG>
+	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/$<CONFIG>/zircon_generator" --type 1 --sdk_src D:/prj/cpp/zircon/src/editor/ui --output ${CMAKE_CURRENT_SOURCE_DIR}/zircon_editor_enums.h
+    COMMENT "Generating zircon_editor_enums.h using zircon_generator"
+)
+
 # TODO: add if when game.ktk builds as shared
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine/core")
 if (UNIX)
