@@ -164,17 +164,27 @@ private:
         uint32_t numeric_id = get_field_id(field_name);
         std::string release_value = "\"" + FieldEncoder::encode(numeric_id) + "\"";
         
+        std::string to_upper_class_name = class_name;
+        std::string to_upper_field_name = field_name;
+
+        std::transform(to_upper_class_name.begin(), to_upper_class_name.end(), to_upper_class_name.begin(),
+                   [](unsigned char c) { return std::toupper(c); });
+
+
+        std::transform(to_upper_field_name.begin(), to_upper_field_name.end(), to_upper_field_name.begin(),
+                   [](unsigned char c) { return std::toupper(c); });
+
         std::string debug_macro = "// " + std::to_string(field_index) + " = " + field_name +
-            "\n#define ZIRCON_DEF_EDITOR_" + class_name + "_FIELD_" + field_name + " " + debug_value;
+            "\n#define ZIRCON_DEF_EDITOR_" + to_upper_class_name + "_FIELD_" + to_upper_field_name + " " + debug_value;
         output_debug.push_back(debug_macro);
         
         std::string release_macro = "// " + std::to_string(field_index) + " = " + field_name +
-            "\n#define ZIRCON_DEF_GAME_" + class_name + "_FIELD_" + field_name + " " + release_value;
+            "\n#define ZIRCON_DEF_GAME_" + to_upper_class_name + "_FIELD_" + to_upper_field_name + " " + release_value;
         output_release.push_back(release_macro);
         
         helper_map[class_name].push_back({debug_value, release_value});
         unit_test_release_map[class_name].push_back(
-            "ZIRCON_DEF_GAME_" + class_name + "_FIELD_" + field_name
+            "ZIRCON_DEF_GAME_" + to_upper_class_name + "_FIELD_" + to_upper_field_name
         );
     }
 
@@ -351,16 +361,20 @@ public:
     }
 };
 
-int generate_ecs_fields(int argc, char* argv[])
+int generate_ecs_fields(int argc, const char* p_src, const char* p_header, const char* p_output)
 {
     if (argc < 7) {
-        std::cerr << "Usage: " << argv[0] << " --src <source_dir> --kotek_src <source_dir> --output <output_file>\n";
+        std::cerr << "Usage: " << " --src <source_dir> --kotek_src <source_dir> --output <output_file>\n";
         return 1;
     }
 
-    fs::path src_dir(argv[2]);
-    fs::path header_dir(argv[4]);
-    fs::path output_file(argv[6]);
+    std::cout << "--src = " << p_src << std::endl;
+    std::cout << "--kotek_src = " << p_header << std::endl;
+    std::cout << "--output = " << p_output << std::endl;
+
+    fs::path src_dir(p_src);
+    fs::path header_dir(p_header);
+    fs::path output_file(p_output);
 
     if (!fs::exists(src_dir))
     {
@@ -398,21 +412,31 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < argc; ++i)
     {
+        std::cout << "argv=" << argv[i] << " | strcmp=" << strcmp(argv[i], "--type") << std::endl;
+
         if (!strcmp(argv[i], "--type"))
         {
+            std::cout << "Found type!" << std::endl;
+
             if (i + 1 < argc)
             {
+                std::cout << "type = " << argv[i+1] << std::endl;
                 int type = atoi(argv[i+1]);
                 what_to_generate = type;
+                break;
             }
         }
     }
+
+    std::cout << "what_to_generate: " << what_to_generate << std::endl;
 
     switch (what_to_generate)
     {
         case 0:
         {
-            int result_ecs = generate_ecs_fields(argc, argv);
+            std::cout << "Generating ecs fields!" << std::endl;
+
+            int result_ecs = generate_ecs_fields(argc, argv[4], argv[6], argv[8]);
 
             if (result_ecs != 0)
             {
@@ -424,6 +448,8 @@ int main(int argc, char* argv[])
         }
         case 1:
         {
+            std::cout << "Generating sdk fields!" << std::endl;
+
             int result_sdk = generate_sdk_fields(argc, argv);
 
             if (result_sdk != 0)
@@ -436,7 +462,9 @@ int main(int argc, char* argv[])
         }
         default:
         {
-            int result_ecs = generate_ecs_fields(argc, argv);
+            std::cout << "Generating ecs fields! (default)" << std::endl;
+
+            int result_ecs = generate_ecs_fields(argc, argv[2], argv[4], argv[6]);
 
             if (result_ecs != 0)
             {
@@ -447,6 +475,8 @@ int main(int argc, char* argv[])
             break;
         }
     }
+
+    std::cout << "File was generated successfully!" << std::endl;
 
     return 0;
 }

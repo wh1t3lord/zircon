@@ -281,6 +281,7 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND}
 		--build ${CMAKE_BINARY_DIR}/zircon_tools
 		--config $<CONFIG>
+	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/$<CONFIG>/zircon_generator" --type 0 --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/src/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
     COMMENT "Building zircon_generator"
 )
 
