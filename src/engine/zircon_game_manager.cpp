@@ -595,9 +595,12 @@ void zircon_game_manager::Initialize(
 								ktkRenderGraphSimplifiedRenderPass*,
 							KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 							passes = {
-								new no_streaming::zircon_render_graph_pass_editor_present_gles3(),
-								new  no_streaming::zircon_render_graph_pass_editor_model_static_gles3(),
-								new no_streaming::zircon_render_graph_pass_editor_imgui_gles3()};
+								new no_streaming::
+									zircon_render_graph_pass_editor_present_gles3(),
+								new no_streaming::
+									zircon_render_graph_pass_editor_model_static_gles3(),
+								new no_streaming::
+									zircon_render_graph_pass_editor_imgui_gles3()};
 
 						render_graph_id =
 							this->m_p_renderer_gles3->create_render_graph(
@@ -666,7 +669,8 @@ void zircon_game_manager::Initialize(
 			kotek::static_vector_t<
 				kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
 				KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
-				passes = {new no_streaming::zircon_render_graph_pass_present_gles3()};
+				passes = {
+					new no_streaming::zircon_render_graph_pass_present_gles3()};
 
 			KOTEK_ASSERT(this->m_p_renderer_gles3, "must be valid");
 
@@ -704,7 +708,7 @@ void zircon_game_manager::Initialize(
 			if (!is_startup_imgui)
 			{
 #endif
-				
+
 				this->m_p_console->Push_Command(
 					static_cast<kotek::enum_base_t>(eZirconConsoleCommands::
 							set_current_game_session_for_engine),
@@ -1971,6 +1975,111 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 		return true;
 	};
 
+	auto p_command_initialize_world = [this](const char* p_world) -> bool
+	{
+
+#ifdef KOTEK_USE_SDK_IMGUI
+		KOTEK_ASSERT(this->m_p_session_editor_manager,
+			"must be initialized otherwise early calling!");
+#endif
+
+		KOTEK_ASSERT(this->m_p_session_game_manager,
+			"must be initialized otherwise early calling!");
+
+		KOTEK_ASSERT(this->m_p_current_session,
+			"must be initialize otherwise early calling or you forgot to call "
+			"set session!");
+
+		if (!this->m_p_current_session)
+		{
+			KOTEK_MESSAGE_WARNING("you forgot to set current session, because "
+								  "it is nullptr we can't initialize world!");
+			return false;
+		}
+
+		if (this->m_p_current_session->get_type() ==
+			eZirconSessionType::kEditor)
+		{
+			zircon_session_editor* p_session_editor =
+				static_cast<zircon_session_editor*>(this->m_p_current_session);
+
+			if (p_session_editor->get_world() == nullptr)
+			{
+				KOTEK_MESSAGE_WARNING(
+					"your editor session [{}] doesn't have a valid world, you "
+					"have to "
+					"set world to session before calling this command!",
+					this->m_p_current_session->get_session_name());
+
+				return false;
+			}
+
+			if (p_session_editor->get_world()->is_initialized())
+			{
+				KOTEK_MESSAGE_WARNING("your editor session [{}] contains "
+									  "already initialized world!",
+					p_session_editor->get_session_name());
+
+				return true;
+			}
+
+			p_session_editor->get_world()->initialize(
+				this->m_p_session_editor_manager,
+				this->m_p_session_game_manager, "world_editor",
+				this->m_p_config, this->m_p_console,
+				this->m_p_main_manager->Get_Input());
+
+			KOTEK_MESSAGE("initialized world [{}]:{} for editor session!",
+				p_session_editor->get_world()->get_name(),
+				p_session_editor->get_world()->get_id());
+		}
+		else if (this->m_p_current_session->get_type() ==
+			eZirconSessionType::kGame)
+		{
+			zircon_session_game* p_session_game =
+				static_cast<zircon_session_game*>(this->m_p_current_session);
+
+			if (p_session_game->get_world() == nullptr)
+			{
+				KOTEK_MESSAGE_WARNING(
+					"your game session [{}] doesn't have a valid world, you "
+					"have to "
+					"set world to session before calling this command!",
+					this->m_p_current_session->get_session_name());
+
+				return false;
+			}
+
+			if (p_session_game->get_world()->is_initialized())
+			{
+				KOTEK_MESSAGE_WARNING("your game session [{}] contains already "
+									  "initialized world!",
+					p_session_game->get_session_name());
+				return true;
+			}
+
+			p_session_game->get_world()->initialize(
+				this->m_p_session_editor_manager,
+				this->m_p_session_game_manager, "world_game", this->m_p_config,
+				this->m_p_console, this->m_p_main_manager->Get_Input());
+
+			KOTEK_MESSAGE("initialized world [{}]:{} for game session!",
+				p_session_game->get_world()->get_name(),
+				p_session_game->get_world()->get_id());
+		}
+		else
+		{
+			KOTEK_MESSAGE_WARNING(
+				"you have undefine session type we can't execute command "
+				"properly due to fact that we don't know to which session type "
+				"to cast! Session: [{}]",
+				this->m_p_current_session->get_session_name());
+			return false;
+		}
+
+		return true;
+	};
+
 	this->m_p_console->Register_Command(p_command_sdk_show_window,
 		static_cast<kotek::ktk::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::kConsoleCommand_SDK_ShowWindow));
@@ -2006,6 +2115,10 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 	this->m_p_console->Register_Command(p_command_initialize_render_graph,
 		static_cast<kotek::enum_base_t>(
 			eZirconConsoleCommands::initialize_render_graph));
+
+	this->m_p_console->Register_Command(p_command_initialize_world,
+		static_cast<kotek::enum_base_t>(
+			eZirconConsoleCommands::initialize_world));
 }
 
 void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
@@ -2363,6 +2476,18 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 				{
 					if (p_session->get_world())
 					{
+						if (p_session->get_world()->is_initialized() == false)
+						{
+							KOTEK_MESSAGE_WARNING(
+								"your world {} is not initialized in editor "
+								"session_{}#{}",
+								p_session->get_world()->get_id(),
+								p_session->get_session_name(),
+								p_session->get_id());
+
+							return true;
+						}
+
 						p_factory = p_session->get_world()->get_factory();
 					}
 					else
@@ -2446,6 +2571,15 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					{
 						p_history_manager = p_session->get_command_history();
 						p_world = p_session->get_world();
+
+						if (p_world && p_world->is_initialized() == false)
+						{
+							KOTEK_MESSAGE_WARNING(
+								"your world {} is not initialized in "
+								"editor session_{}#{}",
+								p_world->get_id(), p_session->get_session_name(), p_session->get_id());
+							return true;
+						}
 					}
 					else
 					{
@@ -2495,6 +2629,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 		this->m_p_console->Register_Command(
 			[this](const char* component_name, kotek::uint32_t entity) -> bool
 			{
+#ifdef KOTEK_USE_SDK_IMGUI
 				KOTEK_ASSERT(this->m_p_session_editor_manager,
 					"you need to initialize session editor manager!");
 
@@ -2526,6 +2661,18 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 
 						if (p_session->get_world())
 						{
+							if (p_session->get_world()->is_initialized() ==
+								false)
+							{
+								KOTEK_MESSAGE_WARNING(
+									"world {} is not initialized in editor "
+									"session_{}#{}",
+									p_session->get_world()->get_id(),
+									p_session->get_session_name(),
+									p_session->get_id());
+								return true;
+							}
+
 							p_factory = p_session->get_world()->get_factory();
 						}
 						else
@@ -2595,6 +2742,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 
 					p_history_manager->ExecuteCommand(p_command);
 				}
+
+#endif
 
 				return true;
 			},

@@ -50,7 +50,8 @@
 	OP(destroy_world)                                                \
 	OP(set_world_to_session)                                         \
 	OP(set_current_render_graph_for_renderer)                        \
-	OP(initialize_render_graph)
+	OP(initialize_render_graph)                                      \
+	OP(initialize_world)
 
 enum class eZirconConsoleCommands : kotek::enum_base_t
 {

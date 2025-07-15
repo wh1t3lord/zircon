@@ -39,7 +39,10 @@ public:
 
 	kotek::uint8_t get_id(void) const noexcept;
 
+	bool is_initialized(void) const noexcept;
+
 private:
+	bool m_is_initialized;
 	kotek::uint8_t m_id;
 	entt::entity m_actor_entity_id;
 	kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH> m_name;

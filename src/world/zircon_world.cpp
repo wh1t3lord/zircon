@@ -4,7 +4,7 @@ constexpr kotek::uint8_t _kInvalidWorldID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
 zircon_world::zircon_world(kotek::uint8_t id) :
-	m_id{id}, m_actor_entity_id{}, m_name{"not_inited"}
+	m_is_initialized{}, m_id{id}, m_actor_entity_id{}, m_name{"not_inited"}
 {
 }
 
@@ -22,6 +22,8 @@ void zircon_world::shutdown(void) noexcept
 #endif
 
 	this->m_factory.Shutdown();
+
+	this->m_is_initialized = false;
 }
 
 void zircon_world::initialize(
@@ -32,6 +34,9 @@ void zircon_world::initialize(
 	zircon_config* p_config, kotek::core::ktkConsole* p_console,
 	kotek::core::ktkIInput* p_input) noexcept
 {
+	KOTEK_ASSERT(this->m_is_initialized == false,
+		"you need to call this only when is not initialized!");
+
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE("created world: {}", name);
 #endif
@@ -40,6 +45,8 @@ void zircon_world::initialize(
 
 	this->m_factory.Initialize(p_config, p_manager_session_game,
 		p_manager_session_editor, p_console, p_input);
+
+	this->m_is_initialized = true;
 }
 
 kotek::view_entities_t zircon_world::get_entities(void) const noexcept
@@ -70,6 +77,11 @@ const zircon_factory* zircon_world::get_factory(void) const noexcept
 kotek::uint8_t zircon_world::get_id(void) const noexcept
 {
 	return this->m_id;
+}
+
+bool zircon_world::is_initialized(void) const noexcept 
+{
+	return this->m_is_initialized;
 }
 
 entt::entity zircon_world::create_entity(void)
