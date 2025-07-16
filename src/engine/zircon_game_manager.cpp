@@ -717,6 +717,11 @@ void zircon_game_manager::Initialize(
 #ifdef KOTEK_USE_SDK_IMGUI
 			}
 #endif
+
+			this->m_p_console->Push_Command(
+				static_cast<kotek::enum_base_t>(
+					eZirconConsoleCommands::initialize_world),
+				{"world"});
 		}
 	}
 
@@ -1975,7 +1980,10 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 		return true;
 	};
 
-	auto p_command_initialize_world = [this](const char* p_world) -> bool
+	auto p_command_initialize_world =
+		[this](kotek::static_cstring_t<
+			ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>
+				world_name) -> bool
 	{
 
 #ifdef KOTEK_USE_SDK_IMGUI
@@ -2025,7 +2033,7 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 
 			p_session_editor->get_world()->initialize(
 				this->m_p_session_editor_manager,
-				this->m_p_session_game_manager, "world_editor",
+				this->m_p_session_game_manager, world_name,
 				this->m_p_config, this->m_p_console,
 				this->m_p_main_manager->Get_Input());
 
@@ -2060,7 +2068,7 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 
 			p_session_game->get_world()->initialize(
 				this->m_p_session_editor_manager,
-				this->m_p_session_game_manager, "world_game", this->m_p_config,
+				this->m_p_session_game_manager, world_name, this->m_p_config,
 				this->m_p_console, this->m_p_main_manager->Get_Input());
 
 			KOTEK_MESSAGE("initialized world [{}]:{} for game session!",
