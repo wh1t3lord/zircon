@@ -721,7 +721,8 @@ void zircon_game_manager::Initialize(
 			this->m_p_console->Push_Command(
 				static_cast<kotek::enum_base_t>(
 					eZirconConsoleCommands::initialize_world),
-				{"world"});
+				{kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>{
+					"world"}});
 		}
 	}
 
