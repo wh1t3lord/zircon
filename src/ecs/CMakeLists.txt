@@ -65,7 +65,7 @@ set(to_include_sdk_ecs_files
 	"zircon_component_sdk_input.cpp"
 )
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+#find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 file(WRITE ${zircon_enum_file_name} "#pragma once")
 file(WRITE ${zircon_components_to_enums_file_name} "void zircon_factory::register_components_and_their_enums() 
@@ -231,6 +231,48 @@ file(APPEND ${zircon_validate_get_component_type_of_all_components} "
 #    RESULT_VARIABLE generate_fields_component_header_result
 #    ERROR_VARIABLE error_output
 #)
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} 
+        -S ${CMAKE_SOURCE_DIR}/src/tools/cpp_generators/ecs_fields_generator
+        -B ${CMAKE_BINARY_DIR}/zircon_tools
+        -DKOTEK_DEPS_FOLDER=${KOTEK_DEPS_FOLDER}
+        -DKOTEK_DEPS_FOLDER_ENABLE=${KOTEK_DEPS_FOLDER_ENABLE}
+        -DKOTEK_ENGINE_ROOT_FOLDER_NAME=${KOTEK_ENGINE_ROOT_FOLDER_NAME}
+        -DKOTEK_NUGET_PLATFORM_NAME=${KOTEK_NUGET_PLATFORM_NAME}
+        -DKOTEK_NUGET_COMPILER_NAME=${KOTEK_NUGET_COMPILER_NAME}
+        -DKOTEK_NUGET_ARCH_BIT_NUMBER=${KOTEK_NUGET_ARCH_BIT_NUMBER}
+)
+
+
+
+# Determine current build configuration
+if(CMAKE_CONFIGURATION_TYPES)
+    # Multi-config generator (Visual Studio, Xcode, etc.)
+    # We can't know the active config at configure time, so we'll use the first available
+    list(GET CMAKE_CONFIGURATION_TYPES 0 current_config)
+    message(STATUS "Multi-config generator detected, using first configuration: ${current_config}")
+else()
+    # Single-config generator (Make, Ninja, etc.)
+    set(current_config "${CMAKE_BUILD_TYPE}")
+    if(NOT current_config)
+        set(current_config "Release")  # Default if not specified
+    endif()
+    message(STATUS "Build configuration: ${current_config}")
+endif()
+
+message(STATUS "building zircon_tools for current configuration: ${current_config}")
+
+
+execute_process(
+	COMMAND ${CMAKE_COMMAND}
+		--build ${CMAKE_BINARY_DIR}/zircon_tools
+		--config ${current_config}		
+)
+
+execute_process(
+	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/${current_config}/zircon_generator" --type 0 --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/src/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
+)
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_sdk_ecs_files}
