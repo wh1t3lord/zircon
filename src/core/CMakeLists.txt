@@ -38,7 +38,7 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND}
 		--build ${CMAKE_BINARY_DIR}/zircon_tools
 		--config $<CONFIG>
-	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/$<CONFIG>/zircon_generator" --type 1 --sdk_src D:/prj/cpp/zircon/src/editor/ui --output ${CMAKE_CURRENT_SOURCE_DIR}/zircon_editor_enums.h
+	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/$<CONFIG>/zircon_generator" --type 1 --sdk_src ${CMAKE_SOURCE_DIR}/src/editor/ui --output ${CMAKE_CURRENT_SOURCE_DIR}/zircon_editor_enums.h
     COMMENT "Generating zircon_editor_enums.h using zircon_generator"
 )
 
