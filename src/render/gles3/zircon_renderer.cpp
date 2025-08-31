@@ -49,6 +49,13 @@ void zircon_renderer_gles3::Initialize(kotek::core::ktkWindowConsole* p_console,
 
 	this->m_p_session_game_manager = p_manager_game_session;
 
+#ifdef KOTEK_DEBUG
+	KOTEK_MESSAGE("Vendor: {} Renderer: {} Version: {} Shading Language: {}",
+		(char*)(glGetString(GL_VENDOR)), (char*)(glGetString(GL_RENDERER)),
+		(char*)(glGetString(GL_VERSION)),
+		(char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+#endif
+
 	this->initialize_extensions(p_con);
 
 	this->m_p_render_resource_manager =
@@ -121,8 +128,8 @@ bool zircon_renderer_gles3::is_render_graph_for_session_editor(
 	bool result{};
 
 	result = this->is_render_graph_presented(render_graph_id);
-	KOTEK_ASSERT(result,
-		"render graph by id {} must be presented in renderer!");
+	KOTEK_ASSERT(
+		result, "render graph by id {} must be presented in renderer!");
 
 	if (result)
 	{
@@ -200,9 +207,9 @@ void zircon_renderer_gles3::initialize_render_graph(
 
 		const auto& passes = info.graph.Get_Passes();
 
-		// user pre-initialization with user defined initialization where by design
-		// we can't and don't want to use interfaces or something else in order
-		// to call our "native" with user defined classes and structs
+		// user pre-initialization with user defined initialization where by
+		// design we can't and don't want to use interfaces or something else in
+		// order to call our "native" with user defined classes and structs
 		for (kotek::render::gl::ktkRenderGraphSimplifiedRenderPass* p_pass :
 			passes)
 		{
@@ -272,8 +279,8 @@ void zircon_renderer_gles3::set_current_render_graph(
 }
 
 template <unsigned char Size>
-bool validate_extensions(const char* (&extension_names)[Size],
-	kotek::core::ktkConsole* p_console)
+bool validate_extensions(
+	const char* (&extension_names)[Size], kotek::core::ktkConsole* p_console)
 {
 	KOTEK_ASSERT(p_console, "must be valid!");
 
