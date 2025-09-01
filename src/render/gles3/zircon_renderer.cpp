@@ -313,11 +313,9 @@ bool validate_extensions(
 	{
 		if (presented[i] == false)
 		{
-			KOTEK_ASSERT(false,
-				"your device's driver doesn't support a such extension [{}] "
-				"thus we "
-				"can't run application :(",
-				extension_names[i]);
+			// todo: if feature about closing application on validation checking
+			// is enabled we fail return result otherwise it is persistent true
+			// status = false;
 
 			KOTEK_MESSAGE("//////////");
 
@@ -325,22 +323,29 @@ bool validate_extensions(
 			{
 				if (presented[j] == false)
 				{
-					KOTEK_MESSAGE("device unsupported extensions: {}",
+					KOTEK_MESSAGE_WARNING(
+						"(formally) device unsupported extensions: {}",
 						extension_names[j]);
 				}
 			}
 
 			KOTEK_MESSAGE("//////////");
 
+			// todo: provide feature for user config that we can close
+			// application if validation checking failed, but we keep closing if
+			// we failed to load functions (so it is obvious because if we
+			// failed to load functions it means driver doesn't support a such
+			// functionality)
+			/*
 			if (p_console)
 			{
-				status = false;
-				p_console->Push_Command(
-					static_cast<kotek::ktk::enum_base_t>(kotek::core::
-							eConsoleCommandIndex::kConsoleCommand_App_Close),
-					{});
-				break;
+			    p_console->Push_Command(
+			        static_cast<kotek::ktk::enum_base_t>(kotek::core::
+			                eConsoleCommandIndex::kConsoleCommand_App_Close),
+			        {});
+			    break;
 			}
+			*/
 		}
 	}
 
