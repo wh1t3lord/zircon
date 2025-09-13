@@ -91,16 +91,70 @@ set(to_include_opengles3_game_pass_interface
 
 ### OpenGL ES
 
+### BGFX
+
+set(to_include_bgfx_implementation_files
+	"bgfx/zircon_renderer.h"
+	"bgfx/zircon_renderer.cpp"
+	"bgfx/zircon_render_resource_manager.h"
+	"bgfx/zircon_render_resource_manager.cpp"
+)
+
+set(to_include_bgfx_editor_pass_interface
+	"bgfx/zircon_render_graph_pass_editor.h"
+	"bgfx/zircon_render_graph_pass_editor.cpp"
+)
+
+set(to_include_bgfx_game_pass_interface
+	"bgfx/zircon_render_graph_pass.h"
+	"bgfx/zircon_render_graph_pass.cpp"
+)
+
+set(to_include_bgfx_game_passes_no_streaming_files
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_imgui.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_imgui.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_present.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_present.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_model_static.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_model_static.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_terrain.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_terrain.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_debug.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_debug.cpp"
+)
+
+set(to_include_bgfx_editor_passes_no_streaming_files
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_imgui.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_present.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_present.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_model_static.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_debug.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_camera.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_camera.cpp"
+)
+
+### BGFX
+
 ### shaders
 file(GLOB to_include_shaders_gles
 	"../../data_game/shaders/glsl/gles3/*.vert"
 	"../../data_game/shaders/glsl/gles3/*.frag"
 )
 
+file(GLOB to_include_shaders_bgfx
+	"../../data_game/shaders/bgfx/*.frag"
+	"../../data_game/shaders/bgfx/*.vert"
+)
+
 ### shaders
 
 ### os
-set(to_include_os
+set(to_include_shared_os
 	"os/zircon_render_graph_pass_console.h"
 	"os/zircon_render_graph_pass_console.cpp"
 )
@@ -120,16 +174,30 @@ set(to_include_passes_vulkan
 	"todo: include and merge other like I did to_include_passes_files_opengles3"
 )
 
-add_library(${PROJECT_NAME} STATIC
-#	${to_include_vulkan_files}
-#	${to_include_vulkan_passes_files}
-	${to_include_shaders_gles}
+set(to_include_bgfx
+	${to_include_bgfx_implementation_files}
+	${to_include_bgfx_game_passes_no_streaming_files}
+	${to_include_bgfx_game_pass_interface}
+	${to_include_bgfx_editor_passes_no_streaming_files}
+	${to_include_bgfx_editor_pass_interface}
+	${to_include_shaders_bgfx}
+)
+
+set(to_include_opengles3
 	${to_include_opengles3_game_pass_interface}
 	${to_include_opengles3_editor_pass_interface}
 	${to_include_opengles3_implementation_files}
 	${to_include_passes_files_opengles3}
+)
+
+add_library(${PROJECT_NAME} STATIC
+#	${to_include_vulkan_files}
+#	${to_include_vulkan_passes_files}
+	${to_include_shaders_gles}
+	${to_include_opengles3}
+	${to_include_bgfx}
 	${to_include_module_files}
-	${to_include_os}
+	${to_include_shared_os}
 )
 
 # TODO: add if when game.ktk builds as shared
@@ -148,11 +216,20 @@ source_group("OpenGL/3.3/Implementation" FILES ${to_include_opengl3_3_implementa
 source_group("OpenGL/3.3/Passes" FILES ${to_include_opengl3_3_passes_files})
 source_group("OpenGL ES/3/Implementation" FILES ${to_include_opengles3_implementation_files})
 source_group("OpenGL ES/3/Passes/Game/No Streaming" FILES ${to_include_opengles3_game_passes_no_streaming_files})
-source_group("OpenGL ES/3/Passes/Game/Interface" FILES ${to_include_opengles3_game_pass_interface})
+source_group("OpenGL ES/3/Passes/Game/Interfaces" FILES ${to_include_opengles3_game_pass_interface})
 source_group("OpenGL ES/3/Passes/Editor/No Streaming" FILES ${to_include_opengles3_editor_passes_no_streaming_files})
-source_group("OpenGL ES/3/Passes/Editor/Interface" FILES ${to_include_opengles3_editor_pass_interface})
+source_group("OpenGL ES/3/Passes/Editor/Interfaces" FILES ${to_include_opengles3_editor_pass_interface})
 source_group("OpenGL ES/3/Shaders" FILES ${to_include_shaders_gles})
-source_group("OpenGL ES/3/Passes/OS" FILES ${to_include_os})
+source_group("OpenGL ES/3/Passes/OS" FILES ${to_include_shared_os})
+
+source_group("BGFX/Implementation" FILES ${to_include_bgfx_implementation_files})
+source_group("BGFX/Passes/Game/No Streaming" FILES ${to_include_bgfx_game_passes_no_streaming_files})
+source_group("BGFX/Passes/Game/Interfaces" FILES ${to_include_bgfx_game_pass_interface})
+source_group("BGFX/Passes/Editor/No Streaming" FILES ${to_include_bgfx_editor_passes_no_streaming_files})
+source_group("BGFX/Passes/Editor/Interfaces" FILES ${to_include_bgfx_editor_pass_interface})
+source_group("BGFX/Shaders" FILES ${to_include_shaders_bgfx})
+source_group("BGFX/Passes/OS" FILES ${to_include_shared_os})
+
 source_group("Module" FILES ${to_include_module_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
