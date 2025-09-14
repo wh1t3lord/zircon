@@ -13,14 +13,14 @@ namespace no_streaming
 	zircon_render_graph_pass_editor_model_static_bgfx::
 		zircon_render_graph_pass_editor_model_static_bgfx(
 			const kotek::static_u8string_view_t& render_pass_name) :
-		zircon_render_graph_pass_editor(render_pass_name),
+		zircon_render_graph_pass_editor_bgfx(render_pass_name),
 		m_p_manager_render_resource{}
 	{
 	}
 
 	zircon_render_graph_pass_editor_model_static_bgfx::
 		zircon_render_graph_pass_editor_model_static_bgfx() :
-		zircon_render_graph_pass_editor(), m_p_manager_render_resource{}
+		zircon_render_graph_pass_editor_bgfx(), m_p_manager_render_resource{}
 	{
 	}
 
