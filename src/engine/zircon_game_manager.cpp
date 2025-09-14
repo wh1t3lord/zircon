@@ -42,6 +42,22 @@
 
 // gles3
 
+// bgfx
+#ifdef KOTEK_USE_BGFX
+	#include "../render/bgfx/zircon_renderer.h"
+
+// editor passes
+	#ifdef KOTEK_USE_SDK_IMGUI
+		#include "../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
+		#include "../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
+		#include "../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_present.h"
+	#endif
+
+	// game passes
+	#include "../render/bgfx/passes/no_streaming/zircon_render_graph_pass_present.h"
+#endif
+// bgfx
+
 #include "../render/vk/zircon_renderer.h"
 #include "../core/zircon_config.h"
 #include "../core/zircon_console.h"
@@ -721,8 +737,8 @@ void zircon_game_manager::Initialize(
 			this->m_p_console->Push_Command(
 				static_cast<kotek::enum_base_t>(
 					eZirconConsoleCommands::initialize_world),
-				{kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>{
-					"world"}});
+				{kotek::static_cstring_t<
+					ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>{"world"}});
 		}
 	}
 
@@ -1982,8 +1998,7 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 	};
 
 	auto p_command_initialize_world =
-		[this](kotek::static_cstring_t<
-			ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>
+		[this](kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>
 				world_name) -> bool
 	{
 
@@ -2034,9 +2049,8 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 
 			p_session_editor->get_world()->initialize(
 				this->m_p_session_editor_manager,
-				this->m_p_session_game_manager, world_name,
-				this->m_p_config, this->m_p_console,
-				this->m_p_main_manager->Get_Input());
+				this->m_p_session_game_manager, world_name, this->m_p_config,
+				this->m_p_console, this->m_p_main_manager->Get_Input());
 
 			KOTEK_MESSAGE("initialized world [{}]:{} for editor session!",
 				p_session_editor->get_world()->get_name(),
@@ -2586,7 +2600,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 							KOTEK_MESSAGE_WARNING(
 								"your world {} is not initialized in "
 								"editor session_{}#{}",
-								p_world->get_id(), p_session->get_session_name(), p_session->get_id());
+								p_world->get_id(),
+								p_session->get_session_name(),
+								p_session->get_id());
 							return true;
 						}
 					}

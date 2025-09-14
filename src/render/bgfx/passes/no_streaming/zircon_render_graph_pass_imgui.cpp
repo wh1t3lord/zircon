@@ -7,7 +7,7 @@ namespace no_streaming
 	zircon_render_graph_pass_imgui_bgfx::zircon_render_graph_pass_imgui_bgfx(
 		const kotek::static_u8string_view_t& render_pass_name,
 		kotek::core::ktkMainManager* p_main_manager) :
-		zircon_render_graph_pass(render_pass_name.data()),
+		zircon_render_graph_pass_bgfx(render_pass_name.data()),
 		m_p_main_manager{p_main_manager},
 		m_p_imgui_wrapper{p_main_manager->Get_ImguiWrapper()}
 	{

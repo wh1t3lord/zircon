@@ -164,9 +164,10 @@ kotek::uint8_t zircon_renderer_bgfx::create_render_graph(
 	}
 
 	kotek::uint8_t render_graph_id = this->m_render_graphs.size();
-	this->m_render_graphs.push_back(zircon_render_graph_simplified_info_t());
+	this->m_render_graphs.push_back(
+		zircon_render_graph_simplified_bgfx_info_t());
 
-	zircon_render_graph_simplified_info_t& info =
+	zircon_render_graph_simplified_bgfx_info_t& info =
 		this->m_render_graphs[render_graph_id];
 
 	info.session_id = session_id;
@@ -221,8 +222,8 @@ void zircon_renderer_bgfx::initialize_render_graph(
 				"zircon_render_graph_pass_editor";
 
 			KOTEK_ASSERT(info.is_game_session
-					? !!(dynamic_cast<zircon_render_graph_pass*>(p_pass))
-					: !!(dynamic_cast<zircon_render_graph_pass_editor*>(
+					? !!(dynamic_cast<zircon_render_graph_pass_bgfx*>(p_pass))
+					: !!(dynamic_cast<zircon_render_graph_pass_editor_bgfx*>(
 						  p_pass)),
 				"failed to cast! expected type is {} for {} session",
 				info.is_game_session ? _kDebugNameZirconRenderGraphPass
@@ -231,15 +232,15 @@ void zircon_renderer_bgfx::initialize_render_graph(
 
 			if (info.is_game_session)
 			{
-				zircon_render_graph_pass* p_game_pass =
-					static_cast<zircon_render_graph_pass*>(p_pass);
+				zircon_render_graph_pass_bgfx* p_game_pass =
+					static_cast<zircon_render_graph_pass_bgfx*>(p_pass);
 
 				p_game_pass->OnRegisterManagers(p_manager_game_session);
 			}
 			else
 			{
-				zircon_render_graph_pass_editor* p_editor_pass =
-					static_cast<zircon_render_graph_pass_editor*>(p_pass);
+				zircon_render_graph_pass_editor_bgfx* p_editor_pass =
+					static_cast<zircon_render_graph_pass_editor_bgfx*>(p_pass);
 
 				p_editor_pass->OnRegisterManagers(p_manager_editor_session);
 			}

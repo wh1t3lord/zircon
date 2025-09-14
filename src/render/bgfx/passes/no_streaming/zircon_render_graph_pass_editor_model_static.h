@@ -19,7 +19,7 @@ class zircon_factory;
 namespace no_streaming
 {
 	class zircon_render_graph_pass_editor_model_static_bgfx
-		: public zircon_render_graph_pass_editor
+		: public zircon_render_graph_pass_editor_bgfx
 	{
 	public:
 		zircon_render_graph_pass_editor_model_static_bgfx(

@@ -20,7 +20,7 @@ class zircon_session_game_manager;
 
 #define ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT 2
 
-struct zircon_render_graph_simplified_info_t
+struct zircon_render_graph_simplified_bgfx_info_t
 {
 	bool in_use{};
 	bool is_game_session{};
@@ -93,7 +93,7 @@ private:
 	kotek::render::bgfx::ktkRenderDevice* m_p_render_device;
 	kotek::render::bgfx::ktkRenderResourceManager* m_p_render_resource_manager;
 	kotek::render::bgfx::ktkRenderGraphSimplified* m_p_current_render_graph;
-	kotek::vector_t<zircon_render_graph_simplified_info_t,
+	kotek::vector_t<zircon_render_graph_simplified_bgfx_info_t,
 		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>
 		m_render_graphs;
 };

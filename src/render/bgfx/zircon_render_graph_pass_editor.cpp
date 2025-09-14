@@ -2,7 +2,7 @@
 
 #include "../../editor/session/zircon_session_editor_manager.h"
 
-zircon_render_graph_pass_editor::zircon_render_graph_pass_editor(
+zircon_render_graph_pass_editor_bgfx::zircon_render_graph_pass_editor_bgfx(
 	const kotek::static_u8string_view_t& render_pass_name) :
 	kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass(
 		render_pass_name.data()),
@@ -10,15 +10,15 @@ zircon_render_graph_pass_editor::zircon_render_graph_pass_editor(
 {
 }
 
-zircon_render_graph_pass_editor::zircon_render_graph_pass_editor() :
+zircon_render_graph_pass_editor_bgfx::zircon_render_graph_pass_editor_bgfx() :
 	kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass(),
 	m_p_manager_session_editor{}
 {
 }
 
-zircon_render_graph_pass_editor::~zircon_render_graph_pass_editor() {}
+zircon_render_graph_pass_editor_bgfx::~zircon_render_graph_pass_editor_bgfx() {}
 
-void zircon_render_graph_pass_editor::OnRegisterManagers(
+void zircon_render_graph_pass_editor_bgfx::OnRegisterManagers(
 	zircon_session_editor_manager* p_manager_session_editor) noexcept
 {
 	KOTEK_ASSERT(p_manager_session_editor,

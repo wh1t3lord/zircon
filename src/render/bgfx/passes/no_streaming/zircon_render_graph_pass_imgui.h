@@ -4,7 +4,7 @@
 
 namespace no_streaming
 {
-	class zircon_render_graph_pass_imgui_bgfx : public zircon_render_graph_pass
+	class zircon_render_graph_pass_imgui_bgfx : public zircon_render_graph_pass_bgfx
 	{
 	public:
 		zircon_render_graph_pass_imgui_bgfx(
