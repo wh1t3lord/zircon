@@ -494,7 +494,7 @@ void WindowCallback_WindowFocus(GLFWwindow* p_window, int focused)
 zircon_game_manager::zircon_game_manager(void) :
 	m_is_use_sdk{}, m_is_use_sdk_imgui{}, m_world_id{}, m_p_profiler{},
 	m_p_console{}, m_p_main_manager{}, m_p_current_renderer{},
-	m_p_window_console{}, m_p_current_session{}, m_p_renderer_gles3{},
+	m_p_window_console{}, m_p_current_session{}, m_renderers{},
 	m_p_world_manager{}, m_p_resource_manager{}, m_p_config{},
 	m_p_session_game_manager{}
 #ifdef KOTEK_USE_SDK_IMGUI
@@ -601,27 +601,56 @@ void zircon_game_manager::Initialize(
 				case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
 				case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 				{
-					KOTEK_ASSERT(
-						this->m_p_renderer_gles3, "must be iniitialized");
+					bool isBGFX = p_engine_config->IsFeatureEnabled(
+						kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-					if (this->m_p_renderer_gles3)
+					if (isBGFX)
 					{
-						kotek::static_vector_t<
-							kotek::render::gl::
-								ktkRenderGraphSimplifiedRenderPass*,
-							KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
-							passes = {
-								new no_streaming::
-									zircon_render_graph_pass_editor_present_gles3(),
-								new no_streaming::
-									zircon_render_graph_pass_editor_model_static_gles3(),
-								new no_streaming::
-									zircon_render_graph_pass_editor_imgui_gles3()};
+						KOTEK_ASSERT(
+							this->m_renderers.p_bgfx, "must be initialized!");
 
-						render_graph_id =
-							this->m_p_renderer_gles3->create_render_graph(
-								session_editor_id, false, passes);
+						if (this->m_renderers.p_bgfx)
+						{
+							kotek::static_vector_t<
+								kotek::render::bgfx::
+									ktkRenderGraphSimplifiedRenderPass*,
+								KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+								passes = {
+									new no_streaming::
+										zircon_render_graph_pass_editor_present_bgfx(),
+									new no_streaming::
+										zircon_render_graph_pass_editor_imgui_bgfx()};
+
+							render_graph_id =
+								this->m_renderers.p_bgfx->create_render_graph(
+									session_editor_id, false, passes);
+						}
 					}
+					else
+					{
+						KOTEK_ASSERT(
+							this->m_renderers.p_gles3, "must be iniitialized");
+
+						if (this->m_renderers.p_gles3)
+						{
+							kotek::static_vector_t<
+								kotek::render::gl::
+									ktkRenderGraphSimplifiedRenderPass*,
+								KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+								passes = {
+									new no_streaming::
+										zircon_render_graph_pass_editor_present_gles3(),
+									new no_streaming::
+										zircon_render_graph_pass_editor_model_static_gles3(),
+									new no_streaming::
+										zircon_render_graph_pass_editor_imgui_gles3()};
+
+							render_graph_id =
+								this->m_renderers.p_gles3->create_render_graph(
+									session_editor_id, false, passes);
+						}
+					}
+
 					break;
 				}
 				default:
@@ -682,18 +711,40 @@ void zircon_game_manager::Initialize(
 		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
 		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 		{
-			kotek::static_vector_t<
-				kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
-				KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
-				passes = {
-					new no_streaming::zircon_render_graph_pass_present_gles3()};
+			bool isBGFX = p_engine_config->IsFeatureEnabled(
+				kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-			KOTEK_ASSERT(this->m_p_renderer_gles3, "must be valid");
+			if (isBGFX)
+			{
+				kotek::static_vector_t<
+					kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
+					KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+					passes = {new no_streaming::
+							zircon_render_graph_pass_present_bgfx()};
 
-			KOTEK_ASSERT(p_session_game, "must be valid!");
+				KOTEK_ASSERT(this->m_renderers.p_bgfx, "must be valid!");
 
-			render_graph_id = this->m_p_renderer_gles3->create_render_graph(
-				session_game_id, true, passes);
+				KOTEK_ASSERT(p_session_game, "must be valid!");
+
+				render_graph_id = this->m_renderers.p_bgfx->create_render_graph(
+					session_game_id, true, passes);
+			}
+			else
+			{
+				kotek::static_vector_t<
+					kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
+					KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+					passes = {new no_streaming::
+							zircon_render_graph_pass_present_gles3()};
+
+				KOTEK_ASSERT(this->m_renderers.p_gles3, "must be valid");
+
+				KOTEK_ASSERT(p_session_game, "must be valid!");
+
+				render_graph_id =
+					this->m_renderers.p_gles3->create_render_graph(
+						session_game_id, true, passes);
+			}
 
 			break;
 		}
@@ -1128,15 +1179,34 @@ void zircon_game_manager::initialize_render_graph(
 	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
 	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 	{
-		KOTEK_ASSERT(this->m_p_renderer_gles3,
-			"renderer for gles 3.0 wasn't initialized");
+		bool isBGFX = p_config->IsFeatureEnabled(
+			kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-		if (this->m_p_renderer_gles3)
+		if (isBGFX)
 		{
-			this->m_p_renderer_gles3->initialize_render_graph(render_graph_id,
-				p_main_manager, p_render_resource_manager,
-				this->m_p_session_game_manager,
-				this->m_p_session_editor_manager);
+			KOTEK_ASSERT(this->m_renderers.p_bgfx,
+				"renderer for gles wasn't initialized (bgfx)");
+
+			if (this->m_renderers.p_bgfx)
+			{
+				this->m_renderers.p_bgfx->initialize_render_graph(
+					render_graph_id, p_main_manager, p_render_resource_manager,
+					this->m_p_session_game_manager,
+					this->m_p_session_editor_manager);
+			}
+		}
+		else
+		{
+			KOTEK_ASSERT(this->m_renderers.p_gles3,
+				"renderer for gles 3.0 wasn't initialized");
+
+			if (this->m_renderers.p_gles3)
+			{
+				this->m_renderers.p_gles3->initialize_render_graph(
+					render_graph_id, p_main_manager, p_render_resource_manager,
+					this->m_p_session_game_manager,
+					this->m_p_session_editor_manager);
+			}
 		}
 
 		break;
@@ -1169,13 +1239,30 @@ bool zircon_game_manager::is_render_graph_initialized(
 	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
 	case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 	{
-		KOTEK_ASSERT(this->m_p_renderer_gles3,
-			"renderer for gles 3.0 wasn't initialized");
+		bool isBGFX = p_config->IsFeatureEnabled(
+			kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-		if (this->m_p_renderer_gles3)
+		if (isBGFX)
 		{
-			result = this->m_p_renderer_gles3->is_render_graph_initialized(
-				render_graph_id);
+			KOTEK_ASSERT(this->m_renderers.p_bgfx,
+				"renderer for gles wasn't initialized (bgfx)");
+
+			if (this->m_renderers.p_bgfx)
+			{
+				result = this->m_renderers.p_bgfx->is_render_graph_initialized(
+					render_graph_id);
+			}
+		}
+		else
+		{
+			KOTEK_ASSERT(this->m_renderers.p_gles3,
+				"renderer for gles 3.0 wasn't initialized");
+
+			if (this->m_renderers.p_gles3)
+			{
+				result = this->m_renderers.p_gles3->is_render_graph_initialized(
+					render_graph_id);
+			}
 		}
 
 		break;
@@ -1278,13 +1365,31 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 		default:
 		{
-			this->m_p_renderer_gles3 =
-				new zircon_renderer_gles3(this->m_p_main_manager);
+			bool isBGFX = p_engine_config->IsFeatureEnabled(
+				kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-			this->m_p_renderer_gles3->Initialize(this->m_p_window_console,
-				this->m_p_console, this->m_p_session_game_manager,
-				this->m_p_session_editor_manager);
-			this->m_p_current_renderer = this->m_p_renderer_gles3;
+			if (isBGFX)
+			{
+				this->m_renderers.p_bgfx =
+					new zircon_renderer_bgfx(this->m_p_main_manager);
+
+				this->m_renderers.p_bgfx->Initialize(this->m_p_window_console,
+					this->m_p_console, this->m_p_session_game_manager,
+					this->m_p_session_editor_manager);
+
+				this->m_p_current_renderer = this->m_renderers.p_bgfx;
+			}
+			else
+			{
+				this->m_renderers.p_gles3 =
+					new zircon_renderer_gles3(this->m_p_main_manager);
+
+				this->m_renderers.p_gles3->Initialize(this->m_p_window_console,
+					this->m_p_console, this->m_p_session_game_manager,
+					this->m_p_session_editor_manager);
+				this->m_p_current_renderer = this->m_renderers.p_gles3;
+			}
+
 			break;
 		}
 		}
@@ -1354,10 +1459,24 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 		p_engine_config->IsFeatureEnabled(kotek::core::eEngineFeatureRenderer::
 				kEngine_Feature_Renderer_OpenGLES_SpecifiedByUser))
 	{
-		KOTEK_ASSERT(this->m_p_renderer_gles3, "must be valid");
+		bool isBGFX = p_engine_config->IsFeatureEnabled(
+			kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-		delete this->m_p_renderer_gles3;
-		this->m_p_renderer_gles3 = nullptr;
+		if (isBGFX)
+		{
+			KOTEK_ASSERT(
+				this->m_renderers.p_bgfx, "must be valid bgfx renderer!");
+
+			delete this->m_renderers.p_bgfx;
+			this->m_renderers.p_bgfx = nullptr;
+		}
+		else
+		{
+			KOTEK_ASSERT(this->m_renderers.p_gles3, "must be valid");
+
+			delete this->m_renderers.p_gles3;
+			this->m_renderers.p_gles3 = nullptr;
+		}
 	}
 	else if (p_engine_config->IsFeatureEnabled(kotek::core::
 					 eEngineFeatureRenderer::kEngine_Feature_Renderer_Software))
@@ -1379,7 +1498,7 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 			"initialize_renderer method respectively");
 	}
 
-	KOTEK_ASSERT(this->m_p_renderer_gles3 == nullptr,
+	KOTEK_ASSERT(this->m_renderers.p_gles3 == nullptr,
 		"you can't have two initialized renderers at once!");
 
 #ifdef KOTEK_USE_RENDER_VULKAN
@@ -1820,12 +1939,31 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 			case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
 			case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 			{
-				KOTEK_ASSERT(this->m_p_renderer_gles3, "must be initialized");
+				bool isBGFX =
+					p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
+						kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-				if (this->m_p_renderer_gles3)
+				if (isBGFX)
 				{
-					this->m_p_renderer_gles3->set_current_render_graph(
-						p_session_game->get_render_graph_id());
+					KOTEK_ASSERT(
+						this->m_renderers.p_bgfx, "must be initialized");
+
+					if (this->m_renderers.p_bgfx)
+					{
+						this->m_renderers.p_bgfx->set_current_render_graph(
+							p_session_game->get_render_graph_id());
+					}
+				}
+				else
+				{
+					KOTEK_ASSERT(
+						this->m_renderers.p_gles3, "must be initialized");
+
+					if (this->m_renderers.p_gles3)
+					{
+						this->m_renderers.p_gles3->set_current_render_graph(
+							p_session_game->get_render_graph_id());
+					}
 				}
 
 				break;
@@ -1873,12 +2011,31 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 			case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
 			case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 			{
-				KOTEK_ASSERT(this->m_p_renderer_gles3, "must be initialized");
+				bool isBGFX =
+					p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
+						kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-				if (this->m_p_renderer_gles3)
+				if (isBGFX)
 				{
-					this->m_p_renderer_gles3->set_current_render_graph(
-						p_session_editor->get_render_graph_id());
+					KOTEK_ASSERT(this->m_renderers.p_bgfx,
+						"must be initialized bgfx renderer");
+
+					if (this->m_renderers.p_bgfx)
+					{
+						this->m_renderers.p_bgfx->set_current_render_graph(
+							p_session_editor->get_render_graph_id());
+					}
+				}
+				else
+				{
+					KOTEK_ASSERT(
+						this->m_renderers.p_gles3, "must be initialized");
+
+					if (this->m_renderers.p_gles3)
+					{
+						this->m_renderers.p_gles3->set_current_render_graph(
+							p_session_editor->get_render_graph_id());
+					}
 				}
 
 				break;
@@ -1916,62 +2073,142 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1:
 		case kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2:
 		{
-			KOTEK_ASSERT(this->m_p_renderer_gles3, "must be initialized");
+			bool isBGFX = p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
+				kotek::core::eEngineFeatureRendererVendor::kBGFX);
 
-			if (this->m_p_renderer_gles3)
+			if (isBGFX)
 			{
+				KOTEK_ASSERT(this->m_renderers.p_bgfx, "must be initialized");
+
+				if (this->m_renderers.p_bgfx)
+				{
 #ifdef KOTEK_DEBUG
-				if (this->m_p_current_session->get_type() ==
-					eZirconSessionType::kEditor)
-				{
-					zircon_session_editor* p_casted_session =
-						static_cast<zircon_session_editor*>(
-							this->m_p_current_session);
-
-					if (p_casted_session)
+					if (this->m_p_current_session->get_type() ==
+						eZirconSessionType::kEditor)
 					{
-						KOTEK_ASSERT(
-							this->m_p_renderer_gles3
-								->is_render_graph_for_session_editor(
-									p_casted_session->get_render_graph_id()),
-							"you assign different type of render graph to "
-							"editor session! You must specify that render "
-							"graph is editor session otherwise it is threated "
-							"for production quality (optimized)");
-						KOTEK_ASSERT(this->m_p_renderer_gles3
-										 ->is_render_graph_for_session_editor(
-											 render_graph_id),
-							"current session is editor but requested render "
-							"graph was created for game session!");
-					}
-				}
-				else
-				{
-					zircon_session_game* p_casted_session =
-						static_cast<zircon_session_game*>(
-							this->m_p_current_session);
+						zircon_session_editor* p_casted_session =
+							static_cast<zircon_session_editor*>(
+								this->m_p_current_session);
 
-					if (p_casted_session)
-					{
-						KOTEK_ASSERT(
-							this->m_p_renderer_gles3
-								->is_render_graph_for_session_game(
-									p_casted_session->get_render_graph_id()),
-							"you assign different type of render graph to game "
-							"session! You must specify that render graph is "
-							"game session otherwise it is threated for editor "
-							"quality (not optimized)");
-						KOTEK_ASSERT(this->m_p_renderer_gles3
-										 ->is_render_graph_for_session_game(
-											 render_graph_id),
-							"current session is game but requested render "
-							"graph was created for editor session!");
+						if (p_casted_session)
+						{
+							KOTEK_ASSERT(
+								this->m_renderers.p_bgfx
+									->is_render_graph_for_session_editor(
+										p_casted_session
+											->get_render_graph_id()),
+								"you assign different type of render graph to "
+								"editor session! You must specify that render "
+								"graph is editor session otherwise it is "
+								"threated "
+								"for production quality (optimized)");
+							KOTEK_ASSERT(
+								this->m_renderers.p_bgfx
+									->is_render_graph_for_session_editor(
+										render_graph_id),
+								"current session is editor but requested "
+								"render "
+								"graph was created for game session!");
+						}
 					}
-				}
+					else
+					{
+						zircon_session_game* p_casted_session =
+							static_cast<zircon_session_game*>(
+								this->m_p_current_session);
+
+						if (p_casted_session)
+						{
+							KOTEK_ASSERT(this->m_renderers.p_bgfx
+											 ->is_render_graph_for_session_game(
+												 p_casted_session
+													 ->get_render_graph_id()),
+								"you assign different type of render graph to "
+								"game "
+								"session! You must specify that render graph "
+								"is "
+								"game session otherwise it is threated for "
+								"editor "
+								"quality (not optimized)");
+							KOTEK_ASSERT(this->m_renderers.p_bgfx
+											 ->is_render_graph_for_session_game(
+												 render_graph_id),
+								"current session is game but requested render "
+								"graph was created for editor session!");
+						}
+					}
 #endif
 
-				this->m_p_renderer_gles3->set_current_render_graph(
-					render_graph_id);
+					this->m_renderers.p_bgfx->set_current_render_graph(
+						render_graph_id);
+				}
+			}
+			else
+			{
+				KOTEK_ASSERT(this->m_renderers.p_gles3, "must be initialized");
+
+				if (this->m_renderers.p_gles3)
+				{
+#ifdef KOTEK_DEBUG
+					if (this->m_p_current_session->get_type() ==
+						eZirconSessionType::kEditor)
+					{
+						zircon_session_editor* p_casted_session =
+							static_cast<zircon_session_editor*>(
+								this->m_p_current_session);
+
+						if (p_casted_session)
+						{
+							KOTEK_ASSERT(
+								this->m_renderers.p_gles3
+									->is_render_graph_for_session_editor(
+										p_casted_session
+											->get_render_graph_id()),
+								"you assign different type of render graph to "
+								"editor session! You must specify that render "
+								"graph is editor session otherwise it is "
+								"threated "
+								"for production quality (optimized)");
+							KOTEK_ASSERT(
+								this->m_renderers.p_gles3
+									->is_render_graph_for_session_editor(
+										render_graph_id),
+								"current session is editor but requested "
+								"render "
+								"graph was created for game session!");
+						}
+					}
+					else
+					{
+						zircon_session_game* p_casted_session =
+							static_cast<zircon_session_game*>(
+								this->m_p_current_session);
+
+						if (p_casted_session)
+						{
+							KOTEK_ASSERT(this->m_renderers.p_gles3
+											 ->is_render_graph_for_session_game(
+												 p_casted_session
+													 ->get_render_graph_id()),
+								"you assign different type of render graph to "
+								"game "
+								"session! You must specify that render graph "
+								"is "
+								"game session otherwise it is threated for "
+								"editor "
+								"quality (not optimized)");
+							KOTEK_ASSERT(this->m_renderers.p_gles3
+											 ->is_render_graph_for_session_game(
+												 render_graph_id),
+								"current session is game but requested render "
+								"graph was created for editor session!");
+						}
+					}
+#endif
+
+					this->m_renderers.p_gles3->set_current_render_graph(
+						render_graph_id);
+				}
 			}
 
 			break;

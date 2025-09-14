@@ -38,9 +38,25 @@ class zircon_session_game;
 class zircon_session_game_manager;
 class zircon_session_editor;
 class zircon_session_editor_manager;
+class zircon_renderer_bgfx;
 
 class zircon_game_manager : public kotek::core::ktkIGameManager
 {
+	union renderers_t
+	{
+#ifdef KOTEK_USE_VULKAN
+
+#endif
+
+#ifdef KOTEK_USE_BGFX
+		zircon_renderer_bgfx* p_bgfx = nullptr;
+#endif
+
+		// todo: add preprocessor in order to determine if GLES is used by
+		// engine
+		zircon_renderer_gles3* p_gles3 = nullptr;
+	};
+
 public:
 	zircon_game_manager(void);
 	~zircon_game_manager(void);
@@ -134,11 +150,7 @@ private:
 	kotek::core::ktkIRenderer* m_p_current_renderer;
 	kotek::core::ktkWindowConsole* m_p_window_console;
 	zircon_interface_session* m_p_current_session;
-	zircon_renderer_gles3* m_p_renderer_gles3;
-
-#ifdef KOTEK_USE_RENDER_VULKAN
-	Render::vk::zircon_Renderer* m_p_renderer_vk;
-#endif
+	renderers_t m_renderers;
 
 #ifdef KOTEK_USE_SDK
 	void* m_p_window_handle;
