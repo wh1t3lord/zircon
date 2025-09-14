@@ -49,12 +49,12 @@ class zircon_game_manager : public kotek::core::ktkIGameManager
 #endif
 
 #ifdef KOTEK_USE_BGFX
-		zircon_renderer_bgfx* p_bgfx = nullptr;
+		zircon_renderer_bgfx* p_bgfx;
 #endif
 
 		// todo: add preprocessor in order to determine if GLES is used by
 		// engine
-		zircon_renderer_gles3* p_gles3 = nullptr;
+		zircon_renderer_gles3* p_gles3;
 	};
 
 public:
