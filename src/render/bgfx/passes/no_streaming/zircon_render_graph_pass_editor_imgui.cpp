@@ -6,7 +6,7 @@ namespace no_streaming
 {
 	zircon_render_graph_pass_editor_imgui_bgfx::
 		zircon_render_graph_pass_editor_imgui_bgfx() :
-		zircon_render_graph_pass_editor(), m_p_main_manager{},
+		zircon_render_graph_pass_editor_bgfx(), m_p_main_manager{},
 		m_p_imgui_wrapper{}
 	{
 	}
