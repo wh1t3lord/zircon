@@ -4,7 +4,7 @@
 
 namespace no_streaming
 {
-	zircon_render_graph_pass_imgui_gles3::zircon_render_graph_pass_imgui_gles3(
+	zircon_render_graph_pass_imgui_bgfx::zircon_render_graph_pass_imgui_bgfx(
 		const kotek::static_u8string_view_t& render_pass_name,
 		kotek::core::ktkMainManager* p_main_manager) :
 		zircon_render_graph_pass(render_pass_name.data()),
@@ -85,7 +85,7 @@ namespace no_streaming
 		}
 	}
 
-	zircon_render_graph_pass_imgui_gles3::~zircon_render_graph_pass_imgui_gles3(
+	zircon_render_graph_pass_imgui_bgfx::~zircon_render_graph_pass_imgui_bgfx(
 		void)
 	{
 		bool is_imgui_enabled = false;
@@ -129,14 +129,14 @@ namespace no_streaming
 			false);
 	}
 
-	void zircon_render_graph_pass_imgui_gles3::OnCreateResources(
+	void zircon_render_graph_pass_imgui_bgfx::OnCreateResources(
 		kotek::core::ktkMainManager* p_manager_main,
 		kotek::core::ktkIRenderResourceManager* p_manager_resource)
 	{
 	}
 
-	void zircon_render_graph_pass_imgui_gles3::OnUpdate(
-		const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+	void zircon_render_graph_pass_imgui_bgfx::OnUpdate(
+		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 			p_previous_pass)
 	{
 		Kotek::Core::ktkIFrameworkConfig* p_config =
@@ -185,8 +185,8 @@ namespace no_streaming
 		}
 	}
 
-	void zircon_render_graph_pass_imgui_gles3::OnRender(
-		const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+	void zircon_render_graph_pass_imgui_bgfx::OnRender(
+		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 			p_previous_pass)
 	{
 		Kotek::Core::ktkIFrameworkConfig* p_config =

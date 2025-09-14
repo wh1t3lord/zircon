@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kotek.render.gl/include/kotek_render_graph_simplified.h>
+#include <kotek.render.bgfx/include/kotek_render_graph_simplified.h>
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
@@ -8,31 +8,31 @@ class ktkMainManager;
 KOTEK_END_NAMESPACE_CORE
 
 KOTEK_BEGIN_NAMESPACE_RENDER
-KOTEK_BEGIN_NAMESPACE_RENDER_GL
+KOTEK_BEGIN_NAMESPACE_RENDER_BGFX
 class ktkRenderDevice;
 class ktkRenderResourceManager;
-KOTEK_END_NAMESPACE_RENDER_GL
+KOTEK_END_NAMESPACE_RENDER_BGFX
 KOTEK_END_NAMESPACE_RENDER
 KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_session_editor_manager;
 class zircon_session_game_manager;
 
-#define ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT 2
+#define ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT 2
 
 struct zircon_render_graph_simplified_info_t
 {
 	bool in_use{};
 	bool is_game_session{};
 	kotek::uint8_t session_id{};
-	kotek::render::gl::ktkRenderGraphSimplified graph;
+	kotek::render::bgfx::ktkRenderGraphSimplified graph;
 };
 
-class zircon_renderer_gles3 : public kotek::core::ktkIRenderer
+class zircon_renderer_bgfx : public kotek::core::ktkIRenderer
 {
 public:
-	zircon_renderer_gles3(kotek::core::ktkMainManager* p_main_manager);
-	~zircon_renderer_gles3(void);
+	zircon_renderer_bgfx(kotek::core::ktkMainManager* p_main_manager);
+	~zircon_renderer_bgfx(void);
 
 	void Initialize(kotek::core::ktkWindowConsole* p_console,
 		kotek::core::ktkConsole* p_con,
@@ -56,7 +56,7 @@ public:
 	kotek::uint8_t create_render_graph(kotek::uint8_t session_id,
 		bool is_game_session,
 		kotek::static_vector_t<
-			kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
+			kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
 			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>&
 			passes);
 
@@ -90,10 +90,10 @@ private:
 	kotek::core::ktkMainManager* m_p_main_manager;
 	zircon_session_game_manager* m_p_session_game_manager;
 	zircon_session_editor_manager* m_p_session_editor_manager;
-	kotek::render::gl::ktkRenderDevice* m_p_render_device;
-	kotek::render::gl::ktkRenderResourceManager* m_p_render_resource_manager;
-	kotek::render::gl::ktkRenderGraphSimplified* m_p_current_render_graph;
+	kotek::render::bgfx::ktkRenderDevice* m_p_render_device;
+	kotek::render::bgfx::ktkRenderResourceManager* m_p_render_resource_manager;
+	kotek::render::bgfx::ktkRenderGraphSimplified* m_p_current_render_graph;
 	kotek::vector_t<zircon_render_graph_simplified_info_t,
-		ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT>
+		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>
 		m_render_graphs;
 };

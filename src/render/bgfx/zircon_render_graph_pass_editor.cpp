@@ -4,14 +4,14 @@
 
 zircon_render_graph_pass_editor::zircon_render_graph_pass_editor(
 	const kotek::static_u8string_view_t& render_pass_name) :
-	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
+	kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass(
 		render_pass_name.data()),
 	m_p_manager_session_editor{}
 {
 }
 
 zircon_render_graph_pass_editor::zircon_render_graph_pass_editor() :
-	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(),
+	kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass(),
 	m_p_manager_session_editor{}
 {
 }

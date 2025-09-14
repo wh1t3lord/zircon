@@ -17,10 +17,10 @@ namespace no_streaming
 			kotek::core::ktkIRenderResourceManager* p_manager_resource)
 			override;
 		void OnUpdate(
-			const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 				p_previous_pass) override;
 		void OnRender(
-			const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 				p_previous_pass) override;
 	};
 }

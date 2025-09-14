@@ -4,24 +4,24 @@
 
 namespace no_streaming
 {
-	class zircon_render_graph_pass_imgui_gles3 : public zircon_render_graph_pass
+	class zircon_render_graph_pass_imgui_bgfx : public zircon_render_graph_pass
 	{
 	public:
-		zircon_render_graph_pass_imgui_gles3(
+		zircon_render_graph_pass_imgui_bgfx(
 			const kotek::static_u8string_view_t& render_pass_name,
 			kotek::core::ktkMainManager* p_main_manager);
-		~zircon_render_graph_pass_imgui_gles3(void);
+		~zircon_render_graph_pass_imgui_bgfx(void);
 
 		void OnCreateResources(kotek::core::ktkMainManager* p_manager_main,
 			kotek::core::ktkIRenderResourceManager* p_manager_resource)
 			override;
 
 		void OnUpdate(
-			const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 				p_previous_pass) override;
 
 		void OnRender(
-			const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 				p_previous_pass) override;
 
 	private:

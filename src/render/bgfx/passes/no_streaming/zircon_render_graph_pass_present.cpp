@@ -27,16 +27,16 @@ namespace no_streaming
 	}
 
 	void zircon_render_graph_pass_present_bgfx::OnUpdate(
-		const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 			p_previous_pass)
 	{
 	}
 
 	void zircon_render_graph_pass_present_bgfx::OnRender(
-		const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
+		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 			p_previous_pass)
 	{
-		glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+	//	glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+	//	glClear(GL_COLOR_BUFFER_BIT);
 	}
 } // namespace no_streaming

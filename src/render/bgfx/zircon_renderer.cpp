@@ -14,29 +14,29 @@
 // OS Passes
 #include "../os/zircon_render_graph_pass_console.h"
 
-#include <kotek.render.gl/include/kotek_render_device.h>
-#include <kotek.render.gl/include/kotek_render_resource_manager.h>
+#include <kotek.render.bgfx/include/kotek_render_device.h>
+#include <kotek.render.bgfx/include/kotek_render_resource_manager.h>
 
 // todo: move to config please
 constexpr kotek::uint8_t _kInvalidRenderGraphID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
-zircon_renderer_gles3::zircon_renderer_gles3(
+zircon_renderer_bgfx::zircon_renderer_bgfx(
 	Kotek::Core::ktkMainManager* p_main_manager) :
 	m_previous_render_graph_id{_kInvalidRenderGraphID},
 	m_p_main_manager{p_main_manager}, m_p_session_game_manager{},
 	m_p_session_editor_manager{},
-	m_p_render_device{static_cast<Kotek::Render::gl::ktkRenderDevice*>(
+	m_p_render_device{static_cast<kotek::render::bgfx::ktkRenderDevice*>(
 		p_main_manager->getRenderDevice())},
 	m_p_render_resource_manager{}, m_p_current_render_graph{}
 {
 	this->m_render_graphs.reserve(
-		ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT);
+		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT);
 }
 
-zircon_renderer_gles3::~zircon_renderer_gles3(void) {}
+zircon_renderer_bgfx::~zircon_renderer_bgfx(void) {}
 
-void zircon_renderer_gles3::Initialize(kotek::core::ktkWindowConsole* p_console,
+void zircon_renderer_bgfx::Initialize(kotek::core::ktkWindowConsole* p_console,
 	kotek::core::ktkConsole* p_con,
 	zircon_session_game_manager* p_manager_game_session,
 	zircon_session_editor_manager* p_manager_editor_session)
@@ -59,16 +59,16 @@ void zircon_renderer_gles3::Initialize(kotek::core::ktkWindowConsole* p_console,
 	this->initialize_extensions(p_con);
 
 	this->m_p_render_resource_manager =
-		dynamic_cast<Kotek::Render::gl::ktkRenderResourceManager*>(
+		dynamic_cast<kotek::render::bgfx::ktkRenderResourceManager*>(
 			this->m_p_main_manager->GetRenderResourceManager());
 }
 
-void zircon_renderer_gles3::Shutdown(void)
+void zircon_renderer_bgfx::Shutdown(void)
 {
 	this->destroy_render_graphs();
 }
 
-void zircon_renderer_gles3::draw()
+void zircon_renderer_bgfx::draw()
 {
 	this->Begin();
 
@@ -87,14 +87,14 @@ void zircon_renderer_gles3::draw()
 	this->End();
 }
 
-void zircon_renderer_gles3::Resize() {}
+void zircon_renderer_bgfx::Resize() {}
 
-const char* zircon_renderer_gles3::Get_Name(void) const noexcept
+const char* zircon_renderer_bgfx::Get_Name(void) const noexcept
 {
 	return Kotek::kRenderer_OpenGLES_3_Name;
 }
 
-bool zircon_renderer_gles3::is_render_graph_presented(
+bool zircon_renderer_bgfx::is_render_graph_presented(
 	kotek::uint8_t render_graph_id) const
 {
 	bool result{};
@@ -104,7 +104,7 @@ bool zircon_renderer_gles3::is_render_graph_presented(
 	return result;
 }
 
-bool zircon_renderer_gles3::is_render_graph_initialized(
+bool zircon_renderer_bgfx::is_render_graph_initialized(
 	kotek::uint8_t render_graph_id) const
 {
 	bool result{};
@@ -122,7 +122,7 @@ bool zircon_renderer_gles3::is_render_graph_initialized(
 	return result;
 }
 
-bool zircon_renderer_gles3::is_render_graph_for_session_editor(
+bool zircon_renderer_bgfx::is_render_graph_for_session_editor(
 	kotek::uint8_t render_graph_id) const
 {
 	bool result{};
@@ -140,24 +140,24 @@ bool zircon_renderer_gles3::is_render_graph_for_session_editor(
 	return result;
 }
 
-bool zircon_renderer_gles3::is_render_graph_for_session_game(
+bool zircon_renderer_bgfx::is_render_graph_for_session_game(
 	kotek::uint8_t render_graph_id) const
 {
 	return !(this->is_render_graph_for_session_editor(render_graph_id));
 }
 
-kotek::uint8_t zircon_renderer_gles3::create_render_graph(
+kotek::uint8_t zircon_renderer_bgfx::create_render_graph(
 	kotek::uint8_t session_id, bool is_game_session,
 	kotek::static_vector_t<
-		kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*,
+		kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>& passes)
 {
 	if (this->m_render_graphs.size() ==
-		ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT)
+		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT)
 	{
 		KOTEK_MESSAGE_WARNING("you can't add more render graph due to limit, "
 							  "max amount is {} current amount is {}",
-			ZIRCON_DEF_RENDERER_GLES3_MAX_RENDER_GRAPH_COUNT,
+			ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT,
 			this->m_render_graphs.size());
 
 		return _kInvalidRenderGraphID;
@@ -183,7 +183,7 @@ kotek::uint8_t zircon_renderer_gles3::create_render_graph(
 	return render_graph_id;
 }
 
-void zircon_renderer_gles3::initialize_render_graph(
+void zircon_renderer_bgfx::initialize_render_graph(
 	kotek::uint8_t render_graph_id, kotek::core::ktkMainManager* p_main_manager,
 	kotek::core::ktkIRenderResourceManager* p_render_resource_manager,
 	zircon_session_game_manager* p_manager_game_session,
@@ -210,7 +210,7 @@ void zircon_renderer_gles3::initialize_render_graph(
 		// user pre-initialization with user defined initialization where by
 		// design we can't and don't want to use interfaces or something else in
 		// order to call our "native" with user defined classes and structs
-		for (kotek::render::gl::ktkRenderGraphSimplifiedRenderPass* p_pass :
+		for (kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass* p_pass :
 			passes)
 		{
 			KOTEK_ASSERT(p_pass, "must be valid!");
@@ -249,7 +249,7 @@ void zircon_renderer_gles3::initialize_render_graph(
 	}
 }
 
-void zircon_renderer_gles3::set_current_render_graph(
+void zircon_renderer_bgfx::set_current_render_graph(
 	kotek::uint8_t render_graph_id)
 {
 	KOTEK_ASSERT(render_graph_id < this->m_render_graphs.size(),
@@ -352,7 +352,7 @@ bool validate_extensions(
 	return status;
 }
 
-void zircon_renderer_gles3::initialize_extensions(
+void zircon_renderer_bgfx::initialize_extensions(
 	kotek::core::ktkConsole* p_console)
 {
 	const char* extensions[] = {"GL_EXT_multi_draw_indirect",
@@ -427,9 +427,9 @@ void zircon_renderer_gles3::initialize_extensions(
 	}
 }
 
-void zircon_renderer_gles3::Begin() noexcept {}
+void zircon_renderer_bgfx::Begin() noexcept {}
 
-void zircon_renderer_gles3::End() noexcept
+void zircon_renderer_bgfx::End() noexcept
 {
 	Kotek::Core::ktkIRenderSwapchain* p_render_swapchain =
 		this->m_p_main_manager->getRenderSwapchainManager();
@@ -438,7 +438,7 @@ void zircon_renderer_gles3::End() noexcept
 		this->m_p_main_manager, this->m_p_render_device);
 }
 
-void zircon_renderer_gles3::destroy_render_graphs(void) noexcept
+void zircon_renderer_bgfx::destroy_render_graphs(void) noexcept
 {
 	for (auto& info : this->m_render_graphs)
 	{
@@ -448,7 +448,7 @@ void zircon_renderer_gles3::destroy_render_graphs(void) noexcept
 	this->m_render_graphs.clear();
 }
 
-void zircon_renderer_gles3::create_render_graph(
+void zircon_renderer_bgfx::create_render_graph(
 	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& imgui_elements,
 	kotek::core::ktkWindowConsole* p_console) noexcept
 {
@@ -459,7 +459,7 @@ void zircon_renderer_gles3::create_render_graph(
 	this->Add_PassesGame(p_console);
 }
 
-void zircon_renderer_gles3::Add_PassesEditor(
+void zircon_renderer_bgfx::Add_PassesEditor(
 	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
 		imgui_elements) noexcept
 {
@@ -491,7 +491,7 @@ void zircon_renderer_gles3::Add_PassesEditor(
 #endif
 }
 
-void zircon_renderer_gles3::Add_PassesGame(
+void zircon_renderer_bgfx::Add_PassesGame(
 	kotek::core::ktkWindowConsole* p_console) noexcept
 {
 	// todo: implement that when you implement simulation button in editor and

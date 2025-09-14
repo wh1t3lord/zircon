@@ -13,11 +13,11 @@ namespace Kotek
 	} // namespace Render
 } // namespace Kotek
 
-class zircon_render_graph_pass_editor_debug_gles3
+class zircon_render_graph_pass_editor_debug_bgfx
 {
 public:
-	zircon_render_graph_pass_editor_debug_gles3();
-	~zircon_render_graph_pass_editor_debug_gles3();
+	zircon_render_graph_pass_editor_debug_bgfx();
+	~zircon_render_graph_pass_editor_debug_bgfx();
 
 private:
 };

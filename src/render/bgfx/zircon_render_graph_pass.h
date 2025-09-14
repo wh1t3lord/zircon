@@ -1,11 +1,11 @@
 #pragma once
 
-#include <kotek.render.gl/include/kotek_render_graph_simplified_render_pass.h>
+#include <kotek.render.bgfx/include/kotek_render_graph_simplified_render_pass.h>
 
 class zircon_session_game_manager;
 
 class zircon_render_graph_pass
-	: public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
+	: public kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass
 {
 public:
 	zircon_render_graph_pass(
