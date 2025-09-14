@@ -5,7 +5,7 @@ namespace no_streaming
 	zircon_render_graph_pass_editor_present_bgfx::
 		zircon_render_graph_pass_editor_present_bgfx(
 			const kotek::static_u8string_view_t& render_pass_name) :
-		zircon_render_graph_pass_editor(render_pass_name.data())
+		zircon_render_graph_pass_editor_bgfx(render_pass_name.data())
 	{
 	}
 
