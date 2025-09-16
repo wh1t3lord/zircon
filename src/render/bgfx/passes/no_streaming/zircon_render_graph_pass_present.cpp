@@ -37,6 +37,8 @@ namespace no_streaming
 			p_previous_pass)
 	{
 		::bgfx::touch(0);
+		::bgfx::setViewClear(0, BGFX_CLEAR_COLOR);
+		::bgfx::setViewRect(0, 0, 0, ::bgfx::BackbufferRatio::Equal);
 		//	glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
 		//	glClear(GL_COLOR_BUFFER_BIT);
 	}
