@@ -49,13 +49,6 @@ void zircon_renderer_bgfx::Initialize(kotek::core::ktkWindowConsole* p_console,
 
 	this->m_p_session_game_manager = p_manager_game_session;
 
-#ifdef KOTEK_DEBUG
-	KOTEK_MESSAGE("Vendor: {} Renderer: {} Version: {} Shading Language: {}",
-		(char*)(glGetString(GL_VENDOR)), (char*)(glGetString(GL_RENDERER)),
-		(char*)(glGetString(GL_VERSION)),
-		(char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
-#endif
-
 	this->initialize_extensions(p_con);
 
 	this->m_p_render_resource_manager =
@@ -356,18 +349,14 @@ bool validate_extensions(
 void zircon_renderer_bgfx::initialize_extensions(
 	kotek::core::ktkConsole* p_console)
 {
-	const char* extensions[] = {"GL_EXT_multi_draw_indirect",
-		"GL_EXT_draw_elements_base_vertex", "GL_EXT_base_instance"};
+	KOTEK_ASSERT(::bgfx::getCaps(), "bgfx has invalid getCaps() instance! (nullptr)");
 
-	bool is_valid = validate_extensions(extensions, p_console);
-
-	if (!glDrawElementsIndirect)
+	bool gpu_feature_supported =
+		!!(BGFX_CAPS_COMPUTE & ::bgfx::getCaps()->supported);
+	
+	if (!gpu_feature_supported)
 	{
-		KOTEK_MESSAGE_ERROR(
-			"if you're gles 3.1 it loads glDrawElementsIndirect by default in "
-			"GLAD but it wasn't load so probably bug of driver of your device "
-			"doesn't support it at all! Report to developers of driver and to "
-			"us too!");
+		KOTEK_MESSAGE_ERROR("compute doesn't support on this gpu :( Aborting...");
 
 		if (p_console)
 		{
@@ -375,56 +364,38 @@ void zircon_renderer_bgfx::initialize_extensions(
 				static_cast<kotek::ktk::enum_base_t>(kotek::core::
 						eConsoleCommandIndex::kConsoleCommand_App_Close),
 				{});
+			return;
 		}
 	}
 
-	if (is_valid)
+	gpu_feature_supported =
+		!!(BGFX_CAPS_DRAW_INDIRECT & ::bgfx::getCaps()->supported);
+
+	if (!gpu_feature_supported)
 	{
-		if (!glMultiDrawArraysIndirect)
+		KOTEK_MESSAGE_ERROR(
+			"draw indirect doesn't support on this gpu :( Aborting...");
+
+		if (p_console)
 		{
-			glMultiDrawArraysIndirect =
-				(decltype(glMultiDrawArraysIndirect))(glfwGetProcAddress(
-					"glMultiDrawArraysIndirectEXT"));
-
-			KOTEK_ASSERT(glMultiDrawArraysIndirect,
-				"failed to load proc address: {}",
-				"glMultiDrawArraysIndirectEXT");
-
-			if (glMultiDrawArraysIndirect)
-			{
-				KOTEK_MESSAGE(
-					"loaded function: {}", "glMultiDrawArraysIndirectEXT");
-			}
-			else
-			{
-				KOTEK_MESSAGE_ERROR("failed to load function: {}",
-					"glMultiDrawArraysIndirectEXT");
-			}
+			p_console->Push_Command(static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::kConsoleCommand_App_Close));
 		}
+	}
 
-		if (!glMultiDrawElementsIndirect)
+	gpu_feature_supported =
+		!!(BGFX_CAPS_INSTANCING & ::bgfx::getCaps()->supported);
+
+	if (!gpu_feature_supported)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"instancing doesn't support on this gpu :( Aborting...");
+
+		if (p_console)
 		{
-			glMultiDrawElementsIndirect =
-				(decltype(glMultiDrawElementsIndirect))(glfwGetProcAddress(
-					"glMultiDrawElementsIndirectEXT"));
-
-			KOTEK_ASSERT(glMultiDrawElementsIndirect,
-				"failed to load proc address: {}",
-				"glMultiDrawElementsIndirectEXT");
-
-			if (glMultiDrawElementsIndirect)
-			{
-				KOTEK_MESSAGE(
-					"loaded function: {}", "glMultiDrawElementsIndirectEXT");
-			}
-			else
-			{
-				KOTEK_MESSAGE_ERROR("failed to load function: {}",
-					"glMultiDrawElementsIndirectEXT");
-			}
+			p_console->Push_Command(static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::kConsoleCommand_App_Close));
 		}
-
-		KOTEK_MESSAGE("extensions were loaded successfully!");
 	}
 }
 

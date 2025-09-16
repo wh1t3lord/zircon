@@ -36,6 +36,7 @@ namespace no_streaming
 		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 			p_previous_pass)
 	{
+		::bgfx::touch(0);
 		//	glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
 		//	glClear(GL_COLOR_BUFFER_BIT);
 	}
