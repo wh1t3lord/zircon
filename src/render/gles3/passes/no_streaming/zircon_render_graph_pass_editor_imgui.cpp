@@ -6,8 +6,7 @@ namespace no_streaming
 {
 	zircon_render_graph_pass_editor_imgui_gles3::
 		zircon_render_graph_pass_editor_imgui_gles3() :
-		zircon_render_graph_pass_editor(), m_p_main_manager{},
-		m_p_imgui_wrapper{}
+		zircon_render_graph_pass_editor(), m_p_imgui_wrapper{}
 	{
 	}
 
@@ -18,7 +17,7 @@ namespace no_streaming
 		bool is_sdk_enabled = false;
 
 		Kotek::Core::ktkIFrameworkConfig* p_config =
-			this->m_p_main_manager->Get_EngineConfig();
+			this->m_p_manager_main->Get_EngineConfig();
 
 		if (p_config)
 		{
@@ -62,7 +61,7 @@ namespace no_streaming
 		KOTEK_ASSERT(p_main_manager, "must be valid!");
 		KOTEK_ASSERT(p_main_manager->Get_ImguiWrapper(), "must be valid!");
 
-		this->m_p_main_manager = p_main_manager;
+		this->m_p_manager_main = p_main_manager;
 		this->m_p_imgui_wrapper = p_main_manager->Get_ImguiWrapper();
 
 		bool is_imgui_enabled = false;
@@ -144,7 +143,7 @@ namespace no_streaming
 			p_previous_pass)
 	{
 		Kotek::Core::ktkIFrameworkConfig* p_config =
-			this->m_p_main_manager->Get_EngineConfig();
+			this->m_p_manager_main->Get_EngineConfig();
 
 		bool is_imgui_enabled = false;
 
@@ -169,7 +168,7 @@ namespace no_streaming
 
 			KOTEK_ASSERT(this->m_p_manager_session_editor,
 				"Did you call OnRegisterManagers because session manager "
-			    "editor is "
+				"editor is "
 				"not initialized!");
 
 			zircon_session_editor* p_session =
@@ -193,7 +192,7 @@ namespace no_streaming
 			{
 				if (p_element)
 				{
-					p_element->Draw(this->m_p_main_manager);
+					p_element->Draw(this->m_p_manager_main);
 				}
 			}
 
@@ -209,7 +208,7 @@ namespace no_streaming
 			p_previous_pass)
 	{
 		Kotek::Core::ktkIFrameworkConfig* p_config =
-			this->m_p_main_manager->Get_EngineConfig();
+			this->m_p_manager_main->Get_EngineConfig();
 
 		bool is_imgui_enabled = false;
 
@@ -244,4 +243,4 @@ namespace no_streaming
 			}
 		}
 	}
-}
+} // namespace no_streaming

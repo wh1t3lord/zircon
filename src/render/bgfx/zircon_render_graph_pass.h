@@ -8,8 +8,6 @@ class zircon_render_graph_pass_bgfx
 	: public kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass
 {
 public:
-	zircon_render_graph_pass_bgfx(
-		const kotek::static_u8string_view_t& render_pass_name);
 	zircon_render_graph_pass_bgfx();
 	~zircon_render_graph_pass_bgfx();
 

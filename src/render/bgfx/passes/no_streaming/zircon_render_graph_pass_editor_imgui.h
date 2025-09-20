@@ -17,14 +17,13 @@ namespace no_streaming
 
 		void OnUpdate(
 			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-				p_previous_pass) override;
+				p_previous_pass, kotek::ktk::uint32_t my_id_in_queue) override;
 
 		void OnRender(
 			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-				p_previous_pass) override;
+				p_previous_pass, kotek::ktk::uint32_t my_id_in_queue) override;
 
 	private:
-		kotek::core::ktkMainManager* m_p_main_manager;
 		kotek::core::ktkIImguiWrapper* m_p_imgui_wrapper;
 	};
 }

@@ -7,9 +7,7 @@ namespace no_streaming
 	class zircon_render_graph_pass_imgui_gles3 : public zircon_render_graph_pass
 	{
 	public:
-		zircon_render_graph_pass_imgui_gles3(
-			const kotek::static_u8string_view_t& render_pass_name,
-			kotek::core::ktkMainManager* p_main_manager);
+		zircon_render_graph_pass_imgui_gles3(void);
 		~zircon_render_graph_pass_imgui_gles3(void);
 
 		void OnCreateResources(kotek::core::ktkMainManager* p_manager_main,

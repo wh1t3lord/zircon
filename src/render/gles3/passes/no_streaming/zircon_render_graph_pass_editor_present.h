@@ -8,8 +8,6 @@ namespace no_streaming
 		: public zircon_render_graph_pass_editor
 	{
 	public:
-		zircon_render_graph_pass_editor_present_gles3(
-			const kotek::static_u8string_view_t& render_pass_name);
 		zircon_render_graph_pass_editor_present_gles3(void);
 		~zircon_render_graph_pass_editor_present_gles3(void);
 

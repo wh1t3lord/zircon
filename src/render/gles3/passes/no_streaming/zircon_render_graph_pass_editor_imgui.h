@@ -24,7 +24,6 @@ namespace no_streaming
 				p_previous_pass) override;
 
 	private:
-		kotek::core::ktkMainManager* m_p_main_manager;
 		kotek::core::ktkIImguiWrapper* m_p_imgui_wrapper;
 	};
 }

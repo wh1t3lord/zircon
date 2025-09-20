@@ -5,84 +5,8 @@
 namespace no_streaming
 {
 	zircon_render_graph_pass_imgui_bgfx::zircon_render_graph_pass_imgui_bgfx(
-		const kotek::static_u8string_view_t& render_pass_name,
-		kotek::core::ktkMainManager* p_main_manager) :
-		zircon_render_graph_pass_bgfx(render_pass_name.data()),
-		m_p_main_manager{p_main_manager},
-		m_p_imgui_wrapper{p_main_manager->Get_ImguiWrapper()}
+		void) : zircon_render_graph_pass_bgfx(), m_p_imgui_wrapper{}
 	{
-		bool is_imgui_enabled = false;
-		bool is_sdk_enabled = false;
-
-		Kotek::Core::ktkIFrameworkConfig* p_config =
-			this->m_p_main_manager->Get_EngineConfig();
-
-		if (p_config)
-		{
-			is_imgui_enabled =
-				p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
-					Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
-
-			is_sdk_enabled =
-				p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
-					Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
-		}
-
-		if (is_imgui_enabled)
-		{
-			IMGUI_CHECKVERSION();
-
-			if (this->m_p_imgui_wrapper)
-			{
-				this->m_p_imgui_wrapper->CreateContext();
-
-				this->m_p_imgui_wrapper->GetIO().ConfigFlags |=
-					ImGuiConfigFlags_NavEnableKeyboard;
-
-#ifdef KOTEK_USE_IMGUI_DOCKING
-				this->m_p_imgui_wrapper->GetIO().ConfigFlags |=
-					ImGuiConfigFlags_DockingEnable;
-#endif
-
-				this->m_p_imgui_wrapper->StyleColorsDark();
-
-#ifdef KOTEK_USE_IMGUI_DOCKING
-				if (this->m_p_imgui_wrapper->GetIO().ConfigFlags &
-					ImGuiConfigFlags_ViewportsEnable)
-				{
-					this->m_p_imgui_wrapper->GetStyle().WindowRounding = 0.0f;
-					this->m_p_imgui_wrapper->GetStyle()
-						.Colors[ImGuiCol_WindowBg]
-						.w = 1.0f;
-				}
-#endif
-
-				if (is_sdk_enabled)
-				{
-				}
-				else
-				{
-#ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
-					GLFWwindow* p_handle = static_cast<GLFWwindow*>(
-						p_main_manager->GetGameManager()->GetWindowHandle());
-
-					KOTEK_ASSERT(
-						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOpenGL(
-							p_handle, false),
-						"failed to ImGui_ImplGlfw_InitForOpenGL");
-
-					KOTEK_ASSERT(
-						this->m_p_imgui_wrapper->ImGui_ImplOpenGL3_Init(),
-						"failed to ImGui_ImplOpenGL3_Init");
-#endif
-				}
-			}
-
-			p_main_manager->Get_EngineConfig()->SetFeatureStatus(
-				Kotek::Core::eEngineFeatureSDK::
-					kEngine_Feature_SDK_ImGui_Initialized,
-				true);
-		}
 	}
 
 	zircon_render_graph_pass_imgui_bgfx::~zircon_render_graph_pass_imgui_bgfx(
@@ -92,7 +16,7 @@ namespace no_streaming
 		bool is_sdk_enabled = false;
 
 		Kotek::Core::ktkIFrameworkConfig* p_config =
-			this->m_p_main_manager->Get_EngineConfig();
+			this->m_p_manager_main->Get_EngineConfig();
 
 		if (p_config)
 		{
@@ -133,14 +57,91 @@ namespace no_streaming
 		kotek::core::ktkMainManager* p_manager_main,
 		kotek::core::ktkIRenderResourceManager* p_manager_resource)
 	{
+		this->m_p_manager_main = p_manager_main;
+		this->m_p_imgui_wrapper = p_manager_main->Get_ImguiWrapper();
+
+		bool is_imgui_enabled = false;
+		bool is_sdk_enabled = false;
+
+		Kotek::Core::ktkIFrameworkConfig* p_config =
+			this->m_p_manager_main->Get_EngineConfig();
+
+		if (p_config)
+		{
+			is_imgui_enabled =
+				this->m_p_manager_main->Get_EngineConfig()->IsFeatureEnabled(
+					Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
+
+			is_sdk_enabled =
+				this->m_p_manager_main->Get_EngineConfig()->IsFeatureEnabled(
+					Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
+		}
+
+		if (is_imgui_enabled)
+		{
+			IMGUI_CHECKVERSION();
+
+			if (this->m_p_imgui_wrapper)
+			{
+				this->m_p_imgui_wrapper->CreateContext();
+
+				this->m_p_imgui_wrapper->GetIO().ConfigFlags |=
+					ImGuiConfigFlags_NavEnableKeyboard;
+
+#ifdef KOTEK_USE_IMGUI_DOCKING
+				this->m_p_imgui_wrapper->GetIO().ConfigFlags |=
+					ImGuiConfigFlags_DockingEnable;
+#endif
+
+				this->m_p_imgui_wrapper->StyleColorsDark();
+
+#ifdef KOTEK_USE_IMGUI_DOCKING
+				if (this->m_p_imgui_wrapper->GetIO().ConfigFlags &
+					ImGuiConfigFlags_ViewportsEnable)
+				{
+					this->m_p_imgui_wrapper->GetStyle().WindowRounding = 0.0f;
+					this->m_p_imgui_wrapper->GetStyle()
+						.Colors[ImGuiCol_WindowBg]
+						.w = 1.0f;
+				}
+#endif
+
+				if (is_sdk_enabled)
+				{
+				}
+				else
+				{
+#ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
+					GLFWwindow* p_handle = static_cast<GLFWwindow*>(
+						this->m_p_manager_main->GetGameManager()
+							->GetWindowHandle());
+
+					KOTEK_ASSERT(
+						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOpenGL(
+							p_handle, false),
+						"failed to ImGui_ImplGlfw_InitForOpenGL");
+
+					KOTEK_ASSERT(
+						this->m_p_imgui_wrapper->ImGui_ImplOpenGL3_Init(),
+						"failed to ImGui_ImplOpenGL3_Init");
+#endif
+				}
+			}
+
+			this->m_p_manager_main->Get_EngineConfig()->SetFeatureStatus(
+				Kotek::Core::eEngineFeatureSDK::
+					kEngine_Feature_SDK_ImGui_Initialized,
+				true);
+		}
 	}
 
 	void zircon_render_graph_pass_imgui_bgfx::OnUpdate(
 		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-			p_previous_pass)
+			p_previous_pass,
+		kotek::ktk::uint32_t my_id_in_queue)
 	{
 		Kotek::Core::ktkIFrameworkConfig* p_config =
-			this->m_p_main_manager->Get_EngineConfig();
+			this->m_p_manager_main->Get_EngineConfig();
 
 		bool is_imgui_enabled = false;
 
@@ -165,7 +166,7 @@ namespace no_streaming
 
 			KOTEK_ASSERT(this->m_p_manager_session_game,
 				"Did you call OnRegisterManagers because game session manager "
-			    "is "
+				"is "
 				"not initialized!");
 
 			zircon_session_game* p_session =
@@ -187,10 +188,11 @@ namespace no_streaming
 
 	void zircon_render_graph_pass_imgui_bgfx::OnRender(
 		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-			p_previous_pass)
+			p_previous_pass,
+		kotek::ktk::uint32_t my_id_in_queue)
 	{
 		Kotek::Core::ktkIFrameworkConfig* p_config =
-			this->m_p_main_manager->Get_EngineConfig();
+			this->m_p_manager_main->Get_EngineConfig();
 
 		bool is_imgui_enabled = false;
 
@@ -225,4 +227,4 @@ namespace no_streaming
 			}
 		}
 	}
-}
+} // namespace no_streaming

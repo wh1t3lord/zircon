@@ -22,8 +22,6 @@ namespace no_streaming
 		: public zircon_render_graph_pass_editor_bgfx
 	{
 	public:
-		zircon_render_graph_pass_editor_model_static_bgfx(
-			const kotek::static_u8string_view_t& render_pass_name);
 		zircon_render_graph_pass_editor_model_static_bgfx();
 		~zircon_render_graph_pass_editor_model_static_bgfx();
 
@@ -33,11 +31,11 @@ namespace no_streaming
 		void OnDestroyResources() override;
 		void OnUpdate(
 			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-				p_previous_pass) override;
+				p_previous_pass, Kotek::ktk::uint32_t my_id_in_queue) override;
 
 		void OnRender(
 			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-				p_previous_pass) override;
+				p_previous_pass, Kotek::ktk::uint32_t my_id_in_queue) override;
 
 	private:
  

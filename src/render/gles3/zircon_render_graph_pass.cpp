@@ -1,13 +1,5 @@
 #include "zircon_render_graph_pass.h"
 
-zircon_render_graph_pass::zircon_render_graph_pass(
-	const kotek::static_u8string_view_t& render_pass_name) :
-	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(
-		render_pass_name.data()),
-	m_p_manager_session_game{}
-{
-}
-
 zircon_render_graph_pass::zircon_render_graph_pass() :
 	kotek::render::gl::ktkRenderGraphSimplifiedRenderPass(),
 	m_p_manager_session_game{}

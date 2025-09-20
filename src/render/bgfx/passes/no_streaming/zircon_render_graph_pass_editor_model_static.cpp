@@ -11,14 +11,6 @@
 namespace no_streaming
 {
 	zircon_render_graph_pass_editor_model_static_bgfx::
-		zircon_render_graph_pass_editor_model_static_bgfx(
-			const kotek::static_u8string_view_t& render_pass_name) :
-		zircon_render_graph_pass_editor_bgfx(render_pass_name),
-		m_p_manager_render_resource{}
-	{
-	}
-
-	zircon_render_graph_pass_editor_model_static_bgfx::
 		zircon_render_graph_pass_editor_model_static_bgfx() :
 		zircon_render_graph_pass_editor_bgfx(), m_p_manager_render_resource{}
 	{
@@ -41,13 +33,13 @@ namespace no_streaming
 
 	void zircon_render_graph_pass_editor_model_static_bgfx::OnUpdate(
 		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-			p_previous_pass)
+			p_previous_pass, kotek::ktk::uint32_t my_id_in_queue)
 	{
 	}
 
 	void zircon_render_graph_pass_editor_model_static_bgfx::OnRender(
 		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-			p_previous_pass)
+			p_previous_pass, kotek::ktk::uint32_t my_id_in_queue)
 	{
 	}
 

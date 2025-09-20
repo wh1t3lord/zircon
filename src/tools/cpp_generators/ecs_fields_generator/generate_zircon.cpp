@@ -538,6 +538,144 @@ int generate_sdk_fields(int argc, char* argv[])
 	return 0;
 }
 
+bool containsEditor(const std::string& str) {
+    std::string lowerStr = str;
+    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+    return lowerStr.find("editor") != std::string::npos;
+}
+
+bool hasZirconPrefix(const std::string& str) {
+    std::string lowerStr = str;
+    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+    return lowerStr.find("zircon_render_graph_pass") != std::string::npos;
+}
+
+std::string getCursorSpelling(CXCursor cursor) {
+    CXString spelling = clang_getCursorSpelling(cursor);
+    std::string result = clang_getCString(spelling);
+    clang_disposeString(spelling);
+    return result;
+}
+
+std::string getFullyQualifiedName(CXCursor cursor) {
+    std::string qualifiedName;
+    CXCursor current = cursor;
+    
+    // Get the fully qualified name by traversing parent cursors
+    while (clang_isInvalid(clang_getCursorKind(current)) == 0) {
+        if (clang_getCursorKind(current) == CXCursor_TranslationUnit) {
+            break;
+        }
+        
+        CXString spelling = clang_getCursorSpelling(current);
+        std::string part = clang_getCString(spelling);
+        clang_disposeString(spelling);
+        
+        if (!part.empty()) {
+            if (qualifiedName.empty()) {
+                qualifiedName = part;
+            } else {
+                qualifiedName = part + "::" + qualifiedName;
+            }
+        }
+        
+        current = clang_getCursorSemanticParent(current);
+    }
+    
+    return qualifiedName;
+}
+
+CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
+    auto* classNames = static_cast<std::set<std::string>*>(client_data);
+    CXCursorKind kind = clang_getCursorKind(cursor);
+    
+    if (kind == CXCursor_ClassDecl || kind == CXCursor_StructDecl) {
+        std::string className = getCursorSpelling(cursor);
+        std::string qualifiedName = getFullyQualifiedName(cursor);
+        
+        if (!className.empty() && hasZirconPrefix(className)) {
+            classNames->insert(qualifiedName);
+        }
+    }
+    
+    return CXChildVisit_Recurse;
+}
+
+void parseFile(const std::string& filePath, std::set<std::string>& classNames) {
+    CXIndex index = clang_createIndex(0, 0);
+    const char* args[] = {"-x", "c++", "-std=c++17"};
+    CXTranslationUnit tu = clang_parseTranslationUnit(index, filePath.c_str(), args, 3, nullptr, 0, CXTranslationUnit_None);
+    
+    if (!tu) {
+        std::cerr << "Failed to parse translation unit: " << filePath << std::endl;
+        clang_disposeIndex(index);
+        return;
+    }
+    
+    CXCursor rootCursor = clang_getTranslationUnitCursor(tu);
+    clang_visitChildren(rootCursor, visitor, &classNames);
+    
+    clang_disposeTranslationUnit(tu);
+    clang_disposeIndex(index);
+}
+
+std::string toEnumValue(const std::string& qualifiedName) {
+    std::string enumValue = qualifiedName;
+    
+    // Replace "::" with "_" to make it a valid enum value
+    size_t pos = 0;
+    while ((pos = enumValue.find("::", pos)) != std::string::npos) {
+        enumValue.replace(pos, 2, "_");
+        pos += 1;
+    }
+    
+    return "k" + enumValue;
+}
+
+void generateEnumFile(const std::string& filePath, const std::string& enumName, const std::set<std::string>& passes) {
+    std::ofstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filePath << std::endl;
+        return;
+    }
+    
+    std::string guard = enumName;
+    std::transform(guard.begin(), guard.end(), guard.begin(), ::toupper);
+    guard += "_H";
+    
+    file << "#ifndef " << guard << "\n";
+    file << "#define " << guard << "\n\n";
+    file << "enum " << enumName << " {\n";
+    for (const auto& pass : passes) {
+        file << "    " << toEnumValue(pass) << ",\n";
+    }
+    file << "};\n\n";
+    file << "#endif // " << guard << "\n";
+}
+
+void generateRenderPassEnums(const std::string& folderPath) {
+    std::set<std::string> gamePasses;
+    std::set<std::string> editorPasses;
+    
+    for (const auto& entry : fs::recursive_directory_iterator(folderPath)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".h") {
+            std::set<std::string> classNames;
+            parseFile(entry.path().string(), classNames);
+            
+            for (const auto& className : classNames) {
+                if (containsEditor(className)) {
+                    editorPasses.insert(className);
+                } else {
+                    gamePasses.insert(className);
+                }
+            }
+        }
+    }
+    
+    generateEnumFile(folderPath + "/zircon_render_game_passes_enum.h", "eZirconRenderGamePasses", gamePasses);
+    generateEnumFile(folderPath + "/zircon_render_editor_passes_enum.h", "eZirconRenderEditorPasses", editorPasses);
+}
+
 int main(int argc, char* argv[])
 {
     int what_to_generate = -1;
@@ -589,6 +727,14 @@ int main(int argc, char* argv[])
                 std::cout << "failed to generate file for sdk" << std::endl;
                 return -2;
             }
+
+            break;
+        }
+        case 2:
+        {
+            std::cout << "Generating renderer passes enums!" << std::endl;
+
+            generateRenderPassEnums(argv[3]);
 
             break;
         }

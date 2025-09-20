@@ -3,13 +3,6 @@
 namespace no_streaming
 {
 	zircon_render_graph_pass_editor_present_bgfx::
-		zircon_render_graph_pass_editor_present_bgfx(
-			const kotek::static_u8string_view_t& render_pass_name) :
-		zircon_render_graph_pass_editor_bgfx(render_pass_name.data())
-	{
-	}
-
-	zircon_render_graph_pass_editor_present_bgfx::
 		zircon_render_graph_pass_editor_present_bgfx(void)
 	{
 	}
@@ -27,15 +20,16 @@ namespace no_streaming
 
 	void zircon_render_graph_pass_editor_present_bgfx::OnUpdate(
 		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-			p_previous_pass)
+			p_previous_pass,
+		kotek::ktk::uint32_t my_id_in_queue)
 	{
 	}
 
 	void zircon_render_graph_pass_editor_present_bgfx::OnRender(
 		const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-			p_previous_pass)
+			p_previous_pass,
+		kotek::ktk::uint32_t my_id_in_queue)
 	{
-	//	glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
-	//	glClear(GL_COLOR_BUFFER_BIT);
+
 	}
-}
+} // namespace no_streaming
