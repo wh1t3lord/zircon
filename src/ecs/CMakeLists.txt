@@ -274,7 +274,6 @@ execute_process(
 	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/${current_config}/zircon_generator" --type 0 --src ${CMAKE_CURRENT_SOURCE_DIR} --kotek_src ${CMAKE_CURRENT_SOURCE_DIR}/../../kotek/src/kotek.core.defines_dependent.ecs/include/ --output ${CMAKE_CURRENT_SOURCE_DIR}/${zircon_generate_header_component_fields}
 )
 
-message(STATUS "${CMAKE_SOURCE_DIR}/src/render/bgfx/passes/")
 execute_process(
 	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/${current_config}/zircon_generator" --type 2 ${CMAKE_SOURCE_DIR}/src/render/bgfx/passes/no_streaming
 )

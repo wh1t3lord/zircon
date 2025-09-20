@@ -25,5 +25,15 @@ namespace no_streaming
 
 	private:
 		kotek::core::ktkIImguiWrapper* m_p_imgui_wrapper;
+
+		bgfx::ProgramHandle m_program;
+		bgfx::ProgramHandle m_programImage;
+		bgfx::VertexLayout m_layout;
+		bgfx::UniformHandle m_imageLodEnabled;
+		bgfx::UniformHandle m_tex;
+		bgfx::TextureHandle m_texture;
+		ImFont* m_font[2];
+		int64_t m_last;
+		int32_t m_lastScroll;
 	};
 }

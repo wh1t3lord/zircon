@@ -632,6 +632,23 @@ std::string toEnumValue(const std::string& qualifiedName) {
     return "k" + enumValue;
 }
 
+std::string extractBackendFromPath(const std::string& path) {
+    // Extract backend from path like "${CMAKE_SOURCE_DIR}/src/render/bgfx/passes/no_streaming"
+    size_t renderPos = path.find("/render/");
+    if (renderPos == std::string::npos) {
+        return "bgfx"; // Default to bgfx if not found
+    }
+    
+    size_t backendStart = renderPos + 8; // Length of "/render/"
+    size_t backendEnd = path.find('/', backendStart);
+    
+    if (backendEnd == std::string::npos) {
+        return path.substr(backendStart);
+    }
+    
+    return path.substr(backendStart, backendEnd - backendStart);
+}
+
 void generateEnumFile(const std::string& filePath, const std::string& enumName, const std::set<std::string>& passes) {
     std::ofstream file(filePath);
     if (!file.is_open()) {
@@ -645,10 +662,95 @@ void generateEnumFile(const std::string& filePath, const std::string& enumName, 
     
     file << "#ifndef " << guard << "\n";
     file << "#define " << guard << "\n\n";
-    file << "enum " << enumName << " {\n";
+    file << "enum class " << enumName << " : kun_kotek kun_ktk enum_base_t {\n";
     for (const auto& pass : passes) {
         file << "    " << toEnumValue(pass) << ",\n";
     }
+    file << "};\n\n";
+    file << "#endif // " << guard << "\n";
+}
+
+void generateFactoryHeader(const std::string& folderPath, 
+                          const std::set<std::string>& gamePasses, 
+                          const std::set<std::string>& editorPasses,
+                          const std::string& backend) {
+    std::string factoryPath = folderPath + "/zircon_render_pass_factory.h";
+    std::ofstream file(factoryPath);
+    
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << factoryPath << std::endl;
+        return;
+    }
+    
+    std::string guard = "ZIRCON_RENDER_PASS_FACTORY_H";
+    std::string returnType = "kun_kotek kun_render kun_" + backend + " ktkRenderGraphSimplifiedRenderPass*";
+    
+    file << "#ifndef " << guard << "\n";
+    file << "#define " << guard << "\n\n";
+    
+    file << "#include \"zircon_render_game_passes_enum.h\"\n";
+    file << "#include \"zircon_render_editor_passes_enum.h\"\n";
+    file << "#include <cstring>\n\n";
+    
+    // Constexpr function to get class name from enum
+    file << "    inline constexpr const char* convert_render_pass_to_string(eZirconRenderGamePasses pass) {\n";
+    file << "        switch (pass) {\n";
+    for (const auto& pass : gamePasses) {
+        file << "            case eZirconRenderGamePasses::" << toEnumValue(pass) << ": return \"" << pass << "\";\n";
+    }
+    file << "            default: return \"\";\n";
+    file << "        }\n";
+    file << "    }\n\n";
+    
+    file << "    inline constexpr const char* convert_render_pass_to_string(eZirconRenderEditorPasses pass) {\n";
+    file << "        switch (pass) {\n";
+    for (const auto& pass : editorPasses) {
+        file << "            case eZirconRenderEditorPasses::" << toEnumValue(pass) << ": return \"" << pass << "\";\n";
+    }
+    file << "            default: return \"\";\n";
+    file << "        }\n";
+    file << "    }\n";
+
+    file << "class zircon_render_pass_factory {\n";
+    file << "public:\n";
+    
+    // Game passes create method
+    file << "    static " << returnType << " create(eZirconRenderGamePasses pass) {\n";
+    file << "        switch (pass) {\n";
+    for (const auto& pass : gamePasses) {
+        file << "            case " << toEnumValue(pass) << ": return new " << pass << "();\n";
+    }
+    file << "            default: return nullptr;\n";
+    file << "        }\n";
+    file << "    }\n\n";
+    
+    // Editor passes create method
+    file << "    static " << returnType << " create(eZirconRenderEditorPasses pass) {\n";
+    file << "        switch (pass) {\n";
+    for (const auto& pass : editorPasses) {
+        file << "            case " << toEnumValue(pass) << ": return new " << pass << "();\n";
+    }
+    file << "            default: return nullptr;\n";
+    file << "        }\n";
+    file << "    }\n\n";
+    
+    // String-based create method
+    file << "    static " << returnType << " create(const char* class_name) {\n";
+    file << "        // Game passes\n";
+    for (const auto& pass : gamePasses) {
+        file << "        if (std::strcmp(class_name, \"" << pass << "\") == 0) {\n";
+        file << "            return new " << pass << "();\n";
+        file << "        }\n";
+    }
+    file << "        \n        // Editor passes\n";
+    for (const auto& pass : editorPasses) {
+        file << "        if (std::strcmp(class_name, \"" << pass << "\") == 0) {\n";
+        file << "            return new " << pass << "();\n";
+        file << "        }\n";
+    }
+    file << "        \n        return nullptr;\n";
+    file << "    }\n\n";
+    
     file << "};\n\n";
     file << "#endif // " << guard << "\n";
 }
@@ -674,6 +776,9 @@ void generateRenderPassEnums(const std::string& folderPath) {
     
     generateEnumFile(folderPath + "/zircon_render_game_passes_enum.h", "eZirconRenderGamePasses", gamePasses);
     generateEnumFile(folderPath + "/zircon_render_editor_passes_enum.h", "eZirconRenderEditorPasses", editorPasses);
+    
+    std::string backend = extractBackendFromPath(folderPath);
+    generateFactoryHeader(folderPath, gamePasses, editorPasses, backend);
 }
 
 int main(int argc, char* argv[])
