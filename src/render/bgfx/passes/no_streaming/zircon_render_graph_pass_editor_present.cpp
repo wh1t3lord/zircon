@@ -30,10 +30,10 @@ namespace no_streaming
 			p_previous_pass,
 		kotek::ktk::uint32_t my_id_in_queue)
 	{
-		bgfx::touch(static_cast<bgfx::ViewId>(my_id_in_queue));
-		bgfx::setViewClear(static_cast<bgfx::ViewId>(my_id_in_queue), BGFX_CLEAR_COLOR);
-		bgfx::setViewRect(
-			static_cast<bgfx::ViewId>(my_id_in_queue), 0, 0, bgfx::BackbufferRatio::Equal);
+		bgfx::ViewId pass_id = static_cast<bgfx::ViewId>(my_id_in_queue);
 
+		bgfx::touch(pass_id);
+		bgfx::setViewClear(pass_id, BGFX_CLEAR_COLOR);
+		bgfx::setViewRect(pass_id, 0, 0, bgfx::BackbufferRatio::Equal);
 	}
 } // namespace no_streaming
