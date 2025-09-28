@@ -46,5 +46,9 @@ zircon_validate_get_component_type_of_all_components.cpp
 zircon_component_fields.h
 zircon_editor_enums.h
 
+zircon_render_editor_passes_enum.h
+zircon_render_game_passes_enum.h
+zircon_render_pass_factory.h
+
 imgui.ini
 report_memleak_*
