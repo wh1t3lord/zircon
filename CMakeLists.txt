@@ -9,6 +9,22 @@ set(KOTEK_ENGINE_ROOT_FOLDER_NAME "kotek")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Clear, descriptive names
+set(CMAKE_CONFIGURATION_TYPES 
+    "Debug;Release;RelWithDebInfo;MinSizeRel;Editor_Debug;Editor_Release" 
+    CACHE STRING "Available configurations: Debug, Release, Editor_Debug, Editor_Release" 
+    FORCE
+)
+
+# Setup Editor configurations
+foreach(config Debug Release)
+    set(CMAKE_CXX_FLAGS_Editor_${config} "${CMAKE_CXX_FLAGS_${config}}" CACHE STRING "" FORCE)
+    set(CMAKE_C_FLAGS_Editor_${config} "${CMAKE_C_FLAGS_${config}}" CACHE STRING "" FORCE)
+    set(CMAKE_EXE_LINKER_FLAGS_Editor_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}}" CACHE STRING "" FORCE)
+    
+    # Add editor-specific definitions
+    set(CMAKE_CXX_FLAGS_Editor_${config} "${CMAKE_CXX_FLAGS_Editor_${config}} -DEDITOR_BUILD=1" CACHE STRING "" FORCE)
+endforeach()
 
 get_property(is_enabled GLOBAL PROPERTY USE_FOLDERS)
 if(is_enabled)
@@ -137,3 +153,29 @@ add_subdirectory("src/engine")
 add_subdirectory("src/render")
 add_subdirectory("src/world")
 add_dependencies(${KOTEK_ENGINE_ROOT_FOLDER_NAME} zircon)
+
+
+# Define a function to append debugger arguments
+function(append_debugger_args target config new_args)
+	message(STATUS "target=${target}")
+	message(STATUS "config=${config}")
+	message(STATUS "new_args=${new_args}")
+    get_target_property(current_args ${target} VS_DEBUGGER_COMMAND_ARGUMENTS)
+    
+    if(current_args AND NOT current_args STREQUAL "current_args-NOTFOUND")
+        set(new_value "${current_args} ${new_args}")
+    else()
+        set(new_value "${new_args}")
+    endif()
+    
+    set_target_properties(${target} PROPERTIES
+        VS_DEBUGGER_COMMAND_ARGUMENTS "$<$<CONFIG:${config}>:${new_value}>"
+    )
+    
+    message(STATUS "Set ${target} ${config} debug args: ${new_value}")
+endfunction()
+
+# kotek.exe
+append_debugger_args("${KOTEK_PROJECT_NAME_OVERRIDE_KOTEK}" "Editor_Debug" "--editor_imgui")
+
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${KOTEK_PROJECT_NAME_OVERRIDE_KOTEK})
