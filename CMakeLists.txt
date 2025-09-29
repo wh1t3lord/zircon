@@ -157,19 +157,23 @@ add_dependencies(${KOTEK_ENGINE_ROOT_FOLDER_NAME} zircon)
 
 # Define a function to append debugger arguments
 function(append_debugger_args target config new_args)
-	message(STATUS "target=${target}")
-	message(STATUS "config=${config}")
-	message(STATUS "new_args=${new_args}")
+    message(STATUS "target=${target}")
+    message(STATUS "config=${config}")
+    message(STATUS "new_args=${new_args}")
+    
     get_target_property(current_args ${target} VS_DEBUGGER_COMMAND_ARGUMENTS)
     
-    if(current_args AND NOT current_args STREQUAL "current_args-NOTFOUND")
-        set(new_value "${current_args} ${new_args}")
+    # Handle the case where no arguments are set yet
+    if(NOT current_args OR current_args STREQUAL "current_args-NOTFOUND")
+        set(new_value "$<$<CONFIG:${config}>:${new_args}>")
     else()
-        set(new_value "${new_args}")
+        # For the specific configuration, append the new arguments
+        # For other configurations, keep their existing values
+        set(new_value "${current_args}$<$<CONFIG:${config}>:${new_args}>")
     endif()
     
     set_target_properties(${target} PROPERTIES
-        VS_DEBUGGER_COMMAND_ARGUMENTS "$<$<CONFIG:${config}>:${new_value}>"
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${new_value}"
     )
     
     message(STATUS "Set ${target} ${config} debug args: ${new_value}")
@@ -177,5 +181,6 @@ endfunction()
 
 # kotek.exe
 append_debugger_args("${KOTEK_PROJECT_NAME_OVERRIDE_KOTEK}" "Editor_Debug" "--editor_imgui")
+append_debugger_args("${KOTEK_PROJECT_NAME_OVERRIDE_KOTEK}" "Editor_Release" "--editor_imgui")
 
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${KOTEK_PROJECT_NAME_OVERRIDE_KOTEK})
