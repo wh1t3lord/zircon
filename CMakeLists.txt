@@ -9,23 +9,6 @@ set(KOTEK_ENGINE_ROOT_FOLDER_NAME "kotek")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-# Clear, descriptive names
-set(CMAKE_CONFIGURATION_TYPES 
-    "Debug;Release;RelWithDebInfo;MinSizeRel;Editor_Debug;Editor_Release" 
-    CACHE STRING "Available configurations: Debug, Release, Editor_Debug, Editor_Release" 
-    FORCE
-)
-
-# Setup Editor configurations
-foreach(config Debug Release)
-    set(CMAKE_CXX_FLAGS_Editor_${config} "${CMAKE_CXX_FLAGS_${config}}" CACHE STRING "" FORCE)
-    set(CMAKE_C_FLAGS_Editor_${config} "${CMAKE_C_FLAGS_${config}}" CACHE STRING "" FORCE)
-    set(CMAKE_EXE_LINKER_FLAGS_Editor_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}}" CACHE STRING "" FORCE)
-    
-    # Add editor-specific definitions
-    set(CMAKE_CXX_FLAGS_Editor_${config} "${CMAKE_CXX_FLAGS_Editor_${config}} -DEDITOR_BUILD=1" CACHE STRING "" FORCE)
-endforeach()
-
 get_property(is_enabled GLOBAL PROPERTY USE_FOLDERS)
 if(is_enabled)
 else()
