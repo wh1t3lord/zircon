@@ -151,7 +151,7 @@ private:
 	kotek::core::ktkWindowConsole* m_p_window_console;
 	zircon_interface_session* m_p_current_session;
 	renderers_t m_renderers;
-
+	kotek::vector_t<kotek::core::ktkISDKUIElement*> empty_ui_elements;
 #ifdef KOTEK_USE_SDK
 	void* m_p_window_handle;
 	sdk::ui::zircon_RenderWindow* m_p_sdk_render_window;

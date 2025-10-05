@@ -3278,12 +3278,10 @@ void zircon_game_manager::UpdateCamera(void) noexcept {}
 const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
 zircon_game_manager::get_ui_imgui_elements()
 {
-	kotek::vector_t<kotek::core::ktkISDKUIElement*> empty;
-
 	if (!this->m_p_current_session)
 	{
 		KOTEK_ASSERT(false, "early calling? Otherwise set current session!");
-		return empty;
+		return empty_ui_elements;
 	}
 
 	if (this->m_p_current_session)
@@ -3329,10 +3327,10 @@ zircon_game_manager::get_ui_imgui_elements()
 			KOTEK_ASSERT(false,
 				"unknown session type report to developers! Otherwise memory "
 				"corruptuion");
-			return empty;
+			return empty_ui_elements;
 		}
 		}
 	}
 
-	return empty;
+	return empty_ui_elements;
 }
