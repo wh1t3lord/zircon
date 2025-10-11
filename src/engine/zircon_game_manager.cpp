@@ -664,8 +664,7 @@ void zircon_game_manager::Initialize(
 
 				p_session->initialize("editor", session_editor_id, p_world,
 					this->m_p_session_editor_manager, this->m_p_main_manager,
-					this->m_p_console, this->m_p_main_manager->GetFileSystem(),
-					this->m_p_resource_manager);
+					this->m_p_console, this->m_p_main_manager->GetFileSystem());
 
 				if (this->m_p_console)
 				{
@@ -1121,8 +1120,7 @@ kotek::core::ktkWindow* zircon_game_manager::GetWindow(void) const noexcept
 
 void zircon_game_manager::Serialize(void) noexcept
 {
-	this->m_p_config->serialize(this->m_p_main_manager->GetFileSystem(),
-		this->m_p_main_manager->GetResourceManager());
+	this->m_p_config->serialize(this->m_p_main_manager->GetFileSystem());
 }
 
 void zircon_game_manager::Deserialize(void) noexcept
@@ -1136,8 +1134,7 @@ void zircon_game_manager::Deserialize(void) noexcept
 	{
 	}
 
-	this->m_p_config->deserialize(this->m_p_main_manager->GetFileSystem(),
-		this->m_p_main_manager->GetResourceManager());
+	this->m_p_config->deserialize(this->m_p_main_manager->GetFileSystem());
 }
 
 kotek::core::ktkMainManager* zircon_game_manager::GetMainManager(
@@ -1288,8 +1285,14 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 {
 	this->m_p_window_console = new kotek::core::ktkWindowConsole();
 
-	auto path = this->m_p_main_manager->GetFileSystem()->GetFolderByEnum(
-		kotek::core::eFolderIndex::kFolderIndex_DataUser);
+	ktk_filesystem_path path;
+	
+	this->m_p_main_manager->GetFileSystem()->Make_Path(
+		path, kotek::core::eFolderIndex::kFolderIndex_DataUser
+	);
+
+	//	auto path = this->m_p_main_manager->GetFileSystem()->GetFolderByEnum(
+//		kotek::core::eFolderIndex::kFolderIndex_DataUser);
 
 	path /= KOTEK_USE_LOG_OUTPUT_FILE_NAME;
 
@@ -1306,8 +1309,7 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 	}
 
 	this->m_p_window_console->Initialize(
-		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow(),
-		this->m_p_resource_manager, this->m_p_main_manager->Get_Input(),
+		this->m_p_main_manager->Get_WindowManager()->Get_ActiveWindow(), this->m_p_main_manager->GetFileSystem(), this->m_p_main_manager->Get_Input(),
 		this->m_p_main_manager->Get_Logger(), this->m_p_console, imgui_height,
 		path);
 
@@ -1526,6 +1528,8 @@ void zircon_game_manager::Initialize_ResourceManager(void) noexcept
 	    this->m_p_resource_manager);
 	    */
 
+	KOTEK_ASSERT(false, "todo: re-write please");
+	/* todo: re-write please
 	this->m_p_resource_manager =
 		new zircon_resource_manager(this->m_p_main_manager);
 	this->m_p_resource_manager->Set_RenderResourceManager(
@@ -1536,16 +1540,17 @@ void zircon_game_manager::Initialize_ResourceManager(void) noexcept
 		new kotek::core::ktkResourceSaverManager());
 	this->m_p_resource_manager->Initialize();
 
-	this->m_p_main_manager->SetResourceManager(this->m_p_resource_manager);
+	this->m_p_main_manager->SetResourceManager(this->m_p_resource_manager);*/
 }
 
 void zircon_game_manager::Destroy_ResourceManager(void) noexcept
 {
 	if (this->m_p_resource_manager)
 	{
+/* todo: re-write please (probably keep but for now we don't have implementation)
 		this->m_p_resource_manager->Shutdown();
 		delete this->m_p_resource_manager;
-		this->m_p_resource_manager = nullptr;
+		this->m_p_resource_manager = nullptr;*/
 	}
 }
 
@@ -1643,6 +1648,7 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 
 	auto* p_main_manager = this->m_p_main_manager;
 
+/* todo: re-write please
 	auto* p_resource_manager = p_main_manager->GetResourceManager();
 
 	this->m_p_console->Register_Command(
@@ -1809,7 +1815,7 @@ void zircon_game_manager::RegisterConsole_Commands(void) noexcept
 			return true;
 		},
 		static_cast<kotek::ktk::enum_base_t>(kotek::core::eConsoleCommandIndex::
-				kConsoleCommand_ResourceManager_Load));
+				kConsoleCommand_ResourceManager_Load));*/
 
 	auto p_command_resize = [p_main_manager](int width, int height) -> bool
 	{
@@ -2538,7 +2544,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					filename = custom_path;
 
 					bool is_valid =
-						this->GetMainManager()->GetFileSystem()->IsValidPath(
+						this->GetMainManager()->GetFileSystem()->Is_ValidPath(
 							filename.parent_path());
 
 					KOTEK_ASSERT(

@@ -2,24 +2,33 @@
 #include "../../core/zircon_config.h"
 #include "zircon_editor_ui_state.h"
 
-zircon_editor_ui_window_settings::zircon_editor_ui_window_settings(zircon_config* p_config) :
+zircon_editor_ui_window_settings::
+	zircon_editor_ui_window_settings(zircon_config* p_config) :
 	m_is_window_show(false), m_p_config{p_config}
 {
 }
 
-zircon_editor_ui_window_settings::~zircon_editor_ui_window_settings(void) {}
+zircon_editor_ui_window_settings::
+	~zircon_editor_ui_window_settings(void)
+{
+}
 
 void zircon_editor_ui_window_settings::Initialize(void) {}
 
 void zircon_editor_ui_window_settings::Shutdown(void) {}
 
-void zircon_editor_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_manager)
+void zircon_editor_ui_window_settings::Draw(
+	Kotek::Core::ktkMainManager* p_main_manager
+)
 {
 	if (!this->m_is_window_show)
 		return;
 
-	KOTEK_ASSERT(this->m_p_config,
-		"you must pass a valid pointer of zircon_config instance!");
+	KOTEK_ASSERT(
+		this->m_p_config,
+		"you must pass a valid pointer of zircon_config "
+		"instance!"
+	);
 
 	auto* p_wrapper_imgui = p_main_manager->Get_ImguiWrapper();
 
@@ -36,39 +45,47 @@ void zircon_editor_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_
 					if (p_config)
 					{
 						// required components
-						bool status = p_config->is_feature_enabled(
-							eZirconSDKFeatures::
-								kSDK_Feature_AddRequiredComponents_Automatically);
+						bool status =
+							p_config->is_feature_enabled(
+								eZirconSDKFeatures::
+									kSDK_Feature_AddRequiredComponents_Automatically
+							);
 
 						if (p_wrapper_imgui->Checkbox(
 								translate_zircon_sdk_features(
 									eZirconSDKFeatures::
-										kSDK_Feature_AddRequiredComponents_Automatically)
-									.c_str(),
-								&status))
+										kSDK_Feature_AddRequiredComponents_Automatically
+								),
+								&status
+							))
 						{
 							p_config->set_feature(
 								eZirconSDKFeatures::
 									kSDK_Feature_AddRequiredComponents_Automatically,
-								status);
+								status
+							);
 						}
 
-						// quality for sphere bounding box generation
-						status =
-							p_config->is_feature_enabled(eZirconSDKFeatures::
-									kSDK_Feature_SphereBoundingBox_Quality);
+						// quality for sphere bounding box
+						// generation
+						status = p_config->is_feature_enabled(
+							eZirconSDKFeatures::
+								kSDK_Feature_SphereBoundingBox_Quality
+						);
 
 						if (p_wrapper_imgui->Checkbox(
 								translate_zircon_sdk_features(
 									eZirconSDKFeatures::
-										kSDK_Feature_SphereBoundingBox_Quality)
-									.c_str(),
-								&status))
+										kSDK_Feature_SphereBoundingBox_Quality
+								),
+								&status
+							))
 						{
 							p_config->set_feature(
 								eZirconSDKFeatures::
 									kSDK_Feature_SphereBoundingBox_Quality,
-								status);
+								status
+							);
 						}
 
 						if (status)
@@ -77,11 +94,14 @@ void zircon_editor_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_
 
 							if (p_config->is_feature_enabled(
 									eZirconSDKFeatures::
-										kSDK_Feature_SphereBoundingBox_Quality))
+										kSDK_Feature_SphereBoundingBox_Quality
+								))
 							{
-								quality = p_config->get_feature<int>(
+								quality = p_config->get_feature<
+									int>(
 									eZirconSDKFeatures::
-										kSDK_Feature_SphereBoundingBox_Quality);
+										kSDK_Feature_SphereBoundingBox_Quality
+								);
 							}
 
 							if (quality == 0)
@@ -90,12 +110,18 @@ void zircon_editor_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_
 							}
 
 							if (p_wrapper_imgui->DragInt(
-									"SBB quality", &quality, 1.0, 3, 50))
+									"SBB quality",
+									&quality,
+									1.0,
+									3,
+									50
+								))
 							{
 								p_config->set_feature(
 									eZirconSDKFeatures::
 										kSDK_Feature_SphereBoundingBox_Quality,
-									quality);
+									quality
+								);
 							}
 						}
 					}
@@ -109,7 +135,9 @@ void zircon_editor_ui_window_settings::Draw(Kotek::Core::ktkMainManager* p_main_
 
 int zircon_editor_ui_window_settings::Get_ID(void) const
 {
-	return static_cast<int>(eZirconWindowIDs::kWindow_SDK_Settings);
+	return static_cast<int>(
+		eZirconWindowIDs::kWindow_SDK_Settings
+	);
 }
 
 void zircon_editor_ui_window_settings::Show(void)

@@ -22,8 +22,8 @@ class ktkWindowConsole;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
-enum eZirconGameFeatures;
-enum eZirconSDKFeatures;
+enum class eZirconGameFeatures : kotek::ktk::uint16_t;
+enum class eZirconSDKFeatures : kotek::ktk::uint16_t;
 
 class zircon_editor_command_history;
 class zircon_renderer_gles3;

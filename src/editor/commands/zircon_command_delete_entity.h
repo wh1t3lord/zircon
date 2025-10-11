@@ -10,13 +10,16 @@ class zircon_session_editor_manager;
 
 enum zircon_component_type_t;
 
-// TODO: implement streaming of json size of 30k+ while we are limited in our
-// storage
-class zircon_command_delete_entity : public kotek::core::ktkISDKRedoUndo
+// TODO: implement streaming of json size of 30k+ while we are
+// limited in our storage
+class zircon_command_delete_entity
+	: public kotek::core::ktkISDKRedoUndo
 {
 public:
 	zircon_command_delete_entity(
-		zircon_session_editor_manager* p_manager_session_editor, entt::entity entity_to_delete);
+		zircon_session_editor_manager* p_manager_session_editor,
+		entt::entity entity_to_delete
+	);
 
 	~zircon_command_delete_entity();
 
@@ -28,21 +31,24 @@ public:
 	void SetEntityID(kotek::uint32_t id) noexcept override;
 
 	kotek::enum_base_t GetCommandType() noexcept override;
-	kotek::size_t Serialize(kotek::cfstream_t* p_file,
-		kotek::core::ktkIResourceManager* p_resource_manager) noexcept override;
-	void Deserialize(const kotek::json::object& json_data) noexcept;
+	kotek::size_t Serialize(kotek::core::ktkFileHandleType file
+	) noexcept override;
+	void Deserialize(const kotek::json::object& json_data
+	) noexcept;
 
 private:
 	entt::entity m_entity_created;
 	entt::entity m_entity_previous_id;
 	zircon_session_editor_manager* m_p_manager_session_editor;
-	kotek::static_vector_t<zircon_component_type_t,
+	kotek::static_vector_t<
+		zircon_component_type_t,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_components;
 	char m_p_serialized_json_as_string
 		[ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE];
 	unsigned char m_p_placement_new_memory
 		[(zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON -
-			 ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE) -
-			sizeof(m_components)];
+	      ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE
+	     ) -
+	     sizeof(m_components)];
 };

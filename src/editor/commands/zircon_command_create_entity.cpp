@@ -6,13 +6,16 @@
 #include "zircon_command_history.h"
 
 zircon_command_create_entity::zircon_command_create_entity(
-	zircon_session_editor_manager* p_session_manager_editor) :
+	zircon_session_editor_manager* p_session_manager_editor
+) :
 	m_created_entity{}, m_entity_previous_id{entt::null},
 	m_p_editor_session_manager{p_session_manager_editor},
 	m_serialize_json_string_storage{}
 {
-	KOTEK_ASSERT(p_session_manager_editor,
-		"must be valid pointer of editor session manager");
+	KOTEK_ASSERT(
+		p_session_manager_editor,
+		"must be valid pointer of editor session manager"
+	);
 }
 
 zircon_command_create_entity::~zircon_command_create_entity() {}
@@ -21,23 +24,32 @@ void zircon_command_create_entity::Execute()
 {
 	if (!this->m_p_editor_session_manager)
 	{
-		KOTEK_MESSAGE_ERROR(
-			"failed to excute due to invalid editor session manager!");
+		KOTEK_MESSAGE_ERROR("failed to excute due to invalid "
+		                    "editor session manager!");
 		return;
 	}
 
 	zircon_session_editor* p_session =
 		this->m_p_editor_session_manager->get_session(
-			this->m_p_editor_session_manager->get_current_session_id());
+			this->m_p_editor_session_manager
+				->get_current_session_id()
+		);
 
-	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
-		this->m_p_editor_session_manager->get_current_session_id());
+	KOTEK_ASSERT(
+		p_session,
+		"failed to obtain session editor by id: {}",
+		this->m_p_editor_session_manager
+			->get_current_session_id()
+	);
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid session editor#{}",
-			this->m_p_editor_session_manager->get_current_session_id());
+			"failed to execute due to invalid session "
+		    "editor#{}",
+			this->m_p_editor_session_manager
+				->get_current_session_id()
+		);
 		return;
 	}
 
@@ -46,24 +58,35 @@ void zircon_command_create_entity::Execute()
 	if (!p_world)
 	{
 		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid world of session editor_{}#{}",
-			p_session->get_session_name(), p_session->get_id());
+			"failed to execute due to invalid world of session "
+		    "editor_{}#{}",
+			p_session->get_session_name(),
+			p_session->get_id()
+		);
 		return;
 	}
 
-	zircon_editor_command_history* p_history = p_session->get_command_history();
+	zircon_editor_command_history* p_history =
+		p_session->get_command_history();
 
-	KOTEK_ASSERT(p_history,
-		"failed to execute due to invalid history command manager is nullptr "
+	KOTEK_ASSERT(
+		p_history,
+		"failed to execute due to invalid history command "
+	    "manager is nullptr "
 		"in session editor_{}#{}",
-		p_session->get_session_name(), p_session->get_id());
+		p_session->get_session_name(),
+		p_session->get_id()
+	);
 
 	if (!p_history)
 	{
-		KOTEK_MESSAGE_WARNING("failed to execute due to invalid history "
-							  "command manager is nullptr "
-							  "in session editor_{}#{}",
-			p_session->get_session_name(), p_session->get_id());
+		KOTEK_MESSAGE_WARNING(
+			"failed to execute due to invalid history "
+			"command manager is nullptr "
+			"in session editor_{}#{}",
+			p_session->get_session_name(),
+			p_session->get_id()
+		);
 		return;
 	}
 
@@ -72,17 +95,22 @@ void zircon_command_create_entity::Execute()
 		this->m_created_entity = p_world->create_entity();
 
 		if (this->m_entity_previous_id != entt::null &&
-			this->m_created_entity != this->m_entity_previous_id)
+		    this->m_created_entity !=
+		        this->m_entity_previous_id)
 		{
 			if (p_history)
 			{
 				p_history->update_dependent_commands(
-					this->m_entity_previous_id, this->m_created_entity);
+					this->m_entity_previous_id,
+					this->m_created_entity
+				);
 			}
 		}
 
-		KOTEK_MESSAGE("[history]: created entity: {}",
-			static_cast<kotek::uint32_t>(this->m_created_entity));
+		KOTEK_MESSAGE(
+			"[history]: created entity: {}",
+			static_cast<kotek::uint32_t>(this->m_created_entity)
+		);
 	}
 }
 
@@ -90,22 +118,33 @@ void zircon_command_create_entity::Undo()
 {
 	if (!this->m_p_editor_session_manager)
 	{
-		KOTEK_MESSAGE_ERROR("failed to excute due to invalid game manager!");
+		KOTEK_MESSAGE_ERROR(
+			"failed to excute due to invalid game manager!"
+		);
 		return;
 	}
 
 	zircon_session_editor* p_session =
 		this->m_p_editor_session_manager->get_session(
-			this->m_p_editor_session_manager->get_current_session_id());
+			this->m_p_editor_session_manager
+				->get_current_session_id()
+		);
 
-	KOTEK_ASSERT(p_session, "failed to obtain session editor by id: {}",
-		this->m_p_editor_session_manager->get_current_session_id());
+	KOTEK_ASSERT(
+		p_session,
+		"failed to obtain session editor by id: {}",
+		this->m_p_editor_session_manager
+			->get_current_session_id()
+	);
 
 	if (!p_session)
 	{
 		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid session editor#{}",
-			this->m_p_editor_session_manager->get_current_session_id());
+			"failed to execute due to invalid session "
+		    "editor#{}",
+			this->m_p_editor_session_manager
+				->get_current_session_id()
+		);
 		return;
 	}
 
@@ -114,15 +153,20 @@ void zircon_command_create_entity::Undo()
 	if (!p_world)
 	{
 		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid world of session editor_{}#{}",
-			p_session->get_session_name(), p_session->get_id());
+			"failed to execute due to invalid world of session "
+		    "editor_{}#{}",
+			p_session->get_session_name(),
+			p_session->get_id()
+		);
 		return;
 	}
 
 	if (p_world)
 	{
-		KOTEK_MESSAGE("[history][undo]: removed entity {}",
-			static_cast<kotek::uint32_t>(this->m_created_entity));
+		KOTEK_MESSAGE(
+			"[history][undo]: removed entity {}",
+			static_cast<kotek::uint32_t>(this->m_created_entity)
+		);
 
 		this->m_entity_previous_id = this->m_created_entity;
 
@@ -133,28 +177,35 @@ const char* zircon_command_create_entity::GetName()
 {
 	return "create entity";
 }
-kotek::uint32_t zircon_command_create_entity::GetEntityID(void) const noexcept
+kotek::uint32_t zircon_command_create_entity::GetEntityID(void
+) const noexcept
 {
 	return static_cast<kotek::uint32_t>(this->m_created_entity);
 }
-void zircon_command_create_entity::SetEntityID(kotek::uint32_t id) noexcept
+void zircon_command_create_entity::SetEntityID(
+	kotek::uint32_t id
+) noexcept
 {
 	this->m_created_entity = static_cast<entt::entity>(id);
 }
 
-Kotek::ktk::enum_base_t zircon_command_create_entity::GetCommandType() noexcept
+Kotek::ktk::enum_base_t
+zircon_command_create_entity::GetCommandType() noexcept
 {
 	return static_cast<Kotek::ktk::enum_base_t>(
-		Kotek::Core::eConsoleCommandIndex::kConsoleCommand_SDK_CreateEntity);
+		Kotek::Core::eConsoleCommandIndex::
+			kConsoleCommand_SDK_CreateEntity
+	);
 }
 
 Kotek::ktk::size_t zircon_command_create_entity::Serialize(
-	kotek::cfstream_t* p_file,
-	Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept
+	kotek::core::ktkFileHandleType file
+) noexcept
 {
-	KOTEK_ASSERT(p_file, "you must pass a valid resource manager pointer!");
-	KOTEK_ASSERT(p_resource_manager,
-		"you must pass a valid resource manager interface!");
+	KOTEK_ASSERT(
+		file != kotek::core::kInvalidFileHandleType,
+		"you must pass a valid resource manager pointer!"
+	);
 
 #ifdef KOTEK_DEBUG
 	unsigned char stack_memory[256];
@@ -162,14 +213,17 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 	unsigned char stack_memory[128];
 #endif
 
-	kotek::cfstream_t& file = *p_file;
+	KOTEK_ASSERT(false, "todo: re-write please also replace _file to FILE* handle");
+
+	kotek::cfstream_t _file;
 
 	Kotek::ktk::json::static_resource storage(stack_memory);
 	Kotek::ktk::json::value out(&storage);
 
 	auto& object = out.emplace_object();
 	object["command"] = this->GetCommandType();
-	object["entity_id"] = static_cast<kotek::uint32_t>(this->m_created_entity);
+	object["entity_id"] =
+		static_cast<kotek::uint32_t>(this->m_created_entity);
 
 	Kotek::ktk::json::serializer sr;
 	sr.reset(&out);
@@ -181,91 +235,134 @@ Kotek::ktk::size_t zircon_command_create_entity::Serialize(
 		auto view = sr.read(buf, sizeof(buf));
 
 		Kotek::ktk::memory::memcpy(
-			this->m_serialize_json_string_storage + offset, buf, view.size());
+			this->m_serialize_json_string_storage + offset,
+			buf,
+			view.size()
+		);
 
 		offset += view.size();
 	}
 
 #ifdef KOTEK_DEBUG
-	KOTEK_MESSAGE("[history][{}] serialized command: [{}] with size "
-				  "string: [{}] and total offset with endl symbol: [{}]",
-		this->GetName(), this->m_serialize_json_string_storage, offset,
-		offset + 2);
+	KOTEK_MESSAGE(
+		"[history][{}] serialized command: [{}] with size "
+		"string: [{}] and total offset with endl symbol: [{}]",
+		this->GetName(),
+		this->m_serialize_json_string_storage,
+		offset,
+		offset + 2
+	);
 #endif
 
-	if (p_resource_manager)
+//	if (p_resource_manager)
 	{
 		char offset_string[sizeof(
-			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS)];
-		kotek::ktk::memory::memset(offset_string, ' ', sizeof(offset_string));
+			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
+		)];
+		kotek::ktk::memory::memset(
+			offset_string, ' ', sizeof(offset_string)
+		);
 
 		auto null_symbol_index = kotek::ktk::sprintf(
-			offset_string, sizeof(offset_string), "%zu", offset + 2);
+			offset_string,
+			sizeof(offset_string),
+			"%zu",
+			offset + 2
+		);
 
-		KOTEK_ASSERT(null_symbol_index <=
+		KOTEK_ASSERT(
+			null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
-			"overflow, number is {} digits and it means we are out of "
+			"overflow, number is {} digits and it means we are "
+		    "out of "
 			"memory!",
-			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS);
+			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
+		);
 
-		kotek::ktk::memory::memset(offset_string + null_symbol_index, ' ',
-			sizeof(offset_string) - null_symbol_index);
-		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
-			' ';
+		kotek::ktk::memory::memset(
+			offset_string + null_symbol_index,
+			' ',
+			sizeof(offset_string) - null_symbol_index
+		);
+		offset_string
+			[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
+				' ';
 
 		//	p_resource_manager->Write(
-		//		resource_handle_id, offset_string, sizeof(offset_string));
-		file.write(offset_string, sizeof(offset_string));
+		//		resource_handle_id, offset_string,
+		//sizeof(offset_string));
+		_file.write(offset_string, sizeof(offset_string));
 
 		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
-		file << std::endl;
+		_file << std::endl;
 
 		// p_resource_manager->Write(
-		//	resource_handle_id, this->m_serialize_json_string_storage);
-		file << this->m_serialize_json_string_storage;
+		//	resource_handle_id,
+		//this->m_serialize_json_string_storage);
+		_file << this->m_serialize_json_string_storage;
 		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
-		file << std::endl;
+		_file << std::endl;
 
 		null_symbol_index = kotek::ktk::sprintf(
-			offset_string, sizeof(offset_string), "%zu", offset + 2);
+			offset_string,
+			sizeof(offset_string),
+			"%zu",
+			offset + 2
+		);
 
-		KOTEK_ASSERT(null_symbol_index <=
+		KOTEK_ASSERT(
+			null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
-			"overflow, number is {} digits and it means we are out of "
+			"overflow, number is {} digits and it means we are "
+		    "out of "
 			"memory!",
-			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS);
+			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
+		);
 
-		kotek::ktk::memory::memset(offset_string + null_symbol_index, ' ',
-			sizeof(offset_string) - null_symbol_index);
-		offset_string[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
-			zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
+		kotek::ktk::memory::memset(
+			offset_string + null_symbol_index,
+			' ',
+			sizeof(offset_string) - null_symbol_index
+		);
+		offset_string
+			[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
+				zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
 
 		// storage + endl
 		// p_resource_manager->Write(
-		//	resource_handle_id, offset_string, sizeof(offset_string));
-		file.write(offset_string, sizeof(offset_string));
+		//	resource_handle_id, offset_string,
+		//sizeof(offset_string));
+		_file.write(offset_string, sizeof(offset_string));
 		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kFlush);
-		file.flush();
+		_file.flush();
 	}
 
 	return offset;
 }
 
 void zircon_command_create_entity::Deserialize(
-	const Kotek::ktk::json::object& json) noexcept
+	const Kotek::ktk::json::object& json
+) noexcept
 {
-	KOTEK_ASSERT(json.find("entity_id") != json.end(),
-		"must exist key entity_id! (is it create entity command at all?)");
+	KOTEK_ASSERT(
+		json.find("entity_id") != json.end(),
+		"must exist key entity_id! (is it create entity "
+	    "command at all?)"
+	);
 
-	auto type =
-		static_cast<Kotek::ktk::enum_base_t>(json.at("command").as_int64());
+	auto type = static_cast<Kotek::ktk::enum_base_t>(
+		json.at("command").as_int64()
+	);
 
-	KOTEK_ASSERT(type == this->GetCommandType(),
-		"it is not create entity command! Something is broken!");
+	KOTEK_ASSERT(
+		type == this->GetCommandType(),
+		"it is not create entity command! Something is broken!"
+	);
 
 	this->m_created_entity = static_cast<entt::entity>(
-		json.at("entity_id").to_number<kotek::uint32_t>());
+		json.at("entity_id").to_number<kotek::uint32_t>()
+	);
 }

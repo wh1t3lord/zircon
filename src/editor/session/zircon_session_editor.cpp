@@ -53,8 +53,7 @@ void zircon_session_editor::initialize(
 	zircon_session_editor_manager* p_manager_session_editor,
 	kotek::core::ktkMainManager* p_main_manager,
 	kotek::core::ktkConsole* p_console,
-	kotek::core::ktkIFileSystem* p_filesystem,
-	kotek::core::ktkIResourceManager* p_resource_manager)
+	kotek::core::ktkIFileSystem* p_filesystem)
 {
 	KOTEK_ASSERT(
 		session_name.empty() == false, "pass a reasonable name please!");
@@ -87,7 +86,7 @@ void zircon_session_editor::initialize(
 		this->m_p_main_manager = p_main_manager;
 		this->m_p_console = p_console;
 		this->m_command_history_manager.initialize(
-			p_manager_session_editor, p_filesystem, p_resource_manager);
+			p_manager_session_editor, p_filesystem);
 		this->m_state.initialize(p_current_world->get_factory());
 
 		this->m_was_initialized = true;
@@ -158,20 +157,24 @@ void zircon_session_editor::Serialize(
 	{
 		copied.replace_extension("json");
 	}
-
+	KOTEK_ASSERT(false, "todo: re-write");
+	/*
 	Kotek::Core::ktkFileText output(reinterpret_cast<const char*>(
-		full_path_to_file.filename().u8string().c_str()));
+		full_path_to_file.filename().u8string().c_str()));*/
 
+/*
 	this->Serialize_Settings(output,
 		reinterpret_cast<const char*>(
 			full_path_to_file.stem().u8string().c_str()));
-	this->Serialize_Entities(output);
+	this->Serialize_Entities(output);*/
 
+/*
 	this->m_p_main_manager->GetResourceManager()->Get_ResourceSaver()->Save(
-		copied, kotek::core::ktkResourceHandle(&output, true));
+		copied, kotek::core::ktkResourceHandle(&output, true));*/
 }
 
-void zircon_session_editor::Serialize_Settings(Kotek::Core::ktkFileText& output,
+void zircon_session_editor::Serialize_Settings(
+	text_t& output,
 	const Kotek::ktk::cstring& scenename) noexcept
 {
 	KOTEK_ASSERT(
@@ -184,16 +187,16 @@ void zircon_session_editor::Serialize_Settings(Kotek::Core::ktkFileText& output,
 	output.Write("Settings", settings);
 }
 
-void zircon_session_editor::Deserialize_Settings(
-	Kotek::Core::ktkFileText& input) noexcept
+void zircon_session_editor::Deserialize_Settings(text_t& input
+) noexcept
 {
-	if (input.IsKeyExist("Settings"))
+	if (input.Is_KeyExist("Settings"))
 	{
 		auto settings = input.Get<Kotek::ktk::json::object>("Settings");
 
 		if (settings.find("scene_name") != settings.end())
 		{
-			Kotek::ktk::cstring formatted = "[";
+			kotek::static_cstring_t<1024> formatted = "[";
 			formatted += settings.at("scene_name").as_string().c_str();
 			formatted += "]";
 
@@ -208,8 +211,8 @@ void zircon_session_editor::Deserialize_Settings(
 	}
 }
 
-void zircon_session_editor::Serialize_Entities(
-	Kotek::Core::ktkFileText& output) noexcept
+void zircon_session_editor::Serialize_Entities(text_t& output
+) noexcept
 {
 	KOTEK_ASSERT(this->m_p_world->get_factory(), "early calling?");
 
@@ -239,10 +242,10 @@ void zircon_session_editor::Serialize_Entities(
 	}
 }
 
-void zircon_session_editor::Deserialize_Entities(
-	Kotek::Core::ktkFileText& input) noexcept
+void zircon_session_editor::Deserialize_Entities(text_t& input
+) noexcept
 {
-	if (input.IsKeyExist("Entities"))
+	if (input.Is_KeyExist("Entities"))
 	{
 		auto entities = input.Get<Kotek::ktk::json::array>("Entities");
 
@@ -332,10 +335,12 @@ void zircon_session_editor::Deserialize(
 	KOTEK_ASSERT(full_path_to_file.empty() == false,
 		"you can't send an empty path here");
 
-	kotek::core::ktkFileText input;
+	text_t input;
+	KOTEK_ASSERT(false, "todo: re-write please");
 
+	/*
 	this->m_p_main_manager->GetResourceManager()->Get_ResourceLoader()->Load(
-		full_path_to_file, kotek::core::ktkResourceHandle(&input, true));
+		full_path_to_file, kotek::core::ktkResourceHandle(&input, true));*/
 
 	this->Deserialize_Entities(input);
 	this->Deserialize_Settings(input);

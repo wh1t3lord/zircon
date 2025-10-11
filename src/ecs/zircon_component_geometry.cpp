@@ -142,7 +142,13 @@ void zircon_component_geometry::draw_imgui(
 
 								auto entity_id = p_session->get_ui_state()
 													 ->get_selected_entity();
+								
+								KOTEK_ASSERT(
+									false,
+									"todo: implement please!!!"
+								);
 
+								/* todo: re-write when resource & asset manager will come to this engine in live
 								p_main_manager->GetGameManager()
 									->GetConsole()
 									->Push_Command(
@@ -162,7 +168,7 @@ void zircon_component_geometry::draw_imgui(
 												kModelStatic_Triangle,
 											"",
 											static_cast<kotek::uint32_t>(
-												entity_id))});
+												entity_id))});*/
 							}
 						}
 

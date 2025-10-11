@@ -16,7 +16,7 @@ constexpr const char* _kExchangeFileName = "exchange";
 zircon_editor_command_history::zircon_editor_command_history(void) :
 	m_is_changed{}, m_is_first_serialize_happened{}, m_is_action_issued{},
 	m_p_manager_session_editor{}, m_p_file_temp{},
-	m_p_file_exchange{}, m_p_filesystem{}, m_p_resource_manager{}, m_index{},
+	m_p_file_exchange{}, m_p_filesystem{}, m_index{},
 	m_cursor_index{-1}, m_max_index{}, m_file_index{}, m_current_file_offset{},
 	m_after_frame_file_offset{}, m_before_frame_file_offset{},
 	m_end_of_previous_frame{}, m_start_of_next_frame{},
@@ -86,6 +86,8 @@ void zircon_editor_command_history::initialize(
 			kotek::core::eFolderVisibilityType::kVisible);
 	}
 
+	KOTEK_ASSERT(false, "todo: re-write please");
+	/* todo: re-write please
 	if (this->m_p_resource_manager)
 	{
 		kotek::core::ktkResourceFileStreamRequest request;
@@ -107,13 +109,16 @@ void zircon_editor_command_history::initialize(
 			"no avaiable fstream from resource manager! Out of resource!!!");
 		KOTEK_ASSERT(this->m_p_file_exchange,
 			"no available fstream from resource manager! Out of resources!!!");
-	}
+	}*/
 }
 
 void zircon_editor_command_history::shutdown(void)
 {
+	KOTEK_ASSERT(false, "todo: re-write please");
+
+	/* todo: re-write please
 	this->m_p_resource_manager->Close_FileStream(this->m_p_file_temp);
-	this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
+	this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);*/
 
 	for (const auto& path_file : kotek::ktk::filesystem::directory_iterator(
 			 this->m_path_to_streaming_folder.c_str()))
@@ -272,8 +277,10 @@ void zircon_editor_command_history::Undo()
 					{
 						if (p_command)
 						{
-							p_command->Serialize(this->m_p_file_temp,
-								this->m_p_resource_manager);
+							KOTEK_ASSERT(
+								false, "todo: re-write please"
+							);
+						//	p_command->Serialize(this->m_p_file_temp);
 						}
 					}
 
@@ -679,8 +686,11 @@ void zircon_editor_command_history::Redo()
 				{
 					if (p_command)
 					{
-						p_command->Serialize(
-							this->m_p_file_temp, this->m_p_resource_manager);
+						KOTEK_ASSERT(
+							false, "todo: re-write please"
+						);
+					//	p_command->Serialize(
+					//		this->m_p_file_temp);
 					}
 				}
 
@@ -1121,8 +1131,9 @@ unsigned char* zircon_editor_command_history::allocate_memory_for_command(
 		for (auto* p_command : this->m_commands)
 		{
 			KOTEK_ASSERT(p_command, "must be valid!");
-			p_command->Serialize(
-				this->m_p_file_temp, this->m_p_resource_manager);
+			KOTEK_ASSERT(false, "todo: re-write please");
+		//	p_command->Serialize(
+		//		this->m_p_file_temp);
 		}
 
 		for (auto* p_command : this->m_commands)
@@ -1173,13 +1184,11 @@ bool zircon_editor_command_history::
 			constructed_value_on_stack_based_on_placement_new_memory,
 		entt::entity id, zircon_component_type_t type_id)
 {
-	KOTEK_ASSERT(
-		this->m_p_resource_manager, "early calling, must be initialized!");
 	KOTEK_ASSERT(this->m_p_file_temp, "early calling, must be initialized!");
 
 	bool result{};
 
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_temp->is_open())
 
@@ -1376,7 +1385,8 @@ void zircon_editor_command_history::unload_content_before()
 	//	this->m_p_resource_manager->Close_Saver(
 	//		this->m_file_exchange_resource_handle_id);
 
-	this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
+	KOTEK_ASSERT(false, "todo: re-write please");
+	//this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
 
 	//	kotek::core::ktkResourceWritingRequest request;
 	//	request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
@@ -1389,6 +1399,8 @@ void zircon_editor_command_history::unload_content_before()
 
 	//	this->m_p_resource_manager->Open(request);
 
+	KOTEK_ASSERT(false, "todo: re-write please");
+	/* todo: re-write please
 	kotek::core::ktkResourceFileStreamRequest request;
 
 	request.resource_type = kotek::core::eResourceRequestResourceType::kText;
@@ -1396,7 +1408,7 @@ void zircon_editor_command_history::unload_content_before()
 	request.operation_type = kotek::core::eResourceRequestOperationType::kSave;
 
 	this->m_p_file_exchange =
-		this->m_p_resource_manager->Open_FileStream(request);
+		this->m_p_resource_manager->Open_FileStream(request);*/
 
 	auto file_size = this->m_before_frame_file_offset;
 
@@ -1494,7 +1506,8 @@ void zircon_editor_command_history::unload_content_after(bool is_need_to_reopen)
 		//	this->m_p_resource_manager->Close_Saver(
 		//		this->m_file_exchange_resource_handle_id);
 
-		this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
+		KOTEK_ASSERT(false, "todo: re-write please");
+	//	this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
 
 		//	kotek::core::ktkResourceWritingRequest request;
 		//	request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
@@ -1507,6 +1520,8 @@ void zircon_editor_command_history::unload_content_after(bool is_need_to_reopen)
 
 		//	this->m_p_resource_manager->Open(request);
 
+		KOTEK_ASSERT(false, "todo: re-write please");
+		/* todo: re-write please
 		kotek::core::ktkResourceFileStreamRequest request;
 		request.resource_type =
 			kotek::core::eResourceRequestResourceType::kText;
@@ -1515,7 +1530,7 @@ void zircon_editor_command_history::unload_content_after(bool is_need_to_reopen)
 			kotek::core::eResourceRequestOperationType::kSave;
 
 		this->m_p_file_exchange =
-			this->m_p_resource_manager->Open_FileStream(request);
+			this->m_p_resource_manager->Open_FileStream(request);*/
 	}
 
 	//	if (this->m_p_resource_manager->Is_Open(
@@ -1846,13 +1861,13 @@ kotek::static_path_t zircon_editor_command_history::get_full_path_of_file(
 kotek::cfstream_t* zircon_editor_command_history::reopen_current_file(
 	kotek::cfstream_t* p_file)
 {
-	KOTEK_ASSERT(
-		this->m_p_resource_manager, "resource manager must be initialized");
 	KOTEK_ASSERT(p_file, "must be valid!");
 
 	kotek::cfstream_t* p_result{};
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
+		KOTEK_ASSERT(false, "todo: re-write please");
+		/* todo: re-write please
 		this->m_p_resource_manager->Close_FileStream(p_file);
 
 		const auto& path_to_exchange =
@@ -1866,7 +1881,7 @@ kotek::cfstream_t* zircon_editor_command_history::reopen_current_file(
 		request.operation_type =
 			kotek::core::eResourceRequestOperationType::kSave;
 
-		p_result = this->m_p_resource_manager->Open_FileStream(request);
+		p_result = this->m_p_resource_manager->Open_FileStream(request);*/
 		KOTEK_ASSERT(
 			p_result, "must return a valid otherwise out of resources!");
 	}
@@ -1877,13 +1892,13 @@ kotek::cfstream_t* zircon_editor_command_history::reopen_current_file(
 kotek::cfstream_t* zircon_editor_command_history::reopen_exchange_file(
 	kotek::cfstream_t* p_file)
 {
-	KOTEK_ASSERT(
-		this->m_p_resource_manager, "resource manager must be initialized!");
 	KOTEK_ASSERT(p_file, "must be valid!");
 
 	kotek::cfstream_t* p_result{};
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
+		KOTEK_ASSERT(false, "todo: re-write please");
+		/* todo: re-write please 
 		this->m_p_resource_manager->Close_FileStream(p_file);
 
 		const auto& path_to_exchange =
@@ -1896,7 +1911,7 @@ kotek::cfstream_t* zircon_editor_command_history::reopen_exchange_file(
 		request.operation_type =
 			kotek::core::eResourceRequestOperationType::kSave;
 
-		p_result = this->m_p_resource_manager->Open_FileStream(request);
+		p_result = this->m_p_resource_manager->Open_FileStream(request);*/
 		KOTEK_ASSERT(
 			p_result, "must return a valid otherwise out of resources!");
 	}
@@ -2110,7 +2125,7 @@ kotek::size_t
 zircon_editor_command_history::get_offset_of_current_index_in_file()
 {
 	kotek::size_t result{};
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_temp->is_open())
 		{
@@ -2378,7 +2393,7 @@ kotek::size_t zircon_editor_command_history::get_count_of_commands_in_file(
 	kotek::size_t start_offset)
 {
 	kotek::size_t result{};
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_temp->is_open())
 		{
@@ -2617,7 +2632,7 @@ kotek::size_t zircon_editor_command_history::get_count_of_commands_in_file(
 void zircon_editor_command_history::move_content_from_file_to_exchange(
 	kotek::size_t start_offset_in_file, kotek::size_t end_offset_in_file)
 {
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_temp->is_open())
 		{
@@ -2716,7 +2731,7 @@ void zircon_editor_command_history::move_content_from_file_to_exchange(
 void zircon_editor_command_history::move_content_from_exchange_to_file(
 	kotek::size_t start_offset_in_file, kotek::size_t end_offset_in_file)
 {
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_exchange->is_open())
 		{
@@ -2740,7 +2755,7 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 	entt::entity id_what_will_be_deleted,
 	entt::entity id_that_replaces_what_will_be_deleted)
 {
-	if (this->m_p_resource_manager)
+//	if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_temp->is_open())
 		{
@@ -2972,10 +2987,13 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 
 						p_command->SetEntityID(static_cast<kotek::uint32_t>(
 							id_that_replaces_what_will_be_deleted));
-
+						
+						KOTEK_ASSERT(
+							false, "todo: re-write please"
+						);
+						/* todo: re-write please
 						updated_size_of_entry =
-							p_command->Serialize(this->m_p_file_exchange,
-								this->m_p_resource_manager);
+							p_command->Serialize(this->m_p_file_exchange);*/
 
 						p_command->~zircon_command_create_entity();
 
@@ -2996,10 +3014,13 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 							placement_storage)
 							zircon_command_delete_entity(this->m_p_manager_session_editor,
 								id_that_replaces_what_will_be_deleted);
-
+						
+						KOTEK_ASSERT(
+							false, "todo: re-write please"
+						);
+						/* todo: re-write please
 						updated_size_of_entry =
-							p_command->Serialize(this->m_p_file_exchange,
-								this->m_p_resource_manager);
+							p_command->Serialize(this->m_p_file_exchange);*/
 
 						p_command->~zircon_command_delete_entity();
 
@@ -3024,10 +3045,13 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 						p_command->Deserialize(json_data.get_object());
 						p_command->SetEntityID(static_cast<kotek::uint32_t>(
 							id_that_replaces_what_will_be_deleted));
-
+						
+						KOTEK_ASSERT(
+							false, "todo: re-write please"
+						);
+						/* todo: re-write please
 						updated_size_of_entry =
-							p_command->Serialize(this->m_p_file_exchange,
-								this->m_p_resource_manager);
+							p_command->Serialize(this->m_p_file_exchange);*/
 
 						p_command->~zircon_command_add_component_to_entity();
 
@@ -3053,9 +3077,12 @@ void zircon_editor_command_history::update_dependent_serialized_commands(
 						p_command->SetEntityID(static_cast<kotek::uint32_t>(
 							id_that_replaces_what_will_be_deleted));
 
+						KOTEK_ASSERT(
+							false, "todo: re-write please"
+						);
+						/* todo: re-write please
 						updated_size_of_entry =
-							p_command->Serialize(this->m_p_file_exchange,
-								this->m_p_resource_manager);
+							p_command->Serialize(this->m_p_file_exchange);*/
 
 						p_command
 							->~zircon_command_delete_component_from_entity();
@@ -3171,7 +3198,7 @@ bool zircon_editor_command_history::check_json_entry_has_entity_id(
 
 	bool result{};
 
-	if (this->m_p_resource_manager)
+	//if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_temp)
 		{
@@ -3303,7 +3330,7 @@ bool zircon_editor_command_history::
 	bool found_entity_id{};
 	bool found_component_type_id{};
 
-	if (this->m_p_resource_manager)
+	//if (this->m_p_resource_manager)
 	{
 		if (this->m_p_file_temp->is_open())
 		{
