@@ -49,30 +49,34 @@ zircon_editor_command_history::~zircon_editor_command_history(void) {}
 
 void zircon_editor_command_history::initialize(
 	zircon_session_editor_manager* p_manager_session_editor,
-	kotek::core::ktkIFileSystem* p_filesystem,
-	kotek::core::ktkIResourceManager* p_resource_manager)
+	kotek::core::ktkIFileSystem* p_filesystem)
 {
 	KOTEK_ASSERT(p_filesystem,
 		"you must pass a valid pointer of file system interface!");
-	KOTEK_ASSERT(p_resource_manager,
-		"you must pass a valid pointer of resource manager interface!");
 	KOTEK_ASSERT(p_manager_session_editor,
 		"you must pass a valid session editor manager!");
 
 	this->m_p_filesystem = p_filesystem;
-	this->m_p_resource_manager = p_resource_manager;
 	this->m_p_manager_session_editor = p_manager_session_editor;
 
-	kotek::ktk::filesystem::static_path<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
-		path_to_file = this->m_p_filesystem->GetFolderByEnum(
-			kotek::core::eFolderIndex::kFolderIndex_DataUser_SDK_Scenes);
+	ktk_filesystem_path path_to_file;
+
+	this->m_p_filesystem->Make_Path(
+		path_to_file,
+		kotek::core::eFolderIndex::
+			kFolderIndex_DataUser_SDK_Scenes
+	);
+
+	//= this->m_p_filesystem->GetFolderByEnum(
+	//		kotek::core::eFolderIndex::kFolderIndex_DataUser_SDK_Scenes);
+
 	path_to_file /= "current";
 
 	this->m_path_to_streaming_folder.append(
 		reinterpret_cast<char*>(path_to_file.u8string().data()),
 		path_to_file.u8string().size());
 
-	bool is_valid_path = this->m_p_filesystem->IsValidPath(
+	bool is_valid_path = this->m_p_filesystem->Is_ValidPath(
 		this->m_path_to_streaming_folder.c_str());
 
 	if (is_valid_path == false)

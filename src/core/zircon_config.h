@@ -3,28 +3,31 @@
 /**
  * \~english @brief some unique and rare features that can't be standardized
  */
-enum eZirconGameFeatures
+enum class eZirconGameFeatures : kotek::ktk::uint16_t
 {
 	kGame_Feature_Unknown = 0,
 };
 
-KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconGameFeatures);
+KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(
+	eZirconGameFeatures, kotek::ktk::uint16_t
+);
 
 /**
  * \~english @brief some unique and rare feature that can't be standardized
  */
-enum eZirconSDKFeatures
-{
+enum class eZirconSDKFeatures : kotek::ktk::uint16_t{
 	kSDK_Feature_AddRequiredComponents_Automatically = 1 << 1,
 	kSDK_Feature_SphereBoundingBox_Quality = 1 << 2,
 
 	kSDK_Feature_Unknown = 0
 };
 
-KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconSDKFeatures);
+KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(
+	eZirconSDKFeatures, kotek::ktk::uint16_t
+);
 
 // TODO: replace to static_cstring_t
-kotek::cstring_t translate_zircon_sdk_features(eZirconSDKFeatures features);
+const char* translate_zircon_sdk_features(eZirconSDKFeatures features);
 Kotek::ktk::cstring translate_zircon_game_features(
 	eZirconGameFeatures features);
 
@@ -54,10 +57,8 @@ public:
 	bool is_feature_enabled(eZirconSDKFeatures feature) const;
 	bool is_feature_enabled(eZirconGameFeatures feature) const;
 
-	void serialize(Kotek::Core::ktkIFileSystem* p_filesystem,
-		Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept;
-	void deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
-		Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept;
+	void serialize(Kotek::Core::ktkIFileSystem* p_filesystem) noexcept;
+	void deserialize(Kotek::Core::ktkIFileSystem* p_filesystem) noexcept;
 
 	bool is_current_session_editor(void) const;
 	void set_current_session(

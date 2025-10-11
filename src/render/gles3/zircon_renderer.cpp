@@ -469,7 +469,7 @@ void zircon_renderer_gles3::Add_PassesEditor(
 		if (this->m_p_main_manager->Get_EngineConfig())
 		{
 			if (this->m_p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
-					kotek::core::kEngine_Feature_SDK_ImGui))
+					kotek::core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui))
 			{
 				/*
 				this->m_render_graph_simplified.Add_Pass(

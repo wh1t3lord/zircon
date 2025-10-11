@@ -1,7 +1,8 @@
 #include "zircon_config.h"
 
 zircon_config::zircon_config(void) :
-	m_is_session_editor{}, m_current_session_id{kotek::uint8_t(-1)},
+	m_is_session_editor{},
+	m_current_session_id{kotek::uint8_t(-1)},
 	m_features_game{eZirconGameFeatures::kGame_Feature_Unknown},
 	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_Unknown}
 {
@@ -10,7 +11,8 @@ zircon_config::zircon_config(void) :
 zircon_config::~zircon_config(void) {}
 
 void zircon_config::set_feature(
-	eZirconSDKFeatures feature, bool status) noexcept
+	eZirconSDKFeatures feature, bool status
+) noexcept
 {
 	if (status)
 	{
@@ -22,7 +24,9 @@ void zircon_config::set_feature(
 	}
 }
 
-void zircon_config::set_feature(eZirconSDKFeatures feature, int data) noexcept
+void zircon_config::set_feature(
+	eZirconSDKFeatures feature, int data
+) noexcept
 {
 	if (this->is_feature_enabled(feature))
 	{
@@ -31,7 +35,8 @@ void zircon_config::set_feature(eZirconSDKFeatures feature, int data) noexcept
 }
 
 void zircon_config::set_feature(
-	eZirconGameFeatures feature, bool status) noexcept
+	eZirconGameFeatures feature, bool status
+) noexcept
 {
 	if (status)
 	{
@@ -43,113 +48,153 @@ void zircon_config::set_feature(
 	}
 }
 
-bool zircon_config::is_feature_enabled(eZirconSDKFeatures feature) const
+bool zircon_config::is_feature_enabled(
+	eZirconSDKFeatures feature
+) const
 {
 	return (this->m_features_sdk & feature) == feature;
 }
 
-bool zircon_config::is_feature_enabled(eZirconGameFeatures feature) const
+bool zircon_config::is_feature_enabled(
+	eZirconGameFeatures feature
+) const
 {
 	return KOTEK_CHECK_FLAG(this->m_features_game, feature);
 }
 
-void zircon_config::serialize(Kotek::Core::ktkIFileSystem* p_filesystem,
-	Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept
+void zircon_config::serialize(
+	Kotek::Core::ktkIFileSystem* p_filesystem
+) noexcept
 {
-	KOTEK_ASSERT(p_filesystem, "you can't pass an invalid filesystem here");
 	KOTEK_ASSERT(
-		p_resource_manager, "you can't pass an invalid resource manager");
-	KOTEK_ASSERT(p_resource_manager->Get_ResourceSaver(),
-		"resource manager must have a valid resource saver instance!");
+		p_filesystem,
+		"you can't pass an invalid filesystem here"
+	);
 
 	if (p_filesystem)
 	{
-		if (p_resource_manager)
-		{
-			auto* p_saver = p_resource_manager->Get_ResourceSaver();
+		ktk_filesystem_path path_to_file;
+		p_filesystem->Make_Path(
+			path_to_file,
+			kotek::core::eFolderIndex::kFolderIndex_DataUser
+		);
 
-			if (p_saver)
-			{
-				auto path_to_file = p_filesystem->GetFolderByEnum(
-					Kotek::Core::eFolderIndex::kFolderIndex_DataUser);
+		path_to_file /= kZirconConfig_FileName;
 
-				path_to_file /= kZirconConfig_FileName;
+		kotek::core::ktkResourceText<1024, 2048, false> config(
+			kZirconConfig_FileName
+		);
 
-				Kotek::Core::ktkFileText config(kZirconConfig_FileName);
+		config.Write(
+			translate_zircon_sdk_features(
+				eZirconSDKFeatures::
+					kSDK_Feature_AddRequiredComponents_Automatically
+			),
+			this->is_feature_enabled(
+				eZirconSDKFeatures::
+					kSDK_Feature_AddRequiredComponents_Automatically
+			)
+		);
 
-				config.Write(
-					translate_zircon_sdk_features(eZirconSDKFeatures::
-							kSDK_Feature_AddRequiredComponents_Automatically),
-					this->is_feature_enabled(eZirconSDKFeatures::
-							kSDK_Feature_AddRequiredComponents_Automatically));
+		config.Write(
+			translate_zircon_sdk_features(
+				eZirconSDKFeatures::
+					kSDK_Feature_SphereBoundingBox_Quality
+			),
+			this->get_feature<int>(
+				eZirconSDKFeatures::
+					kSDK_Feature_SphereBoundingBox_Quality
+			)
+		);
 
-				config.Write(translate_zircon_sdk_features(eZirconSDKFeatures::
-									 kSDK_Feature_SphereBoundingBox_Quality),
-					this->get_feature<int>(eZirconSDKFeatures::
-							kSDK_Feature_SphereBoundingBox_Quality));
+		char text[1024];
+		bool status = config.Serialize_ToString(text);
+		KOTEK_ASSERT(status, "failed to serialize!");
 
-				p_saver->Save(path_to_file,
-					kotek::core::ktkResourceHandle(&config, true));
-			}
-		}
+		status = p_filesystem->Write_File(
+			path_to_file, text, sizeof(text) / sizeof(text[0])
+		);
+		KOTEK_ASSERT(
+			status, "failed to write to file: {}", path_to_file
+		);
 	}
 }
 
-void zircon_config::deserialize(Kotek::Core::ktkIFileSystem* p_filesystem,
-	Kotek::Core::ktkIResourceManager* p_resource_manager) noexcept
+void zircon_config::deserialize(
+	Kotek::Core::ktkIFileSystem* p_filesystem
+) noexcept
 {
-	KOTEK_ASSERT(p_filesystem,
-		"you must have a valid instance of file system (it is nullptr)");
-	KOTEK_ASSERT(p_resource_manager,
-		"you must have a valid instance of resource manager (it is nullptr)");
-	KOTEK_ASSERT(p_resource_manager->Get_ResourceSaver(),
-		"you must have a valid instance of resource manager saver (it is "
-		"nullptr)");
+	KOTEK_ASSERT(
+		p_filesystem,
+		"you must have a valid instance of file system (it is "
+		"nullptr)"
+	);
 
 	if (p_filesystem)
 	{
-		if (p_resource_manager)
+		ktk_filesystem_path path_to_file;
+		p_filesystem->Make_Path(
+			path_to_file,
+			kotek::core::eFolderIndex::kFolderIndex_DataUser
+		);
+
+		path_to_file /= kZirconConfig_FileName;
+
+		if (!p_filesystem->Is_ValidPath(path_to_file))
 		{
-			auto* p_loader = p_resource_manager->Get_ResourceLoader();
+			this->initialize_default();
+		}
+		else
+		{
+			kotek::core::ktkResourceText<1024, 2048, false>
+				file;
 
-			if (p_loader)
-			{
-				auto path_to_file = p_filesystem->GetFolderByEnum(
-					Kotek::Core::eFolderIndex::kFolderIndex_DataUser);
+			unsigned char text[1024];
 
-				path_to_file /= kZirconConfig_FileName;
+			kotek::ktk::size_t text_size =
+				sizeof(text) / sizeof(text[0]);
 
-				if (!p_filesystem->IsValidPath(path_to_file))
-				{
-					this->initialize_default();
-				}
-				else
-				{
-					Kotek::Core::ktkFileText file;
-					KOTEK_ASSERT(
-						p_loader->Load(path_to_file,
-							kotek::core::ktkResourceHandle(&file, true)),
-						"failed to load file!");
+			unsigned char* p_text = text;
+			bool status = p_filesystem->Read_File(
+				path_to_file, p_text, text_size
+			);
+			KOTEK_ASSERT(
+				status, "failed to read file: {}", path_to_file
+			);
 
-					bool status = file.Get<bool>(translate_zircon_sdk_features(
-						eZirconSDKFeatures::
-							kSDK_Feature_AddRequiredComponents_Automatically));
+			status = file.Create_FromMemory(
+				text, sizeof(text) / sizeof(text[0])
+			);
 
-					this->set_feature(
-						eZirconSDKFeatures::
-							kSDK_Feature_AddRequiredComponents_Automatically,
-						status);
+			KOTEK_ASSERT(
+				status,
+				"failed to load from memory: {}",
+				path_to_file
+			);
 
-					int quality = file.Get<int>(
-						translate_zircon_sdk_features(eZirconSDKFeatures::
-								kSDK_Feature_SphereBoundingBox_Quality));
+			status = file.Get<
+				bool>(translate_zircon_sdk_features(
+				eZirconSDKFeatures::
+					kSDK_Feature_AddRequiredComponents_Automatically
+			));
 
-					this->set_feature(
-						eZirconSDKFeatures::
-							kSDK_Feature_SphereBoundingBox_Quality,
-						quality);
-				}
-			}
+			this->set_feature(
+				eZirconSDKFeatures::
+					kSDK_Feature_AddRequiredComponents_Automatically,
+				status
+			);
+
+			int quality =
+				file.Get<int>(translate_zircon_sdk_features(
+					eZirconSDKFeatures::
+						kSDK_Feature_SphereBoundingBox_Quality
+				));
+
+			this->set_feature(
+				eZirconSDKFeatures::
+					kSDK_Feature_SphereBoundingBox_Quality,
+				quality
+			);
 		}
 	}
 }
@@ -160,7 +205,8 @@ bool zircon_config::is_current_session_editor(void) const
 }
 
 void zircon_config::set_current_session(
-	kotek::uint8_t session_id, bool is_editor) noexcept
+	kotek::uint8_t session_id, bool is_editor
+) noexcept
 {
 	this->m_current_session_id = session_id;
 	this->m_is_session_editor = is_editor;
@@ -169,25 +215,35 @@ void zircon_config::set_current_session(
 void zircon_config::initialize_default() noexcept
 {
 	this->set_feature(
-		eZirconSDKFeatures::kSDK_Feature_AddRequiredComponents_Automatically,
-		true);
+		eZirconSDKFeatures::
+			kSDK_Feature_AddRequiredComponents_Automatically,
+		true
+	);
 }
 
-kotek::cstring_t translate_zircon_sdk_features(eZirconSDKFeatures features)
+const char*
+translate_zircon_sdk_features(eZirconSDKFeatures features)
 {
-	if (KOTEK_CHECK_FLAG(features,
+	if (KOTEK_CHECK_FLAG(
+			features,
 			eZirconSDKFeatures::
-				kSDK_Feature_AddRequiredComponents_Automatically))
+				kSDK_Feature_AddRequiredComponents_Automatically
+		))
 	{
 		return "add_required_components_automatically";
 	}
-	else if (KOTEK_CHECK_FLAG(features,
-				 eZirconSDKFeatures::kSDK_Feature_SphereBoundingBox_Quality))
+	else if (KOTEK_CHECK_FLAG(
+				 features,
+				 eZirconSDKFeatures::
+					 kSDK_Feature_SphereBoundingBox_Quality
+			 ))
 	{
 		return "sphere_bounding_box_quality";
 	}
 	else if (KOTEK_CHECK_FLAG(
-				 features, eZirconSDKFeatures::kSDK_Feature_Unknown))
+				 features,
+				 eZirconSDKFeatures::kSDK_Feature_Unknown
+			 ))
 	{
 		return "unknown";
 	}
@@ -197,7 +253,8 @@ kotek::cstring_t translate_zircon_sdk_features(eZirconSDKFeatures features)
 	}
 }
 
-Kotek::ktk::cstring translate_zircon_game_features(eZirconGameFeatures features)
+Kotek::ktk::cstring
+translate_zircon_game_features(eZirconGameFeatures features)
 {
 	KOTEK_ASSERT(false, "not implemented");
 
