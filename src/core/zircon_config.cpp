@@ -108,7 +108,8 @@ void zircon_config::serialize(
 		);
 
 		char text[1024];
-		bool status = config.Serialize_ToString(text);
+		Kotek::uint16_t text_real_length = 0;
+		bool status = config.Serialize_ToString(text, text_real_length);
 		KOTEK_ASSERT(status, "failed to serialize!");
 
 		status = p_filesystem->Write_File(
@@ -140,7 +141,7 @@ void zircon_config::deserialize(
 
 		path_to_file /= kZirconConfig_FileName;
 
-		if (!p_filesystem->Is_ValidPath(path_to_file))
+		if (!p_filesystem->Is_Exists(path_to_file))
 		{
 			this->initialize_default();
 		}

@@ -2544,7 +2544,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void) noexcept
 					filename = custom_path;
 
 					bool is_valid =
-						this->GetMainManager()->GetFileSystem()->Is_ValidPath(
+						this->GetMainManager()->GetFileSystem()->Is_Exists(
 							filename.parent_path());
 
 					KOTEK_ASSERT(

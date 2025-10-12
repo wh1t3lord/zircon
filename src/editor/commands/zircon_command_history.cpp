@@ -76,7 +76,7 @@ void zircon_editor_command_history::initialize(
 		reinterpret_cast<char*>(path_to_file.u8string().data()),
 		path_to_file.u8string().size());
 
-	bool is_valid_path = this->m_p_filesystem->Is_ValidPath(
+	bool is_valid_path = this->m_p_filesystem->Is_Exists(
 		this->m_path_to_streaming_folder.c_str());
 
 	if (is_valid_path == false)
