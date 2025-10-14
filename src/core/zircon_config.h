@@ -1,30 +1,6 @@
 #pragma once
 
-/**
- * \~english @brief some unique and rare features that can't be standardized
- */
-enum class eZirconGameFeatures : kotek::ktk::uint16_t
-{
-	kGame_Feature_Unknown = 0,
-};
-
-KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(
-	eZirconGameFeatures, kotek::ktk::uint16_t
-);
-
-/**
- * \~english @brief some unique and rare feature that can't be standardized
- */
-enum class eZirconSDKFeatures : kotek::ktk::uint16_t{
-	kSDK_Feature_AddRequiredComponents_Automatically = 1 << 1,
-	kSDK_Feature_SphereBoundingBox_Quality = 1 << 2,
-
-	kSDK_Feature_Unknown = 0
-};
-
-KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(
-	eZirconSDKFeatures, kotek::ktk::uint16_t
-);
+#include "zircon_defs.h"
 
 // TODO: replace to static_cstring_t
 const char* translate_zircon_sdk_features(eZirconSDKFeatures features);

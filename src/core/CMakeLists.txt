@@ -22,6 +22,7 @@ add_library(${PROJECT_NAME} STATIC
 	"zircon_session.cpp"
 	"zircon_asset_manager_interface.h"
 	"zircon_console.h"
+	"zircon_defs.h"
 )
 
 add_custom_command(
