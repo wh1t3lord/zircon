@@ -20,6 +20,7 @@ add_library(${PROJECT_NAME} STATIC
 	"zircon_editor_ui_state_interface.cpp"
 	"zircon_session.h"
 	"zircon_session.cpp"
+	"zircon_asset_manager_interface.h"
 	"zircon_console.h"
 )
 

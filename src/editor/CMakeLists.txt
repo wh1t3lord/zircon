@@ -13,6 +13,8 @@ set(to_include_module_files
 
 add_library(${PROJECT_NAME} STATIC
 	${to_include_module_files}
+	"zircon_asset_manager.h"
+	"zircon_asset_manager.cpp"
 )
 
 # TODO: add if when game.ktk builds as shared
