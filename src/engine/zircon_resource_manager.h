@@ -34,6 +34,17 @@ KOTEK_END_NAMESPACE_KOTEK
 #define ZIRCON_DEF_RESOURCE_MANAGER_STATIC_CACHE_RESOURCE_TEXT_MASS_COUNT \
 	2
 
+// currently loaded and used by system
+#define ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT 128
+
+#define ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD 1
+
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	#define ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS \
+		8
+	#define ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE 4096
+#endif
+
 struct zircon_cache_resource_text_handle
 {
 	kotek::uint32_t id = 0;
@@ -50,17 +61,14 @@ public:
 		if (file_length <=
 		    ZIRCON_DEF_RESOURCE_TEXT_JSON_TINY_FILE_LENGTH)
 		{
-
 		}
 		else if (file_length <=
 		         ZIRCON_DEF_RESOURCE_TEXT_JSON_SMALL_FILE_LENGTH)
 		{
-
 		}
 		else if (file_length <=
 		         ZIRCON_DEF_RESOURCE_TEXT_JSON_MEDIUM_FILE_LENGTH)
 		{
-
 		}
 		else if (file_length <=
 		         ZIRCON_DEF_RESOURCE_TEXT_JSON_BIG_FILE_LENGTH)
@@ -85,7 +93,7 @@ public:
 				"unsupported length of file, you should think "
 				"carefully how to prepare data for your "
 				"production, should you split it? requested "
-			    "size to insert to cache is={}",
+				"size to insert to cache is={}",
 				file_length
 			);
 		}
@@ -151,23 +159,105 @@ private:
 #endif
 };
 
+enum class eZirconResourceType
+{
+	kText,
+	kTexture,
+	kSound,
+	kAnimation3D,
+	kAnimation2D,
+	kAnimation3DGUI,
+	kAnimation2DGUI,
+	kMaterial,
+	kLevel,
+	kUnknown
+};
+
+struct zircon_resource_desc_t
+{
+	bool is_loaded = false;
+
+	/// @brief means cache wasn't used and resource was
+	/// constructed using new operator (and it means that we
+	/// need to deallocate it and it goes to destructor of
+	/// zircon_resource_t)
+	bool is_temp = false;
+
+	/// @brief has different interpretations since it is
+	/// definition of ktkResourceText third template argument
+	/// (_Realloc) or for any other resources that define a term
+	/// as 'reallocation'
+	bool is_reallocatable = false;
+
+	eZirconResourceType type = eZirconResourceType::kUnknown;
+
+	std::variant<eZirconJsonType> metadata;
+
+	kotek::uint32_t _lookupid;
+
+#ifdef KOTEK_DEBUG
+	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
+		filename;
+#endif
+};
+
+class zircon_resource_manager;
+
+struct zircon_resource_t
+{
+	friend class zircon_resource_manager;
+
+	zircon_resource_t();
+	~zircon_resource_t();
+
+	const zircon_resource_desc_t* get_desc() const noexcept;
+
+	/// @brief retrieve resource that you want to cast (use
+	/// infromation from desc)
+	/// @return
+	void* get_data() const noexcept;
+
+private:
+	void set_desc(zircon_resource_desc_t* p_desc) noexcept;
+
+private:
+	const zircon_resource_desc_t* m_p_desc;
+	void* m_p_data;
+};
+
 class zircon_resource_manager
 {
 public:
-	zircon_resource_manager(
-		Kotek::Core::ktkMainManager* p_main_manager
-	);
+	zircon_resource_manager();
 	~zircon_resource_manager(void);
 
-	void initialize(void);
+	void initialize(Kotek::Core::ktkMainManager* p_main_manager
+	);
 	void shutdown(void);
 
-	void load(
+	std::shared_ptr<zircon_resource_t> load(
 		const kotek::static_path_t& path,
 		eZirconResourceLoadingFlags flags
 	);
 
+	void
+	unload(const std::shared_ptr<zircon_resource_t>& resource);
+
 private:
+#ifdef KOTEK_DEBUG
+	bool m_was_shutdown_called;
+#endif
+
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	std::thread m_worker_thead;
+#endif
+
+private:
+	kotek::static_vector_t<
+		zircon_resource_desc_t,
+		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT>
+		m_resources_desc;
+
 	zircon_static_cache_resource_text
 		static_cache_resource_text;
 

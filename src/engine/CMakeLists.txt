@@ -47,11 +47,17 @@ set(to_include_module_files
 	"main_game_dll.cpp"
 )
 
+set(to_include_unit_tests
+	"zircon_unit_tests_game.cpp"
+	"zircon_unit_tests_editor.cpp"
+)
+
 add_library(${PROJECT_NAME} ${KOTEK_DEVELOPMENT_TYPE}
 	${to_include_game_files}
 	${to_include_game_resource_management_files}
 	${to_include_module_files}
 	${to_include_game_session_editor_files}
+	${to_include_unit_tests}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "engine")

@@ -40,6 +40,16 @@ class zircon_session_editor;
 class zircon_session_editor_manager;
 class zircon_renderer_bgfx;
 
+#ifdef KOTEK_DEBUG
+	#ifdef KOTEK_USE_TESTS_RUNTIME
+void zircon_register_unit_tests_game();
+
+		#ifdef KOTEK_USE_SDK_IMGUI
+void zircon_register_unit_tests_editor();
+		#endif
+	#endif
+#endif
+
 class zircon_game_manager : public kotek::core::ktkIGameManager
 {
 	union renderers_t
@@ -52,8 +62,8 @@ class zircon_game_manager : public kotek::core::ktkIGameManager
 		zircon_renderer_bgfx* p_bgfx;
 #endif
 
-		// todo: add preprocessor in order to determine if GLES is used by
-		// engine
+		// todo: add preprocessor in order to determine if GLES
+		// is used by engine
 		zircon_renderer_gles3* p_gles3;
 	};
 
@@ -61,56 +71,75 @@ public:
 	zircon_game_manager(void);
 	~zircon_game_manager(void);
 
-	void Initialize(kotek::core::ktkMainManager* p_main_manager) override;
-	void Shutdown(kotek::core::ktkMainManager* p_main_manager) override;
+	void Initialize(kotek::core::ktkMainManager* p_main_manager
+	) override;
+	void Shutdown(kotek::core::ktkMainManager* p_main_manager
+	) override;
 
 	void* GetWindowHandle(void) const noexcept override;
 
 #ifdef KOTEK_USE_SDK
-	void SetSDKRenderWindow(sdk::ui::zircon_RenderWindow* p_window) noexcept;
-	void SetSDKMainWindow(sdk::ui::zircon_frame* p_window) noexcept;
+	void
+	SetSDKRenderWindow(sdk::ui::zircon_RenderWindow* p_window
+	) noexcept;
+	void SetSDKMainWindow(sdk::ui::zircon_frame* p_window
+	) noexcept;
 	sdk::ui::zircon_frame* GetMainWindow(void) const noexcept;
 #endif
 
 	int GetWindowWidth(void) const noexcept override;
 	int GetWindowHeight(void) const noexcept override;
-	kotek::core::ktkProfiler* GetProfiler(void) const noexcept override;
-	kotek::core::ktkConsole* GetConsole(void) const noexcept override;
+	kotek::core::ktkProfiler* GetProfiler(void
+	) const noexcept override;
+	kotek::core::ktkConsole* GetConsole(void
+	) const noexcept override;
 
-	kotek::core::ktkIRenderer* GetRenderer(void) const noexcept override;
-	void* GetRenderResourceManager(void) const noexcept override;
-	void* CreateSurface(kotek::core::ktkMainManager* p_main_manager,
-		void* p_instance, const void* p_callbacks) override;
+	kotek::core::ktkIRenderer* GetRenderer(void
+	) const noexcept override;
+	void* GetRenderResourceManager(void
+	) const noexcept override;
+	void* CreateSurface(
+		kotek::core::ktkMainManager* p_main_manager,
+		void* p_instance,
+		const void* p_callbacks
+	) override;
 
 	void Update(void) noexcept;
 
 	void UpdateAllSystems(void) noexcept;
 
-	zircon_world_manager* get_world_manager(void) const noexcept;
-	zircon_session_editor_manager* get_session_editor_manager(
-		void) const noexcept;
-	zircon_session_game_manager* get_session_game_manager(void) const noexcept;
+	zircon_world_manager* get_world_manager(void
+	) const noexcept;
+	zircon_session_editor_manager*
+	get_session_editor_manager(void) const noexcept;
+	zircon_session_game_manager* get_session_game_manager(void
+	) const noexcept;
 
-	zircon_session_editor* get_session_editor(
-		kotek::uint8_t session_id) const noexcept;
-	zircon_session_game* get_session_game(
-		kotek::uint8_t session_id) const noexcept;
+	zircon_session_editor*
+	get_session_editor(kotek::uint8_t session_id
+	) const noexcept;
+	zircon_session_game*
+	get_session_game(kotek::uint8_t session_id) const noexcept;
 
 	kotek::core::ktkWindow* GetWindow(void) const noexcept;
 
 	void Serialize(void) noexcept;
 	void Deserialize(void) noexcept;
 
-	kotek::core::ktkMainManager* GetMainManager(void) const noexcept;
+	kotek::core::ktkMainManager* GetMainManager(void
+	) const noexcept;
 
 	zircon_config* get_config() const noexcept;
 
-	void initialize_render_graph(kotek::uint8_t render_graph_id,
+	void initialize_render_graph(
+		kotek::uint8_t render_graph_id,
 		kotek::core::ktkMainManager* p_main_manager,
 		kotek::core::ktkIRenderResourceManager*
-			p_render_resource_manager) noexcept;
+			p_render_resource_manager
+	) noexcept;
 
-	bool is_render_graph_initialized(kotek::uint8_t render_graph_id);
+	bool
+	is_render_graph_initialized(kotek::uint8_t render_graph_id);
 
 private:
 	void Initialize_Renderer(void) noexcept;
@@ -140,6 +169,12 @@ private:
 	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
 	get_ui_imgui_elements();
 
+#ifdef KOTEK_USE_TESTS_RUNTIME
+	#ifdef KOTEK_DEBUG
+	void run_unit_tests();
+	#endif
+#endif
+
 private:
 	bool m_is_use_sdk;
 	bool m_is_use_sdk_imgui;
@@ -151,7 +186,8 @@ private:
 	kotek::core::ktkWindowConsole* m_p_window_console;
 	zircon_interface_session* m_p_current_session;
 	renderers_t m_renderers;
-	kotek::vector_t<kotek::core::ktkISDKUIElement*> empty_ui_elements;
+	kotek::vector_t<kotek::core::ktkISDKUIElement*>
+		empty_ui_elements;
 #ifdef KOTEK_USE_SDK
 	void* m_p_window_handle;
 	sdk::ui::zircon_RenderWindow* m_p_sdk_render_window;

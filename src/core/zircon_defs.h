@@ -32,7 +32,17 @@ KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(
 enum class eZirconResourceLoadingFlags : kotek::uint8_t
 {
 	kNone = 0,
-	kCache = 1 << 1
+	// if resource wasn't specified as Cache or CacheTemp it
+	// means CPU data was allocated by new/delete operations
+	kCache = 1 << 1,
+	kAsync = 1 << 2,
+	kSync = 1 << 3,
+	// streams data by user defined stream buffer size (zircon
+	// implements 4Kb buffer size for streaming)
+	kStream = 1 << 4,
+	// uses data from cache but when resource is destroy that
+	// slot of cache was invalidated and freed for new resources
+	kCacheTemp = 1 << 5
 };
 
 KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconResourceLoadingFlags, std::underlying_type_t<eZirconResourceLoadingFlags>);
@@ -78,6 +88,18 @@ using zircon_resource_json_mass_t =
 		ZIRCON_DEF_RESOURCE_TEXT_JSON_MASS_FILE_LENGTH,
 		131072,
 		false>;
+
+/// @brief this is for casting from void*
+enum class eZirconJsonType : kotek::uint8_t
+{
+	kTiny,
+	kSmall,
+	kMedium,
+	kBig,
+	kLarge,
+	kFat,
+	kMass
+};
 
 // if we expect that json is dynamic then it is better to
 // reserve less memory than user expects, otherwise use static
