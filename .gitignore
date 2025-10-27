@@ -34,6 +34,12 @@ CMakeFiles/
 doc/doxygen/html/*
 user_data/
 data_user/
+*user_data*/
+*data_user*/
+*data_game*/**
+!data_game/**
+
+
 
 zircon_ecs_auto_enum_components.h
 zircon_factory_components_to_enums.cpp

@@ -45,6 +45,10 @@ KOTEK_END_NAMESPACE_KOTEK
 	#define ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE 4096
 #endif
 
+#ifdef KOTEK_USE_TESTS_RUNTIME
+	#define ZIRCON_DEF_UNIT_TEST_RESOURCE_MANAGER 1
+#endif
+
 struct zircon_cache_resource_text_handle
 {
 	kotek::uint32_t id = 0;
@@ -183,17 +187,12 @@ struct zircon_resource_desc_t
 	/// zircon_resource_t)
 	bool is_temp = false;
 
-	/// @brief has different interpretations since it is
-	/// definition of ktkResourceText third template argument
-	/// (_Realloc) or for any other resources that define a term
-	/// as 'reallocation'
-	bool is_reallocatable = false;
-
+	/// @brief use this field to cast to appropriate view struct
+	/// according to resource type
 	eZirconResourceType type = eZirconResourceType::kUnknown;
 
-	std::variant<eZirconJsonType> metadata;
-
 	kotek::uint32_t _lookupid;
+
 
 #ifdef KOTEK_DEBUG
 	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
@@ -212,17 +211,37 @@ struct zircon_resource_t
 
 	const zircon_resource_desc_t* get_desc() const noexcept;
 
-	/// @brief retrieve resource that you want to cast (use
-	/// infromation from desc)
-	/// @return
-	void* get_data() const noexcept;
+	void* get_view_resource(void) const noexcept;
 
 private:
+	/// @param p_desc 
 	void set_desc(zircon_resource_desc_t* p_desc) noexcept;
 
 private:
 	const zircon_resource_desc_t* m_p_desc;
-	void* m_p_data;
+
+	/// @brief \~english resource view reprensetation that was
+	/// allocated using memory from own
+	/// zircon_resource_desc_t::_view_storage field using
+	/// placement new as allocation policy
+	/// for reading only operations you can do nothing in terms
+	/// of syncronization access but for writing operations you
+	/// should syncronize since we expect that you use access to
+	/// data in thread safety approach like separated threads
+	/// and you access to different resources types based on
+	/// different threads like render thread accesses rendering
+	/// resource types and like simulation thread accesses more
+	/// general data than 'graphics' otherwise writing
+	/// operations use only through resource manager so the
+	/// general tendency to reduce different thread accesses to
+	/// same resource otherwise provide own sync routes to
+	/// resource that you access
+	void* m_p_view;
+
+	/// @brief \~english placement new buffer storage of
+	/// allocating ktkResourceViewXXX where XXX is
+	/// ZirconResourceType
+	unsigned char _view_storage[64];
 };
 
 class zircon_resource_manager
@@ -245,7 +264,7 @@ public:
 
 private:
 #ifdef KOTEK_DEBUG
-	bool m_was_shutdown_called;
+	char m_was_shutdown_called;
 #endif
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1

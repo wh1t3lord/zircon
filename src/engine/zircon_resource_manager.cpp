@@ -2,7 +2,7 @@
 
 zircon_resource_manager::zircon_resource_manager() :
 #ifdef KOTEK_DEBUG
-	m_was_shutdown_called{}
+	m_was_shutdown_called{-1}
 #endif
 
 {
@@ -12,7 +12,9 @@ zircon_resource_manager::~zircon_resource_manager(void)
 {
 #ifdef KOTEK_DEBUG
 	KOTEK_ASSERT(
-		m_was_shutdown_called, "you forgot to call shutdown"
+		m_was_shutdown_called == 1 ||
+			m_was_shutdown_called == -1,
+		"you forgot to call shutdown"
 	);
 #endif
 }
@@ -22,9 +24,9 @@ void zircon_resource_manager::initialize(
 )
 {
 #ifdef KOTEK_DEBUG
-	if (m_was_shutdown_called)
+	if (m_was_shutdown_called == -1)
 	{
-		m_was_shutdown_called = false;
+		m_was_shutdown_called = 0;
 	}
 #endif
 
@@ -38,11 +40,11 @@ void zircon_resource_manager::initialize(
 void zircon_resource_manager::shutdown(void)
 {
 #ifdef KOTEK_DEBUG
-	m_was_shutdown_called = true;
+	m_was_shutdown_called = 1;
 #endif
 }
 
-zircon_resource_t::zircon_resource_t() : m_p_desc{}, m_p_data{}
+zircon_resource_t::zircon_resource_t() : m_p_desc{}, m_p_view{}
 {
 }
 
@@ -52,6 +54,7 @@ zircon_resource_t::~zircon_resource_t()
 	{
 		if (this->m_p_desc->is_temp)
 		{
+			/*
 			kotek::core::ktkIResource* p_interface =
 				static_cast<kotek::core::ktkIResource*>(m_p_data
 			    );
@@ -64,15 +67,21 @@ zircon_resource_t::~zircon_resource_t()
 				this->m_p_desc->filename
 			);
 #endif
+*/
 		}
 	}
 }
-
 
 const zircon_resource_desc_t*
 zircon_resource_t::get_desc() const noexcept
 {
 	return this->m_p_desc;
+}
+
+
+void* zircon_resource_t::get_view_resource(void) const noexcept
+{
+	return m_p_view;
 }
 
 void zircon_resource_t::set_desc(zircon_resource_desc_t* p_desc
