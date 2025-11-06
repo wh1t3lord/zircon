@@ -254,10 +254,11 @@ private:
 
 class zircon_resource_manager
 {
-	struct ktkAsyncRequest
+	struct zircon_async_request_t
 	{
 		kotek::static_path_t path;
 		eZirconResourceLoadingFlags flags;
+		kotek::uint16_t desc_id;
 	};
 
 public:
@@ -271,7 +272,8 @@ public:
 	std::shared_ptr<zircon_resource_t> load(
 		const kotek::static_path_t& path,
 		eZirconResourceLoadingFlags flags,
-		eZirconResourceType override_type = eZirconResourceType::kUnknown
+		eZirconResourceType override_type =
+			eZirconResourceType::kUnknown
 	);
 
 	void
@@ -283,18 +285,22 @@ private:
 		eZirconResourceLoadingFlags flags
 	);
 
+	bool is_free_desc_slots(void) const noexcept;
+	kotek::uint16_t allocate_desc() noexcept;
+
 	void load(
 		const kotek::static_path_t& path,
 		eZirconResourceLoadingFlags flags,
 		zircon_resource_t* p_result,
-		eZirconResourceType override_type = eZirconResourceType::kUnknown
+		eZirconResourceType override_type =
+			eZirconResourceType::kUnknown
 	);
 
 private:
 #ifdef KOTEK_DEBUG
 	char m_was_shutdown_called;
 #endif
-
+	kotek::uint16_t m_current_desc_index;
 	kotek::core::ktkIFileSystem* m_p_filesystem;
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
@@ -308,8 +314,9 @@ private:
 		m_resources_desc_free_indices;
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	kotek::mt::atomic_flag_t m_wt_queue_spinlock;
 	kotek::static_queue_t<
-		ktkAsyncRequest,
+		zircon_async_request_t,
 		ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS>
 		m_wt_queue;
 #endif
