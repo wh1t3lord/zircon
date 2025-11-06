@@ -4,8 +4,7 @@ zircon_resource_manager::zircon_resource_manager() :
 #ifdef KOTEK_DEBUG
 	m_was_shutdown_called{-1},
 #endif
-	m_current_desc_index{},
-	m_p_filesystem{}
+	m_current_desc_index{}, m_p_filesystem{}
 
 {
 	this->m_resources_desc.resize(
@@ -86,12 +85,14 @@ zircon_resource_manager::load(
 	if (path.empty())
 		return std::shared_ptr<zircon_resource_t>();
 
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
 	if ((flags & eZirconResourceLoadingFlags::kAsync) ==
 	    eZirconResourceLoadingFlags::kAsync)
 	{
 		return this->make_request(path, flags);
 	}
 	else
+#endif
 	{
 		std::shared_ptr<zircon_resource_t> result =
 			std::make_shared<zircon_resource_t>();
@@ -203,6 +204,7 @@ zircon_resource_manager::make_request(
 	eZirconResourceLoadingFlags flags
 )
 {
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
 	zircon_async_request_t req;
 	req.path = path;
 	req.flags = flags;
@@ -212,7 +214,7 @@ zircon_resource_manager::make_request(
 	KOTEK_ASSERT(
 		can_make_request,
 		"overflow and can't handle so much resources,change "
-	    "size of think how to optimize!!!"
+		"size of think how to optimize!!!"
 	);
 
 	if (!can_make_request)
@@ -233,18 +235,20 @@ zircon_resource_manager::make_request(
 	if (req.desc_id == kotek::uint16_t(-1))
 		return std::make_shared<zircon_resource_t>();
 
-	this->m_wt_queue.push(std::move(req));
-
 	std::shared_ptr<zircon_resource_t> result =
 		std::move(std::make_shared<zircon_resource_t>());
-
 	result->set_desc(&this->m_resources_desc[req.desc_id]);
+
+	this->m_wt_queue.push(std::move(req));
 
 	this->m_wt_queue_spinlock.clear(
 		std::memory_order::memory_order_release
 	);
 
 	return result;
+#else
+	return std::make_shared<zircon_resource_t>();
+#endif
 }
 
 bool zircon_resource_manager::is_free_desc_slots(void
@@ -253,7 +257,6 @@ bool zircon_resource_manager::is_free_desc_slots(void
 	return this->m_resources_desc.size() <
 		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT;
 }
-
 
 kotek::uint16_t
 zircon_resource_manager::allocate_desc() noexcept
