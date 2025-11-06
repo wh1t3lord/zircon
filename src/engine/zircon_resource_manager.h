@@ -19,6 +19,9 @@ KOTEK_END_NAMESPACE_KOTEK
 // data that will be use in game (or any other kinds of
 // productions)
 
+#define ZIRCON_DEF_RESOURCE_MANAGER_USE_STATIC_CACHE_RESOURCE_TEXT \
+	1
+
 #define ZIRCON_DEF_RESOURCE_MANAGER_STATIC_CACHE_RESOURCE_TEXT_TINY_AMOUNT \
 	128
 #define ZIRCON_DEF_RESOURCE_MANAGER_STATIC_CACHE_RESOURCE_TEXT_SMALL_COUNT \
@@ -51,7 +54,7 @@ KOTEK_END_NAMESPACE_KOTEK
 
 struct zircon_cache_resource_text_handle
 {
-	kotek::uint32_t id = 0;
+	kotek::uint16_t id = kotek::uint16_t(-1);
 };
 
 class zircon_static_cache_resource_text
@@ -163,7 +166,7 @@ private:
 #endif
 };
 
-enum class eZirconResourceType
+enum class eZirconResourceType : kotek::ktk::uint8_t
 {
 	kText,
 	kTexture,
@@ -179,24 +182,28 @@ enum class eZirconResourceType
 
 struct zircon_resource_desc_t
 {
+	/// @brief \~english indicates if current resource was
+	/// streamed fully or loaded
 	bool is_loaded = false;
 
-	/// @brief means cache wasn't used and resource was
-	/// constructed using new operator (and it means that we
-	/// need to deallocate it and it goes to destructor of
-	/// zircon_resource_t)
+	/// @brief \~english indicates if resource is cached or not
+	bool is_cached = false;
+
+	/// @brief \~english resource that was allocated with new
+	/// and not from cache or it is a temp but is_cached == true
+	/// that means it is a resource that was constructed using
+	/// data from cache but it is a temp resource so when it is
+	/// delete it is automatically frees slot that was used from
+	/// cache
 	bool is_temp = false;
 
 	/// @brief use this field to cast to appropriate view struct
 	/// according to resource type
 	eZirconResourceType type = eZirconResourceType::kUnknown;
 
-	kotek::uint32_t _lookupid;
-
-
 #ifdef KOTEK_DEBUG
 	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
-		filename;
+		debug_filename;
 #endif
 };
 
@@ -210,12 +217,13 @@ struct zircon_resource_t
 	~zircon_resource_t();
 
 	const zircon_resource_desc_t* get_desc() const noexcept;
-
-	void* get_view_resource(void) const noexcept;
+	void* get_view_of_resource(void) const noexcept;
 
 private:
-	/// @param p_desc 
+	/// @param p_desc
 	void set_desc(zircon_resource_desc_t* p_desc) noexcept;
+
+	inline void set_view() noexcept {}
 
 private:
 	const zircon_resource_desc_t* m_p_desc;
@@ -246,6 +254,12 @@ private:
 
 class zircon_resource_manager
 {
+	struct ktkAsyncRequest
+	{
+		kotek::static_path_t path;
+		eZirconResourceLoadingFlags flags;
+	};
+
 public:
 	zircon_resource_manager();
 	~zircon_resource_manager(void);
@@ -256,16 +270,32 @@ public:
 
 	std::shared_ptr<zircon_resource_t> load(
 		const kotek::static_path_t& path,
-		eZirconResourceLoadingFlags flags
+		eZirconResourceLoadingFlags flags,
+		eZirconResourceType override_type = eZirconResourceType::kUnknown
 	);
 
 	void
 	unload(const std::shared_ptr<zircon_resource_t>& resource);
 
 private:
+	std::shared_ptr<zircon_resource_t> make_request(
+		const kotek::static_path_t& path,
+		eZirconResourceLoadingFlags flags
+	);
+
+	void load(
+		const kotek::static_path_t& path,
+		eZirconResourceLoadingFlags flags,
+		zircon_resource_t* p_result,
+		eZirconResourceType override_type = eZirconResourceType::kUnknown
+	);
+
+private:
 #ifdef KOTEK_DEBUG
 	char m_was_shutdown_called;
 #endif
+
+	kotek::core::ktkIFileSystem* m_p_filesystem;
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
 	std::thread m_worker_thead;
@@ -273,12 +303,27 @@ private:
 
 private:
 	kotek::static_vector_t<
+		uint16_t,
+		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT>
+		m_resources_desc_free_indices;
+
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	kotek::static_queue_t<
+		ktkAsyncRequest,
+		ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS>
+		m_wt_queue;
+#endif
+
+	kotek::static_vector_t<
 		zircon_resource_desc_t,
 		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT>
 		m_resources_desc;
 
+#if ZIRCON_DEF_RESOURCE_MANAGER_USE_STATIC_CACHE_RESOURCE_TEXT == \
+	1
 	zircon_static_cache_resource_text
 		static_cache_resource_text;
+#endif
 
 private:
 	/* todo: delete & re-write please

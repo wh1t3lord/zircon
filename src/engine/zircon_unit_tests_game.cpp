@@ -40,6 +40,9 @@ TEST(Zircon_Game, ResourceManagerLoadTextResourceNoCache)
 		new zircon_resource_manager();
 
 	p_rm->initialize(&main_manager);
+
+
+
 	p_rm->shutdown();
 
 	delete p_rm;
