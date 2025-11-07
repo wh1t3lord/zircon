@@ -227,8 +227,6 @@ void zircon_resource_manager::unload(
 
 	if (p_resource)
 	{
-
-
 	}
 }
 
@@ -331,13 +329,6 @@ zircon_resource_t::zircon_resource_t() :
 
 zircon_resource_t::~zircon_resource_t()
 {
-	KOTEK_ASSERT(this->m_p_owner, "must be initialized!");
-
-	if (this->m_p_owner)
-	{
-		this->m_p_owner->unload(this);
-	}
-
 #ifdef KOTEK_DEBUG
 	const zircon_resource_desc_t* p_desc =
 		this->m_p_owner->get_desc(this->m_desc_id);
@@ -400,6 +391,13 @@ zircon_resource_t::~zircon_resource_t()
 		}
 	}
 #endif
+
+	KOTEK_ASSERT(this->m_p_owner, "must be initialized!");
+
+	if (this->m_p_owner)
+	{
+		this->m_p_owner->unload(this);
+	}
 }
 
 const zircon_resource_desc_t*
