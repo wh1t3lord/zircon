@@ -205,6 +205,92 @@ void zircon_resource_manager::worker_thread()
 {
 	while (this->m_p_config->IsApplicationWorking())
 	{
+		while (this->m_wt_queue_unload.empty() == false)
+		{
+			const zircon_async_unload_request_t& req =
+				this->m_wt_queue_unload.back();
+
+			const zircon_resource_desc_t* p_desc =
+				this->get_desc(req.desc_id);
+
+			KOTEK_ASSERT(p_desc, "must be valid");
+
+			if (!p_desc)
+			{
+				KOTEK_MESSAGE_ERROR("invalid desc was obtained!"
+				);
+
+				this->m_wt_queue_unload.pop();
+				continue;
+			}
+
+			bool is_cached = KOTEK_CHECK_FLAG(
+				p_desc->flags,
+				eZirconResourceLoadingFlags::kCache
+			);
+
+			if (is_cached)
+			{
+				if (KOTEK_CHECK_FLAG(
+						p_desc->flags,
+						eZirconResourceLoadingFlags::
+							kUnloadOnDestroyed
+					))
+				{
+					KOTEK_ASSERT(
+						p_desc->cache_id != kotek::uint16_t(-1),
+						"something is wrong!"
+					);
+
+					KOTEK_ASSERT(false, "todo: implement");
+				}
+				else
+				{
+					// do nothing since we just cache our
+					// resource
+				}
+			}
+			else
+			{
+				KOTEK_ASSERT(
+					KOTEK_CHECK_FLAG(
+						p_desc->flags,
+						eZirconResourceLoadingFlags::
+							kUnloadOnDestroyed
+					),
+					"must be this"
+				);
+
+				KOTEK_ASSERT(
+					p_desc->cache_id != kotek::uint16_t(-1),
+					"can't be!"
+				);
+
+				KOTEK_ASSERT(
+					p_desc->cache_id <
+						this->m_dynamic_cache.size(),
+					"can't be!"
+				);
+
+				if (p_desc->cache_id <
+				        this->m_dynamic_cache.size() &&
+				    KOTEK_CHECK_FLAG(
+						p_desc->flags,
+						eZirconResourceLoadingFlags::
+							kUnloadOnDestroyed
+					))
+				{
+					void* p_data =
+						this->m_dynamic_cache[p_desc->cache_id];
+					delete p_data;
+					this->m_dynamic_cache[p_desc->cache_id] =
+						nullptr;
+				}
+			}
+
+			this->m_wt_queue_unload.pop();
+		}
+
 		while (this->m_wt_queue.empty() == false)
 		{
 			const zircon_async_load_request_t& req =
@@ -227,6 +313,42 @@ void zircon_resource_manager::unload(
 
 	if (p_resource)
 	{
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+		if (true)
+		{
+			KOTEK_ASSERT(
+				this->m_wt_queue_unload.size() ==
+					ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS,
+				"overflow we can't handle a such amount of "
+				"requests!"
+			);
+
+			if (this->m_wt_queue_unload.size() ==
+			    ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS)
+			{
+				KOTEK_ASSERT(
+					false, "todo: put immediate unload here"
+				);
+			}
+
+	#ifdef KOTEK_DEBUG
+			const zircon_resource_desc_t* p_desc =
+				p_resource->get_desc();
+
+			KOTEK_ASSERT(p_desc, "can't be");
+	#endif
+
+			zircon_async_unload_request_t req;
+			req.desc_id = p_resource->m_desc_id;
+
+			std::lock_guard lock(this->m_wt_queue_mutex_unload);
+
+			this->m_wt_queue_unload.push(std::move(req));
+		}
+		else
+#endif
+		{
+		}
 	}
 }
 

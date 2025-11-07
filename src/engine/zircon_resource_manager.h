@@ -269,11 +269,7 @@ class zircon_resource_manager
 
 	struct zircon_async_unload_request_t
 	{
-		bool is_cached = false;
-		bool is_temp = false;
-		eZirconResourceType type =
-			eZirconResourceType::kUnknown;
-		kotek::uint16_t cache_id = kotek::uint16_t(-1);
+		kotek::uint16_t desc_id = kotek::uint16_t(-1);
 	};
 
 public:
@@ -325,7 +321,12 @@ private:
 	kotek::core::ktkIFrameworkConfig* m_p_config;
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
 	std::thread m_worker_thread;
+	kotek::static_queue_t<
+		zircon_async_unload_request_t,
+		ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS>
+		m_wt_queue_unload;
 	kotek::mt::mutex_t m_wt_queue_mutex;
+	kotek::mt::mutex_t m_wt_queue_mutex_unload;
 #endif
 
 private:
