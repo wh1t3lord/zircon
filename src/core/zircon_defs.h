@@ -40,9 +40,15 @@ enum class eZirconResourceLoadingFlags : kotek::uint8_t
 	// streams data by user defined stream buffer size (zircon
 	// implements 4Kb buffer size for streaming)
 	kStream = 1 << 4,
-	// uses data from cache but when resource is destroy that
-	// slot of cache was invalidated and freed for new resources
-	kCacheTemp = 1 << 5
+	/// @brief  uses data from cache but when resource is
+	/// destroy that slot of cache was invalidated and freed for
+	/// new resources, so if just kCache specified it means when
+	/// resource is destroyed we don't free the data and thus we
+	/// use cache, when we mix cache and unloadondestroyed that
+	/// means that resource constructs using memory from cache
+	/// (no new/delete operations) but when resource is
+	/// destroyed we free slot from cache for other resources
+	kUnloadOnDestroyed = 1 << 5
 };
 
 KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconResourceLoadingFlags, std::underlying_type_t<eZirconResourceLoadingFlags>);

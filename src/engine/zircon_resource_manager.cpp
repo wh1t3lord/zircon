@@ -4,7 +4,7 @@ zircon_resource_manager::zircon_resource_manager() :
 #ifdef KOTEK_DEBUG
 	m_was_shutdown_called{-1},
 #endif
-	m_current_desc_index{}, m_p_filesystem{}
+	m_current_desc_index{}, m_p_filesystem{}, m_p_config{}
 
 {
 	this->m_resources_desc.resize(
@@ -42,9 +42,19 @@ void zircon_resource_manager::initialize(
 			p_main_manager->GetFileSystem(),
 			"invalid filesystem"
 		);
+		KOTEK_ASSERT(
+			p_main_manager->Get_EngineConfig(), "invalid config"
+		);
 
 		this->m_p_filesystem = p_main_manager->GetFileSystem();
+		this->m_p_config = p_main_manager->Get_EngineConfig();
 	}
+
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	this->m_worker_thread = std::thread(
+		&zircon_resource_manager::worker_thread, this
+	);
+#endif
 }
 
 void zircon_resource_manager::shutdown(void)
@@ -63,20 +73,12 @@ zircon_resource_manager::load(
 {
 #ifdef KOTEK_DEBUG
 	bool invalid_1 =
-		(flags & eZirconResourceLoadingFlags::kCache) ==
-			eZirconResourceLoadingFlags::kCache &&
-		(flags & eZirconResourceLoadingFlags::kCacheTemp) ==
-			eZirconResourceLoadingFlags::kCacheTemp;
-
-	KOTEK_ASSERT(invalid_1 == false, "don't use both");
-
-	bool invalid_2 =
 		((flags & eZirconResourceLoadingFlags::kAsync) ==
 	     eZirconResourceLoadingFlags::kAsync) &&
 		((flags & eZirconResourceLoadingFlags::kSync) ==
 	     eZirconResourceLoadingFlags::kSync);
 
-	KOTEK_ASSERT(invalid_2 == false, "don't use both");
+	KOTEK_ASSERT(invalid_1 == false, "don't use both");
 
 #endif
 
@@ -103,7 +105,13 @@ zircon_resource_manager::load(
 			path
 		);
 
-		this->load(path, flags, result.get(), override_type);
+		this->load(
+			path,
+			flags,
+			result.get(),
+			kotek::uint16_t(-1),
+			override_type
+		);
 
 		return result;
 	}
@@ -115,6 +123,7 @@ void zircon_resource_manager::load(
 	const kotek::static_path_t& path,
 	eZirconResourceLoadingFlags flags,
 	zircon_resource_t* p_result,
+	kotek::uint16_t desc_id,
 	eZirconResourceType override_type
 )
 {
@@ -192,10 +201,54 @@ void zircon_resource_manager::load(
 	}
 }
 
+void zircon_resource_manager::worker_thread()
+{
+	while (this->m_p_config->IsApplicationWorking())
+	{
+		while (this->m_wt_queue.empty() == false)
+		{
+			const zircon_async_load_request_t& req =
+				this->m_wt_queue.back();
+
+			this->load(
+				req.path, req.flags, req.p_resource, req.desc_id
+			);
+
+			this->m_wt_queue.pop();
+		}
+	}
+}
+
 void zircon_resource_manager::unload(
-	const std::shared_ptr<zircon_resource_t>& resource
+	zircon_resource_t* p_resource
 )
 {
+	KOTEK_ASSERT(p_resource, "you must pass a valid pointer");
+
+	if (p_resource)
+	{
+
+
+	}
+}
+
+const zircon_resource_desc_t*
+zircon_resource_manager::get_desc(kotek::uint16_t id
+) const noexcept
+{
+	if (id == kotek::uint16_t(-1))
+	{
+		KOTEK_MESSAGE_WARNING("passed invalid desc lookup id!");
+		return nullptr;
+	}
+
+	if (id < this->m_resources_desc.size())
+	{
+		return &this->m_resources_desc[id];
+	}
+
+	KOTEK_MESSAGE_WARNING("passed out of range id: {}", id);
+	return nullptr;
 }
 
 std::shared_ptr<zircon_resource_t>
@@ -205,7 +258,7 @@ zircon_resource_manager::make_request(
 )
 {
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
-	zircon_async_request_t req;
+	zircon_async_load_request_t req;
 	req.path = path;
 	req.flags = flags;
 
@@ -220,11 +273,7 @@ zircon_resource_manager::make_request(
 	if (!can_make_request)
 		return std::make_shared<zircon_resource_t>();
 
-	while (this->m_wt_queue_spinlock.test_and_set(
-		std::memory_order_acquire
-	))
-	{
-	}
+	std::lock_guard lock(this->m_wt_queue_mutex);
 
 	req.desc_id = this->allocate_desc();
 	KOTEK_ASSERT(
@@ -237,13 +286,9 @@ zircon_resource_manager::make_request(
 
 	std::shared_ptr<zircon_resource_t> result =
 		std::move(std::make_shared<zircon_resource_t>());
-	result->set_desc(&this->m_resources_desc[req.desc_id]);
+	result->set_desc(req.desc_id);
 
 	this->m_wt_queue.push(std::move(req));
-
-	this->m_wt_queue_spinlock.clear(
-		std::memory_order::memory_order_release
-	);
 
 	return result;
 #else
@@ -277,24 +322,43 @@ zircon_resource_manager::allocate_desc() noexcept
 	return result;
 }
 
-zircon_resource_t::zircon_resource_t() : m_p_desc{}, m_p_view{}
+zircon_resource_t::zircon_resource_t() :
+	m_desc_id{kotek::uint16_t(-1)},
+	m_dynamic_resource_id{kotek::uint16_t(-1)}, m_p_owner{},
+	m_p_view{}
 {
 }
 
 zircon_resource_t::~zircon_resource_t()
 {
-#ifdef KOTEK_DEBUG
-	if (this->m_p_desc)
+	KOTEK_ASSERT(this->m_p_owner, "must be initialized!");
+
+	if (this->m_p_owner)
 	{
-		if (this->m_p_desc->is_temp)
+		this->m_p_owner->unload(this);
+	}
+
+#ifdef KOTEK_DEBUG
+	const zircon_resource_desc_t* p_desc =
+		this->m_p_owner->get_desc(this->m_desc_id);
+
+	if (p_desc)
+	{
+		if (KOTEK_CHECK_FLAG(
+				p_desc->flags,
+				eZirconResourceLoadingFlags::kUnloadOnDestroyed
+			))
 		{
-			if (this->m_p_desc->is_cached)
+			if (KOTEK_CHECK_FLAG(
+					p_desc->flags,
+					eZirconResourceLoadingFlags::kCache
+				))
 			{
 	#ifdef KOTEK_DEBUG
 				KOTEK_MESSAGE(
 					"[resource]: destroyed cached temp "
 					"resource -> {}",
-					this->m_p_desc->debug_filename
+					p_desc->debug_filename
 				);
 	#endif
 			}
@@ -303,63 +367,52 @@ zircon_resource_t::~zircon_resource_t()
 	#ifdef KOTEK_DEBUG
 				KOTEK_MESSAGE(
 					"[resource]: destroyed temp resource -> {}",
-					this->m_p_desc->debug_filename
+					p_desc->debug_filename
 				);
 	#endif
 			}
 		}
 		else
 		{
-			if (this->m_p_desc->is_cached)
+			if (KOTEK_CHECK_FLAG(
+					p_desc->flags,
+					eZirconResourceLoadingFlags::kCache
+				))
 			{
 	#ifdef KOTEK_DEBUG
 				KOTEK_MESSAGE(
 					"[resource]: destroyed cached resource -> "
 					"{}",
-					this->m_p_desc->debug_filename
+					p_desc->debug_filename
 				);
 	#endif
 			}
 			else
 			{
 	#ifdef KOTEK_DEBUG
-				KOTEK_MESSAGE(
-					"[resource]: destroyed resource -> {}",
-					this->m_p_desc->debug_filename
+				KOTEK_ASSERT(
+					false,
+					"can't be! cache or temp cache or dynamic "
+					"allocation but not this place!!!!"
 				);
 	#endif
 			}
 		}
 	}
 #endif
-
-	if (this->m_p_view)
-	{
-		KOTEK_ASSERT(
-			this->m_p_desc, "don't null before this operation"
-		);
-
-		if (this->m_p_desc)
-		{
-			switch (this->m_p_desc->type)
-			{
-			default:
-			{
-				KOTEK_ASSERT(
-					false,
-					"unreachable code, is data was corrupted "
-					"by memory leaks or something?"
-				);
-			}
-			}
-		}
-	}
 }
 
 const zircon_resource_desc_t*
 zircon_resource_t::get_desc() const noexcept
 {
-	return this->m_p_desc;
+	KOTEK_ASSERT(this->m_p_owner, "must be initialized");
+
+	if (this->m_p_owner)
+	{
+		return this->m_p_owner->get_desc(this->m_desc_id);
+	}
+
+	return nullptr;
 }
 
 void* zircon_resource_t::get_view_of_resource(void
@@ -368,15 +421,9 @@ void* zircon_resource_t::get_view_of_resource(void
 	return m_p_view;
 }
 
-void zircon_resource_t::set_desc(zircon_resource_desc_t* p_desc
+void zircon_resource_t::set_desc(kotek::uint16_t desc_id
 ) noexcept
 {
-	KOTEK_ASSERT(
-		this->m_p_desc == nullptr, "you can't override it !"
-	);
-
-	if (p_desc)
-	{
-		this->m_p_desc = p_desc;
-	}
+	KOTEK_ASSERT(this->m_p_owner, "must be initialized");
+	this->m_desc_id = desc_id;
 }

@@ -40,6 +40,8 @@ KOTEK_END_NAMESPACE_KOTEK
 // currently loaded and used by system
 #define ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT 128
 
+#define ZIRCON_DEF_RESOURCE_MANAGER_DYNAMIC_RESOURCE_COUNT 16
+
 #define ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD 1
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
@@ -180,22 +182,18 @@ enum class eZirconResourceType : kotek::ktk::uint8_t
 	kUnknown
 };
 
+class zircon_resource_manager;
+
 struct zircon_resource_desc_t
 {
+	friend class zircon_resource_manager;
+
 	/// @brief \~english indicates if current resource was
 	/// streamed fully or loaded
 	bool is_loaded = false;
 
-	/// @brief \~english indicates if resource is cached or not
-	bool is_cached = false;
-
-	/// @brief \~english resource that was allocated with new
-	/// and not from cache or it is a temp but is_cached == true
-	/// that means it is a resource that was constructed using
-	/// data from cache but it is a temp resource so when it is
-	/// delete it is automatically frees slot that was used from
-	/// cache
-	bool is_temp = false;
+	eZirconResourceLoadingFlags flags =
+		eZirconResourceLoadingFlags::kNone;
 
 	/// @brief use this field to cast to appropriate view struct
 	/// according to resource type
@@ -205,9 +203,11 @@ struct zircon_resource_desc_t
 	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
 		debug_filename;
 #endif
-};
 
-class zircon_resource_manager;
+private:
+	/// @brief lookupid for cache slot based on type field
+	kotek::uint16_t cache_id = kotek::uint16_t(-1);
+};
 
 struct zircon_resource_t
 {
@@ -221,12 +221,17 @@ struct zircon_resource_t
 
 private:
 	/// @param p_desc
-	void set_desc(zircon_resource_desc_t* p_desc) noexcept;
+	void set_desc(kotek::uint16_t desc_id) noexcept;
+
+	void set_resource_manager(zircon_resource_manager* p_manager
+	) noexcept;
 
 	inline void set_view() noexcept {}
 
 private:
-	const zircon_resource_desc_t* m_p_desc;
+	kotek::uint16_t m_desc_id;
+	kotek::uint16_t m_dynamic_resource_id;
+	zircon_resource_manager* m_p_owner;
 
 	/// @brief \~english resource view reprensetation that was
 	/// allocated using memory from own
@@ -254,11 +259,21 @@ private:
 
 class zircon_resource_manager
 {
-	struct zircon_async_request_t
+	struct zircon_async_load_request_t
 	{
 		kotek::static_path_t path;
 		eZirconResourceLoadingFlags flags;
 		kotek::uint16_t desc_id;
+		zircon_resource_t* p_resource;
+	};
+
+	struct zircon_async_unload_request_t
+	{
+		bool is_cached = false;
+		bool is_temp = false;
+		eZirconResourceType type =
+			eZirconResourceType::kUnknown;
+		kotek::uint16_t cache_id = kotek::uint16_t(-1);
 	};
 
 public:
@@ -276,8 +291,10 @@ public:
 			eZirconResourceType::kUnknown
 	);
 
-	void
-	unload(const std::shared_ptr<zircon_resource_t>& resource);
+	void unload(zircon_resource_t* p_resource);
+
+	const zircon_resource_desc_t* get_desc(kotek::uint16_t id
+	) const noexcept;
 
 private:
 	std::shared_ptr<zircon_resource_t> make_request(
@@ -292,9 +309,12 @@ private:
 		const kotek::static_path_t& path,
 		eZirconResourceLoadingFlags flags,
 		zircon_resource_t* p_result,
+		Kotek::uint16_t desc_id,
 		eZirconResourceType override_type =
 			eZirconResourceType::kUnknown
 	);
+
+	void worker_thread();
 
 private:
 #ifdef KOTEK_DEBUG
@@ -302,9 +322,10 @@ private:
 #endif
 	kotek::uint16_t m_current_desc_index;
 	kotek::core::ktkIFileSystem* m_p_filesystem;
-
+	kotek::core::ktkIFrameworkConfig* m_p_config;
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
-	std::thread m_worker_thead;
+	std::thread m_worker_thread;
+	kotek::mt::mutex_t m_wt_queue_mutex;
 #endif
 
 private:
@@ -314,9 +335,8 @@ private:
 		m_resources_desc_free_indices;
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
-	kotek::mt::atomic_flag_t m_wt_queue_spinlock;
 	kotek::static_queue_t<
-		zircon_async_request_t,
+		zircon_async_load_request_t,
 		ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS>
 		m_wt_queue;
 #endif
@@ -325,6 +345,13 @@ private:
 		zircon_resource_desc_t,
 		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT>
 		m_resources_desc;
+
+	/// @brief storage for resources that has in description as
+	/// is_cached==false && is_temp == true
+	kotek::static_vector_t<
+		void*,
+		ZIRCON_DEF_RESOURCE_MANAGER_DYNAMIC_RESOURCE_COUNT>
+		m_dynamic_cache;
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_USE_STATIC_CACHE_RESOURCE_TEXT == \
 	1
