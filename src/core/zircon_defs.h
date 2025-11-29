@@ -31,24 +31,40 @@ KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(
 
 enum class eZirconResourceLoadingFlags : kotek::uint8_t
 {
+	/// @brief \~english means we use 'no flags' but for
+	/// resource manager it is just invalidation flag
 	kNone = 0,
-	// if resource wasn't specified as Cache or CacheTemp it
-	// means CPU data was allocated by new/delete operations
-	kCache = 1 << 1,
+
+	// if resource wasn't specified as Cache or
+	// kUnloadOnDestroyed it means CPU data was allocated by
+	// new/delete operations
+	kUseStaticCache = 1 << 1,
+
+	/// @brief \~english we want to deferred loading (loading in
+	/// worker's thread of resource manager)
 	kAsync = 1 << 2,
+
+	/// @brief \~english we want to immediate loading (loading
+	/// in the same thread)
 	kSync = 1 << 3,
-	// streams data by user defined stream buffer size (zircon
-	// implements 4Kb buffer size for streaming)
+
+	/// @brief \~english streams data by user defined stream
+	/// buffer size (zircon implements 4Kb buffer size for
+	/// streaming)
 	kStream = 1 << 4,
-	/// @brief  uses data from cache but when resource is
-	/// destroy that slot of cache was invalidated and freed for
-	/// new resources, so if just kCache specified it means when
-	/// resource is destroyed we don't free the data and thus we
-	/// use cache, when we mix cache and unloadondestroyed that
-	/// means that resource constructs using memory from cache
-	/// (no new/delete operations) but when resource is
-	/// destroyed we free slot from cache for other resources
-	kUnloadOnDestroyed = 1 << 5
+
+	/// @brief \~english literally means that when shared_ptr
+	/// comes destroyed we issue cache invalidation like marking
+	/// that cache is free
+	kInvalidateCacheWhenResourceWasDestroyed = 1 << 5,
+
+	/// @brief it means when we construct resource we use
+	/// dynamic storage of caches, so if there's appropriate
+	/// resource cache we try to re-use it otherwise it is new
+	/// operation if kInvalidateCacheWhenResourceWasDestroyed
+	/// was specified it will call delete operation when
+	/// shared_ptr comes 'destroyed'
+	kUseDynamicCache = 1 << 6
 };
 
 KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconResourceLoadingFlags, std::underlying_type_t<eZirconResourceLoadingFlags>);

@@ -1,9 +1,7 @@
 #include "zircon_resource_manager.h"
 
 zircon_resource_manager::zircon_resource_manager() :
-#ifdef KOTEK_DEBUG
-	m_was_shutdown_called{-1},
-#endif
+	m_was_shutdown_called{-1}, m_signaled_worker_thread{-1},
 	m_current_desc_index{}, m_p_filesystem{}, m_p_config{}
 
 {
@@ -21,18 +19,30 @@ zircon_resource_manager::~zircon_resource_manager(void)
 		"you forgot to call shutdown"
 	);
 #endif
+
+	if (m_was_shutdown_called != 1)
+	{
+		m_was_shutdown_called = 1;
+	}
+
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	if (this->m_signaled_worker_thread != char(-1))
+	{
+		while (this->m_signaled_worker_thread == 0)
+		{
+		}
+	}
+#endif
 }
 
 void zircon_resource_manager::initialize(
 	Kotek::core::ktkMainManager* p_main_manager
 )
 {
-#ifdef KOTEK_DEBUG
 	if (m_was_shutdown_called == -1)
 	{
 		m_was_shutdown_called = 0;
 	}
-#endif
 
 	KOTEK_ASSERT(p_main_manager, "must be valid");
 
@@ -54,14 +64,14 @@ void zircon_resource_manager::initialize(
 	this->m_worker_thread = std::thread(
 		&zircon_resource_manager::worker_thread, this
 	);
+	this->m_worker_thread.detach();
+	this->m_signaled_worker_thread = 0;
 #endif
 }
 
 void zircon_resource_manager::shutdown(void)
 {
-#ifdef KOTEK_DEBUG
 	m_was_shutdown_called = 1;
-#endif
 }
 
 std::shared_ptr<zircon_resource_t>
@@ -178,6 +188,7 @@ void zircon_resource_manager::load(
 	eZirconResourceType determined_type = override_type;
 	if (override_type == eZirconResourceType::kUnknown)
 	{
+		const auto& extension_name = path.extension();
 	}
 
 	switch (determined_type)
@@ -205,7 +216,8 @@ void zircon_resource_manager::load(
 
 void zircon_resource_manager::worker_thread()
 {
-	while (this->m_p_config->IsApplicationWorking())
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	while (this->m_was_shutdown_called != char(1))
 	{
 		while (this->m_wt_queue_unload.empty() == false)
 		{
@@ -226,17 +238,25 @@ void zircon_resource_manager::worker_thread()
 				continue;
 			}
 
-			bool is_cached = KOTEK_CHECK_FLAG(
+			bool is_static_cached = KOTEK_CHECK_FLAG(
 				p_desc->flags,
-				eZirconResourceLoadingFlags::kCache
+				eZirconResourceLoadingFlags::kUseStaticCache
 			);
+
+			bool is_dynamic_cached = KOTEK_CHECK_FLAG(
+				p_desc->flags,
+				eZirconResourceLoadingFlags::kUseDynamicCache
+			);
+
+			bool is_cached =
+				is_static_cached || is_dynamic_cached;
 
 			if (is_cached)
 			{
 				if (KOTEK_CHECK_FLAG(
 						p_desc->flags,
 						eZirconResourceLoadingFlags::
-							kUnloadOnDestroyed
+							kInvalidateCacheWhenResourceWasDestroyed
 					))
 				{
 					KOTEK_ASSERT(
@@ -259,7 +279,7 @@ void zircon_resource_manager::worker_thread()
 					KOTEK_CHECK_FLAG(
 						p_desc->flags,
 						eZirconResourceLoadingFlags::
-							kUnloadOnDestroyed
+							kInvalidateCacheWhenResourceWasDestroyed
 					),
 					"must be this"
 				);
@@ -281,14 +301,14 @@ void zircon_resource_manager::worker_thread()
 				    KOTEK_CHECK_FLAG(
 						p_desc->flags,
 						eZirconResourceLoadingFlags::
-							kUnloadOnDestroyed
+							kInvalidateCacheWhenResourceWasDestroyed
 					))
 				{
-					void* p_data =
+					zircon_dynamic_cache_desc_t& desc_cache =
 						this->m_dynamic_cache[p_desc->cache_id];
-					delete p_data;
-					this->m_dynamic_cache[p_desc->cache_id] =
-						nullptr;
+
+					delete desc_cache.p_data;
+					desc_cache.p_data = nullptr;
 				}
 			}
 
@@ -307,6 +327,9 @@ void zircon_resource_manager::worker_thread()
 			this->m_wt_queue.pop();
 		}
 	}
+
+	this->m_signaled_worker_thread = 1;
+#endif
 }
 
 void zircon_resource_manager::unload(

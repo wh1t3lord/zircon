@@ -294,6 +294,16 @@ class zircon_resource_manager
 		     ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT];
 	};
 
+	struct zircon_dynamic_cache_desc_t
+	{
+		/// @brief \~english literally 'just' memory
+		void* p_data = nullptr;
+
+		/// @brief \~emglish description of cache's size we
+		/// created
+		size_t size = 0;
+	};
+
 public:
 	zircon_resource_manager();
 	~zircon_resource_manager(void);
@@ -335,9 +345,12 @@ private:
 	void worker_thread();
 
 private:
-#ifdef KOTEK_DEBUG
 	char m_was_shutdown_called;
+
+#ifdef ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	char m_signaled_worker_thread;
 #endif
+
 	zircon_resource_id_t m_current_desc_index;
 	kotek::core::ktkIFileSystem* m_p_filesystem;
 	kotek::core::ktkIFrameworkConfig* m_p_config;
@@ -355,7 +368,7 @@ private:
 	/// @brief storage for resources that has in description as
 	/// is_cached==false && is_temp == true
 	kotek::static_vector_t<
-		void*,
+		zircon_dynamic_cache_desc_t,
 		ZIRCON_DEF_RESOURCE_MANAGER_DYNAMIC_RESOURCE_COUNT>
 		m_dynamic_cache;
 
@@ -389,27 +402,4 @@ private:
 	zircon_static_cache_resource_text
 		static_cache_resource_text;
 #endif
-
-private:
-	/* todo: delete & re-write please
-	    bool m_fstreams_avail
-	        [ZIRCON_DEF_RESOURCE_MANAGER_FSTREAMS_POOL];
-	    Kotek::Core::ktkIResourceLoaderManager*
-	        m_p_manager_resource_loader;
-	    Kotek::Core::ktkIResourceSaverManager*
-	        m_p_manager_resource_saver;
-	    Kotek::Core::ktkIRenderResourceManager*
-	        m_p_manager_render_resource;
-	    Kotek::Core::ktkMainManager* m_p_manager_main;
-	    Kotek::Core::ktkConsole* m_p_manager_console;
-	    kotek::ktk::cfstream
-	        m_fstreams[ZIRCON_DEF_RESOURCE_MANAGER_FSTREAMS_POOL];
-	    kotek::static_queue_t<
-	        kotek::core::ktkResourceAssetRequest,
-	        ZIRCON_DEF_RESOURCE_MANAGER_LOAD_QUEUE_SIZE>
-	        m_load_queue_requests;
-	    kotek::static_queue_t<
-	        kotek::core::ktkResourceAssetRequest,
-	        ZIRCON_DEF_RESOURCE_MANAGER_SAVE_QUEUE_SIZE>
-	        m_save_queue_requests;*/
 };

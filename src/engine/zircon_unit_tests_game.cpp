@@ -23,27 +23,72 @@ TEST(Zircon_Game, ResourceManagerCtorDtor)
 
 TEST(Zircon_Game, ResourceManagerInitShutdown)
 {
+
+	kotek::core::ktkFrameworkConfig cfg;
+
+	kotek::core::ktkFileSystem fs;
+
+	fs.Initialize(&cfg);
+
 	kotek::core::ktkMainManager main_manager;
+
+	main_manager.Set_FileSystem(&fs);
+	main_manager.Set_FrameworkConfig(&cfg);
 
 	zircon_resource_manager* instance =
 		new zircon_resource_manager();
 	instance->initialize(&main_manager);
 	instance->shutdown();
+
+	fs.Shutdown();
+
 	delete instance;
 }
 
 TEST(Zircon_Game, ResourceManagerLoadTextResourceNoCache)
 {
+	kotek::core::ktkFrameworkConfig cfg;
+
+	kotek::core::ktkFileSystem fs;
+
+	fs.Initialize(&cfg);
+
+	kotek::static_path_t test_path;
+	fs.Make_Path(
+		test_path,
+		kotek::core::eFolderIndex::kFolderIndex_DataUser_Tests
+	);
+
+	test_path /= "rsltrnc.txt";
+
+	bool fs_status = fs.Write_File(
+		test_path,
+		"unit test = ResourceManagerLoadTextResourceNoCache",
+		sizeof(
+			"unit test = ResourceManagerLoadTextResourceNoCache"
+		)-1
+	);
+
+	KOTEK_ASSERT(
+		fs_status, "failed to write file by path: {}", test_path
+	);
+
+
 	kotek::core::ktkMainManager main_manager;
+
+	main_manager.Set_FileSystem(&fs);
+	main_manager.Set_FrameworkConfig(&cfg);
 
 	zircon_resource_manager* p_rm =
 		new zircon_resource_manager();
 
 	p_rm->initialize(&main_manager);
 
-
+	p_rm->load(test_path, eZirconResourceLoadingFlags::kSync);
 
 	p_rm->shutdown();
+
+	fs.Shutdown();
 
 	delete p_rm;
 }
