@@ -64,10 +64,10 @@ struct zircon_cache_resource_text_handle
 class zircon_static_cache_resource_text
 {
 public:
-	zircon_cache_resource_text_handle
+	kotek::core::ktkResourceViewText
 	add(kotek::size_t file_length, unsigned char* p_data)
 	{
-		zircon_cache_resource_text_handle result;
+		kotek::core::ktkResourceViewText result;
 
 		if (file_length <=
 		    ZIRCON_DEF_RESOURCE_TEXT_JSON_TINY_FILE_LENGTH)
@@ -243,14 +243,12 @@ struct zircon_resource_t
 {
 	zircon_resource_t() :
 		desc_id{_kZirconInvalidResourceID},
-		resource_id{_kZirconInvalidResourceID},
 		view_id{_kZirconInvalidResourceID}
 	{
 	}
 	~zircon_resource_t() {}
 
 	zircon_resource_id_t desc_id;
-	zircon_resource_id_t resource_id;
 	zircon_resource_id_t view_id;
 };
 
@@ -330,14 +328,16 @@ private:
 		eZirconResourceLoadingFlags flags
 	);
 
-	bool is_free_desc_slots(void) const noexcept;
+	bool is_can_allocate_desc(void) const noexcept;
+	bool is_can_allocate_view(void) const noexcept;
+
 	zircon_resource_id_t allocate_desc() noexcept;
+	zircon_resource_id_t allocate_view() noexcept;
 
 	void load(
 		const kotek::static_path_t& path,
 		eZirconResourceLoadingFlags flags,
 		zircon_resource_t* p_result,
-		zircon_resource_id_t desc_id,
 		eZirconResourceType override_type =
 			eZirconResourceType::kUnknown
 	);
@@ -376,6 +376,11 @@ private:
 		uint16_t,
 		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT>
 		m_resources_desc_free_indices;
+
+	kotek::static_vector_t<
+		uint16_t,
+		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT>
+		m_resources_view_free_indices;
 
 	zircon_shared_ptr_resource_allocator_t
 		m_allocator_shared_ptr;

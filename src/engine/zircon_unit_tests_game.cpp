@@ -23,7 +23,6 @@ TEST(Zircon_Game, ResourceManagerCtorDtor)
 
 TEST(Zircon_Game, ResourceManagerInitShutdown)
 {
-
 	kotek::core::ktkFrameworkConfig cfg;
 
 	kotek::core::ktkFileSystem fs;
@@ -59,20 +58,18 @@ TEST(Zircon_Game, ResourceManagerLoadTextResourceNoCache)
 		kotek::core::eFolderIndex::kFolderIndex_DataUser_Tests
 	);
 
-	test_path /= "rsltrnc.txt";
+	test_path /= "rsltrnc.json";
+
+	constexpr const char* _kContent =
+		R"({"test_name": "ResourceManagerLoadTextResourceNoCache"})";
 
 	bool fs_status = fs.Write_File(
-		test_path,
-		"unit test = ResourceManagerLoadTextResourceNoCache",
-		sizeof(
-			"unit test = ResourceManagerLoadTextResourceNoCache"
-		)-1
+		test_path, _kContent, sizeof(_kContent) - 1
 	);
 
 	KOTEK_ASSERT(
 		fs_status, "failed to write file by path: {}", test_path
 	);
-
 
 	kotek::core::ktkMainManager main_manager;
 
@@ -93,9 +90,7 @@ TEST(Zircon_Game, ResourceManagerLoadTextResourceNoCache)
 	delete p_rm;
 }
 
-TEST(Zircon_Game, ResourceManagerLoadTextResourceCached) 
-{
-}
+TEST(Zircon_Game, ResourceManagerLoadTextResourceCached) {}
 
 TEST(Zircon_Game, ResourceManagerLoadTextResourceCacheAndUnload)
 {
@@ -112,30 +107,15 @@ TEST(Zircon_Game, ResourceManagerLoadTextResourceMultithreading)
 {
 }
 
-TEST(Zircon_Game, ResourceManagerLoadTextureResource) 
-{
+TEST(Zircon_Game, ResourceManagerLoadTextureResource) {}
 
-}
+TEST(Zircon_Game, ResourceManagerLoadSoundResource) {}
 
-TEST(Zircon_Game, ResourceManagerLoadSoundResource) 
-{
+TEST(Zircon_Game, ResourceManagerLoad3DModel) {}
 
-}
+TEST(Zircon_Game, ResourceManagerLoad3DModelAnimation) {}
 
-TEST(Zircon_Game, ResourceManagerLoad3DModel) 
-{
-
-}
-
-TEST(Zircon_Game, ResourceManagerLoad3DModelAnimation) 
-{
-
-}
-
-TEST(Zircon_Game, ResourceManagerLoadUI) 
-{
-
-}
+TEST(Zircon_Game, ResourceManagerLoadUI) {}
 
 		#endif
 

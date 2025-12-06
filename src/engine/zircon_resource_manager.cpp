@@ -5,7 +5,10 @@ zircon_resource_manager::zircon_resource_manager() :
 	m_current_desc_index{}, m_p_filesystem{}, m_p_config{}
 
 {
-	this->m_resources_desc.resize(
+	this->m_resources_desc.reserve(
+		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT
+	);
+	this->m_resources_view.reserve(
 		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT
 	);
 }
@@ -106,6 +109,16 @@ zircon_resource_manager::load(
 	else
 #endif
 	{
+		bool can_allocate = this->is_can_allocate_desc() &&
+			this->is_can_allocate_view();
+
+		if (!can_allocate)
+		{
+			KOTEK_MESSAGE_WARNING("failed to allocate resource!"
+			);
+			return std::shared_ptr<zircon_resource_t>();
+		}
+
 		std::shared_ptr<zircon_resource_t> result =
 			std::allocate_shared<zircon_resource_t>(
 				m_allocator_shared_ptr.allocator
@@ -135,10 +148,52 @@ void zircon_resource_manager::load(
 	const kotek::static_path_t& path,
 	eZirconResourceLoadingFlags flags,
 	zircon_resource_t* p_result,
-	zircon_resource_id_t desc_id,
 	eZirconResourceType override_type
 )
 {
+	KOTEK_ASSERT(p_result, "pass valid pointer of resource");
+
+	if (!p_result)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"you passed empty resource handle (probably failed "
+			"to allocate)"
+		);
+		return;
+	}
+
+	KOTEK_ASSERT(
+		p_result->desc_id != _kZirconInvalidResourceID,
+		"you forgot to initialize resource or failed to "
+		"allocate data for resource"
+	);
+
+	KOTEK_ASSERT(
+		p_result->view_id != _kZirconInvalidResourceID,
+		"you forgot to initialize resource or failed to "
+		"allocate data for resource"
+	);
+
+	if (p_result->desc_id == _kZirconInvalidResourceID)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"resource has invalid id related to its "
+			"description means resource was not properly "
+			"created!"
+		);
+		return;
+	}
+
+	if (p_result->view_id == _kZirconInvalidResourceID)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"resource has invalid id related to its view "
+			"representation means resource was not properly "
+			"created!"
+		);
+		return;
+	}
+
 	KOTEK_ASSERT(
 		this->m_p_filesystem,
 		"you must have filesystem initialized"
@@ -189,16 +244,47 @@ void zircon_resource_manager::load(
 	if (override_type == eZirconResourceType::kUnknown)
 	{
 		const auto& extension_name = path.extension();
+
+		if (extension_name == ".json")
+		{
+			determined_type = eZirconResourceType::kText;
+		}
+		else if (extension_name == ".ktx")
+		{
+			KOTEK_ASSERT(false, "todo: implement");
+			determined_type = eZirconResourceType::kTexture;
+		}
+		else if (extension_name == ".ogg")
+		{
+			KOTEK_ASSERT(false, "todo: implement");
+			determined_type = eZirconResourceType::kSound;
+		}
+		else if (extension_name == ".km")
+		{
+			KOTEK_ASSERT(false, "todo: implement");
+		}
+		else
+		{
+			KOTEK_ASSERT(
+				false,
+				"unknown file extension: [{}]",
+				extension_name.c_str()
+			);
+			return;
+		}
 	}
 
 	switch (determined_type)
 	{
 	case eZirconResourceType::kText:
 	{
-		return;
-	}
-	case eZirconResourceType::kTexture:
-	{
+		// todo: based on cache flags we need to use virtual
+		// mapping on reading files
+
+		// todo: provide cache implementation
+
+		this->m_p_filesystem->Get_FileSize()
+
 		return;
 	}
 	default:
@@ -409,7 +495,8 @@ zircon_resource_manager::make_request(
 	req.path = path;
 	req.flags = flags;
 
-	bool can_make_request = this->is_free_desc_slots();
+	bool can_make_request = this->is_can_allocate_desc() &&
+		this->is_can_allocate_view();
 
 	KOTEK_ASSERT(
 		can_make_request,
@@ -418,9 +505,7 @@ zircon_resource_manager::make_request(
 	);
 
 	if (!can_make_request)
-		return std::allocate_shared<zircon_resource_t>(
-			m_allocator_shared_ptr.allocator
-		);
+		return std::shared_ptr<zircon_resource_t>();
 
 	std::lock_guard lock(this->m_wt_queue_mutex);
 
@@ -431,9 +516,7 @@ zircon_resource_manager::make_request(
 	);
 
 	if (req.desc_id == _kZirconInvalidResourceID)
-		return std::allocate_shared<zircon_resource_t>(
-			m_allocator_shared_ptr.allocator
-		);
+		return std::shared_ptr<zircon_resource_t>();
 
 	std::shared_ptr<zircon_resource_t> result =
 		std::move(std::allocate_shared<zircon_resource_t>(
@@ -451,10 +534,17 @@ zircon_resource_manager::make_request(
 #endif
 }
 
-bool zircon_resource_manager::is_free_desc_slots(void
+bool zircon_resource_manager::is_can_allocate_desc(void
 ) const noexcept
 {
 	return this->m_resources_desc.size() <
+		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT;
+}
+
+bool zircon_resource_manager::is_can_allocate_view(void
+) const noexcept
+{
+	return this->m_resources_view.size() <
 		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT;
 }
 
@@ -470,8 +560,25 @@ zircon_resource_manager::allocate_desc() noexcept
 	}
 	else
 	{
-		result = this->m_current_desc_index;
-		++this->m_current_desc_index;
+		result = this->m_resources_desc.size();
+	}
+
+	return result;
+}
+
+zircon_resource_id_t
+zircon_resource_manager::allocate_view() noexcept
+{
+	zircon_resource_id_t result = _kZirconInvalidResourceID;
+
+	if (!this->m_resources_view_free_indices.empty())
+	{
+		result = this->m_resources_view_free_indices.back();
+		this->m_resources_view_free_indices.pop_back();
+	}
+	else
+	{
+		result = this->m_resources_view.size();
 	}
 
 	return result;
