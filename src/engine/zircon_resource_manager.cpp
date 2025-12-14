@@ -134,7 +134,6 @@ zircon_resource_manager::load(
 			path,
 			flags,
 			result.get(),
-			_kZirconInvalidResourceID,
 			override_type
 		);
 
@@ -283,7 +282,7 @@ void zircon_resource_manager::load(
 
 		// todo: provide cache implementation
 
-		this->m_p_filesystem->Get_FileSize()
+	//	this->m_p_filesystem->Get_FileSize()
 
 		return;
 	}
@@ -407,7 +406,7 @@ void zircon_resource_manager::worker_thread()
 				this->m_wt_queue.back();
 
 			this->load(
-				req.path, req.flags, req.p_resource, req.desc_id
+				req.path, req.flags, req.p_resource
 			);
 
 			this->m_wt_queue.pop();
