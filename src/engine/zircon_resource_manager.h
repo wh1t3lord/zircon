@@ -268,9 +268,9 @@ class zircon_resource_manager
 			_kZirconInvalidResourceID;
 	};
 
-	struct zircon_shared_ptr_resource_allocator_t
+	struct zircon_shared_ptr_allocator_t
 	{
-		zircon_shared_ptr_resource_allocator_t() :
+		zircon_shared_ptr_allocator_t() :
 			_resource{
 				_buf,
 				sizeof(_buf),
@@ -280,7 +280,7 @@ class zircon_resource_manager
 		{
 		}
 
-		~zircon_shared_ptr_resource_allocator_t() {}
+		~zircon_shared_ptr_allocator_t() {}
 
 		std::pmr::monotonic_buffer_resource _resource;
 		// todo: kotek provide implementation for <= C++11
@@ -297,7 +297,7 @@ class zircon_resource_manager
 		/// @brief \~english literally 'just' memory
 		void* p_data = nullptr;
 
-		/// @brief \~emglish description of cache's size we
+		/// @brief \~english description of cache's size we
 		/// created
 		size_t size = 0;
 	};
@@ -365,6 +365,15 @@ private:
 #endif
 
 private:
+	/// @brief \~english resources that weren't allocated
+	/// through caches (static or dynamic) and they formally
+	/// don't belong to resource manager since it is just
+	/// new/delete allocations and we just store them here
+	kotek::static_vector_t<
+		void*,
+		ZIRCON_DEF_RESOURCE_MANAGER_DYNAMIC_RESOURCE_COUNT>
+		m_dynamic_resources;
+
 	/// @brief storage for resources that has in description as
 	/// is_cached==false && is_temp == true
 	kotek::static_vector_t<
@@ -382,8 +391,7 @@ private:
 		ZIRCON_DEF_RESOURCE_MANAGER_RESOURCE_COUNT>
 		m_resources_view_free_indices;
 
-	zircon_shared_ptr_resource_allocator_t
-		m_allocator_shared_ptr;
+	zircon_shared_ptr_allocator_t m_allocator_shared_ptr;
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
 	kotek::static_queue_t<

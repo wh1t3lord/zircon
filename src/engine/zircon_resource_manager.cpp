@@ -130,12 +130,7 @@ zircon_resource_manager::load(
 			path
 		);
 
-		this->load(
-			path,
-			flags,
-			result.get(),
-			override_type
-		);
+		this->load(path, flags, result.get(), override_type);
 
 		return result;
 	}
@@ -175,7 +170,7 @@ void zircon_resource_manager::load(
 
 	if (p_result->desc_id == _kZirconInvalidResourceID)
 	{
-		KOTEK_MESSAGE_WARNING(
+		KOTEK_MESSAGE_ERROR(
 			"resource has invalid id related to its "
 			"description means resource was not properly "
 			"created!"
@@ -185,7 +180,7 @@ void zircon_resource_manager::load(
 
 	if (p_result->view_id == _kZirconInvalidResourceID)
 	{
-		KOTEK_MESSAGE_WARNING(
+		KOTEK_MESSAGE_ERROR(
 			"resource has invalid id related to its view "
 			"representation means resource was not properly "
 			"created!"
@@ -282,7 +277,71 @@ void zircon_resource_manager::load(
 
 		// todo: provide cache implementation
 
-	//	this->m_p_filesystem->Get_FileSize()
+		//	this->m_p_filesystem->Get_FileSize()
+
+		bool is_static_cache = KOTEK_CHECK_FLAG(
+			flags, eZirconResourceLoadingFlags::kUseStaticCache
+		);
+		bool is_dynamic_cache = KOTEK_CHECK_FLAG(
+			flags, eZirconResourceLoadingFlags::kUseDynamicCache
+		);
+		bool is_try_static_then_dynamic =
+			is_static_cache && is_dynamic_cache;
+
+		if (is_static_cache == false &&
+		    is_dynamic_cache == false)
+		{
+			kotek::core::ktkResourceText<4096, 4096, true>*
+				p_data = new kotek::core::
+					ktkResourceText<4096, 4096, true>();
+
+			KOTEK_ASSERT(
+				p_data, "failed to allocate from OS memory allocator...!"
+			);
+
+			if (p_data)
+			{
+				this->m_dynamic_resources.push_back(
+					static_cast<void*>(p_data)
+				);
+
+				zircon_resource_desc_t& desc =
+					this->m_resources_desc[p_result->desc_id];
+				desc.cache_id =
+					this->m_dynamic_resources.size() - 1;
+
+				zircon_view_handle_t& view_handle =
+					this->m_resources_view[p_result->view_id];
+
+				view_handle.p_view =
+					new (view_handle._view_storage
+				    ) kotek::core::ktkResourceViewText(*p_data);
+
+				
+
+
+			}
+
+		}
+		else if (is_try_static_then_dynamic == false &&
+		         is_static_cache)
+		{
+
+		}
+		else if (is_try_static_then_dynamic == false &&
+		         is_dynamic_cache)
+		{
+
+		}
+		else if (is_try_static_then_dynamic)
+		{
+			
+		}
+		else
+		{
+			KOTEK_MESSAGE_ERROR("unreachable code!");
+			return;
+		}
 
 		return;
 	}
@@ -405,9 +464,7 @@ void zircon_resource_manager::worker_thread()
 			const zircon_async_load_request_t& req =
 				this->m_wt_queue.back();
 
-			this->load(
-				req.path, req.flags, req.p_resource
-			);
+			this->load(req.path, req.flags, req.p_resource);
 
 			this->m_wt_queue.pop();
 		}

@@ -51,7 +51,7 @@ enum class eZirconResourceLoadingFlags : kotek::uint8_t
 	/// @brief \~english streams data by user defined stream
 	/// buffer size (zircon implements 4Kb buffer size for
 	/// streaming)
-	kStream = 1 << 4,
+	kStreamWhenLoad = 1 << 4,
 
 	/// @brief \~english literally means that when shared_ptr
 	/// comes destroyed we issue cache invalidation like marking
