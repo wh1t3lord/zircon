@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19.3)
+cmake_minimum_required(VERSION 3.21)
 project(zircon)
 
 set(KOTEK_ENGINE_ROOT_FOLDER_NAME "kotek")
@@ -96,13 +96,14 @@ if ("${KOTEK_GPU_PROFILER}" STREQUAL "ON")
 	add_definitions(-DKOTEK_GPU_PROFILER)
 endif()
 
-if ("${KOTEK_MATH_LIBRARY}" STREQUAL "")
-	if (WIN32)
-		set(KOTEK_MATH_LIBRARY "DXM")
-	else()
-		set(KOTEK_MATH_LIBRARY "GLM")
-	endif()
-endif()
+#if ("${KOTEK_MATH_LIBRARY}" STREQUAL "")
+#	if (WIN32)
+#		set(KOTEK_MATH_LIBRARY "DXM")
+#	else()
+#		set(KOTEK_MATH_LIBRARY "GLM")
+#	endif()
+#endif()
+
 
 if ("${KOTEK_MATH_LIBRARY}" STREQUAL "GLM")
 	add_definitions(-DKOTEK_MATH_LIBRARY_GLM)
