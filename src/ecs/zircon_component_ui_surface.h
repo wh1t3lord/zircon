@@ -2,9 +2,9 @@
 
 #include "zircon_component_interface.h"
 
-// TODO: реализовать
-/// \~russian @brief если надо использовать на какой-то поверхности вывод
-/// интерфейса
+// TODO: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+/// \~russian @brief пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 class zircon_component_ui_surface : public zircon_component_interface
 {
 	KOTEK_COMPONENT(zircon_component_ui_surface,

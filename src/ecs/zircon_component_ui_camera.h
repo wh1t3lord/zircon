@@ -2,7 +2,7 @@
 
 #include "zircon_component_interface.h"
 
-/// \~russian @brief используется для создания интерфейса худа
+/// \~russian @brief пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 class zircon_component_ui_camera : public zircon_component_interface
 {
 	KOTEK_COMPONENT(zircon_component_ui_camera,
