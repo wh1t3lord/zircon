@@ -37,7 +37,7 @@ private:
 	zircon_component_camera m_camera;
 };
 
-#ifdef KOTEK_USE_BOOST_LIBRARY
+#ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
 inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::value& write_to, const zircon_component_sdk_camera& data)
 {

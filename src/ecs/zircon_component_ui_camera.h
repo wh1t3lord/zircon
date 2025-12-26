@@ -41,7 +41,7 @@ private:
 	kotek::unordered_set_t<kotek::cstring_t> m_predefined_pages;
 };
 
-#ifdef KOTEK_USE_BOOST_LIBRARY
+#ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
 inline void tag_invoke(const kotek::json::value_from_tag&,
 	kotek::json::value& write_to, const zircon_component_ui_camera& data)
 {

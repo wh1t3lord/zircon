@@ -40,7 +40,7 @@ private:
 		m_name;
 };
 
-#ifdef KOTEK_USE_BOOST_LIBRARY
+#ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
 inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	Kotek::ktk::json::value& write_to,
 	const zircon_component_sdk_scene_name& data)
