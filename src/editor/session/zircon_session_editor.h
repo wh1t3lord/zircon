@@ -86,11 +86,7 @@ public:
 	get_imgui_ui_elements(void) const noexcept;
 
 private:
-	void update_component_input_sdk(void) noexcept;
 	void update_editing_status(void) noexcept;
-	void update_component_camera(void) noexcept;
-	void update_component_camera_sdk(void) noexcept;
-
 	void try_to_initialize_render_graph(void) noexcept;
 
 private:

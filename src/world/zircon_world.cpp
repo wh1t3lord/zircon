@@ -4,24 +4,30 @@ constexpr kotek::uint8_t _kInvalidWorldID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
 zircon_world::zircon_world(kotek::uint8_t id) :
-	m_is_initialized{}, m_id{id}, m_actor_entity_id{}, m_name{"not_inited"}
+	m_is_initialized{}, m_id{id}, m_entity_count_max_limit{},
+	m_p_ecs_factory{}, m_name{"not_inited"}
 {
 }
 
 zircon_world::zircon_world(void) :
-	m_id{_kInvalidWorldID}, m_actor_entity_id{}, m_name{"not_inited"}
+	m_is_initialized{}, m_id{_kInvalidWorldID},
+	m_entity_count_max_limit{}, m_p_ecs_factory{},
+	m_name{"not_inited"}
 {
 }
 
 zircon_world::~zircon_world(void) {}
 
-void zircon_world::shutdown(void) noexcept
+void zircon_world::shutdown(zircon_factory* p_factory) noexcept
 {
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE("destroying world: {}", this->m_name);
 #endif
 
-	this->m_factory.Shutdown();
+	if (p_factory)
+	{
+		KOTEK_ASSERT(false, "delete ecs context");
+	}
 
 	this->m_is_initialized = false;
 }
@@ -29,13 +35,17 @@ void zircon_world::shutdown(void) noexcept
 void zircon_world::initialize(
 	zircon_session_editor_manager* p_manager_session_editor,
 	zircon_session_game_manager* p_manager_session_game,
-	const kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>&
-		name,
-	zircon_config* p_config, kotek::core::ktkConsole* p_console,
-	kotek::core::ktkIInput* p_input) noexcept
+	const kotek::static_cstring_t<
+		ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>& name,
+	zircon_config* p_config,
+	kotek::core::ktkConsole* p_console,
+	kotek::core::ktkIInput* p_input
+) noexcept
 {
-	KOTEK_ASSERT(this->m_is_initialized == false,
-		"you need to call this only when is not initialized!");
+	KOTEK_ASSERT(
+		this->m_is_initialized == false,
+		"you need to call this only when is not initialized!"
+	);
 
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE("created world: {}", name);
@@ -43,13 +53,19 @@ void zircon_world::initialize(
 
 	this->m_name = name;
 
-	this->m_factory.Initialize(p_config, p_manager_session_game,
-		p_manager_session_editor, p_console, p_input);
+	this->m_factory.Initialize(
+		p_config,
+		p_manager_session_game,
+		p_manager_session_editor,
+		p_console,
+		p_input
+	);
 
 	this->m_is_initialized = true;
 }
 
-kotek::view_entities_t zircon_world::get_entities(void) const noexcept
+kotek::view_entities_t zircon_world::get_entities(void
+) const noexcept
 {
 	return this->m_factory.GetAllEntities();
 }
@@ -69,7 +85,8 @@ zircon_factory* zircon_world::get_factory(void) noexcept
 	return &this->m_factory;
 }
 
-const zircon_factory* zircon_world::get_factory(void) const noexcept
+const zircon_factory* zircon_world::get_factory(void
+) const noexcept
 {
 	return static_cast<const zircon_factory*>(&this->m_factory);
 }
@@ -79,7 +96,7 @@ kotek::uint8_t zircon_world::get_id(void) const noexcept
 	return this->m_id;
 }
 
-bool zircon_world::is_initialized(void) const noexcept 
+bool zircon_world::is_initialized(void) const noexcept
 {
 	return this->m_is_initialized;
 }

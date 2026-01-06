@@ -11,86 +11,115 @@ zircon_component_transform::zircon_component_transform(void) :
 
 zircon_component_transform::~zircon_component_transform(void) {}
 
-const Kotek::ktk::math::vec3f_t& zircon_component_transform::get_position(
-	void) const noexcept
+const Kotek::ktk::math::vec3f_t&
+zircon_component_transform::get_position(void) const noexcept
 {
 	return this->m_position;
 }
 
-kotek::ktk::math::vec3f_t& zircon_component_transform::get_position(
-	void) noexcept
+kotek::ktk::math::vec3f_t&
+zircon_component_transform::get_position(void) noexcept
 {
 	return this->m_position;
 }
 
 void zircon_component_transform::set_position(
-	const Kotek::ktk::math::vec3f_t& pos) noexcept
+	const Kotek::ktk::math::vec3f_t& pos
+) noexcept
 {
 	this->m_position = pos;
 }
 
-const Kotek::ktk::math::vec3f_t& zircon_component_transform::get_scale(
-	void) const noexcept
+const Kotek::ktk::math::vec3f_t&
+zircon_component_transform::get_scale(void) const noexcept
 {
 	return this->m_scale;
 }
 
 void zircon_component_transform::set_scale(
-	const Kotek::ktk::math::vec3f_t& scale) noexcept
+	const Kotek::ktk::math::vec3f_t& scale
+) noexcept
 {
 	this->m_scale = scale;
 }
 
-const Kotek::ktk::math::quatf_t& zircon_component_transform::get_rotation(
-	void) const noexcept
+const Kotek::ktk::math::quatf_t&
+zircon_component_transform::get_rotation(void) const noexcept
 {
 	return this->m_rotation;
 }
 
 void zircon_component_transform::set_rotation(
-	const Kotek::ktk::math::quatf_t& rot) noexcept
+	const Kotek::ktk::math::quatf_t& rot
+) noexcept
 {
 	this->m_rotation = rot;
 }
 
 void zircon_component_transform::draw_imgui(
-	Kotek::Core::ktkMainManager* main_manager) noexcept
+	Kotek::Core::ktkMainManager* main_manager
+) noexcept
 {
 	Kotek::Core::ktkIImguiWrapper* p_wrapper_imgui =
 		main_manager->Get_ImguiWrapper();
 
 	if (p_wrapper_imgui)
 	{
-		if (p_wrapper_imgui->BeginTabBar("ZirconComponentTransform"))
+		if (p_wrapper_imgui->BeginTabBar(
+				"ZirconComponentTransform"
+			))
 		{
 			if (p_wrapper_imgui->BeginTabItem(
-					"info##zircon_component_transform"))
+					"info##zircon_component_transform"
+				))
 			{
-				p_wrapper_imgui->Text("position: %.3f %.3f %.3f",
-					this->m_position.x(), this->m_position.y(),
-					this->m_position.z());
-				p_wrapper_imgui->Text("scale: %.3f %.3f %.3f",
-					this->m_scale.x(), this->m_scale.y(), this->m_scale.z());
-				p_wrapper_imgui->Text("rotation: %.3f %.3f %.3f %.3f",
-					this->m_rotation.x(), this->m_rotation.y(),
-					this->m_rotation.z(), this->m_rotation.w());
+				p_wrapper_imgui->Text(
+					"position: %.3f %.3f %.3f",
+					this->m_position.x(),
+					this->m_position.y(),
+					this->m_position.z()
+				);
+				p_wrapper_imgui->Text(
+					"scale: %.3f %.3f %.3f",
+					this->m_scale.x(),
+					this->m_scale.y(),
+					this->m_scale.z()
+				);
+				p_wrapper_imgui->Text(
+					"rotation: %.3f %.3f %.3f %.3f",
+					this->m_rotation.x(),
+					this->m_rotation.y(),
+					this->m_rotation.z(),
+					this->m_rotation.w()
+				);
 
 				p_wrapper_imgui->EndTabItem();
 			}
 
 			if (p_wrapper_imgui->BeginTabItem(
-					"edit##zircon_component_transform"))
+					"edit##zircon_component_transform"
+				))
 			{
 				p_wrapper_imgui->PushID(1);
-				p_wrapper_imgui->EditDragVec3f("position", &this->m_position);
+				kun_kotek kun_ui DragVec3f(
+					p_wrapper_imgui,
+					"position",
+					&this->m_position
+				);
 				p_wrapper_imgui->PopID();
 
 				p_wrapper_imgui->PushID(2);
-				p_wrapper_imgui->EditDragVec3f("scale", &this->m_scale);
+				kun_kotek kun_ui DragVec3f(
+					p_wrapper_imgui, "scale", &this->m_scale
+				);
 				p_wrapper_imgui->PopID();
 
 				p_wrapper_imgui->PushID(3);
-				p_wrapper_imgui->EditDragQuatf("rotation", &this->m_rotation);
+				kun_kotek kun_ui DragQuatf(
+					p_wrapper_imgui,
+					"rotation",
+					&this->m_rotation
+				);
 				p_wrapper_imgui->PopID();
 
 				p_wrapper_imgui->EndTabItem();
@@ -101,28 +130,35 @@ void zircon_component_transform::draw_imgui(
 	}
 }
 
-kotek::json::value zircon_component_transform::serialize(void) noexcept
+kotek::json::value zircon_component_transform::serialize(void
+) noexcept
 {
 	return kotek::json::value_from(*this);
 }
 
 void zircon_component_transform::deserialize(
-	const kotek::json::value& data) noexcept
+	const kotek::json::value& data
+) noexcept
 {
-	*this = kotek::json::value_to<zircon_component_transform>(data);
+	*this =
+		kotek::json::value_to<zircon_component_transform>(data);
 }
 
 kotek::json::value zircon_component_transform::serialize(
-	unsigned char* p_raw_memory, kotek::size_t size)
+	unsigned char* p_raw_memory, kotek::size_t size
+)
 {
-	KOTEK_ASSERT(p_raw_memory, "you passed an invalid part of memory!");
+	KOTEK_ASSERT(
+		p_raw_memory, "you passed an invalid part of memory!"
+	);
 	kotek::json::static_resource res(p_raw_memory, size);
 	kotek::json::storage_ptr ptr(&res);
 	return kotek::json::value_from(*this, ptr);
 }
 
-kotek::uint8_t zircon_component_transform::get_component_type(
-	void) const noexcept
+kotek::uint8_t
+zircon_component_transform::get_component_type(void
+) const noexcept
 {
 	return this->m_component_type;
 }
@@ -132,7 +168,8 @@ bool zircon_component_transform::is_enabled(void) const noexcept
 	return this->m_is_enabled;
 }
 
-void zircon_component_transform::set_enabled(bool status) noexcept
+void zircon_component_transform::set_enabled(bool status
+) noexcept
 {
 	this->m_is_enabled = status;
 }

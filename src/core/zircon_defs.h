@@ -77,6 +77,18 @@ KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconResourceLoadingFlags, std::under
 #define ZIRCON_DEF_RESOURCE_TEXT_JSON_FAT_FILE_LENGTH 16384
 #define ZIRCON_DEF_RESOURCE_TEXT_JSON_MASS_FILE_LENGTH 32768
 
+#ifdef KOTEK_DEBUG
+	#ifdef KOTEK_USE_SDK_IMGUI
+		#define ZIRCON_DEF_MAX_WORLD_COUNT 2
+	#else
+		#define ZIRCON_DEF_MAX_WORLD_COUNT 1
+	#endif
+#else
+	/// @brief so why we need many worlds if we show
+    /// only one scene on screen?
+	#define ZIRCON_DEF_MAX_WORLD_COUNT 1
+#endif
+
 using zircon_resource_json_tiny_t =
 	kotek::core::ktkResourceText<
 		ZIRCON_DEF_RESOURCE_TEXT_JSON_TINY_FILE_LENGTH,

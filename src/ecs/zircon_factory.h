@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/zircon_config.h"
+
 #include "zircon_component_camera.h"
 #include "zircon_component_actor.h"
 #include "zircon_component_geometry.h"
@@ -28,56 +30,92 @@ class zircon_config;
 class zircon_session_game_manager;
 class zircon_session_editor_manager;
 
+struct zircon_ecs_context_t
+{
+	friend class zircon_factory;
+
+private:
+	unsigned char id = unsigned char(-1);
+	void* p_impl;
+};
+
+// todo: make entt in same design as pico and it is should be
+// same by method calling and etc
+/// @brief \~english factory doesn't rule the allocation so we
+/// have context and that context contains the world
 class zircon_factory
 {
-	using lock_guard = kotek::ktk::mt::lock_guard<kotek::ktk::mt::mutex>;
+	using lock_guard =
+		kotek::ktk::mt::lock_guard<kotek::ktk::mt::mutex>;
 
 public:
 	zircon_factory(void);
 
 	~zircon_factory(void);
 
-	void Initialize(zircon_config* p_config,
-		zircon_session_game_manager* p_manager_session_game,
-		zircon_session_editor_manager* p_manager_session_editor,
-		kotek::core::ktkConsole* p_console, kotek::core::ktkIInput* p_input);
+	void Initialize(
+		zircon_config* p_config,
+		kotek::core::ktkConsole* p_console,
+		kotek::core::ktkIInput* p_input
+	);
 	void Shutdown(void);
 
+	zircon_ecs_context_t*
+	create_context(kotek::uint32_t entity_count_max_limit
+	) noexcept;
+	void destroy_context(zircon_ecs_context_t* p_context
+	) noexcept;
+
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 	bool IsValidEntity(entt::entity id) noexcept
 	{
-		return this->m_registry.valid(static_cast<entt::entity>(id));
+		return this->m_registry.valid(
+			static_cast<entt::entity>(id)
+		);
 	}
 
 	template <typename ComponentType>
-	const ComponentType& GetComponent(entt::entity id) const noexcept
+	const ComponentType& GetComponent(entt::entity id
+	) const noexcept
 	{
 		return this->m_registry.get<ComponentType>(
-			static_cast<entt::entity>(id));
+			static_cast<entt::entity>(id)
+		);
 	}
 
 	template <typename ComponentType>
 	ComponentType& GetComponent(entt::entity id) noexcept
 	{
 		return this->m_registry.get<ComponentType>(
-			static_cast<entt::entity>(id));
+			static_cast<entt::entity>(id)
+		);
 	}
 
-	void* GetComponentByName(entt::entity id,
-		const kotek::static_cstring_view_t& component_name) noexcept
+	void* GetComponentByName(
+		entt::entity id,
+		const kotek::static_cstring_view_t& component_name
+	) noexcept
 	{
-		KOTEK_ASSERT(component_name.empty() == false,
-			"you can't pass an empty string here");
+		KOTEK_ASSERT(
+			component_name.empty() == false,
+			"you can't pass an empty string here"
+		);
 
-		auto hashed_type = this->m_component_name_to_id.at(component_name);
+		auto hashed_type =
+			this->m_component_name_to_id.at(component_name);
 
-		auto* p_existed_storage = this->m_registry.storage(hashed_type);
+		auto* p_existed_storage =
+			this->m_registry.storage(hashed_type);
 
 		if (p_existed_storage)
 		{
-			if (p_existed_storage->contains(static_cast<entt::entity>(id)))
+			if (p_existed_storage->contains(
+					static_cast<entt::entity>(id)
+				))
 			{
-				auto p_result =
-					p_existed_storage->value(static_cast<entt::entity>(id));
+				auto p_result = p_existed_storage->value(
+					static_cast<entt::entity>(id)
+				);
 
 				return p_result;
 			}
@@ -99,12 +137,17 @@ public:
 	}
 
 	bool HasRequiredComponentsForCreation(
-		entt::entity id, entt::id_type component_hash_id) noexcept;
+		entt::entity id, entt::id_type component_hash_id
+	) noexcept;
 
-	bool HasRequiredComponentsForCreation(entt::entity id,
-		const kotek::static_cstring_view_t& component_name) noexcept;
+	bool HasRequiredComponentsForCreation(
+		entt::entity id,
+		const kotek::static_cstring_view_t& component_name
+	) noexcept;
 
-	bool HasComponent(entt::entity id, entt::id_type hashed_type) noexcept
+	bool HasComponent(
+		entt::entity id, entt::id_type hashed_type
+	) noexcept
 	{
 		bool result{};
 
@@ -115,13 +158,18 @@ public:
 
 		if (p_existed)
 		{
-			if (p_existed->contains(static_cast<entt::entity>(id)))
+			if (p_existed->contains(static_cast<entt::entity>(id
+			    )))
 			{
-				KOTEK_ASSERT(p_existed->value(static_cast<entt::entity>(id)),
+				KOTEK_ASSERT(
+					p_existed->value(
+						static_cast<entt::entity>(id)
+					),
 					"must return a non-nullptr type otherwise "
 					"it means something is broken and you "
 					"obtain a valid entity that has storage "
-					"but the data was deleted, probably...");
+					"but the data was deleted, probably..."
+				);
 
 				result = true;
 			}
@@ -131,31 +179,39 @@ public:
 	}
 
 	/// @brief searching from registered components if type_hash
-	/// presented in entt means your entity has component otherwise
-	/// you component doesn't have the specified component
+	/// presented in entt means your entity has component
+	/// otherwise you component doesn't have the specified
+	/// component
 	/// @param id
 	/// @param component_name_from_preprocessor
 	/// @return
-	bool HasComponent(entt::entity id,
+	bool HasComponent(
+		entt::entity id,
 		const kotek::static_cstring_view_t&
-			component_name_from_preprocessor) noexcept
+			component_name_from_preprocessor
+	) noexcept
 	{
-		KOTEK_ASSERT(component_name_from_preprocessor.empty() == false,
-			"you can't pass an empty component name, because if "
+		KOTEK_ASSERT(
+			component_name_from_preprocessor.empty() == false,
+			"you can't pass an empty component name, because "
+			"if "
 			"you pass an empty string we can't understand what "
-			"component you are looking for!!!!!!!!");
+			"component you are looking for!!!!!!!!"
+		);
 
 		bool result{};
 
-		if (this->m_registry.valid(static_cast<entt::entity>(id)) == false)
+		if (this->m_registry.valid(static_cast<entt::entity>(id)
+		    ) == false)
 			return result;
 
 		if (this->m_component_name_to_id.find(
-				component_name_from_preprocessor) !=
-			this->m_component_name_to_id.end())
+				component_name_from_preprocessor
+			) != this->m_component_name_to_id.end())
 		{
 			auto hashed_type = this->m_component_name_to_id.at(
-				component_name_from_preprocessor);
+				component_name_from_preprocessor
+			);
 
 			result = this->HasComponent(id, hashed_type);
 		}
@@ -163,111 +219,162 @@ public:
 		return result;
 	}
 
-	template <typename ComponentType, typename... ArgumentsForConstruction>
+	template <
+		typename ComponentType,
+		typename... ArgumentsForConstruction>
 	void CreateComponent(
-		entt::entity id, ArgumentsForConstruction&&... args) noexcept
+		entt::entity id, ArgumentsForConstruction&&... args
+	) noexcept
 	{
-		KOTEK_ASSERT(this->m_component_name_to_id.find(
-						 ComponentType::GetComponentName()) !=
-				this->m_component_name_to_id.end(),
+		KOTEK_ASSERT(
+			this->m_component_name_to_id.find(
+				ComponentType::GetComponentName()
+			) != this->m_component_name_to_id.end(),
 			"you forgot to register your component: {}",
-			ComponentType::GetComponentName());
+			ComponentType::GetComponentName()
+		);
 
-		constexpr auto hash_id = entt::type_hash<ComponentType>::value();
+		constexpr auto hash_id =
+			entt::type_hash<ComponentType>::value();
 
-		if (this->HasRequiredComponentsForCreation(id, hash_id) == false)
+		if (this->HasRequiredComponentsForCreation(
+				id, hash_id
+			) == false)
 			return;
 
-		this->m_registry.emplace<ComponentType>(static_cast<entt::entity>(id),
-			std::forward<ArgumentsForConstruction>(args)...);
+		this->m_registry.emplace<ComponentType>(
+			static_cast<entt::entity>(id),
+			std::forward<ArgumentsForConstruction>(args)...
+		);
 	}
 
 	void* CreateComponentByName(
-		entt::entity id, const char* component_name) noexcept
+		entt::entity id, const char* component_name
+	) noexcept
 	{
 		KOTEK_ASSERT(
-			component_name, "you can't pass an invalid component name");
-		KOTEK_ASSERT(strlen(component_name), "you can't pass an empty string!");
-		KOTEK_ASSERT(this->m_component_name_to_id.find(component_name) !=
+			component_name,
+			"you can't pass an invalid component name"
+		);
+		KOTEK_ASSERT(
+			strlen(component_name),
+			"you can't pass an empty string!"
+		);
+		KOTEK_ASSERT(
+			this->m_component_name_to_id.find(component_name) !=
 				this->m_component_name_to_id.end(),
-			"you forgot to register your component: {}", component_name);
-		KOTEK_ASSERT(this->m_p_input, "you forgot to call Initialize method!");
+			"you forgot to register your component: {}",
+			component_name
+		);
+		KOTEK_ASSERT(
+			this->m_p_input,
+			"you forgot to call Initialize method!"
+		);
 
 		if (this->HasComponent(id, component_name))
 			return nullptr;
 
-		auto hashed_type = this->m_component_name_to_id.at(component_name);
+		auto hashed_type =
+			this->m_component_name_to_id.at(component_name);
 
-		if (this->HasRequiredComponentsForCreation(id, hashed_type) == false)
+		if (this->HasRequiredComponentsForCreation(
+				id, hashed_type
+			) == false)
 			return nullptr;
 
-		auto* p_existed_storage = this->m_registry.storage(hashed_type);
+		auto* p_existed_storage =
+			this->m_registry.storage(hashed_type);
 
 		if (p_existed_storage)
 		{
-			auto status =
-				p_existed_storage->push(static_cast<entt::entity>(id));
+			auto status = p_existed_storage->push(
+				static_cast<entt::entity>(id)
+			);
 
 			if (status == p_existed_storage->end())
 			{
 				KOTEK_MESSAGE(
-					"failed to add the component: {}", component_name);
+					"failed to add the component: {}",
+					component_name
+				);
 
 				return nullptr;
 			}
 			else
 			{
-				auto p_result =
-					p_existed_storage->value(static_cast<entt::entity>(id));
+				auto p_result = p_existed_storage->value(
+					static_cast<entt::entity>(id)
+				);
 
-				KOTEK_ASSERT(p_result,
-					"must be valid pointer otherwise operation for push for "
-					"storage of component[{}] failed and it returned a "
+				KOTEK_ASSERT(
+					p_result,
+					"must be valid pointer otherwise operation "
+					"for push for "
+					"storage of component[{}] failed and it "
+					"returned a "
 					"nullptr!",
-					component_name);
+					component_name
+				);
 
 				if (p_result)
 				{
 					zircon_component_interface* p_interface =
-						static_cast<zircon_component_interface*>(p_result);
+						static_cast<
+							zircon_component_interface*>(
+							p_result
+						);
 
 					if (p_interface)
 					{
 						p_interface->register_managers(
 							this->m_p_manager_session_game,
-							this->m_p_manager_session_editor);
+							this->m_p_manager_session_editor
+						);
 
-						switch (p_interface->get_component_type())
+						switch (p_interface->get_component_type(
+						))
 						{
 						case kComponentTypezircon_component_sdk_input:
 						{
-							zircon_component_sdk_input* p_casted =
-								static_cast<zircon_component_sdk_input*>(
-									p_interface);
+							zircon_component_sdk_input*
+								p_casted = static_cast<
+									zircon_component_sdk_input*>(
+									p_interface
+								);
 
-							p_casted->get_input().register_input(
-								this->m_p_input);
+							p_casted->get_input()
+								.register_input(this->m_p_input
+							    );
 
 							break;
 						}
 						case kComponentTypezircon_component_input:
 						{
 							zircon_component_input* p_casted =
-								static_cast<zircon_component_input*>(
-									p_interface);
+								static_cast<
+									zircon_component_input*>(
+									p_interface
+								);
 
-							p_casted->register_input(this->m_p_input);
+							p_casted->register_input(
+								this->m_p_input
+							);
 
 							break;
 						}
 						case kComponentTypezircon_component_animation:
 						{
 							KOTEK_ASSERT(
-								this->HasComponent<zircon_component_geometry>(
-									id),
-								"must have this component otherwise you broke "
-								"the order of adding components first geometry "
-								"then animation");
+								this->HasComponent<
+									zircon_component_geometry>(
+									id
+								),
+								"must have this component "
+								"otherwise you broke "
+								"the order of adding "
+								"components first geometry "
+								"then animation"
+							);
 							break;
 						}
 						default:
@@ -283,26 +390,32 @@ public:
 		}
 		else
 		{
-#include "zircon_factory_create_component_by_name.cpp"
+	#include "zircon_factory_create_component_by_name.cpp"
 		}
 
 		return this->GetComponentByName(id, component_name);
 	}
 
-	Kotek::ktk::json::value SerializeComponentByNameToJSON(entt::entity id,
-		const kotek::static_cstring_view_t& component_name) noexcept
+	Kotek::ktk::json::value SerializeComponentByNameToJSON(
+		entt::entity id,
+		const kotek::static_cstring_view_t& component_name
+	) noexcept
 	{
 		Kotek::ktk::json::value result;
 
-		KOTEK_ASSERT(component_name.empty() == false,
-			"you can't pass an empty string here");
+		KOTEK_ASSERT(
+			component_name.empty() == false,
+			"you can't pass an empty string here"
+		);
 
-		void* p_data = this->GetComponentByName(id, component_name);
+		void* p_data =
+			this->GetComponentByName(id, component_name);
 
 		if (p_data)
 		{
 			zircon_component_interface* p_component =
-				static_cast<zircon_component_interface*>(p_data);
+				static_cast<zircon_component_interface*>(p_data
+			    );
 
 			result = p_component->serialize();
 		}
@@ -310,9 +423,12 @@ public:
 		return result;
 	}
 
-	kotek::ktk::json::value SerializeComponentByNameToJSON(entt::entity id,
-		const char* p_component_name, unsigned char* p_raw_memory,
-		Kotek::ktk::size_t raw_memory_size) noexcept
+	kotek::ktk::json::value SerializeComponentByNameToJSON(
+		entt::entity id,
+		const char* p_component_name,
+		unsigned char* p_raw_memory,
+		Kotek::ktk::size_t raw_memory_size
+	) noexcept
 	{
 		KOTEK_ASSERT(p_component_name, "invalid string");
 		KOTEK_ASSERT(strlen(p_component_name), "empty string");
@@ -321,14 +437,18 @@ public:
 
 		kotek::ktk::json::value result;
 
-		void* p_data = this->GetComponentByName(id, p_component_name);
+		void* p_data =
+			this->GetComponentByName(id, p_component_name);
 
 		if (p_data)
 		{
 			zircon_component_interface* p_component =
-				static_cast<zircon_component_interface*>(p_data);
+				static_cast<zircon_component_interface*>(p_data
+			    );
 
-			result = p_component->serialize(p_raw_memory, raw_memory_size);
+			result = p_component->serialize(
+				p_raw_memory, raw_memory_size
+			);
 		}
 
 		return result;
@@ -337,33 +457,45 @@ public:
 	template <typename ComponentType>
 	void RemoveComponent(entt::entity id) noexcept
 	{
-		if (this->m_registry.valid(static_cast<entt::entity>(id)))
+		if (this->m_registry.valid(static_cast<entt::entity>(id)
+		    ))
 		{
 			if (this->HasComponent<ComponentType>(id))
 			{
 				this->m_registry.erase<ComponentType>(
-					static_cast<entt::entity>(id));
+					static_cast<entt::entity>(id)
+				);
 			}
 		}
 	}
 
-	void RemoveComponentByName(entt::entity id,
-		const kotek::static_cstring_view_t& component_name) noexcept
+	void RemoveComponentByName(
+		entt::entity id,
+		const kotek::static_cstring_view_t& component_name
+	) noexcept
 	{
-		KOTEK_ASSERT(component_name.empty() == false,
-			"you can't pass an empty string here");
+		KOTEK_ASSERT(
+			component_name.empty() == false,
+			"you can't pass an empty string here"
+		);
 
 		if (this->HasComponent(id, component_name))
 		{
-			auto hashed_type = this->m_component_name_to_id.at(component_name);
+			auto hashed_type =
+				this->m_component_name_to_id.at(component_name);
 
-			auto* p_existed_storage = this->m_registry.storage(hashed_type);
+			auto* p_existed_storage =
+				this->m_registry.storage(hashed_type);
 
 			if (p_existed_storage)
 			{
-				if (p_existed_storage->contains(static_cast<entt::entity>(id)))
+				if (p_existed_storage->contains(
+						static_cast<entt::entity>(id)
+					))
 				{
-					p_existed_storage->erase(static_cast<entt::entity>(id));
+					p_existed_storage->erase(
+						static_cast<entt::entity>(id)
+					);
 				}
 			}
 		}
@@ -385,7 +517,9 @@ public:
 	{
 		if (this->m_registry.valid((entt::entity)id))
 		{
-			this->m_registry.destroy(static_cast<entt::entity>(id));
+			this->m_registry.destroy(
+				static_cast<entt::entity>(id)
+			);
 
 			return true;
 		}
@@ -393,44 +527,65 @@ public:
 		return false;
 	}
 
-	const kotek::unordered_map_t<kotek::static_cstring_view_t, entt::id_type>&
+	const kotek::unordered_map_t<
+		kotek::static_cstring_view_t,
+		entt::id_type>&
 	GetRegisteredComponents(void) const noexcept
 	{
 		return this->m_component_name_to_id;
 	}
+#endif
 
-	void DeserializeComponent(void* p_raw_data,
-		const Kotek::ktk::json::value& serialized_data) noexcept
+	void DeserializeComponent(
+		void* p_raw_data,
+		const Kotek::ktk::json::value& serialized_data
+	) noexcept
 	{
-		KOTEK_ASSERT(p_raw_data,
-			"you can't pass an invalid component here; Also you "
-			"must pass a component created from storage!");
+		KOTEK_ASSERT(
+			p_raw_data,
+			"you can't pass an invalid component here; Also "
+			"you "
+			"must pass a component created from storage!"
+		);
 
 		zircon_component_interface* p_component =
-			static_cast<zircon_component_interface*>(p_raw_data);
+			static_cast<zircon_component_interface*>(p_raw_data
+		    );
 
 		p_component->deserialize(serialized_data);
 	}
 
-	void CreateAllComponents(entt::entity entity_id,
-		const Kotek::ktk::vector<Kotek::ktk::pair<Kotek::ktk::cstring,
-			Kotek::ktk::json::value>>& serialized_components) noexcept
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
+	void CreateAllComponents(
+		entt::entity entity_id,
+		const Kotek::ktk::vector<Kotek::ktk::pair<
+			Kotek::ktk::cstring,
+			Kotek::ktk::json::value>>& serialized_components
+	) noexcept
 	{
 		if (serialized_components.empty() == false)
 		{
 			for (const auto& [component_name, serialized_data] :
-				serialized_components)
+			     serialized_components)
 			{
-				KOTEK_ASSERT(component_name.empty() == false,
-					"can't be, you must got a valid string that "
-					"represents your component for creation, see "
-					"GetAllComponentsOfEntity method. Something is "
-					"wrong! Data is corrupted");
+				KOTEK_ASSERT(
+					component_name.empty() == false,
+					"can't be, you must got a valid string "
+					"that "
+					"represents your component for creation, "
+					"see "
+					"GetAllComponentsOfEntity method. "
+					"Something is "
+					"wrong! Data is corrupted"
+				);
 
 				auto p_raw_data = this->CreateComponentByName(
-					entity_id, component_name.c_str());
+					entity_id, component_name.c_str()
+				);
 
-				this->DeserializeComponent(p_raw_data, serialized_data);
+				this->DeserializeComponent(
+					p_raw_data, serialized_data
+				);
 			}
 		}
 	}
@@ -440,13 +595,18 @@ public:
 		return this->m_registry;
 	}
 
-	entt::registry& GetRegistry(void) noexcept { return this->m_registry; }
+	entt::registry& GetRegistry(void) noexcept
+	{
+		return this->m_registry;
+	}
 
-	kotek::vector_t<
-		kotek::pair_t<kotek::static_cstring_view_t, Kotek::ktk::json::value>>
+	kotek::vector_t<kotek::pair_t<
+		kotek::static_cstring_view_t,
+		Kotek::ktk::json::value>>
 	GetAllComponentsOfEntity(entt::entity entity_id) noexcept
 	{
-		kotek::vector_t<kotek::pair_t<kotek::static_cstring_view_t,
+		kotek::vector_t<kotek::pair_t<
+			kotek::static_cstring_view_t,
 			Kotek::ktk::json::value>>
 			result;
 
@@ -463,27 +623,38 @@ public:
 					auto component_id = pair.first;
 
 					const auto& component_name =
-						this->m_component_id_to_name.at(component_id);
+						this->m_component_id_to_name.at(
+							component_id
+						);
 
-					KOTEK_ASSERT(component_name.empty() == false,
-						"you can't register a component that has "
-						"empty name! (See preprocessor otherwise "
-						"you implemented own method that doesn't "
-						"have a valid string)");
+					KOTEK_ASSERT(
+						component_name.empty() == false,
+						"you can't register a component that "
+						"has "
+						"empty name! (See preprocessor "
+						"otherwise "
+						"you implemented own method that "
+						"doesn't "
+						"have a valid string)"
+					);
 
 					auto p_raw_data = this->GetComponentByName(
-						entity_id, component_name.data());
+						entity_id, component_name.data()
+					);
 
 					if (p_raw_data)
 					{
-						auto* p_casted =
-							static_cast<zircon_component_interface*>(
-								p_raw_data);
+						auto* p_casted = static_cast<
+							zircon_component_interface*>(
+							p_raw_data
+						);
 
 						if (p_casted)
 						{
 							result.push_back(
-								{component_name, p_casted->serialize()});
+								{component_name,
+							     p_casted->serialize()}
+							);
 						}
 					}
 				}
@@ -492,68 +663,67 @@ public:
 
 		return result;
 	}
+#endif
 
-	zircon_component_type_t get_component_type_id_by_component_name(
-		const kotek::static_cstring_view_t& component_name) const noexcept
+	kotek::static_cstring_view_t
+	get_component_name_by_component_type_id(
+		zircon_component_type_t type
+	) const noexcept
 	{
 		KOTEK_ASSERT(
-			this->m_component_name_to_component_type_id.find(component_name) !=
-				this->m_component_name_to_component_type_id.end(),
-			"you forgot to register your component: {} or you called this "
-			"method before initialization of factory",
-			component_name);
+			type <= this->m_component_type_id_to_component_name
+						.size() -
+					1,
+			"you forgot to register component type: {} or "
+			"early calling!",
+			static_cast<kotek::enum_base_t>(type)
+		);
 
-		zircon_component_type_t result =
-			zircon_component_type_t::kComponentTypeUnknown;
+		constexpr const char* _UnknownComponentName =
+			"UnknownComponentName";
 
-		if (this->m_component_name_to_component_type_id.find(component_name) !=
-			this->m_component_name_to_component_type_id.end())
+		kotek::static_cstring_view_t result(
+			_UnknownComponentName
+		);
+
+		if (type <=
+		    this->m_component_type_id_to_component_name.size() -
+		        1)
 		{
 			result =
-				this->m_component_name_to_component_type_id.at(component_name);
+				this->m_component_type_id_to_component_name.at(
+					type
+				);
 		}
 
 		return result;
 	}
 
-	kotek::static_cstring_view_t get_component_name_by_component_type_id(
-		zircon_component_type_t type) const noexcept
-	{
-		KOTEK_ASSERT(
-			type <= this->m_component_type_id_to_component_name.size() - 1,
-			"you forgot to register component type: {} or early calling!",
-			static_cast<kotek::enum_base_t>(type));
-
-		constexpr const char* _UnknownComponentName = "UnknownComponentName";
-
-		kotek::static_cstring_view_t result(_UnknownComponentName);
-
-		if (type <= this->m_component_type_id_to_component_name.size() - 1)
-		{
-			result = this->m_component_type_id_to_component_name.at(type);
-		}
-
-		return result;
-	}
-
-	kotek::static_vector_t<zircon_component_type_t,
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
+	kotek::static_vector_t<
+		zircon_component_type_t,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 	get_all_components_of_entity(entt::entity id) noexcept
 	{
-		kotek::static_vector_t<zircon_component_type_t,
+		kotek::static_vector_t<
+			zircon_component_type_t,
 			zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 			result;
 
 		if (this->IsValidEntity(id))
 		{
 			for (const auto& [component_name, component_hashed_type] :
-				this->m_component_name_to_id)
+			     this->m_component_name_to_id)
 			{
-				if (this->HasComponent(id, component_hashed_type))
+				if (this->HasComponent(
+						id, component_hashed_type
+					))
 				{
 					result.push_back(
 						this->get_component_type_id_by_component_name(
-							component_name));
+							component_name
+						)
+					);
 				}
 			}
 		}
@@ -561,31 +731,39 @@ public:
 		return result;
 	}
 
-	bool create_component(entt::entity id,
+	bool create_component(
+		entt::entity id,
 		zircon_component_type_t component_type_id,
-		kotek::ktk::json::value& serialized_component);
+		kotek::ktk::json::value& serialized_component
+	);
 
-	inline entt::id_type get_type_hash_by_enum(
-		zircon_component_type_t id) const noexcept
+	inline entt::id_type
+	get_type_hash_by_enum(zircon_component_type_t id
+	) const noexcept
 	{
 		entt::id_type result = -1;
 
-		if (id >= zircon_component_type_t::kComponentTypeUnknown || id < 0)
+		if (id >= zircon_component_type_t::
+		              kComponentTypeUnknown ||
+		    id < 0)
 			return result;
 
-		result = this->m_lookuptable_id_types_by_component_enum[id];
+		result =
+			this->m_lookuptable_id_types_by_component_enum[id];
 
 		return result;
 	}
+#endif
 
 	const char* get_component_name_by_enum(
-		zircon_component_type_t component_type) const noexcept;
+		zircon_component_type_t component_type
+	) const noexcept;
 
 	void validate_get_component_type_of_all_components() const;
 
 private:
 	template <typename ComponentType>
-	Kotek::ktk::cstring GetComponentTypeName(void) const noexcept
+	inline const char* GetComponentTypeName(void) const noexcept
 	{
 #ifdef KOTEK_PLATFORM_WINDOWS
 		return typeid(ComponentType).raw_name();
@@ -593,6 +771,8 @@ private:
 		return typeid(ComponentType).name();
 #endif
 	}
+
+	zircon_ecs_context_t* allocate_context() noexcept;
 
 	void register_components();
 	void register_components_restrictions();
@@ -609,37 +789,57 @@ private:
 	void validate_components_restrictions();
 
 private:
-	zircon_config* m_p_config;
-	zircon_session_game_manager* m_p_manager_session_game;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	unsigned char m_allocated_context_count;
+
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 	entt::id_type m_lookuptable_id_types_by_component_enum
 		[zircon_component_type_t::kComponentTypeUnknown];
+#endif
+
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkIInput* m_p_input;
-	kotek::unordered_map_t<kotek::static_cstring_view_t, entt::id_type>
+
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
+	kotek::unordered_map_t<
+		kotek::static_cstring_view_t,
+		entt::id_type>
 		m_component_name_to_id;
-	kotek::unordered_map_t<entt::id_type, kotek::static_cstring_view_t>
+	kotek::unordered_map_t<
+		entt::id_type,
+		kotek::static_cstring_view_t>
 		m_component_id_to_name;
-	kotek::unordered_map_t<kotek::static_cstring_view_t,
-		zircon_component_type_t>
-		m_component_name_to_component_type_id;
+#endif
+
+	bool m_free_memory_ids[ZIRCON_DEF_MAX_WORLD_COUNT];
+	/// @brief how many contexts we can use for application
+	unsigned char m_p_raw_memory[ZIRCON_DEF_MAX_WORLD_COUNT]
+								[sizeof(zircon_ecs_context_t)];
+
 	// look-up table instead of hash table
-	kotek::static_array_t<kotek::static_cstring_view_t,
+	kotek::static_array_t<
+		kotek::static_cstring_view_t,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_component_type_id_to_component_name;
 
-	// for each component (if it is needed) you specify hash types
-	// of what components it depends. For example
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
+	// for each component (if it is needed) you specify hash
+	// types of what components it depends. For example
 	// component_ui_camera will be created if component_camera
 	// exists in entity.
-	kotek::unordered_map_t<kotek::static_cstring_view_t,
+	kotek::unordered_map_t<
+		kotek::static_cstring_view_t,
 		kotek::vector_t<entt::id_type>>
 		m_component_creation_restriction_by_component_name;
 
-	kotek::unordered_map_t<entt::id_type, kotek::vector_t<entt::id_type>>
+	kotek::unordered_map_t<
+		entt::id_type,
+		kotek::vector_t<entt::id_type>>
 		m_component_creation_restriction_by_hash;
+#endif
 
 	kotek::mt::mutex_t m_mutex;
 
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 	entt::registry m_registry;
+#endif
 };

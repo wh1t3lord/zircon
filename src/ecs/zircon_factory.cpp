@@ -1,9 +1,7 @@
 #include "zircon_factory.h"
-#include "../core/zircon_config.h"
-#include "../editor/session/zircon_session_editor_manager.h"
-#include "../game/session/zircon_session_game_manager.h"
 
-zircon_factory::zircon_factory(void) : m_p_config{}, m_p_input{}
+zircon_factory::zircon_factory(void) :
+	m_allocated_context_count{}, m_p_input{}
 {
 	this->register_components();
 	this->register_components_restrictions();
@@ -14,42 +12,143 @@ zircon_factory::zircon_factory(void) : m_p_config{}, m_p_input{}
 
 zircon_factory::~zircon_factory(void) {}
 
-void zircon_factory::Initialize(zircon_config* p_config,
-	zircon_session_game_manager* p_manager_session_game,
-	zircon_session_editor_manager* p_manager_session_editor,
-	kotek::core::ktkConsole* p_console, kotek::core::ktkIInput* p_input)
+void zircon_factory::Initialize(
+	zircon_config* p_config,
+	kotek::core::ktkConsole* p_console,
+	kotek::core::ktkIInput* p_input
+)
 {
 	KOTEK_ASSERT(
-		p_config, "you can't pass an invalid instance of zircon_config!");
+		p_config,
+		"you can't pass an invalid instance of zircon_config!"
+	);
 	KOTEK_ASSERT(
-		p_console, "you can't pass an invalid instance of ktkConsole!");
-	KOTEK_ASSERT(p_input, "you can't pass an invalid instance of ktkIInput!");
-	KOTEK_ASSERT(p_manager_session_game,
-		"you can't pass a invalid pointer of session game manager");
-	KOTEK_ASSERT(p_manager_session_editor,
-		"you can't pass an invalid pointer of session editor manager");
+		p_console,
+		"you can't pass an invalid instance of ktkConsole!"
+	);
+	KOTEK_ASSERT(
+		p_input,
+		"you can't pass an invalid instance of ktkIInput!"
+	);
 
-	this->m_p_config = p_config;
 	this->m_p_console = p_console;
 	this->m_p_input = p_input;
-	this->m_p_manager_session_editor = p_manager_session_editor;
-	this->m_p_manager_session_game = p_manager_session_game;
+
+	for (unsigned char i = 0; i < ZIRCON_DEF_MAX_WORLD_COUNT;
+	     ++i)
+	{
+		this->m_free_memory_ids[i] = true;
+	}
 }
 
-void zircon_factory::Shutdown(void) {}
+void zircon_factory::Shutdown(void)
+{
+#ifdef KOTEK_DEBUG
+	bool was_deallocated_all_worlds = true;
 
+	for (unsigned char i = 0; i < ZIRCON_DEF_MAX_WORLD_COUNT;
+	     ++i)
+	{
+		was_deallocated_all_worlds = this->m_free_memory_ids[i];
+
+		if (was_deallocated_all_worlds == false)
+			break;
+	}
+
+	KOTEK_ASSERT(
+		was_deallocated_all_worlds,
+		"you forgot to deallocate worlds!"
+	);
+#endif
+}
+
+zircon_ecs_context_t* zircon_factory::create_context(
+	kotek::uint32_t entity_count_max_limit
+) noexcept
+{
+	zircon_ecs_context_t* p_result = this->allocate_context();
+
+	if (p_result)
+	{
+#ifdef KOTEK_USE_ECS_BACKEND_PICO
+		// todo: think how to use memory context for custom
+		// allocations
+		p_result->p_impl = reinterpret_cast<void*>(
+			ecs_new(entity_count_max_limit, nullptr)
+		);
+		KOTEK_ASSERT(
+			p_result->p_impl,
+			"failed to allocate ecs context implementation"
+		);
+
+		if (p_result->p_impl == nullptr)
+		{
+			this->destroy_context(p_result);
+			p_result = nullptr;
+		}
+#endif
+	}
+
+	return p_result;
+}
+
+void zircon_factory::destroy_context(
+	zircon_ecs_context_t* p_context
+) noexcept
+{
+	KOTEK_ASSERT(p_context, "pass valid context");
+	KOTEK_ASSERT(
+		p_context->id != unsigned char(-1), "pass valid context"
+	);
+
+	if (p_context)
+	{
+		KOTEK_ASSERT(
+			p_context->id < ZIRCON_DEF_MAX_WORLD_COUNT,
+			"failed to lookup"
+		);
+
+		if (p_context->id < ZIRCON_DEF_MAX_WORLD_COUNT)
+		{
+			KOTEK_ASSERT(
+				this->m_free_memory_ids[p_context->id] == false,
+				"it was already deallocated otherwise memory "
+				"corruption?"
+			);
+			this->m_free_memory_ids[p_context->id] = true;
+
+			KOTEK_ASSERT(
+				p_context->p_impl, "expected to be valid"
+			);
+
+			if (p_context->p_impl)
+			{
+#ifdef KOTEK_USE_ECS_BACKEND_PICO
+				ecs_free(reinterpret_cast<ecs_t*>(p_context->p_impl));
+#endif
+			}
+		}
+
+		this->m_allocated_context_count--;
+	}
+}
+
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 bool zircon_factory::HasRequiredComponentsForCreation(
-	entt::entity id, entt::id_type component_hash_id) noexcept
+	entt::entity id, entt::id_type component_hash_id
+) noexcept
 {
 	bool result{true};
 
 	if (this->m_component_creation_restriction_by_hash.find(
-			component_hash_id) !=
-		this->m_component_creation_restriction_by_hash.end())
+			component_hash_id
+		) !=
+	    this->m_component_creation_restriction_by_hash.end())
 	{
 		const auto& required_components =
 			this->m_component_creation_restriction_by_hash.at(
-				component_hash_id);
+				component_hash_id
+			);
 
 		for (auto hash_id : required_components)
 		{
@@ -59,18 +158,24 @@ bool zircon_factory::HasRequiredComponentsForCreation(
 
 				if (this->m_p_config)
 				{
-					bool is_enabled = this->m_p_config->is_feature_enabled(
-						eZirconSDKFeatures::
-							kSDK_Feature_AddRequiredComponents_Automatically);
+					bool is_enabled =
+						this->m_p_config->is_feature_enabled(
+							eZirconSDKFeatures::
+								kSDK_Feature_AddRequiredComponents_Automatically
+						);
 
 					if (is_enabled)
 					{
 						this->m_p_console->Execute_Command(
 							static_cast<kotek::enum_base_t>(
 								kotek::core::eConsoleCommandIndex::
-									kConsoleCommand_SDK_CreateComponentForEntity),
-							{{this->m_component_id_to_name.at(hash_id).data()},
-								{static_cast<kotek::uint32_t>(id)}});
+									kConsoleCommand_SDK_CreateComponentForEntity
+							),
+							{{this->m_component_id_to_name
+						          .at(hash_id)
+						          .data()},
+						     {static_cast<kotek::uint32_t>(id)}}
+						);
 						result = is_enabled;
 
 						continue;
@@ -85,30 +190,74 @@ bool zircon_factory::HasRequiredComponentsForCreation(
 	return result;
 }
 
-bool zircon_factory::HasRequiredComponentsForCreation(entt::entity id,
-	const kotek::static_cstring_view_t& component_name) noexcept
+bool zircon_factory::HasRequiredComponentsForCreation(
+	entt::entity id,
+	const kotek::static_cstring_view_t& component_name
+) noexcept
 {
 	bool result{};
 
 	if (this->m_component_name_to_id.find(component_name) ==
-		this->m_component_name_to_id.end())
+	    this->m_component_name_to_id.end())
 		return result;
 
 	result = this->HasRequiredComponentsForCreation(
-		id, this->m_component_name_to_id.at(component_name));
+		id, this->m_component_name_to_id.at(component_name)
+	);
 
 	return result;
+}
+#endif
+
+zircon_ecs_context_t*
+zircon_factory::allocate_context() noexcept
+{
+	zircon_ecs_context_t* p_result = nullptr;
+
+	if (this->m_allocated_context_count ==
+	    ZIRCON_DEF_MAX_WORLD_COUNT)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"you try to allocate context but you exceeded "
+			"limit: {}",
+			ZIRCON_DEF_MAX_WORLD_COUNT
+		);
+		return p_result;
+	}
+
+	unsigned char free_id;
+
+	for (unsigned char i = 0; i < ZIRCON_DEF_MAX_WORLD_COUNT;
+	     ++i)
+	{
+		if (this->m_free_memory_ids[i])
+		{
+			free_id = i;
+			this->m_free_memory_ids[i] = false;
+			break;
+		}
+	}
+
+	p_result = new (this->m_p_raw_memory[free_id])
+		zircon_ecs_context_t;
+	p_result->id = this->m_allocated_context_count;
+	++this->m_allocated_context_count;
+
+	return p_result;
 }
 
 void zircon_factory::register_components()
 {
 	this->register_components_game_and_sdk();
 
+	/* todo: delete
 	for (const auto& [component_name, component_id] :
-		this->m_component_name_to_id)
+	     this->m_component_name_to_id)
 	{
-		this->m_component_id_to_name[component_id] = component_name;
+	    this->m_component_id_to_name[component_id] =
+	        component_name;
 	}
+	*/
 }
 
 void zircon_factory::register_components_restrictions()
@@ -117,72 +266,109 @@ void zircon_factory::register_components_restrictions()
 	this->register_components_restrictions_sdk();
 	this->validate_components_restrictions();
 
+	/* todo: delete
 	for (const auto& [component_name, list_hashes] :
-		this->m_component_creation_restriction_by_component_name)
+	     this->m_component_creation_restriction_by_component_name)
 	{
-		this->m_component_creation_restriction_by_hash[this
-				->m_component_name_to_id.at(component_name)] = list_hashes;
+	    this->m_component_creation_restriction_by_hash
+	        [this->m_component_name_to_id.at(component_name)] =
+	        list_hashes;
 	}
+	*/
 }
 
 void zircon_factory::register_components_restrictions_game()
 {
-	KOTEK_ASSERT(this->m_component_name_to_id.empty() == false,
-		"you must register components first");
+	/* todo: delete
+	KOTEK_ASSERT(
+	    this->m_component_name_to_id.empty() == false,
+	    "you must register components first"
+	);
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_ui_camera::GetComponentName().c_str()]
-			.push_back(entt::type_hash<zircon_component_camera>::value());
+	    [zircon_component_ui_camera::GetComponentName().c_str()]
+	        .push_back(
+	            entt::type_hash<zircon_component_camera>::value(
+	            )
+	        );
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_camera::GetComponentName().c_str()]
-			.push_back(entt::type_hash<zircon_component_input>::value());
+	    [zircon_component_camera::GetComponentName().c_str()]
+	        .push_back(
+	            entt::type_hash<zircon_component_input>::value()
+	        );
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_camera::GetComponentName().c_str()]
-			.push_back(entt::type_hash<zircon_component_frustum>::value());
+	    [zircon_component_camera::GetComponentName().c_str()]
+	        .push_back(entt::type_hash<
+	                   zircon_component_frustum>::value());
 
 	this->m_component_creation_restriction_by_component_name
-		[zircon_component_camera::GetComponentName().c_str()]
-			.push_back(entt::type_hash<zircon_component_transform>::value());
+	    [zircon_component_camera::GetComponentName().c_str()]
+	        .push_back(entt::type_hash<
+	                   zircon_component_transform>::value());
+	                   */
 }
 
 void zircon_factory::register_components_restrictions_sdk()
 {
-	KOTEK_ASSERT(this->m_component_name_to_id.empty() == false,
-		"you must register components first");
+	/*
+	KOTEK_ASSERT(
+	    this->m_component_name_to_id.empty() == false,
+	    "you must register components first"
+	);
 
-	this->m_component_creation_restriction_by_component_name
-		[zircon_component_sdk_camera::GetComponentName().c_str()]
-			.push_back(entt::type_hash<zircon_component_sdk_input>::value());
+	this
+	    ->m_component_creation_restriction_by_component_name
+	        [zircon_component_sdk_camera::GetComponentName()
+	             .c_str()]
+	    .push_back(
+	        entt::type_hash<zircon_component_sdk_input>::value()
+	    );
 
-	this->m_component_creation_restriction_by_component_name
-		[zircon_component_sdk_camera::GetComponentName().c_str()]
-			.push_back(entt::type_hash<zircon_component_frustum>::value());
+	this
+	    ->m_component_creation_restriction_by_component_name
+	        [zircon_component_sdk_camera::GetComponentName()
+	             .c_str()]
+	    .push_back(
+	        entt::type_hash<zircon_component_frustum>::value()
+	    );
 
-	this->m_component_creation_restriction_by_component_name
-		[zircon_component_sdk_camera::GetComponentName().c_str()]
-			.push_back(entt::type_hash<zircon_component_transform>::value());
+	this
+	    ->m_component_creation_restriction_by_component_name
+	        [zircon_component_sdk_camera::GetComponentName()
+	             .c_str()]
+	    .push_back(
+	        entt::type_hash<zircon_component_transform>::value()
+	    );
+	*/
 }
 
 void zircon_factory::validate_components_restrictions()
 {
 #ifdef KOTEK_DEBUG
+	/*
 	for (const auto& [component_name, vector_ids] :
-		this->m_component_creation_restriction_by_component_name)
+	     this->m_component_creation_restriction_by_component_name)
 	{
-		auto myself_id = this->m_component_name_to_id.at(component_name);
+	    auto myself_id =
+	        this->m_component_name_to_id.at(component_name);
 
-		// check if I didn't register myself as restriction because
-		// it could cause a recursive...
-		for (const auto id : vector_ids)
-		{
-			KOTEK_ASSERT(id != myself_id,
-				"you MUST NOT register component as restriction. "
-				"You registered yourself as restriction and it is "
-				"pointless...");
-		}
+	    // check if I didn't register myself as restriction
+	    // because it could cause a recursive...
+	    for (const auto id : vector_ids)
+	    {
+	        KOTEK_ASSERT(
+	            id != myself_id,
+	            "you MUST NOT register component as "
+	            "restriction. "
+	            "You registered yourself as restriction and it "
+	            "is "
+	            "pointless..."
+	        );
+	    }
 	}
+	*/
 #endif
 }
 

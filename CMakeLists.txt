@@ -10,6 +10,7 @@ set(KOTEK_ENGINE_ROOT_FOLDER_NAME "kotek")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 get_property(is_enabled GLOBAL PROPERTY USE_FOLDERS)
+
 if(is_enabled)
 else()
 endif()
@@ -27,6 +28,9 @@ else()
 	message("[${PROJECT_NAME}]: your dependency folder is '${KOTEK_DEPS_FOLDER}'")
 endif()
 
+include_directories(${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src)
+
+"""
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_definitions(
 		-DKOTEK_DEBUG
@@ -115,6 +119,14 @@ elseif("${KOTEK_MATH_LIBRARY}" STREQUAL "EIGEN")
 endif()
 
 message("[${PROJECT_NAME}]: math library is '${KOTEK_MATH_LIBRARY}'")
+"""
+
+message("[${PROJECT_NAME}]: KOTEK_UNICODE=${KOTEK_UNICODE}")
+message("[${PROJECT_NAME}]: KOTEK_TESTS_RUNTIME=${KOTEK_TESTS_RUNTIME}")
+message("[${PROJECT_NAME}]: KOTEK_TESTS=${KOTEK_TESTS}")
+message("[${PROJECT_NAME}]: KOTEK_CPU_PROFILER=${KOTEK_CPU_PROFILER}")
+message("[${PROJECT_NAME}]: KOTEK_GPU_PROFILER=${KOTEK_GPU_PROFILER}")
+message("[${PROJECT_NAME}]: math library is KOTEK_MATH_LIBRARY=${KOTEK_MATH_LIBRARY}")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -122,7 +134,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 message("[${PROJECT_NAME}]: output dir is '${CMAKE_BINARY_DIR}'")
 
-include_directories(${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src)
+
 
 add_subdirectory("${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
 add_subdirectory("src/core")

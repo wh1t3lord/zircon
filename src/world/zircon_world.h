@@ -2,11 +2,15 @@
 
 #include "../ecs/zircon_factory.h"
 
-/// todo: move to generalized config to zircon.core project please (later)
+/// todo: move to generalized config to zircon.core project
+/// please (later)
 #define ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH 16
 
-// TODO: probably I need to be sure that this class I can use like thread safe
-// otherwise I need to implement that because thread safe is only factory...
+#define ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT 128
+
+// TODO: probably I need to be sure that this class I can use
+// like thread safe otherwise I need to implement that because
+// thread safe is only factory...
 class zircon_world
 {
 public:
@@ -14,28 +18,24 @@ public:
 	zircon_world(void);
 	~zircon_world(void);
 
-	void initialize(zircon_session_editor_manager* p_manager_session_editor,
+	void initialize(
+		zircon_session_editor_manager* p_manager_session_editor,
 		zircon_session_game_manager* p_manager_session_game,
-		const kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>&
-			name,
-		zircon_config* p_config, kotek::core::ktkConsole* p_console,
-		kotek::core::ktkIInput* p_input) noexcept;
+		const kotek::static_cstring_t<
+			ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>& name,
+		zircon_config* p_config,
+		kotek::core::ktkConsole* p_console,
+		kotek::core::ktkIInput* p_input,
+		zircon_factory* p_factory,
+		kotek::uint32_t max_limit_entity_count =
+			ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT
+	) noexcept;
 
-	void shutdown(void) noexcept;
-
-	entt::entity create_entity(void);
-
-	bool remove_entity(entt::entity id);
+	void shutdown(zircon_factory* p_factory) noexcept;
 
 	const char* get_name(void) const noexcept;
 
-	kotek::view_entities_t get_entities(void) const noexcept;
-
-	entt::entity get_actor(void) const noexcept;
-	void set_actor(entt::entity actor_id) noexcept;
-
-	zircon_factory* get_factory(void) noexcept;
-	const zircon_factory* get_factory(void) const noexcept;
+	zircon_ecs_context_t* get_ecs_factory(void) const noexcept;
 
 	kotek::uint8_t get_id(void) const noexcept;
 
@@ -44,7 +44,11 @@ public:
 private:
 	bool m_is_initialized;
 	kotek::uint8_t m_id;
-	entt::entity m_actor_entity_id;
-	kotek::static_cstring_t<ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH> m_name;
-	zircon_factory m_factory;
+	kotek::uint32_t m_entity_count_max_limit;
+	/// @brief for pico is ecs_new instance and for entt it is
+	/// entt::registry
+	zircon_ecs_context_t* m_p_ecs_factory;
+	kotek::static_cstring_t<
+		ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>
+		m_name;
 };
