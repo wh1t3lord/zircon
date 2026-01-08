@@ -142,6 +142,9 @@ public:
 	is_render_graph_initialized(kotek::uint8_t render_graph_id);
 
 private:
+	void initialize_factory() noexcept;
+	void destroy_factory() noexcept;
+
 	void Initialize_Renderer(void) noexcept;
 	void Destroy_Renderer(void) noexcept;
 
@@ -199,6 +202,7 @@ private:
 	zircon_resource_manager* m_p_resource_manager;
 	zircon_config* m_p_config;
 	zircon_session_game_manager* m_p_session_game_manager;
+	zircon_factory* m_p_factory;
 #ifdef KOTEK_USE_SDK_IMGUI
 	zircon_session_editor_manager* m_p_session_editor_manager;
 #endif

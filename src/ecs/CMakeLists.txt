@@ -15,6 +15,7 @@ set(zircon_get_component_name_by_enum "zircon_factory_get_component_name_by_enum
 set(zircon_register_components_game_and_sdk "zircon_factory_register_components_game_and_sdk.cpp")
 set(zircon_create_component_by_name "zircon_factory_create_component_by_name.cpp")
 set(zircon_validate_get_component_type_of_all_components "zircon_validate_get_component_type_of_all_components.cpp")
+set(zircon_serialize_deserialize_component "zircon_serialize_deserialize_component.cpp")
 set(zircon_generate_header_component_fields "zircon_component_fields.h")
 set(to_include_module_files 
 	"zircon_ecs_components.h"
@@ -106,7 +107,22 @@ file(WRITE ${zircon_validate_get_component_type_of_all_components} "
 ")
 
 file(APPEND ${zircon_enum_file_name} "
-enum zircon_component_type_t {
+enum eZirconComponentType {
+")
+
+file(APPEND ${zircon_serialize_deserialize_component}
+"
+void zircon_deserialize_component(
+	const kotek::ktk::json::value& serialized_data,
+	zircon_component_interface* p_result
+) noexcept
+{
+	KOTEK_ASSERT(p_result, \"must be valid\");
+
+	if (p_result)
+	{
+		switch (static_cast<eZirconComponentType>(p_result->get_component_type()))
+		{
 ")
 
 set(filenames_lists)
@@ -125,8 +141,20 @@ list(REMOVE_DUPLICATES filenames_list)
 
 foreach (filename IN LISTS filenames_list)
 	file(APPEND ${zircon_enum_file_name} "
-	kComponentType${filename},
+	k${filename},
 	")
+
+	file(APPEND ${zircon_serialize_deserialize_component}
+	"
+		case eZirconComponentType::k${filename}:
+		{
+			${filename}* p_casted = static_cast<${filename}*>(p_result);
+
+			(*p_casted) = kotek::json::value_to<${filename}>(serialized_data);
+		}
+	")
+
+
 	file(APPEND ${zircon_components_to_enums_file_name} "
 	this->m_component_name_to_component_type_id[${filename}::GetComponentName().c_str()] = zircon_component_type_t::kComponentType${filename};")
 	file(APPEND ${zircon_components_to_enums_file_name} "
@@ -175,13 +203,127 @@ foreach (filename IN LISTS filenames_list)
 	")
 endforeach()
 
+file(APPEND ${zircon_serialize_deserialize_component}
+"
+		default:
+		{
+			KOTEK_ASSERT(false, \"unregistered component type!\");
+		}
+		}
+	}
+}
 
+kotek::ktk::json::value zircon_serialize_component(
+	const zircon_component_interface* p_data
+) noexcept
+{
+	KOTEK_ASSERT(p_data, \"must be valid\");
+
+	if (p_data)
+	{
+		switch (static_cast<eZirconComponentType>(p_data->get_component_type()))
+		{
+")
 
 file(APPEND ${zircon_enum_file_name} "
-	kComponentTypeUnknown
+	kunknown
 ")
+
 file(APPEND ${zircon_enum_file_name} "
 };
+")
+
+file(APPEND ${zircon_enum_file_name}
+"
+inline constexpr const char* zircon_translate_component_type_enum_to_string(eZirconComponentType type) 
+{
+	switch (type)
+	{
+")
+
+foreach (filename IN LISTS filenames_list)
+	file(APPEND ${zircon_enum_file_name}
+	"
+	case eZirconComponentType::k${filename}:
+	{
+		return \"${filename}\";
+	}
+	"
+	)
+
+	file(APPEND ${zircon_serialize_deserialize_component}
+	"
+	case eZirconComponentType::k${filename}:
+	{
+		${filename}* p_casted = static_cast<${filename}*>(p_data);
+		return kotek::json::value_from(*p_casted);
+	}
+	")
+endforeach()
+
+file(APPEND ${zircon_serialize_deserialize_component}
+"
+		default:
+		{
+			KOTEK_ASSERT(false, \"unregistered component type!\");
+			return kotek::json::value();
+		}
+		}
+	}
+}
+
+kotek::ktk::json::value zircon_serialize_component(
+	const zircon_component_interface* p_data,
+	unsigned char* p_raw_memory,
+	kotek::size_t memory_size
+) noexcept
+{
+	KOTEK_ASSERT(p_data, \"must be valid\");
+
+	if (p_data)
+	{
+		switch (static_cast<eZirconComponentType>(p_data->get_component_type()))
+		{
+")
+
+foreach (filename IN LISTS filenames_list)
+	file(APPEND ${zircon_serialize_deserialize_component}
+	"
+	case eZirconComponentType::k${filename}:
+	{
+		KOTEK_ASSERT(p_raw_memory, \"you passed an invalid part of memory!\");
+		kotek::json::static_resource res(p_raw_memory, memory_size);
+		kotek::json::storage_ptr ptr(&res);
+		${filename}* p_casted = static_cast<${filename}*>(p_data);
+		return kotek::json::value_from(*p_casted, ptr);
+	}
+	")
+endforeach()
+
+file(APPEND ${zircon_serialize_deserialize_component}
+"
+		default:
+		{
+			KOTEK_ASSERT(false, \"unregistered component type\");
+			return kotek::json::value();
+		}
+		}
+	}
+}
+")
+
+file(APPEND ${zircon_enum_file_name}
+"
+	case eZirconComponentType::kunknown:
+	{
+		return \"zircon_component_unknown\";
+	}
+	default:
+	{
+		return \"ZIRCON_COMPONENT_TYPE_UNDEFINED_ENUM\";
+	}
+	}
+}
 ")
 
 file(APPEND ${zircon_components_to_enums_file_name} "

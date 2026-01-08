@@ -1,12 +1,10 @@
 #pragma once
 
-#include "../ecs/zircon_factory.h"
+#include "../core/zircon_defs.h"
 
-/// todo: move to generalized config to zircon.core project
-/// please (later)
-#define ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH 16
-
-#define ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT 128
+class zircon_factory;
+class zircon_config;
+struct zircon_ecs_context_t;
 
 // TODO: probably I need to be sure that this class I can use
 // like thread safe otherwise I need to implement that because
@@ -19,8 +17,6 @@ public:
 	~zircon_world(void);
 
 	void initialize(
-		zircon_session_editor_manager* p_manager_session_editor,
-		zircon_session_game_manager* p_manager_session_game,
 		const kotek::static_cstring_t<
 			ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>& name,
 		zircon_config* p_config,
@@ -35,7 +31,7 @@ public:
 
 	const char* get_name(void) const noexcept;
 
-	zircon_ecs_context_t* get_ecs_factory(void) const noexcept;
+	zircon_ecs_context_t* get_ecs_context(void) const noexcept;
 
 	kotek::uint8_t get_id(void) const noexcept;
 

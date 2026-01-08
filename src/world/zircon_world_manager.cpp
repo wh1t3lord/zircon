@@ -4,37 +4,45 @@
 constexpr kotek::uint8_t _kInvalidWorldID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
-static_assert(std::numeric_limits<kotek::uint8_t>::max() >
-		ZIRCON_DEF_WORLD_MANAGER_MAX_WORLD_COUNT,
-	"overflow are you sure that you need a such amount of worlds? report to "
-	"developers https://github.com/wh1t3lord/zircon/issues");
+static_assert(
+	std::numeric_limits<kotek::uint8_t>::max() >
+		ZIRCON_DEF_MAX_WORLD_COUNT,
+	"overflow are you sure that you need a such amount of "
+	"worlds? report to "
+	"developers https://github.com/wh1t3lord/zircon/issues"
+);
 
 zircon_world_manager::zircon_world_manager(void) {}
 
 zircon_world_manager::~zircon_world_manager(void)
 {
 	KOTEK_ASSERT(
-		this->m_worlds.empty(), "you must deallocate and call shutdown!");
+		this->m_worlds.empty(),
+		"you must deallocate and call shutdown!"
+	);
 }
 
-void zircon_world_manager::initialize()
+void zircon_world_manager::initialize(void)
 {
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE("initialized!");
 #endif
 }
 
-void zircon_world_manager::shutdown(void)
+void zircon_world_manager::shutdown(zircon_factory* p_factory)
 {
 	for (zircon_world* p_world : this->m_worlds)
 	{
-		KOTEK_ASSERT(p_world,
-			"expected always valid otherwise why nullptr place wasn're "
-			"replaced by allocated?");
+		KOTEK_ASSERT(
+			p_world,
+			"expected always valid otherwise why nullptr place "
+			"wasn're "
+			"replaced by allocated?"
+		);
 
 		if (p_world)
 		{
-			p_world->shutdown();
+			p_world->shutdown(p_factory);
 			delete p_world;
 		}
 	}
@@ -50,14 +58,19 @@ kotek::uint8_t zircon_world_manager::create_world(void) noexcept
 {
 	kotek::uint8_t generated_world_id{};
 
-	// todo: probably you have to make complex heuristic for generation but for
-	// keep architecture simplier let's define as like this
+	// todo: probably you have to make complex heuristic for
+	// generation but for keep architecture simplier let's
+	// define as like this
 	generated_world_id = this->m_worlds.size();
 
-	zircon_world* p_world = new zircon_world(generated_world_id);
+	zircon_world* p_world =
+		new zircon_world(generated_world_id);
 
 	KOTEK_ASSERT(
-		p_world, "failed to allocate memory for world: {}", generated_world_id);
+		p_world,
+		"failed to allocate memory for world: {}",
+		generated_world_id
+	);
 
 	if (p_world)
 	{
@@ -68,14 +81,17 @@ kotek::uint8_t zircon_world_manager::create_world(void) noexcept
 	}
 	else
 	{
-		KOTEK_MESSAGE_ERROR("failed to allocate world: {}", generated_world_id);
+		KOTEK_MESSAGE_ERROR(
+			"failed to allocate world: {}", generated_world_id
+		);
 		generated_world_id = _kInvalidWorldID;
 	}
 
 	return generated_world_id;
 }
 
-zircon_world* zircon_world_manager::get_world(kotek::uint8_t id) const noexcept
+zircon_world* zircon_world_manager::get_world(kotek::uint8_t id
+) const noexcept
 {
 #ifdef KOTEK_DEBUG
 	bool was_found{};
@@ -99,7 +115,10 @@ zircon_world* zircon_world_manager::get_world(kotek::uint8_t id) const noexcept
 				was_found = true;
 				++duplicate;
 				KOTEK_ASSERT(
-					duplicate == 1, "found a duplicate with same id={}!", id);
+					duplicate == 1,
+					"found a duplicate with same id={}!",
+					id
+				);
 #endif
 
 #ifndef KOTEK_DEBUG
@@ -116,20 +135,27 @@ zircon_world* zircon_world_manager::get_world(kotek::uint8_t id) const noexcept
 	return p_result;
 }
 
-void zircon_world_manager::destroy_world(kotek::uint8_t id)
+void zircon_world_manager::destroy_world(
+	kotek::uint8_t id, zircon_factory* p_factory
+)
 {
 	zircon_world* p_world = this->get_world(id);
 
 	if (p_world)
 	{
-		p_world->shutdown();
+		p_world->shutdown(p_factory);
 
-		auto it = std::find_if(this->m_worlds.begin(), this->m_worlds.end(),
+		auto it = std::find_if(
+			this->m_worlds.begin(),
+			this->m_worlds.end(),
 			[id](const zircon_world* p_world) -> bool
 			{
-				KOTEK_ASSERT(p_world,
-					"expected always valid otherwise why nullptr place wasn're "
-					"replaced by allocated?");
+				KOTEK_ASSERT(
+					p_world,
+					"expected always valid otherwise why "
+					"nullptr place wasn're "
+					"replaced by allocated?"
+				);
 
 				if (p_world)
 				{
@@ -140,11 +166,15 @@ void zircon_world_manager::destroy_world(kotek::uint8_t id)
 				}
 
 				return false;
-			});
+			}
+		);
 
-		KOTEK_ASSERT(it != this->m_worlds.end(),
-			"failed to obtain world by id, did you change it in shutdown? It "
-			"is wrong in such case...");
+		KOTEK_ASSERT(
+			it != this->m_worlds.end(),
+			"failed to obtain world by id, did you change it "
+			"in shutdown? It "
+			"is wrong in such case..."
+		);
 
 		this->m_worlds.erase(it);
 		delete p_world;
@@ -153,7 +183,9 @@ void zircon_world_manager::destroy_world(kotek::uint8_t id)
 	else
 	{
 		KOTEK_MESSAGE_WARNING(
-			"failed to obtain world#{} in order to destroy it!", id);
+			"failed to obtain world#{} in order to destroy it!",
+			id
+		);
 	}
 #endif
 }

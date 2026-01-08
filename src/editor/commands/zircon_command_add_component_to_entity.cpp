@@ -7,7 +7,7 @@
 zircon_command_add_component_to_entity::
 	zircon_command_add_component_to_entity(
 		zircon_session_editor_manager* p_manager_session_editor,
-		entt::entity id,
+		kotek::entity_t id,
 		const char* component_string
 	) :
 	m_is_serialized{}, m_id{id},
@@ -34,7 +34,8 @@ zircon_command_add_component_to_entity::
 	zircon_command_add_component_to_entity(
 		zircon_session_editor_manager* p_manager_session_editor
 	) :
-	m_is_serialized{}, m_id{entt::null}, m_p_component_name{},
+	m_is_serialized{}, m_id{kotek::ktk::kInvalidECSEntity},
+	m_p_component_name{},
 	m_p_manager_session_editor{p_manager_session_editor},
 	m_serialized_state_of_deleted_component{},
 	m_serialized_component_as_string{}, m_storage_json_memory{}
@@ -42,7 +43,7 @@ zircon_command_add_component_to_entity::
 	KOTEK_ASSERT(
 		this->m_p_manager_session_editor,
 		"you must pass a valid pointer of editor session "
-	    "manager!"
+		"manager!"
 	);
 }
 
@@ -66,7 +67,7 @@ void zircon_command_add_component_to_entity::Execute(void)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid editor session "
-		    "manager pointer!"
+			"manager pointer!"
 		);
 		return;
 	}
@@ -88,7 +89,7 @@ void zircon_command_add_component_to_entity::Execute(void)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session "
-		    "editor#{}",
+			"editor#{}",
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
@@ -108,7 +109,7 @@ void zircon_command_add_component_to_entity::Execute(void)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid world in session "
-		    "editor_{}#{}",
+			"editor_{}#{}",
 			p_session->get_session_name(),
 			p_session->get_id()
 		);
@@ -187,7 +188,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session "
-		    "editor#{}",
+			"editor#{}",
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
@@ -207,7 +208,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid world in session "
-		    "editor_{}#{}",
+			"editor_{}#{}",
 			p_session->get_session_name(),
 			p_session->get_id()
 		);
@@ -240,7 +241,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 						.get_object()
 						.end(),
 				"your component has a reserved field already! "
-			    "you should use "
+				"you should use "
 				"different "
 				"field for serialization not: [{}]",
 				ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME
@@ -256,7 +257,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 						.get_object()
 						.end(),
 				"your compnent has a reserved field already! "
-			    "you should use "
+				"you should use "
 				"different "
 				"field for serialization not: [{}]",
 				ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
@@ -272,7 +273,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 						.get_object()
 						.end(),
 				"your component has a reserved field already! "
-			    "you shoud use "
+				"you shoud use "
 				"different "
 				"field for serialization not: [{}]"
 			);
@@ -285,7 +286,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 
 			KOTEK_MESSAGE(
 				"[history] removed component[{}] from "
-			    "entity[{}]",
+				"entity[{}]",
 				this->m_p_component_name,
 				static_cast<kotek::uint32_t>(this->m_id)
 			);
@@ -297,18 +298,18 @@ const char* zircon_command_add_component_to_entity::GetName()
 	return "add component to entity";
 }
 
-kotek::uint32_t
+kotek::entity_t
 zircon_command_add_component_to_entity::GetEntityID(void
 ) const noexcept
 {
-	return static_cast<kotek::uint32_t>(this->m_id);
+	return static_cast<kotek::entity_t>(this->m_id);
 }
 
 void zircon_command_add_component_to_entity::SetEntityID(
-	kotek::uint32_t id
+	kotek::entity_t id
 ) noexcept
 {
-	this->m_id = static_cast<entt::entity>(id);
+	this->m_id = id;
 }
 
 kotek::enum_base_t
@@ -326,12 +327,13 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 ) noexcept
 {
 	KOTEK_ASSERT(
-		file != kotek::core::kInvalidFileHandleType, "you must pass a valid resource handl"
+		file != kotek::core::kInvalidFileHandleType,
+		"you must pass a valid resource handl"
 	);
 	KOTEK_ASSERT(
 		this->m_p_component_name,
 		"this must be initialized because it is issued as "
-	    "command from "
+		"command from "
 		"console"
 	);
 	KOTEK_ASSERT(
@@ -367,7 +369,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session "
-		    "editor#{}",
+			"editor#{}",
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
@@ -387,7 +389,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid world in session "
-		    "editor_{}#{}",
+			"editor_{}#{}",
 			p_session->get_session_name(),
 			p_session->get_id()
 		);
@@ -401,7 +403,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 	KOTEK_ASSERT(
 		false,
 		"todo: re-write please also replace _file to FILE* "
-	    "handle"
+		"handle"
 	);
 	kotek::cfstream_t _file;
 
@@ -494,9 +496,9 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		KOTEK_ASSERT(
 			offset <= _kValidationSize,
 			"you must shrink your buffer for serializing "
-		    "component as string "
+			"component as string "
 			"because you got overflow state! current buffer "
-		    "size for "
+			"size for "
 			"serialization as string is: {} offset: {}",
 			_kValidationSize,
 			offset
@@ -516,7 +518,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE(
 		"[history][{}] serialized command: [{}] with size "
-	    "string: "
+		"string: "
 		"[{}] and total offset with endl symbol: [{}]",
 		this->GetName(),
 		this->m_serialized_component_as_string,
@@ -525,7 +527,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 	);
 #endif
 
-//	if (p_resource_manager)
+	//	if (p_resource_manager)
 	{
 		char offset_string[sizeof(
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
@@ -543,7 +545,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 			null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
 			"overflow, number is {} digits and it means we are "
-		    "out of memory!",
+			"out of memory!",
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
 		);
 
@@ -558,14 +560,14 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 
 		// p_resource_manager->Write(
 		//	resource_handle_id, offset_string,
-		//sizeof(offset_string));
+		// sizeof(offset_string));
 		_file.write(offset_string, sizeof(offset_string));
 		//	p_resource_manager->Write(resource_handle_id,
 		//		kotek::core::eFileWritingControlCharacterType::kNewLine);
 		_file << std::endl;
 		// p_resource_manager->Write(
 		//	resource_handle_id,
-		//this->m_serialized_component_as_string);
+		// this->m_serialized_component_as_string);
 		_file << this->m_serialized_component_as_string;
 		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
@@ -581,7 +583,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 			null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
 			"overflow, number is {} digits and it means we are "
-		    "out of memory!",
+			"out of memory!",
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
 		);
 
@@ -596,7 +598,7 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 
 		//	p_resource_manager->Write(
 		//		resource_handle_id, offset_string,
-		//sizeof(offset_string));
+		// sizeof(offset_string));
 		_file.write(offset_string, sizeof(offset_string));
 		//	p_resource_manager->Write(resource_handle_id,
 		//		kotek::core::eFileWritingControlCharacterType::kFlush);
@@ -639,7 +641,7 @@ void zircon_command_add_component_to_entity::Deserialize(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session "
-		    "editor#{}",
+			"editor#{}",
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
@@ -659,7 +661,7 @@ void zircon_command_add_component_to_entity::Deserialize(
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid world in session "
-		    "editor_{}#{}",
+			"editor_{}#{}",
 			p_session->get_session_name(),
 			p_session->get_id()
 		);
@@ -688,7 +690,7 @@ void zircon_command_add_component_to_entity::Deserialize(
 		static_cast<kotek::enum_base_t>(type) ==
 			this->GetCommandType(),
 		"it is not {} command what expected to be based on "
-	    "field {}",
+		"field {}",
 		this->GetName(),
 		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME
 	);
@@ -750,7 +752,7 @@ void zircon_command_add_component_to_entity::serialize_state()
 		{
 			KOTEK_MESSAGE_WARNING(
 				"failed to execute due to invalid game manager "
-			    "pointer!"
+				"pointer!"
 			);
 			return;
 		}
@@ -772,7 +774,7 @@ void zircon_command_add_component_to_entity::serialize_state()
 		{
 			KOTEK_MESSAGE_WARNING(
 				"failed to execute due to invalid session "
-			    "editor#{}",
+				"editor#{}",
 				this->m_p_manager_session_editor
 					->get_current_session_id()
 			);
@@ -880,7 +882,7 @@ zircon_command_add_component_to_entity::get_component_type()
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session "
-		    "editor#{}",
+			"editor#{}",
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
@@ -900,7 +902,7 @@ zircon_command_add_component_to_entity::get_component_type()
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid world in session "
-		    "editor_{}#{}",
+			"editor_{}#{}",
 			p_session->get_session_name(),
 			p_session->get_id()
 		);

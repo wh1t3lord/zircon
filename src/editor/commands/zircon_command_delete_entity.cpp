@@ -7,10 +7,10 @@
 
 zircon_command_delete_entity::zircon_command_delete_entity(
 	zircon_session_editor_manager* p_manager_session_editor,
-	entt::entity entity_to_delete
+	kotek::entity_t entity_to_delete
 ) :
 	m_entity_created{entity_to_delete},
-	m_entity_previous_id{entt::null},
+	m_entity_previous_id{kotek::ktk::kInvalidECSEntity},
 	m_p_manager_session_editor{p_manager_session_editor},
 	m_p_serialized_json_as_string{}, m_p_placement_new_memory{}
 {

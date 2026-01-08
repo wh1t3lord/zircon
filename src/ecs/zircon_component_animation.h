@@ -13,19 +13,10 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_animation : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_animation,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
-
 public:
 	zircon_component_animation(void);
 	~zircon_component_animation(void);
 
-	void draw_imgui(
-		Kotek::Core::ktkMainManager* main_manager) noexcept override;
-	kotek::json::value serialize(void) noexcept override;
-	void deserialize(const kotek::json::value& data) noexcept override;
-	kotek::json::value serialize(
-		unsigned char* p_raw_memory, kotek::size_t size) override;
 	kotek::uint8_t get_component_type(void) const noexcept override;
 
 	bool is_enabled(void) const noexcept;
@@ -33,7 +24,6 @@ public:
 
 private:
 	bool m_is_enabled;
-	kotek::uint8_t m_component_type;
 };
 
 #ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY

@@ -9,9 +9,6 @@
 // this component defines the fact that entity is about terrain
 class zircon_component_terrain_gcm : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_terrain_gcm,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
-
 public:
 	zircon_component_terrain_gcm();
 	~zircon_component_terrain_gcm();

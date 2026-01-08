@@ -7,9 +7,6 @@
 /// ����������
 class zircon_component_ui_surface : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_ui_surface,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
-
 public:
 	zircon_component_ui_surface();
 	~zircon_component_ui_surface();

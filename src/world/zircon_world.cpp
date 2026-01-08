@@ -1,4 +1,5 @@
 #include "zircon_world.h"
+#include "../ecs/zircon_factory.h"
 
 constexpr kotek::uint8_t _kInvalidWorldID =
 	std::numeric_limits<kotek::uint8_t>::max();
@@ -24,24 +25,46 @@ void zircon_world::shutdown(zircon_factory* p_factory) noexcept
 	KOTEK_MESSAGE("destroying world: {}", this->m_name);
 #endif
 
+	KOTEK_ASSERT(p_factory, "must be valid");
+
 	if (p_factory)
 	{
-		KOTEK_ASSERT(false, "delete ecs context");
+		KOTEK_ASSERT(
+			this->m_p_ecs_factory,
+			"memory corruption or logic is broken?"
+		);
+
+		p_factory->destroy_context(this->m_p_ecs_factory);
+		this->m_p_ecs_factory = nullptr;
 	}
 
 	this->m_is_initialized = false;
 }
 
 void zircon_world::initialize(
-	zircon_session_editor_manager* p_manager_session_editor,
-	zircon_session_game_manager* p_manager_session_game,
 	const kotek::static_cstring_t<
 		ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>& name,
 	zircon_config* p_config,
 	kotek::core::ktkConsole* p_console,
-	kotek::core::ktkIInput* p_input
+	kotek::core::ktkIInput* p_input,
+	zircon_factory* p_factory,
+	kotek::uint32_t max_limit_entity_count
 ) noexcept
 {
+	KOTEK_ASSERT(
+		max_limit_entity_count > 0,
+		"should be a valid arg (non-zero)"
+	);
+
+	KOTEK_ASSERT(p_factory, "must be valid");
+
+	KOTEK_ASSERT(
+		this->m_p_ecs_factory == nullptr,
+		"you must have a not initialized field otherwise it "
+		"means that might be a memory corruption otherwise "
+		"some logic is broken..."
+	);
+
 	KOTEK_ASSERT(
 		this->m_is_initialized == false,
 		"you need to call this only when is not initialized!"
@@ -52,43 +75,16 @@ void zircon_world::initialize(
 #endif
 
 	this->m_name = name;
+	this->m_entity_count_max_limit = max_limit_entity_count;
 
-	this->m_factory.Initialize(
-		p_config,
-		p_manager_session_game,
-		p_manager_session_editor,
-		p_console,
-		p_input
-	);
+	if (p_factory)
+	{
+		this->m_p_ecs_factory = p_factory->create_context(
+			this->m_entity_count_max_limit
+		);
+	}
 
 	this->m_is_initialized = true;
-}
-
-kotek::view_entities_t zircon_world::get_entities(void
-) const noexcept
-{
-	return this->m_factory.GetAllEntities();
-}
-
-entt::entity zircon_world::get_actor(void) const noexcept
-{
-	return this->m_actor_entity_id;
-}
-
-void zircon_world::set_actor(entt::entity actor_id) noexcept
-{
-	this->m_actor_entity_id = actor_id;
-}
-
-zircon_factory* zircon_world::get_factory(void) noexcept
-{
-	return &this->m_factory;
-}
-
-const zircon_factory* zircon_world::get_factory(void
-) const noexcept
-{
-	return static_cast<const zircon_factory*>(&this->m_factory);
 }
 
 kotek::uint8_t zircon_world::get_id(void) const noexcept
@@ -101,19 +97,13 @@ bool zircon_world::is_initialized(void) const noexcept
 	return this->m_is_initialized;
 }
 
-entt::entity zircon_world::create_entity(void)
-{
-	auto result = this->m_factory.CreateEntity();
-	return result;
-}
-
-bool zircon_world::remove_entity(entt::entity id)
-{
-	auto result = this->m_factory.RemoveEntity(id);
-	return result;
-}
-
 const char* zircon_world::get_name(void) const noexcept
 {
 	return this->m_name.c_str();
+}
+
+zircon_ecs_context_t* zircon_world::get_ecs_context(void
+) const noexcept
+{
+	return this->m_p_ecs_factory;
 }

@@ -640,6 +640,7 @@ void zircon_game_manager::Initialize(
 
 	this->Initialize_Console();
 	this->initialize_config();
+	this->initialize_factory();
 	//	this->Initialize_Factory();
 	//	this->Initialize_SceneManager();
 	this->Initialize_ResourceManager();
@@ -1032,7 +1033,7 @@ void zircon_game_manager::Shutdown(
 
 	if (this->m_p_world_manager)
 	{
-		this->m_p_world_manager->shutdown();
+		this->m_p_world_manager->shutdown(this->m_p_factory);
 
 		delete this->m_p_world_manager;
 		this->m_p_world_manager = nullptr;
@@ -1053,6 +1054,8 @@ void zircon_game_manager::Shutdown(
 		delete this->m_p_session_game_manager;
 		this->m_p_session_game_manager = nullptr;
 	}
+
+	this->destroy_factory();
 
 	if (this->m_p_window_console)
 	{
@@ -1616,6 +1619,44 @@ sdk::ui::zircon_frame* zircon_game_manager::GetMainWindow(void
 	return this->m_p_sdk_main_window;
 }
 #endif
+
+void zircon_game_manager::initialize_factory() noexcept
+{
+	KOTEK_ASSERT(
+		this->m_p_factory == nullptr,
+		"memory corruption or logic is broken?"
+	);
+
+	KOTEK_ASSERT(this->m_p_main_manager, "must be valid");
+	KOTEK_ASSERT(
+		this->m_p_main_manager->Get_Input(), "must be valid"
+	);
+
+	if (this->m_p_factory == nullptr)
+	{
+		this->m_p_factory = new zircon_factory();
+		this->m_p_factory->Initialize(
+			this->m_p_config,
+			this->m_p_console,
+			this->m_p_main_manager->Get_Input()
+		);
+	}
+}
+
+void zircon_game_manager::destroy_factory() noexcept
+{
+	KOTEK_ASSERT(
+		this->m_p_factory,
+		"memory corruption or logic is broken?"
+	);
+
+	if (this->m_p_factory)
+	{
+		this->m_p_factory->Shutdown();
+		delete this->m_p_factory;
+		this->m_p_factory = nullptr;
+	}
+}
 
 void zircon_game_manager::Initialize_Renderer(void) noexcept
 {
@@ -2956,12 +2997,11 @@ void zircon_game_manager::RegisterConsole_Commands(void
 			}
 
 			p_session_editor->get_world()->initialize(
-				this->m_p_session_editor_manager,
-				this->m_p_session_game_manager,
 				world_name,
 				this->m_p_config,
 				this->m_p_console,
-				this->m_p_main_manager->Get_Input()
+				this->m_p_main_manager->Get_Input(),
+				this->m_p_factory
 			);
 
 			KOTEK_MESSAGE(
@@ -3004,12 +3044,11 @@ void zircon_game_manager::RegisterConsole_Commands(void
 			}
 
 			p_session_game->get_world()->initialize(
-				this->m_p_session_editor_manager,
-				this->m_p_session_game_manager,
 				world_name,
 				this->m_p_config,
 				this->m_p_console,
-				this->m_p_main_manager->Get_Input()
+				this->m_p_main_manager->Get_Input(),
+				this->m_p_factory
 			);
 
 			KOTEK_MESSAGE(
@@ -3531,7 +3570,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 		);
 
 		this->m_p_console->Register_Command(
-			[this](kotek::uint32_t entity) -> bool
+			[this](kotek::entity_t entity) -> bool
 			{
 				KOTEK_ASSERT(
 					this->m_p_session_editor_manager,
@@ -3548,13 +3587,12 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
-				entt::entity id =
-					static_cast<entt::entity>(entity);
+				kotek::entity_t id = entity;
 
 				zircon_session_editor* p_session = nullptr;
 				zircon_editor_command_history*
 					p_history_manager = nullptr;
-				zircon_factory* p_factory = nullptr;
+				zircon_ecs_context_t* p_ecs_context = nullptr;
 
 				kotek::uint8_t session_editor_id =
 					this->m_p_session_editor_manager
@@ -3597,9 +3635,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 							return true;
 						}
 
-						p_factory =
-							p_session->get_world()->get_factory(
-							);
+						p_ecs_context = p_session->get_world()
+											->get_ecs_context();
 					}
 					else
 					{
@@ -3613,12 +3650,12 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				}
 
 				KOTEK_ASSERT(
-					p_factory,
+					p_ecs_context,
 					"world doesn't have factory, initialize "
 					"please"
 				);
 
-				if (!p_factory)
+				if (!p_ecs_context)
 				{
 					KOTEK_MESSAGE_WARNING(
 						"failed to obtain factory from "
@@ -3795,7 +3832,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 		this->m_p_console->Register_Command(
 			[this](
 				const char* component_name,
-				kotek::uint32_t entity
+				kotek::entity_t entity
 			) -> bool
 			{
 #ifdef KOTEK_USE_SDK_IMGUI
@@ -3817,7 +3854,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 
 				zircon_editor_command_history*
 					p_history_manager = nullptr;
-				zircon_factory* p_factory = nullptr;
+				zircon_factory* p_factory = this->m_p_factory;
+				zircon_ecs_context_t* p_ecs_context = nullptr;
+
 				kotek::uint8_t session_editor_id =
 					this->m_p_session_editor_manager
 						->get_current_session_id();
@@ -3857,8 +3896,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 								return true;
 							}
 
-							p_factory = p_session->get_world()
-											->get_factory();
+							p_ecs_context =
+								p_session->get_world()
+									->get_ecs_context();
 						}
 						else
 						{
@@ -3882,13 +3922,15 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					}
 				}
 
+				KOTEK_ASSERT(p_factory, "must be initialized");
+
 				KOTEK_ASSERT(
-					p_factory,
+					p_ecs_context,
 					"failed to obtain factory in editor "
 					"session!"
 				);
 
-				if (!p_factory)
+				if (!p_ecs_context)
 				{
 					KOTEK_MESSAGE_WARNING(
 						"failed to obtain factory in editor "
@@ -3911,8 +3953,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
-				entt::entity id =
-					static_cast<entt::entity>(entity);
+				kotek::entity_t id = entity;
 
 				if (p_factory->GetComponentByName(
 						id, component_name
@@ -3962,14 +4003,193 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 			},
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
-					kConsoleCommand_SDK_CreateComponentForEntity
+					kConsoleCommand_SDK_CreateComponentForEntityByName
+			)
+		);
+
+		this->m_p_console->Register_Command(
+			[this](
+				kotek::enum_base_t component_type,
+				kotek::entity_t entity
+			) -> bool
+			{
+#ifdef KOTEK_USE_SDK_IMGUI
+				KOTEK_ASSERT(
+					this->m_p_session_editor_manager,
+					"you need to initialize session editor "
+					"manager!"
+				);
+
+				if (!this->m_p_session_editor_manager)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"you didn't initialize session editor "
+						"manager so can't "
+						"proceed further..."
+					);
+					return false;
+				}
+
+				zircon_editor_command_history*
+					p_history_manager = nullptr;
+				zircon_factory* p_factory = this->m_p_factory;
+				zircon_ecs_context_t* p_ecs_context = nullptr;
+
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager
+						->get_current_session_id();
+				if (this->m_p_session_editor_manager)
+				{
+					zircon_session_editor* p_session =
+						this->m_p_session_editor_manager
+							->get_session(session_editor_id);
+
+					KOTEK_ASSERT(
+						p_session,
+						"failed to obtain editor session by "
+						"id: {}",
+						session_editor_id
+					);
+
+					if (p_session)
+					{
+						p_history_manager =
+							p_session->get_command_history();
+
+						if (p_session->get_world())
+						{
+							if (p_session->get_world()
+						            ->is_initialized() == false)
+							{
+								KOTEK_MESSAGE_WARNING(
+									"world {} is not "
+									"initialized in editor "
+									"session_{}#{}",
+									p_session->get_world()
+										->get_id(),
+									p_session->get_session_name(
+									),
+									p_session->get_id()
+								);
+								return true;
+							}
+
+							p_ecs_context =
+								p_session->get_world()
+									->get_ecs_context();
+						}
+						else
+						{
+							KOTEK_MESSAGE_WARNING(
+								"failed to get world in "
+								"session_{}#{}",
+								p_session->get_session_name(),
+								p_session->get_id()
+							);
+							return false;
+						}
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"failed to obtain editor session "
+							"by id: {}",
+							session_editor_id
+						);
+						return false;
+					}
+				}
+
+				KOTEK_ASSERT(p_factory, "must be initialized");
+
+				KOTEK_ASSERT(
+					p_ecs_context,
+					"failed to obtain factory in editor "
+					"session!"
+				);
+
+				if (!p_ecs_context)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"failed to obtain factory in editor "
+						"session!"
+					);
+					return false;
+				}
+
+				KOTEK_ASSERT(
+					p_history_manager,
+					"failed to obtain history manager"
+				);
+
+				if (!p_history_manager)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"failed to obtain history manager in "
+						"editor session!"
+					);
+					return false;
+				}
+
+				kotek::entity_t id = entity;
+
+				// todo: implement create component by enum
+				if (p_factory->GetComponentByName(
+						id, component_name
+					) == nullptr)
+				{
+					if (p_factory
+				            ->HasRequiredComponentsForCreation(
+								id, component_name
+							) == false)
+					{
+						KOTEK_MESSAGE(
+							"Can't create component [{}] for "
+							"entity [{}] because it doesn't "
+							"have required components!",
+							component_name,
+							static_cast<kotek::uint32_t>(id)
+						);
+
+						return true;
+					}
+
+					auto* p_placement_new_memory =
+						p_history_manager
+							->allocate_memory_for_command(
+								sizeof(
+									zircon_command_add_component_to_entity
+								),
+								"zircon_command_add_component_"
+								"to_entity"
+							);
+
+					zircon_command_add_component_to_entity*
+						p_command = new (p_placement_new_memory)
+							zircon_command_add_component_to_entity(
+								this->m_p_session_editor_manager,
+								id,
+								component_name
+							);
+
+					p_history_manager->ExecuteCommand(p_command
+				    );
+				}
+
+#endif
+
+				return true;
+			},
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::
+					kConsoleCommand_SDK_CreateComponentForEntityByEnum
 			)
 		);
 
 		this->m_p_console->Register_Command(
 			[this](
 				const char* p_component_name,
-				kotek::uint32_t entity
+				kotek::entity_t entity
 			) -> bool
 			{
 				KOTEK_ASSERT(
@@ -4101,7 +4321,147 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 			},
 			static_cast<kotek::ktk::enum_base_t>(
 				kotek::core::eConsoleCommandIndex::
-					kConsoleCommand_SDK_DeleteComponentFromEntity
+					kConsoleCommand_SDK_DeleteComponentFromEntityByName
+			)
+		);
+
+		this->m_p_console->Register_Command(
+			[this](
+				kotek::enum_base_t component_type,
+				kotek::entity_t entity
+			) -> bool
+			{
+				KOTEK_ASSERT(
+					this->m_p_session_editor_manager,
+					"you need to initialize session editor "
+					"manager!"
+				);
+
+				if (!this->m_p_session_editor_manager)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"you didn't initialize session editor "
+						"manager so can't "
+						"proceed further..."
+					);
+					return false;
+				}
+
+				zircon_editor_command_history*
+					p_history_manager = nullptr;
+				zircon_factory* p_factory = nullptr;
+				kotek::uint8_t session_editor_id =
+					this->m_p_session_editor_manager
+						->get_current_session_id();
+				if (this->m_p_session_editor_manager)
+				{
+					zircon_session_editor* p_session =
+						this->m_p_session_editor_manager
+							->get_session(session_editor_id);
+
+					KOTEK_ASSERT(
+						p_session,
+						"failed to obtain editor session by "
+						"id: {}",
+						session_editor_id
+					);
+
+					if (p_session)
+					{
+						p_history_manager =
+							p_session->get_command_history();
+
+						if (p_session->get_world())
+						{
+							p_factory = p_session->get_world()
+											->get_factory();
+						}
+						else
+						{
+							KOTEK_MESSAGE_WARNING(
+								"failed to get world in "
+								"session_{}#{}",
+								p_session->get_session_name(),
+								p_session->get_id()
+							);
+							return false;
+						}
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"failed to obtain editor session "
+							"by id: {}",
+							session_editor_id
+						);
+						return false;
+					}
+				}
+
+				KOTEK_ASSERT(
+					p_factory,
+					"failed to obtain factory in editor "
+					"session!"
+				);
+
+				if (!p_factory)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"failed to obtain factory in editor "
+						"session!"
+					);
+					return false;
+				}
+
+				KOTEK_ASSERT(
+					p_history_manager,
+					"failed to obtain history manager"
+				);
+
+				if (!p_history_manager)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"failed to obtain history manager in "
+						"editor session!"
+					);
+					return false;
+				}
+
+				// todo: implement delete component by enum
+				entt::entity id =
+					static_cast<entt::entity>(entity);
+
+				if (p_factory->GetComponentByName(
+						id, p_component_name
+					))
+				{
+					auto* p_placement_new_memory =
+						p_history_manager
+							->allocate_memory_for_command(
+								sizeof(
+									zircon_command_delete_component_from_entity
+								),
+								"zircon_command_delete_"
+								"component_from_entity"
+							);
+
+					zircon_command_delete_component_from_entity*
+						p_command = new (p_placement_new_memory)
+							zircon_command_delete_component_from_entity(
+								this->m_p_session_editor_manager,
+								id,
+								p_component_name
+							);
+
+					p_history_manager->ExecuteCommand(p_command
+				    );
+				}
+
+				return true;
+			},
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::core::eConsoleCommandIndex::
+					kConsoleCommand_SDK_DeleteComponentFromEntityByEnum
 			)
 		);
 

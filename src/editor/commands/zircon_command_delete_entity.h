@@ -18,7 +18,7 @@ class zircon_command_delete_entity
 public:
 	zircon_command_delete_entity(
 		zircon_session_editor_manager* p_manager_session_editor,
-		entt::entity entity_to_delete
+		kotek::entity_t entity_to_delete
 	);
 
 	~zircon_command_delete_entity();
@@ -27,8 +27,8 @@ public:
 	void Undo(void) override;
 	const char* GetName() override;
 
-	kotek::uint32_t GetEntityID(void) const noexcept override;
-	void SetEntityID(kotek::uint32_t id) noexcept override;
+	kotek::entity_t GetEntityID(void) const noexcept override;
+	void SetEntityID(kotek::entity_t id) noexcept override;
 
 	kotek::enum_base_t GetCommandType() noexcept override;
 	kotek::size_t Serialize(kotek::core::ktkFileHandleType file
@@ -37,8 +37,8 @@ public:
 	) noexcept;
 
 private:
-	entt::entity m_entity_created;
-	entt::entity m_entity_previous_id;
+	kotek::entity_t m_entity_created;
+	kotek::entity_t m_entity_previous_id;
 	zircon_session_editor_manager* m_p_manager_session_editor;
 	kotek::static_vector_t<
 		zircon_component_type_t,

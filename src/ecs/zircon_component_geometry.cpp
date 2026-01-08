@@ -19,7 +19,8 @@ zircon_component_geometry::zircon_component_geometry(void) :
 
 zircon_component_geometry::~zircon_component_geometry(void) {}
 
-kotek::size_t zircon_component_geometry::get_vertex_count(void) const noexcept
+kotek::size_t zircon_component_geometry::get_vertex_count(void
+) const noexcept
 {
 #ifdef KOTEK_USE_SDK_IMGUI
 	return this->m_vertex_count;
@@ -28,14 +29,17 @@ kotek::size_t zircon_component_geometry::get_vertex_count(void) const noexcept
 #endif
 }
 
-void zircon_component_geometry::set_vertex_count(kotek::size_t count) noexcept
+void zircon_component_geometry::set_vertex_count(
+	kotek::size_t count
+) noexcept
 {
 #ifdef KOTEK_USE_SDK_IMGUI
 	this->m_vertex_count = count;
 #endif
 }
 
-kotek::size_t zircon_component_geometry::get_index_count(void) const noexcept
+kotek::size_t zircon_component_geometry::get_index_count(void
+) const noexcept
 {
 #ifdef KOTEK_USE_SDK_IMGUI
 	return this->m_index_count;
@@ -44,14 +48,17 @@ kotek::size_t zircon_component_geometry::get_index_count(void) const noexcept
 #endif
 }
 
-void zircon_component_geometry::set_index_count(kotek::size_t count) noexcept
+void zircon_component_geometry::set_index_count(
+	kotek::size_t count
+) noexcept
 {
 #ifdef KOTEK_USE_SDK_IMGUI
 	this->m_index_count = count;
 #endif
 }
 
-const char* zircon_component_geometry::get_path(void) const noexcept
+const char* zircon_component_geometry::get_path(void
+) const noexcept
 {
 #ifdef KOTEK_USE_SDK_IMGUI
 	return this->m_path.c_str();
@@ -59,7 +66,8 @@ const char* zircon_component_geometry::get_path(void) const noexcept
 }
 
 void zircon_component_geometry::set_path(
-	const kotek::ktk::cstring& path) noexcept
+	const kotek::ktk::cstring& path
+) noexcept
 {
 #ifdef KOTEK_USE_SDK_IMGUI
 	this->m_path = path;
@@ -71,27 +79,38 @@ bool zircon_component_geometry::is_visible(void) const noexcept
 	return this->m_is_visible;
 }
 
-void zircon_component_geometry::set_visible(bool status) noexcept
+void zircon_component_geometry::set_visible(bool status
+) noexcept
 {
 	this->m_is_visible = status;
 }
+/*
 
 void zircon_component_geometry::draw_imgui(
-	kotek::core::ktkMainManager* p_main_manager) noexcept
+	kotek::core::ktkMainManager* p_main_manager
+) noexcept
 {
-	KOTEK_ASSERT(this->m_p_manager_session_editor,
-		"you had to register session editor manager before calling this "
-		"method!");
+	KOTEK_ASSERT(
+		this->m_p_manager_session_editor,
+		"you had to register session editor manager before "
+	    "calling this "
+		"method!"
+	);
 
 	if (p_main_manager)
 	{
-		auto* p_wrapper_imgui = p_main_manager->Get_ImguiWrapper();
+		auto* p_wrapper_imgui =
+			p_main_manager->Get_ImguiWrapper();
 
 		if (p_wrapper_imgui)
 		{
-			if (p_wrapper_imgui->CollapsingHeader("Component geometry"))
+			if (p_wrapper_imgui->CollapsingHeader(
+					"Component geometry"
+				))
 			{
-				p_wrapper_imgui->Checkbox("Use model", &this->m_is_use_model);
+				p_wrapper_imgui->Checkbox(
+					"Use model", &this->m_is_use_model
+				);
 				p_wrapper_imgui->SameLine();
 
 				if (this->m_is_use_model)
@@ -100,75 +119,106 @@ void zircon_component_geometry::draw_imgui(
 				}
 				else
 				{
-					this->m_p_geometry_name =
-						kotek::core::helper::Translate_StaticGeometryType(
-							this->m_geometry_type);
+					this->m_p_geometry_name = kotek::core::
+						helper::Translate_StaticGeometryType(
+							this->m_geometry_type
+						);
 
 					if (p_wrapper_imgui->BeginCombo(
-							"Static geometry", this->m_p_geometry_name))
+							"Static geometry",
+							this->m_p_geometry_name
+						))
 					{
-						for (kotek::ktk::enum_base_t i = 0; i <
-							static_cast<kotek::ktk::enum_base_t>(
-								kotek::core::eStaticGeometryType::kEndOfEnum);
-							++i)
+						for (kotek::ktk::enum_base_t i = 0;
+						     i < static_cast<
+									 kotek::ktk::enum_base_t>(
+									 kotek::core::
+										 eStaticGeometryType::
+											 kEndOfEnum
+								 );
+						     ++i)
 						{
-							const auto& translated_name = kotek::core::helper::
-								Translate_StaticGeometryType(static_cast<
-									kotek::core::eStaticGeometryType>(i));
+							const auto& translated_name =
+								kotek::core::helper::
+									Translate_StaticGeometryType(
+										static_cast<
+											kotek::core::
+												eStaticGeometryType>(
+											i
+										)
+									);
 
-							if (p_wrapper_imgui->Selectable(translated_name,
-									std::string_view(this->m_p_geometry_name) ==
-										translated_name))
+							if (p_wrapper_imgui->Selectable(
+									translated_name,
+									std::string_view(
+										this->m_p_geometry_name
+									) == translated_name
+								))
 							{
-								this->m_geometry_type = static_cast<
-									kotek::core::eStaticGeometryType>(i);
+								this->m_geometry_type =
+									static_cast<
+										kotek::core::
+											eStaticGeometryType>(
+										i
+									);
 
 								zircon_session_editor* p_session =
 									this->m_p_manager_session_editor
 										->get_session(
 											this->m_p_manager_session_editor
-												->get_current_session_id());
+												->get_current_session_id(
+												)
+										);
 
-								KOTEK_ASSERT(p_session, "must be initialized");
+								KOTEK_ASSERT(
+									p_session,
+									"must be initialized"
+								);
 								if (!p_session)
 								{
 									KOTEK_MESSAGE_WARNING(
-										"failed to obtain session editor by "
+										"failed to obtain "
+									    "session editor by "
 										"id: {}",
 										this->m_p_manager_session_editor
-											->get_current_session_id());
+											->get_current_session_id(
+											)
+									);
 									return;
 								}
 
-								auto entity_id = p_session->get_ui_state()
-													 ->get_selected_entity();
-								
+								auto entity_id =
+									p_session->get_ui_state()
+										->get_selected_entity();
+
 								KOTEK_ASSERT(
 									false,
 									"todo: implement please!!!"
 								);
 
-								/* todo: re-write when resource & asset manager will come to this engine in live
+								/ * todo: re-write when resource
+								& asset manager will come to
+								this engine in live
 								p_main_manager->GetGameManager()
-									->GetConsole()
-									->Push_Command(
-										static_cast<kotek::ktk::enum_base_t>(
-											kotek::core::eConsoleCommandIndex::
-												kConsoleCommand_ResourceManager_Load),
-										{kotek::core::ktkLoadingRequest(
-											kotek::core::
-												eResourceThreadingPolicy::
-													kAsync,
-											kotek::core::
-												eResourceLoadingPolicy::kStream,
-											kotek::core::
-												eResourceCachingPolicy::
-													kWithoutCache,
-											kotek::core::eResourceLoadingType::
-												kModelStatic_Triangle,
-											"",
-											static_cast<kotek::uint32_t>(
-												entity_id))});*/
+								    ->GetConsole()
+								    ->Push_Command(
+								        static_cast<kotek::ktk::enum_base_t>(
+								            kotek::core::eConsoleCommandIndex::
+								                kConsoleCommand_ResourceManager_Load),
+								        {kotek::core::ktkLoadingRequest(
+								            kotek::core::
+								                eResourceThreadingPolicy::
+								                    kAsync,
+								            kotek::core::
+								                eResourceLoadingPolicy::kStream,
+								            kotek::core::
+								                eResourceCachingPolicy::
+								                    kWithoutCache,
+								            kotek::core::eResourceLoadingType::
+								                kModelStatic_Triangle,
+								            "",
+								            static_cast<kotek::uint32_t>(
+								                entity_id))});* /
 							}
 						}
 
@@ -179,31 +229,42 @@ void zircon_component_geometry::draw_imgui(
 		}
 	}
 }
+*/
 
-kotek::json::value zircon_component_geometry::serialize(void) noexcept
+/*
+kotek::json::value zircon_component_geometry::serialize(void
+) noexcept
 {
 	return kotek::json::value_from(*this);
 }
 
 void zircon_component_geometry::deserialize(
-	const kotek::json::value& data) noexcept
+	const kotek::json::value& data
+) noexcept
 {
-	*this = kotek::json::value_to<zircon_component_geometry>(data);
+	*this =
+		kotek::json::value_to<zircon_component_geometry>(data);
 }
 
 kotek::json::value zircon_component_geometry::serialize(
-	unsigned char* p_raw_memory, kotek::size_t size)
+	unsigned char* p_raw_memory, kotek::size_t size
+)
 {
-	KOTEK_ASSERT(p_raw_memory, "you passed an invalid part of memory!");
+	KOTEK_ASSERT(
+		p_raw_memory, "you passed an invalid part of memory!"
+	);
 	kotek::json::static_resource res(p_raw_memory, size);
 	kotek::json::storage_ptr ptr(&res);
 	return kotek::json::value_from(*this, ptr);
-}
+}*/
 
-kotek::uint8_t zircon_component_geometry::get_component_type(
-	void) const noexcept
+kotek::uint8_t
+zircon_component_geometry::get_component_type(void
+) const noexcept
 {
-	return m_component_type;
+	return static_cast<Kotek::uint8_t>(
+		eZirconComponentType::kzircon_component_geometry
+	);
 }
 
 bool zircon_component_geometry::is_enabled(void) const noexcept
@@ -211,7 +272,8 @@ bool zircon_component_geometry::is_enabled(void) const noexcept
 	return this->m_is_enabled;
 }
 
-void zircon_component_geometry::set_enabled(bool status) noexcept
+void zircon_component_geometry::set_enabled(bool status
+) noexcept
 {
 	this->m_is_enabled = status;
 }
@@ -223,7 +285,8 @@ zircon_component_geometry::get_geometry_type() const noexcept
 }
 
 void zircon_component_geometry::set_geometry_type(
-	kotek::core::eStaticGeometryType type) noexcept
+	kotek::core::eStaticGeometryType type
+) noexcept
 {
 	this->m_geometry_type = type;
 }

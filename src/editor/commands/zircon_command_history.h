@@ -35,8 +35,8 @@ public:
 	GetCommands(void) const noexcept;
 
 	void update_dependent_commands(
-		entt::entity id_what_will_be_deleted,
-		entt::entity id_that_replaces_what_will_be_deleted
+		kotek::entity_t id_what_will_be_deleted,
+		kotek::entity_t id_that_replaces_what_will_be_deleted
 	) noexcept;
 
 	unsigned char* allocate_memory_for_command(
@@ -53,7 +53,7 @@ public:
 	get_serialized_component_by_entity_and_component_type_id(
 		kotek::ktk::json::value&
 			constructed_value_on_stack_based_on_placement_new_memory,
-		entt::entity id,
+		kotek::entity_t id,
 		zircon_component_type_t type_id
 	);
 

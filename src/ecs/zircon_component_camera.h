@@ -15,8 +15,6 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_camera : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_camera,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
 public:
 	zircon_component_camera(void);
 	~zircon_component_camera(void);
@@ -64,7 +62,6 @@ public:
 
 private:
 	bool m_is_enabled;
-	kotek::uint8_t m_component_type;
 	float m_plane_near;
 	float m_plane_far;
 	float m_fov;

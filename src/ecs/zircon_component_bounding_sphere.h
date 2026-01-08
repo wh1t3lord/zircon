@@ -4,9 +4,6 @@
 
 class zircon_component_bounding_sphere : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_bounding_sphere,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
-
 public:
 	zircon_component_bounding_sphere(void);
 	~zircon_component_bounding_sphere(void);
@@ -32,7 +29,6 @@ public:
 
 private:
 	bool m_is_enabled;
-	kotek::uint8_t m_component_type;
 #ifdef KOTEK_DEBUG
 	kn_kotek::kn_ktk::int32_t m_quality;
 #endif

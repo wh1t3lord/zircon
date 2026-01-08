@@ -5,9 +5,6 @@
 /// \~russian @brief ������������ ��� �������� ���������� ����
 class zircon_component_ui_camera : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_ui_camera,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
-
 public:
 	zircon_component_ui_camera();
 	~zircon_component_ui_camera();

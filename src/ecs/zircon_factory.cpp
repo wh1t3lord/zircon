@@ -378,3 +378,4 @@ void zircon_factory::validate_components_restrictions()
 #include "zircon_factory_get_component_name_by_enum.cpp"
 #include "zircon_factory_register_components_game_and_sdk.cpp"
 #include "zircon_validate_get_component_type_of_all_components.cpp"
+#include "zircon_serialize_deserialize_component.cpp"

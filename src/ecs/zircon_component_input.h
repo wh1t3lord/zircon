@@ -20,9 +20,6 @@ class zircon_factory;
 
 class zircon_component_input : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_input,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
-
 	friend class zircon_factory;
 
 public:

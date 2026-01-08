@@ -39,6 +39,21 @@ private:
 	void* p_impl;
 };
 
+void zircon_deserialize_component(
+	const kotek::ktk::json::value& serialized_data,
+	zircon_component_interface* p_result
+) noexcept;
+
+kotek::ktk::json::value zircon_serialize_component(
+	const zircon_component_interface* p_data
+) noexcept;
+
+kotek::ktk::json::value zircon_serialize_component(
+	const zircon_component_interface* p_data,
+	unsigned char* p_raw_memory,
+	kotek::size_t memory_size
+) noexcept;
+
 // todo: make entt in same design as pico and it is should be
 // same by method calling and etc
 /// @brief \~english factory doesn't rule the allocation so we
@@ -534,6 +549,21 @@ public:
 	{
 		return this->m_component_name_to_id;
 	}
+#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
+	bool is_valid_entity(
+		zircon_ecs_context_t* p_context, kotek::entity_t id
+	) noexcept;
+	zircon_component_interface* get_component_by_name(
+		zircon_ecs_context_t* p_context,
+		Kotek::entity_t id,
+		const kotek::cstring_view_t& component_name
+	) noexcept;
+	zircon_component_interface* get_component_by_enum(
+		zircon_ecs_context_t* p_context,
+		Kotek::entity_t id,
+		eZirconComponentType component_type
+	) noexcept;
+
 #endif
 
 	void DeserializeComponent(

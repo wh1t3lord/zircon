@@ -3,9 +3,6 @@
 zircon_component_bounding_sphere::
 	zircon_component_bounding_sphere(void) :
 	m_is_enabled{true},
-	m_component_type{
-		kComponentTypezircon_component_bounding_sphere
-	},
 #ifdef KOTEK_DEBUG
 	m_quality{},
 #endif
@@ -86,7 +83,9 @@ kotek::uint8_t
 zircon_component_bounding_sphere::get_component_type(void
 ) const noexcept
 {
-	return this->m_component_type;
+	return static_cast<Kotek::uint8_t>(
+		eZirconComponentType::kzircon_component_bounding_sphere
+	);
 }
 
 bool zircon_component_bounding_sphere::is_enabled(void

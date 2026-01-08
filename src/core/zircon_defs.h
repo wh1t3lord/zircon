@@ -79,7 +79,7 @@ KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconResourceLoadingFlags, std::under
 
 #ifdef KOTEK_DEBUG
 	#ifdef KOTEK_USE_SDK_IMGUI
-		#define ZIRCON_DEF_MAX_WORLD_COUNT 2
+		#define ZIRCON_DEF_MAX_WORLD_COUNT 1
 	#else
 		#define ZIRCON_DEF_MAX_WORLD_COUNT 1
 	#endif
@@ -88,6 +88,9 @@ KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconResourceLoadingFlags, std::under
     /// only one scene on screen?
 	#define ZIRCON_DEF_MAX_WORLD_COUNT 1
 #endif
+
+#define ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH 16
+#define ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT 128
 
 using zircon_resource_json_tiny_t =
 	kotek::core::ktkResourceText<

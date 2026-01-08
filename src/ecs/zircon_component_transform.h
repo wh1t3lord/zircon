@@ -15,9 +15,6 @@ KOTEK_END_NAMESPACE_KOTEK
 
 class zircon_component_transform : public zircon_component_interface
 {
-	KOTEK_COMPONENT(zircon_component_transform,
-		kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>)
-
 public:
 	zircon_component_transform(void);
 	~zircon_component_transform(void);
