@@ -15,14 +15,6 @@ public:
 	zircon_component_frustum(void);
 	~zircon_component_frustum(void);
 
-	void draw_imgui(Kotek::Core::ktkMainManager* main_manager
-	) noexcept override;
-	kotek::json::value serialize(void) noexcept override;
-	void deserialize(const kotek::json::value& data
-	) noexcept override;
-	kotek::json::value serialize(
-		unsigned char* p_raw_memory, kotek::size_t size
-	) override;
 	kotek::uint8_t get_component_type(void
 	) const noexcept override;
 

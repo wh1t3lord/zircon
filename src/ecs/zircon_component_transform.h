@@ -29,12 +29,6 @@ public:
 	const kotek::math::quatf_t& get_rotation(void) const noexcept;
 	void set_rotation(const kotek::math::quatf_t& rot) noexcept;
 
-	void draw_imgui(
-		kotek::Core::ktkMainManager* main_manager) noexcept override;
-	kotek::json::value serialize(void) noexcept override;
-	void deserialize(const kotek::json::value& data) noexcept override;
-	kotek::json::value serialize(
-		unsigned char* p_raw_memory, kotek::size_t size) override;
 	kotek::uint8_t get_component_type(void) const noexcept override;
 
 	bool is_enabled(void) const noexcept;
@@ -42,7 +36,6 @@ public:
 
 private:
 	bool m_is_enabled;
-	kotek::uint8_t m_component_type;
 	kotek::math::vec3f_t m_position;
 	kotek::math::vec3f_t m_scale;
 	kotek::math::quatf_t m_rotation;

@@ -13,12 +13,6 @@ public:
 	zircon_component_terrain_static();
 	~zircon_component_terrain_static();
 
-	void draw_imgui(
-		Kotek::Core::ktkMainManager* main_manager) noexcept override;
-	kotek::json::value serialize(void) noexcept override;
-	void deserialize(const kotek::json::value& data) noexcept override;
-	kotek::json::value serialize(
-		unsigned char* p_raw_memory, kotek::size_t size) override;
 	kotek::uint8_t get_component_type(void) const noexcept override;
 
 	bool is_enabled(void) const noexcept;
@@ -26,7 +20,6 @@ public:
 
 private:
 	bool m_is_enabled;
-	kotek::uint8_t m_component_type;
 };
 
 #ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY

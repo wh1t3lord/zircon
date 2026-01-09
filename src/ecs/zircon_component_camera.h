@@ -19,12 +19,6 @@ public:
 	zircon_component_camera(void);
 	~zircon_component_camera(void);
 
-	void draw_imgui(
-		Kotek::Core::ktkMainManager* main_manager) noexcept override;
-	kotek::json::value serialize(void) noexcept override;
-	void deserialize(const kotek::json::value& data) noexcept override;
-	kotek::json::value serialize(
-		unsigned char* p_raw_memory, kotek::size_t size) override;
 	kotek::uint8_t get_component_type(void) const noexcept override;
 
 	bool is_enabled(void) const noexcept;
@@ -138,13 +132,6 @@ inline zircon_component_camera tag_invoke(
 		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT)));
 	result.set_up(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
 		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP)));
-
-	#ifdef KOTEK_DEBUG
-	KOTEK_ASSERT(
-		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_COMPONENT_TYPE)
-				.to_number<kotek::uint8_t>() == result.get_component_type(),
-		"component type is not equal, data corruption?");
-	#endif
 
 	return result;
 }

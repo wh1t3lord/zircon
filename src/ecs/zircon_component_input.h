@@ -27,12 +27,6 @@ public:
 	zircon_component_input(const kotek::core::ktkIInput* p_manager);
 	~zircon_component_input(void);
 
-	void draw_imgui(
-		Kotek::Core::ktkMainManager* main_manager) noexcept override;
-	kotek::json::value serialize(void) noexcept override;
-	void deserialize(const kotek::json::value& data) noexcept override;
-	kotek::json::value serialize(
-		unsigned char* p_raw_memory, kotek::size_t size) override;
 	kotek::uint8_t get_component_type(void) const noexcept override;
 
 	bool is_enabled(void) const noexcept;
@@ -66,7 +60,6 @@ private:
 
 private:
 	bool m_is_enabled;
-	kotek::uint8_t m_component_type;
 	bool m_is_invert_mouse_axis_x;
 	bool m_is_invert_mouse_axis_y;
 	float m_sensetivity;
@@ -109,13 +102,6 @@ inline zircon_component_input tag_invoke(
 	result.set_enabled(
 		input.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_IS_ENABLED)
 			.as_bool());
-
-	#ifdef KOTEK_DEBUG
-	KOTEK_ASSERT(
-		input.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_COMPONENT_TYPE)
-				.to_number<kotek::uint8_t>() == result.get_component_type(),
-		"component type is not equal, data corruption?");
-	#endif
 
 	return result;
 }

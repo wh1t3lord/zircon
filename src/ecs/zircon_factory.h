@@ -582,7 +582,9 @@ public:
 			static_cast<zircon_component_interface*>(p_raw_data
 		    );
 
-		p_component->deserialize(serialized_data);
+		zircon_deserialize_component(
+			serialized_data, p_component
+		);
 	}
 
 #ifdef KOTEK_USE_ECS_BACKEND_ENTT
@@ -695,40 +697,6 @@ public:
 	}
 #endif
 
-	kotek::static_cstring_view_t
-	get_component_name_by_component_type_id(
-		zircon_component_type_t type
-	) const noexcept
-	{
-		KOTEK_ASSERT(
-			type <= this->m_component_type_id_to_component_name
-						.size() -
-					1,
-			"you forgot to register component type: {} or "
-			"early calling!",
-			static_cast<kotek::enum_base_t>(type)
-		);
-
-		constexpr const char* _UnknownComponentName =
-			"UnknownComponentName";
-
-		kotek::static_cstring_view_t result(
-			_UnknownComponentName
-		);
-
-		if (type <=
-		    this->m_component_type_id_to_component_name.size() -
-		        1)
-		{
-			result =
-				this->m_component_type_id_to_component_name.at(
-					type
-				);
-		}
-
-		return result;
-	}
-
 #ifdef KOTEK_USE_ECS_BACKEND_ENTT
 	kotek::static_vector_t<
 		zircon_component_type_t,
@@ -786,7 +754,7 @@ public:
 #endif
 
 	const char* get_component_name_by_enum(
-		zircon_component_type_t component_type
+		eZirconComponentType component_type
 	) const noexcept;
 
 	void validate_get_component_type_of_all_components() const;

@@ -728,8 +728,7 @@ void zircon_game_manager::Initialize(
 						new zircon_editor_ui_window_prefab(),
 						new zircon_editor_ui_window_component_inspector(
 							this->m_p_session_editor_manager,
-							p_session->get_ui_state(),
-							p_world->get_factory()
+							p_session->get_ui_state()
 						),
 						new zircon_editor_ui_window_log(),
 						new zircon_editor_ui_window_history_command_log(

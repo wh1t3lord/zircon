@@ -87,7 +87,7 @@ void zircon_factory::register_lookuptable_component_enum_and_id_type()
 {
 ")
 file(WRITE ${zircon_get_component_name_by_enum} "
-const char* zircon_factory::get_component_name_by_enum(zircon_component_type_t component_type) const noexcept {
+const char* zircon_factory::get_component_name_by_enum(eZirconComponentType component_type) const noexcept {
 	switch (component_type) {
 ")
 
@@ -178,7 +178,7 @@ foreach (filename IN LISTS filenames_list)
 		}
 	")
 	file(APPEND ${zircon_get_component_name_by_enum} "
-		case zircon_component_type_t::kComponentType${filename}:
+		case eZirconComponentType::kComponentType${filename}:
 		{
 			return ${filename}::GetComponentName().c_str();
 		}

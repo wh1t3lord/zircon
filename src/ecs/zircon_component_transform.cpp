@@ -3,7 +3,6 @@
 
 zircon_component_transform::zircon_component_transform(void) :
 	m_is_enabled{true},
-	m_component_type{kComponentTypezircon_component_transform},
 	m_position(0.0f, 0.0f, 0.0f), m_scale(1.0f, 1.0f, 1.0f),
 	m_rotation(0.0f, 0.0f, 0.0f, 1.0f)
 {
@@ -55,6 +54,7 @@ void zircon_component_transform::set_rotation(
 {
 	this->m_rotation = rot;
 }
+/*
 
 void zircon_component_transform::draw_imgui(
 	Kotek::Core::ktkMainManager* main_manager
@@ -128,39 +128,15 @@ void zircon_component_transform::draw_imgui(
 			p_wrapper_imgui->EndTabBar();
 		}
 	}
-}
-
-kotek::json::value zircon_component_transform::serialize(void
-) noexcept
-{
-	return kotek::json::value_from(*this);
-}
-
-void zircon_component_transform::deserialize(
-	const kotek::json::value& data
-) noexcept
-{
-	*this =
-		kotek::json::value_to<zircon_component_transform>(data);
-}
-
-kotek::json::value zircon_component_transform::serialize(
-	unsigned char* p_raw_memory, kotek::size_t size
-)
-{
-	KOTEK_ASSERT(
-		p_raw_memory, "you passed an invalid part of memory!"
-	);
-	kotek::json::static_resource res(p_raw_memory, size);
-	kotek::json::storage_ptr ptr(&res);
-	return kotek::json::value_from(*this, ptr);
-}
+}*/
 
 kotek::uint8_t
 zircon_component_transform::get_component_type(void
 ) const noexcept
 {
-	return this->m_component_type;
+	return static_cast<kotek::uint8_t>(
+		eZirconComponentType::kzircon_component_transform
+	);
 }
 
 bool zircon_component_transform::is_enabled(void) const noexcept
