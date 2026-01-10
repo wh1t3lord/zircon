@@ -8,11 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
 set(zircon_enum_file_name "zircon_ecs_auto_enum_components.h")
-set(zircon_components_to_enums_file_name "zircon_factory_components_to_enums.cpp")
 set(zircon_create_component_by_enum_file_name "zircon_factory_create_component.cpp")
-set(zircon_register_lookuptable_component_enum_and_id_type "zircon_factory_register_lookuptable_component_enum_and_id_type.cpp")
 set(zircon_get_component_name_by_enum "zircon_factory_get_component_name_by_enum.cpp")
-set(zircon_register_components_game_and_sdk "zircon_factory_register_components_game_and_sdk.cpp")
 set(zircon_create_component_by_name "zircon_factory_create_component_by_name.cpp")
 set(zircon_validate_get_component_type_of_all_components "zircon_validate_get_component_type_of_all_components.cpp")
 set(zircon_serialize_deserialize_component "zircon_serialize_deserialize_component.cpp")
@@ -69,31 +66,21 @@ set(to_include_sdk_ecs_files
 #find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 file(WRITE ${zircon_enum_file_name} "#pragma once")
-file(WRITE ${zircon_components_to_enums_file_name} "void zircon_factory::register_components_and_their_enums() 
-{")
-file(WRITE ${zircon_create_component_by_enum_file_name} "bool zircon_factory::create_component(entt::entity id,
-	zircon_component_type_t component_type_id,
+file(WRITE ${zircon_create_component_by_enum_file_name} "
+bool zircon_factory::create_component(kotek::entity_t id,
+	eZirconComponentType component_type_id,
 	kotek::ktk::json::value& serialized_component)
 {
 	bool result{};
 
-	if (this->IsValidEntity(id))
+	if (this->is_valid_entity(id))
 	{
 		switch (component_type_id)
 		{
 ")
-file(WRITE ${zircon_register_lookuptable_component_enum_and_id_type} "
-void zircon_factory::register_lookuptable_component_enum_and_id_type()
-{
-")
 file(WRITE ${zircon_get_component_name_by_enum} "
 const char* zircon_factory::get_component_name_by_enum(eZirconComponentType component_type) const noexcept {
 	switch (component_type) {
-")
-
-file(WRITE ${zircon_register_components_game_and_sdk} "
-void zircon_factory::register_components_game_and_sdk()
-{
 ")
 
 file(WRITE ${zircon_create_component_by_name} "
@@ -153,22 +140,14 @@ foreach (filename IN LISTS filenames_list)
 			(*p_casted) = kotek::json::value_to<${filename}>(serialized_data);
 		}
 	")
-
-
-	file(APPEND ${zircon_components_to_enums_file_name} "
-	this->m_component_name_to_component_type_id[${filename}::GetComponentName().c_str()] = zircon_component_type_t::kComponentType${filename};")
-	file(APPEND ${zircon_components_to_enums_file_name} "
-	this->m_component_type_id_to_component_name[zircon_component_type_t::kComponentType${filename}] = ${filename}::GetComponentName().c_str();")
-	file(APPEND ${zircon_register_lookuptable_component_enum_and_id_type} "
-	this->m_lookuptable_id_types_by_component_enum[zircon_component_type_t::kComponentType${filename}] = entt::type_hash<${filename}>::value();")
 	file(APPEND ${zircon_create_component_by_enum_file_name} "
-		case zircon_component_type_t::kComponentType${filename}:
+		case eZirconComponentType::k${filename}:
 		{
-			KOTEK_ASSERT(this->HasComponent<${filename}>(id) == false, \"supposed that entity doesn't have a such component ${filename} at all! Are you sure you called a right method?\");
+			KOTEK_ASSERT(this->has_component(id, eZirconComponentType::k${filename}) == false, \"supposed that entity doesn't have a such component ${filename} at all! Are you sure you called a right method?\");
 
-			this->CreateComponent<${filename}>(id);
+			this->create_component(id, eZirconComponentType::k${filename});
 
-			${filename}& component = this->GetComponent<${filename}>(id);
+			${filename}& component = this->get_component(id, eZirconComponentType::k${filename});
 
 			component = kotek::ktk::json::value_to<${filename}>(serialized_component);
 
@@ -178,14 +157,10 @@ foreach (filename IN LISTS filenames_list)
 		}
 	")
 	file(APPEND ${zircon_get_component_name_by_enum} "
-		case eZirconComponentType::kComponentType${filename}:
+		case eZirconComponentType::k${filename}:
 		{
-			return ${filename}::GetComponentName().c_str();
+			return \"${filename}\";
 		}
-	")
-
-	file(APPEND ${zircon_register_components_game_and_sdk} "
-		this->m_component_name_to_id[${filename}::GetComponentName().c_str()] = entt::type_hash<${filename}>::value();
 	")
 
 	file(APPEND ${zircon_create_component_by_name} "
@@ -198,7 +173,7 @@ foreach (filename IN LISTS filenames_list)
 	file(APPEND ${zircon_validate_get_component_type_of_all_components} "
 		{
 			${filename} instance_${filename};
-			KOTEK_ASSERT(instance_${filename}.get_component_type() == zircon_component_type_t::kComponentType${filename}, \"you didn't initialize this component type field correctly check your ctor please!\");
+			KOTEK_ASSERT(instance_${filename}.get_component_type() == eZirconComponentType::k${filename}, \"you didn't initialize this component type field correctly check your ctor please!\");
 		}
 	")
 endforeach()
@@ -326,18 +301,11 @@ file(APPEND ${zircon_enum_file_name}
 }
 ")
 
-file(APPEND ${zircon_components_to_enums_file_name} "
-}
-")
 file(APPEND ${zircon_create_component_by_enum_file_name} "
 		}
 	}
 
 	return result;
-}
-")
-
-file(APPEND ${zircon_register_lookuptable_component_enum_and_id_type} "
 }
 ")
 file(APPEND ${zircon_get_component_name_by_enum} "
@@ -348,10 +316,6 @@ file(APPEND ${zircon_get_component_name_by_enum} "
 	}
 
 }
-}
-")
-
-file(APPEND ${zircon_register_components_game_and_sdk} "
 }
 ")
 

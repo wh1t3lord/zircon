@@ -37,6 +37,12 @@ struct zircon_ecs_context_t
 private:
 	unsigned char id = unsigned char(-1);
 	void* p_impl;
+#ifdef KOTEK_USE_ECS_BACKEND_PICO
+	kotek::static_array_t<
+		ecs_comp_t,
+		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
+		m_components_definitions;
+#endif
 };
 
 void zircon_deserialize_component(
@@ -81,6 +87,8 @@ public:
 	void destroy_context(zircon_ecs_context_t* p_context
 	) noexcept;
 
+	// todo: delete outdated methods signatures that under
+	// define KOTEK_USE_ECS_BACKEND_ENTT
 #ifdef KOTEK_USE_ECS_BACKEND_ENTT
 	bool IsValidEntity(entt::entity id) noexcept
 	{
@@ -549,7 +557,8 @@ public:
 	{
 		return this->m_component_name_to_id;
 	}
-#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
+#endif
+
 	bool is_valid_entity(
 		zircon_ecs_context_t* p_context, kotek::entity_t id
 	) noexcept;
@@ -563,8 +572,6 @@ public:
 		Kotek::entity_t id,
 		eZirconComponentType component_type
 	) noexcept;
-
-#endif
 
 	void DeserializeComponent(
 		void* p_raw_data,
@@ -729,12 +736,6 @@ public:
 		return result;
 	}
 
-	bool create_component(
-		entt::entity id,
-		zircon_component_type_t component_type_id,
-		kotek::ktk::json::value& serialized_component
-	);
-
 	inline entt::id_type
 	get_type_hash_by_enum(zircon_component_type_t id
 	) const noexcept
@@ -752,6 +753,24 @@ public:
 		return result;
 	}
 #endif
+
+	bool create_component(
+		zircon_ecs_context_t* p_context,
+		kotek::entity_t id,
+		eZirconComponentType component_type_id,
+		kotek::ktk::json::value& serialized_component
+	);
+
+	bool has_component(
+		zircon_ecs_context_t* p_context,
+		kotek::entity_t id,
+		eZirconComponentType component_type
+	) noexcept;
+	bool create_component(
+		zircon_ecs_context_t* p_context,
+		kotek::entity_t id,
+		eZirconComponentType component_type
+	) noexcept;
 
 	const char* get_component_name_by_enum(
 		eZirconComponentType component_type
@@ -772,27 +791,11 @@ private:
 
 	zircon_ecs_context_t* allocate_context() noexcept;
 
-	void register_components();
-	void register_components_restrictions();
-
-	void register_components_game_and_sdk();
-
-	void register_components_restrictions_game();
-	void register_components_restrictions_sdk();
-
+	void register_components(zircon_ecs_context_t* p_context);
 	void register_components_and_their_enums();
-
-	void register_lookuptable_component_enum_and_id_type();
-
-	void validate_components_restrictions();
 
 private:
 	unsigned char m_allocated_context_count;
-
-#ifdef KOTEK_USE_ECS_BACKEND_ENTT
-	entt::id_type m_lookuptable_id_types_by_component_enum
-		[zircon_component_type_t::kComponentTypeUnknown];
-#endif
 
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkIInput* m_p_input;
@@ -812,12 +815,6 @@ private:
 	/// @brief how many contexts we can use for application
 	unsigned char m_p_raw_memory[ZIRCON_DEF_MAX_WORLD_COUNT]
 								[sizeof(zircon_ecs_context_t)];
-
-	// look-up table instead of hash table
-	kotek::static_array_t<
-		kotek::static_cstring_view_t,
-		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
-		m_component_type_id_to_component_name;
 
 #ifdef KOTEK_USE_ECS_BACKEND_ENTT
 	// for each component (if it is needed) you specify hash

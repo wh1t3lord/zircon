@@ -4131,6 +4131,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				}
 
 				kotek::entity_t id = entity;
+				eZirconComponentType decoded_component_type =
+					static_cast<eZirconComponentType>(component_type); 
 
 				// todo: implement create component by enum
 				if (p_factory->GetComponentByName(
