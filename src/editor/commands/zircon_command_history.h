@@ -105,17 +105,17 @@ private:
 	);
 
 	void update_dependent_serialized_commands(
-		entt::entity id_what_will_be_deleted,
-		entt::entity id_that_replaces_what_will_be_deleted
+		kotek::entity_t id_what_will_be_deleted,
+		kotek::entity_t id_that_replaces_what_will_be_deleted
 	);
 	bool check_json_entry_has_entity_id(
-		entt::entity id_what_will_be_deleted,
+		kotek::entity_t id_what_will_be_deleted,
 		int real_size_for_json_data,
 		kotek::size_t& current_offset,
 		kotek::json::value& json
 	);
 	bool check_json_entry_has_entity_id_and_component_type_id(
-		entt::entity id,
+		kotek::entity_t id,
 		zircon_component_type_t type_id,
 		int real_size_for_json_data,
 		kotek::size_t& current_offset,

@@ -96,11 +96,6 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP] =
 		Kotek::ktk::json::value_from(data.get_up());
 
-	#ifdef KOTEK_DEBUG
-	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_COMPONENT_TYPE] =
-		data.get_component_type();
-	#endif
-
 	write_to = camera;
 }
 

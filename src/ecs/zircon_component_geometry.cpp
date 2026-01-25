@@ -6,7 +6,6 @@
 
 zircon_component_geometry::zircon_component_geometry(void) :
 	m_is_enabled{true},
-	m_component_type{kComponentTypezircon_component_geometry},
 	m_is_use_model{true}, m_is_visible{true},
 	m_geometry_type{kotek::core::eStaticGeometryType::kUnknown},
 	m_p_geometry_name{}

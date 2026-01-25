@@ -3,10 +3,8 @@
 zircon_factory::zircon_factory(void) :
 	m_allocated_context_count{}, m_p_input{}
 {
-	this->register_components();
-	this->register_components_restrictions();
+//	this->register_components();
 	this->register_components_and_their_enums();
-	this->register_lookuptable_component_enum_and_id_type();
 	this->validate_get_component_type_of_all_components();
 }
 

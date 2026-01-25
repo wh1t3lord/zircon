@@ -3954,6 +3954,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 
 				kotek::entity_t id = entity;
 
+	#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 				if (p_factory->GetComponentByName(
 						id, component_name
 					) == nullptr)
@@ -3995,6 +3996,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					p_history_manager->ExecuteCommand(p_command
 				    );
 				}
+	#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
+				KOTEK_ASSERT(false, "todo: [ecs]");
+	#endif
 
 #endif
 
@@ -4132,8 +4136,11 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 
 				kotek::entity_t id = entity;
 				eZirconComponentType decoded_component_type =
-					static_cast<eZirconComponentType>(component_type); 
+					static_cast<eZirconComponentType>(
+						component_type
+					);
 
+	#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 				// todo: implement create component by enum
 				if (p_factory->GetComponentByName(
 						id, component_name
@@ -4176,7 +4183,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					p_history_manager->ExecuteCommand(p_command
 				    );
 				}
-
+	#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
+				KOTEK_ASSERT(false, "todo: [ecs]");
+	#endif
 #endif
 
 				return true;
@@ -4235,8 +4244,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 
 						if (p_session->get_world())
 						{
-							p_factory = p_session->get_world()
-											->get_factory();
+							p_factory = this->m_p_factory;
 						}
 						else
 						{
@@ -4289,6 +4297,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 				entt::entity id =
 					static_cast<entt::entity>(entity);
 
@@ -4317,6 +4326,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					p_history_manager->ExecuteCommand(p_command
 				    );
 				}
+#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
+				KOTEK_ASSERT(false, "todo: [ecs]");
+#endif
 
 				return true;
 			},
@@ -4374,8 +4386,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 
 						if (p_session->get_world())
 						{
-							p_factory = p_session->get_world()
-											->get_factory();
+							p_factory = this->m_p_factory;
 						}
 						else
 						{
@@ -4428,6 +4439,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 				// todo: implement delete component by enum
 				entt::entity id =
 					static_cast<entt::entity>(entity);
@@ -4457,6 +4469,10 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					p_history_manager->ExecuteCommand(p_command
 				    );
 				}
+#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
+				KOTEK_ASSERT(false, "todo: [ecs]");
+
+#endif
 
 				return true;
 			},

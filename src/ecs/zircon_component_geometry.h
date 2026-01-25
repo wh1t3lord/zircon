@@ -121,12 +121,6 @@ inline void tag_invoke(
 			data.get_path();
 	#endif
 
-	#ifdef KOTEK_DEBUG
-	geometry
-		[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_COMPONENT_TYPE] =
-			data.get_component_type();
-	#endif
-
 	write_to = geometry;
 }
 
@@ -178,16 +172,6 @@ inline zircon_component_geometry tag_invoke(
 	        )
 			.as_string()
 			.c_str()
-	);
-	#endif
-
-	#ifdef KOTEK_DEBUG
-	KOTEK_ASSERT(
-		geometry.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_COMPONENT_TYPE
-	    )
-				.to_number<kotek::uint8_t>() ==
-			result.get_component_type(),
-		"component type is not equal, data corruption?"
 	);
 	#endif
 

@@ -83,11 +83,6 @@ inline void tag_invoke(const kotek::json::value_from_tag&,
 	input[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
 
-	#ifdef KOTEK_DEBUG
-	input[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_INPUT_FIELD_M_COMPONENT_TYPE] =
-		data.get_component_type();
-	#endif
-
 	write_to = input;
 }
 

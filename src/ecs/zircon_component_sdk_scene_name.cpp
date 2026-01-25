@@ -1,13 +1,13 @@
 #include "zircon_component_sdk_scene_name.h"
 
 zircon_component_sdk_scene_name::zircon_component_sdk_scene_name() :
-	m_is_enabled{true},
-	m_component_type{kComponentTypezircon_component_sdk_scene_name}
+	m_is_enabled{true}
 {
 }
 
 zircon_component_sdk_scene_name::~zircon_component_sdk_scene_name() {}
 
+/*
 void zircon_component_sdk_scene_name::draw_imgui(
 	kotek::core::ktkMainManager* main_manager) noexcept
 {
@@ -50,11 +50,11 @@ kotek::json::value zircon_component_sdk_scene_name::serialize(
 	kotek::json::storage_ptr ptr(&res);
 	return kotek::json::value_from(*this, ptr);
 }
-
+*/
 kotek::uint8_t zircon_component_sdk_scene_name::get_component_type(
 	void) const noexcept
 {
-	return this->m_component_type;
+	return static_cast<kotek::uint8_t>(eZirconComponentType::kzircon_component_sdk_scene_name);
 }
 
 bool zircon_component_sdk_scene_name::is_enabled(void) const noexcept

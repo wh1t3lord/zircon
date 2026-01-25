@@ -54,12 +54,6 @@ inline void tag_invoke(
 		[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_UI_CAMERA_FIELD_M_IS_ENABLED] =
 			data.is_enabled();
 
-	#ifdef KOTEK_DEBUG
-	ui_camera
-		[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_UI_CAMERA_FIELD_M_COMPONENT_TYPE] =
-			data.get_component_type();
-	#endif
-
 	write_to = ui_camera;
 }
 

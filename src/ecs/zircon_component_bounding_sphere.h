@@ -57,11 +57,6 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	sphere[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_CENTER] =
 		Kotek::ktk::json::value_from(data.get_center());
 
-	#ifdef KOTEK_DEBUG
-	sphere[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_COMPONENT_TYPE] =
-		data.get_component_type();
-	#endif
-
 	write_to = sphere;
 }
 
@@ -81,13 +76,6 @@ inline zircon_component_bounding_sphere tag_invoke(
 	result.set_radius(
 		sphere.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_RADIUS)
 			.to_number<float>());
-
-	#ifdef KOTEK_DEBUG
-	KOTEK_ASSERT(
-		sphere.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_COMPONENT_TYPE)
-				.to_number<kotek::uint8_t>() == result.get_component_type(),
-		"component type is not equal, data corruption?");
-	#endif
 
 	return result;
 }

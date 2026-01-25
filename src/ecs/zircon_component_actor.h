@@ -50,13 +50,6 @@ inline zircon_component_actor tag_invoke(
 		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_ACTOR_FIELD_M_IS_ENABLED)
 			.as_bool());
 
-	#ifdef KOTEK_DEBUG
-	KOTEK_ASSERT(
-		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_ACTOR_FIELD_M_COMPONENT_TYPE)
-				.to_number<kotek::uint8_t>() == result.get_component_type(),
-		"component type is not equal, data corruption?");
-	#endif
-
 	return result;
 }
 #endif

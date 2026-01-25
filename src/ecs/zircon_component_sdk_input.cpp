@@ -1,8 +1,7 @@
 #include "zircon_component_sdk_input.h"
 
 zircon_component_sdk_input::zircon_component_sdk_input() :
-	m_is_enabled{true},
-	m_component_type{kComponentTypezircon_component_sdk_input}
+	m_is_enabled{true}
 {
 }
 
@@ -24,6 +23,7 @@ zircon_component_input& zircon_component_sdk_input::get_input(void) noexcept
 	return this->m_input;
 }
 
+/*
 void zircon_component_sdk_input::draw_imgui(
 	Kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
@@ -52,11 +52,12 @@ kotek::json::value zircon_component_sdk_input::serialize(
 	kotek::json::storage_ptr ptr(&res);
 	return kotek::json::value_from(*this, ptr);
 }
+*/
 
 kotek::uint8_t zircon_component_sdk_input::get_component_type(
 	void) const noexcept
 {
-	return this->m_component_type;
+	return static_cast<kotek::uint8_t>(eZirconComponentType::kzircon_component_sdk_input);
 }
 
 bool zircon_component_sdk_input::is_enabled(void) const noexcept
