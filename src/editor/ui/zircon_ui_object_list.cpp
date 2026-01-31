@@ -8,10 +8,17 @@
 
 zircon_editor_ui_window_object_list::zircon_editor_ui_window_object_list(
 	zircon_session_editor_manager* p_manager_session_editor,
-	kotek::core::ktkConsole* p_console) :
-	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{},
-	m_p_manager_session_editor{p_manager_session_editor}, m_p_console{p_console}
+	kotek::core::ktkConsole* p_console,
+	zircon_factory* p_factory) :
+	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{kotek::ktk::kInvalidECSEntity},
+	m_p_manager_session_editor{p_manager_session_editor},
+	m_p_console{p_console}, m_p_factory{p_factory}
 {
+	KOTEK_ASSERT(
+		p_manager_session_editor, "valid pointer is expected"
+	);
+	KOTEK_ASSERT(p_console, "valid pointer is expected");
+	KOTEK_ASSERT(p_factory, "valid pointer is expected");
 }
 
 zircon_editor_ui_window_object_list::~zircon_editor_ui_window_object_list(void) {}
@@ -51,6 +58,12 @@ void zircon_editor_ui_window_object_list::Draw(
 	{
 		KOTEK_MESSAGE_WARNING("set world to session editor_{}#{}",
 			p_session->get_session_name(), p_session->get_id());
+		return;
+	}
+
+	if (!this->m_p_factory)
+	{
+		KOTEK_MESSAGE_WARNING("factory that you've passed is invalid!");
 		return;
 	}
 

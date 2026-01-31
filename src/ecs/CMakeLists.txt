@@ -67,13 +67,15 @@ set(to_include_sdk_ecs_files
 
 file(WRITE ${zircon_enum_file_name} "#pragma once")
 file(WRITE ${zircon_create_component_by_enum_file_name} "
-bool zircon_factory::create_component(kotek::entity_t id,
+bool zircon_factory::create_component(
+	zircon_ecs_context_t* p_context,
+	kotek::entity_t id,
 	eZirconComponentType component_type_id,
 	kotek::ktk::json::value& serialized_component)
 {
 	bool result{};
 
-	if (this->is_valid_entity(id))
+	if (this->is_valid_entity(p_context, id))
 	{
 		switch (component_type_id)
 		{
@@ -97,7 +99,7 @@ file(APPEND ${zircon_enum_file_name} "
 enum eZirconComponentType {
 ")
 
-file(APPEND ${zircon_serialize_deserialize_component}
+file(WRITE ${zircon_serialize_deserialize_component}
 "
 void zircon_deserialize_component(
 	const kotek::ktk::json::value& serialized_data,
@@ -143,11 +145,15 @@ foreach (filename IN LISTS filenames_list)
 	file(APPEND ${zircon_create_component_by_enum_file_name} "
 		case eZirconComponentType::k${filename}:
 		{
-			KOTEK_ASSERT(this->has_component(id, eZirconComponentType::k${filename}) == false, \"supposed that entity doesn't have a such component ${filename} at all! Are you sure you called a right method?\");
+			KOTEK_ASSERT(this->has_component(p_context, id, eZirconComponentType::k${filename}) == false, \"supposed that entity doesn't have a such component ${filename} at all! Are you sure you called a right method?\");
 
-			this->create_component(id, eZirconComponentType::k${filename});
+			this->create_component(p_context, id, eZirconComponentType::k${filename});
 
-			${filename}& component = this->get_component(id, eZirconComponentType::k${filename});
+			auto* p_interface = this->get_component_by_enum(p_context, id, eZirconComponentType::k${filename});
+			KOTEK_ASSERT(p_interface, \"must return a valid component\");
+			KOTEK_ASSERT(p_interface->get_component_type() == static_cast<kotek::uint8_t>(eZirconComponentType::k${filename}), \"impossible something is terribly wrong :O\");
+
+			${filename}& component = static_cast<${filename}&>(*p_interface);
 
 			component = kotek::ktk::json::value_to<${filename}>(serialized_component);
 
@@ -189,7 +195,7 @@ file(APPEND ${zircon_serialize_deserialize_component}
 }
 
 kotek::ktk::json::value zircon_serialize_component(
-	const zircon_component_interface* p_data
+	zircon_component_interface* p_data
 ) noexcept
 {
 	KOTEK_ASSERT(p_data, \"must be valid\");
@@ -230,7 +236,7 @@ foreach (filename IN LISTS filenames_list)
 	"
 	case eZirconComponentType::k${filename}:
 	{
-		${filename}* p_casted = static_cast<${filename}*>(p_data);
+		${filename}* p_casted = reinterpret_cast<${filename}*>(p_data);
 		return kotek::json::value_from(*p_casted);
 	}
 	")
@@ -245,10 +251,11 @@ file(APPEND ${zircon_serialize_deserialize_component}
 		}
 		}
 	}
+	return kotek::json::value();
 }
 
 kotek::ktk::json::value zircon_serialize_component(
-	const zircon_component_interface* p_data,
+	zircon_component_interface* p_data,
 	unsigned char* p_raw_memory,
 	kotek::size_t memory_size
 ) noexcept
@@ -269,7 +276,7 @@ foreach (filename IN LISTS filenames_list)
 		KOTEK_ASSERT(p_raw_memory, \"you passed an invalid part of memory!\");
 		kotek::json::static_resource res(p_raw_memory, memory_size);
 		kotek::json::storage_ptr ptr(&res);
-		${filename}* p_casted = static_cast<${filename}*>(p_data);
+		${filename}* p_casted = reinterpret_cast<${filename}*>(p_data);
 		return kotek::json::value_from(*p_casted, ptr);
 	}
 	")
@@ -284,6 +291,7 @@ file(APPEND ${zircon_serialize_deserialize_component}
 		}
 		}
 	}
+	return kotek::json::value();
 }
 ")
 

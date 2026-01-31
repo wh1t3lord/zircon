@@ -30,12 +30,15 @@ class zircon_config;
 class zircon_session_game_manager;
 class zircon_session_editor_manager;
 
+inline constexpr unsigned char kZirconFactory_ECSContext_InvalidID =
+	unsigned char(-1);
+
 struct zircon_ecs_context_t
 {
 	friend class zircon_factory;
 
 private:
-	unsigned char id = unsigned char(-1);
+	unsigned char id = kZirconFactory_ECSContext_InvalidID;
 	void* p_impl;
 #ifdef KOTEK_USE_ECS_BACKEND_PICO
 	kotek::static_array_t<
@@ -51,7 +54,7 @@ void zircon_deserialize_component(
 ) noexcept;
 
 kotek::ktk::json::value zircon_serialize_component(
-	const zircon_component_interface* p_data
+	zircon_component_interface* p_data
 ) noexcept;
 
 kotek::ktk::json::value zircon_serialize_component(
