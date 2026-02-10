@@ -87,6 +87,14 @@ public:
 	zircon_ecs_context_t*
 	create_context(kotek::uint32_t entity_count_max_limit
 	) noexcept;
+
+	kotek::entity_t
+	create_entity(zircon_ecs_context_t* p_context) noexcept;
+
+	void destroy_entity(
+		zircon_ecs_context_t* p_context, kotek::entity_t entity
+	) noexcept;
+
 	void destroy_context(zircon_ecs_context_t* p_context
 	) noexcept;
 

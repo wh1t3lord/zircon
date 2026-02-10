@@ -3,7 +3,7 @@
 zircon_factory::zircon_factory(void) :
 	m_allocated_context_count{}, m_p_input{}
 {
-//	this->register_components();
+	//	this->register_components();
 	this->register_components_and_their_enums();
 	this->validate_get_component_type_of_all_components();
 }
@@ -93,6 +93,48 @@ zircon_ecs_context_t* zircon_factory::create_context(
 	}
 
 	return p_result;
+}
+
+kotek::entity_t
+zircon_factory::create_entity(zircon_ecs_context_t* p_context
+) noexcept
+{
+	KOTEK_ASSERT(p_context, "expected to be valid at calling");
+
+	if (p_context)
+	{
+#ifdef KOTEK_USE_ECS_BACKEND_PICO
+		KOTEK_ASSERT(p_context->p_impl, "must be valid");
+
+		ecs_t* p_casted =
+			static_cast<ecs_t*>(p_context->p_impl);
+		return ::ecs_create(p_casted);
+#elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
+	#error todo: provide impl
+#endif
+	}
+
+	return kotek::ktk::kInvalidECSEntity;
+}
+
+void zircon_factory::destroy_entity(
+	zircon_ecs_context_t* p_context, kotek::entity_t entity
+) noexcept
+{
+	KOTEK_ASSERT(p_context, "expected to be valid");
+
+	if (p_context)
+	{
+#ifdef KOTEK_USE_ECS_BACKEND_PICO
+		KOTEK_ASSERT(p_context->p_impl, "must be valid");
+
+		ecs_t* p_casted =
+			static_cast<ecs_t*>(p_context->p_impl);
+		return ::ecs_queue_destroy(p_casted, entity);
+#elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
+	#error todo: provide impl
+#endif
+	}
 }
 
 void zircon_factory::destroy_context(

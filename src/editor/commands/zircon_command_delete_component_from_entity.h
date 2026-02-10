@@ -10,11 +10,18 @@ class zircon_command_delete_component_from_entity
 	: public Kotek::Core::ktkISDKRedoUndo
 {
 public:
-	zircon_command_delete_component_from_entity(zircon_session_editor_manager* p_manager_session_editor,
-		entt::entity id, const char* p_component_name);
+	zircon_command_delete_component_from_entity(
+		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_factory* p_factory,
+		kotek::entity_t id, 
+		const char* p_component_name
+	);
 
 	// for command history
-	zircon_command_delete_component_from_entity(zircon_session_editor_manager* p_manager_session_editor);
+	zircon_command_delete_component_from_entity(
+		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_factory* p_factory
+	);
 
 	~zircon_command_delete_component_from_entity();
 
@@ -22,18 +29,19 @@ public:
 	void Undo(void) override;
 	const char* GetName() override;
 
-	kotek::uint32_t GetEntityID(void) const noexcept override;
-	void SetEntityID(kotek::uint32_t id) noexcept override;
+	kotek::entity_t GetEntityID(void) const noexcept override;
+	void SetEntityID(kotek::entity_t id) noexcept override;
 
 	kotek::enum_base_t GetCommandType() noexcept override;
 	kotek::size_t Serialize(Kotek::core::ktkFileHandleType file) noexcept override;
 	void Deserialize(const kotek::ktk::json::object& json) noexcept;
 
-	zircon_component_type_t get_component_type();
+	eZirconComponentType get_component_type();
 
 private:
-	entt::entity m_id;
+	kotek::entity_t m_id;
 	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_factory* m_p_factory;
 	const char* m_p_component_name;
 	kotek::ktk::json::value m_serialized_state_of_deleted_component;
 	char m_serialized_component_as_string
