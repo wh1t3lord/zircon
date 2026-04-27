@@ -314,6 +314,53 @@ zircon_factory::allocate_context() noexcept
 	return p_result;
 }
 
+bool zircon_factory::is_valid_entity(
+	zircon_ecs_context_t* p_context, 
+	kotek::entity_t id
+) noexcept
+{
+	KOTEK_ASSERT(p_context, "must be valid context");
+
+	if (p_context)
+	{
+#ifdef KOTEK_USE_ECS_BACKEND_PICO
+		bool result = ecs_is_invalid_entity(id);
+		return result==false;
+#elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
+		#error todo: provide impl
+#endif
+	}
+}
+
+void zircon_factory::get_all_components_of_entity(
+	zircon_ecs_context_t* p_context,
+	kotek::entity_t entity_id,
+	kotek::static_vector_t<
+		eZirconComponentType,
+		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>& result
+)
+{
+
+	result.clear();
+
+	KOTEK_ASSERT(p_context, "valid context should be");
+	KOTEK_ASSERT(
+		this->is_valid_entity(p_context, entity_id),
+		"must be valid entity"
+	);
+
+	if (p_context)
+	{
+#ifdef KOTEK_USE_ECS_BACKEND_PICO
+
+#elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
+	#error todo: provide impl
+#endif
+	}
+
+
+}
+
 #include "zircon_factory_create_component.cpp"
 #include "zircon_factory_get_component_name_by_enum.cpp"
 #include "zircon_validate_get_component_type_of_all_components.cpp"

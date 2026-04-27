@@ -7,16 +7,20 @@
 
 zircon_command_delete_entity::zircon_command_delete_entity(
 	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_factory* p_factory,
 	kotek::entity_t entity_to_delete
 ) :
 	m_entity_created{entity_to_delete},
 	m_entity_previous_id{kotek::ktk::kInvalidECSEntity},
 	m_p_manager_session_editor{p_manager_session_editor},
-	m_p_serialized_json_as_string{}, m_p_placement_new_memory{}
+	m_p_factory{p_factory}, m_p_serialized_json_as_string{},
+	m_p_placement_new_memory{}
 {
 	KOTEK_ASSERT(
 		p_manager_session_editor, "passed invalid game manager!"
 	);
+
+	KOTEK_ASSERT(p_factory, "passed invalid factory!");
 }
 
 zircon_command_delete_entity::~zircon_command_delete_entity() {}
@@ -47,7 +51,7 @@ void zircon_command_delete_entity::Execute(void)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute command due to invalid session "
-		    "editor#{}",
+			"editor#{}",
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
@@ -80,7 +84,7 @@ void zircon_command_delete_entity::Execute(void)
 	KOTEK_ASSERT(
 		p_history,
 		"failed to obtain command history manager in session "
-	    "editor_{}#{}",
+		"editor_{}#{}",
 		p_session->get_session_name(),
 		p_session->get_id()
 	);
@@ -97,8 +101,34 @@ void zircon_command_delete_entity::Execute(void)
 	}
 
 	KOTEK_ASSERT(
-		p_world->get_factory(), "world must contain factory!"
+		p_world->get_ecs_context(),
+		"world must contain ecs context!"
 	);
+
+	if (p_world->get_ecs_context() == nullptr)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"failed to execute due to "
+			"invalid ecs context in world [{}][{}]!",
+			p_world->get_id(),
+			p_world->get_name()
+		);
+
+		return;
+	}
+
+	KOTEK_ASSERT(
+		this->m_p_factory, "factory must be initialized"
+	);
+
+	if (!this->m_p_factory)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"failed to execute due to invalid factory that you "
+			"passed for command construction!"
+		);
+		return;
+	}
 
 	if (p_world)
 	{
@@ -107,24 +137,27 @@ void zircon_command_delete_entity::Execute(void)
 		// this->m_p_factory->GetAllComponentsOfEntity(
 		// this->m_entity_created);
 
-		zircon_factory* p_factory = p_world->get_factory();
+		zircon_ecs_context_t* p_ecs_context =
+			p_world->get_ecs_context();
 
-		this->m_components =
-			p_factory->get_all_components_of_entity(
-				this->m_entity_created
-			);
+		this->m_p_factory->get_all_components_of_entity(
+			p_ecs_context,
+			this->m_entity_created,
+			this->m_components
+		);
 
-		p_factory->RemoveEntity(this->m_entity_created);
+		this->m_p_factory->destroy_entity(
+			p_ecs_context, this->m_entity_created
+		);
 
-		if (this->m_entity_created != entt::null)
+		if (this->m_entity_created !=
+		    kotek::ktk::kInvalidECSEntity)
 		{
 			this->m_entity_previous_id = this->m_entity_created;
 
 			KOTEK_MESSAGE(
 				"[history] removed entity: {}",
-				static_cast<kotek::uint32_t>(
-					this->m_entity_created
-				)
+				this->m_entity_created
 			);
 		}
 	}
@@ -156,7 +189,7 @@ void zircon_command_delete_entity::Undo(void)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute command due to invalid session "
-		    "editor#{}",
+			"editor#{}",
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
@@ -189,7 +222,7 @@ void zircon_command_delete_entity::Undo(void)
 	KOTEK_ASSERT(
 		p_history,
 		"failed to obtain command history manager in session "
-	    "editor_{}#{}",
+		"editor_{}#{}",
 		p_session->get_session_name(),
 		p_session->get_id()
 	);
@@ -257,7 +290,7 @@ void zircon_command_delete_entity::Undo(void)
 						{
 							KOTEK_TRACE(
 								"couldn't obtain component {} "
-							    "from entity {}",
+								"from entity {}",
 								static_cast<kotek::uint32_t>(
 									type_id
 								),
@@ -311,10 +344,15 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 ) noexcept
 {
 	KOTEK_ASSERT(
-		file != kotek::core::kInvalidFileHandleType, "you must pass a valid resource manager handle!"
+		file != kotek::core::kInvalidFileHandleType,
+		"you must pass a valid resource manager handle!"
 	);
 
-	KOTEK_ASSERT(false, "todo: re-write please, also replace _file to FILE* handle");
+	KOTEK_ASSERT(
+		false,
+		"todo: re-write please, also replace _file to FILE* "
+		"handle"
+	);
 
 	kotek::cfstream_t _file;
 
@@ -365,7 +403,7 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE(
 		"[history][{}] serialized command: [{}] with size "
-	    "string: "
+		"string: "
 		"[{}] and total offset with endl symbol: [{}]",
 		this->GetName(),
 		this->m_p_serialized_json_as_string,
@@ -374,7 +412,7 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 	);
 #endif
 
-	//if (p_resource_manager)
+	// if (p_resource_manager)
 	{
 		char offset_string[sizeof(
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
@@ -388,7 +426,7 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 			null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
 			"overflow, number is {} digits and it means we are "
-		    "out of "
+			"out of "
 			"memory!",
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
 		);
@@ -404,14 +442,14 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 
 		// p_resource_manager->Write(
 		//	resource_handle_id, offset_string,
-		//sizeof(offset_string));
+		// sizeof(offset_string));
 		_file.write(offset_string, sizeof(offset_string));
 		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
 		_file << std::endl;
 		//	p_resource_manager->Write(
 		//		resource_handle_id,
-		//this->m_p_serialized_json_as_string);
+		// this->m_p_serialized_json_as_string);
 		_file << this->m_p_serialized_json_as_string;
 		// p_resource_manager->Write(resource_handle_id,
 		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
@@ -428,7 +466,7 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 			null_symbol_index <=
 				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
 			"overflow, number is {} digits and it means we are "
-		    "out of "
+			"out of "
 			"memory!",
 			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
 		);
@@ -447,7 +485,7 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 		// storage + endl
 		// p_resource_manager->Write(
 		//	resource_handle_id, offset_string,
-		//sizeof(offset_string));
+		// sizeof(offset_string));
 		_file.write(offset_string, sizeof(offset_string));
 		//	p_resource_manager->Write(resource_handle_id,
 		//		kotek::core::eFileWritingControlCharacterType::kFlush);
@@ -494,7 +532,7 @@ void zircon_command_delete_entity::Deserialize(
 			ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME
 		) != json.end(),
 		"you must serialize a such field: {} but the content "
-	    "might be empty",
+		"might be empty",
 		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME
 	);
 

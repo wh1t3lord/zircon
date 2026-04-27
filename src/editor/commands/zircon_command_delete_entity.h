@@ -8,7 +8,7 @@ class zircon_editor_command_history;
 class zircon_world;
 class zircon_session_editor_manager;
 
-enum zircon_component_type_t;
+enum eZirconComponentType;
 
 // TODO: implement streaming of json size of 30k+ while we are
 // limited in our storage
@@ -18,6 +18,7 @@ class zircon_command_delete_entity
 public:
 	zircon_command_delete_entity(
 		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_factory* p_factory,
 		kotek::entity_t entity_to_delete
 	);
 
@@ -40,8 +41,9 @@ private:
 	kotek::entity_t m_entity_created;
 	kotek::entity_t m_entity_previous_id;
 	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_factory* m_p_factory;
 	kotek::static_vector_t<
-		zircon_component_type_t,
+		eZirconComponentType,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_components;
 	char m_p_serialized_json_as_string

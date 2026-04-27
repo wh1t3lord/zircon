@@ -41,7 +41,8 @@ private:
 	unsigned char id = kZirconFactory_ECSContext_InvalidID;
 	void* p_impl;
 #ifdef KOTEK_USE_ECS_BACKEND_PICO
-	kotek::static_array_t<
+	/// @brief \~english indexing of this vector is based on eZirconComponentType enum
+	kotek::static_vector_t<
 		ecs_comp_t,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_components_definitions;
@@ -764,6 +765,14 @@ public:
 		return result;
 	}
 #endif
+
+	void get_all_components_of_entity(
+		zircon_ecs_context_t* p_context,
+		kotek::entity_t entity_id,
+		kotek::static_vector_t<
+			eZirconComponentType,
+			zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>& result
+	); 
 
 	bool create_component(
 		zircon_ecs_context_t* p_context,
