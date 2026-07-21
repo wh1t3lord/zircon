@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.21)
 project(zircon)
 
+# compiler globals (CRT, C++ standard, /FS, NOMINMAX) must apply to the WHOLE
+# tree — kotek applies them in its own subdirectory scope otherwise, and zircon
+# targets silently fall back to MSVC defaults (/MD), causing LNK2038.
+if (WIN32)
+	include("kotek/cmake/windows/compiler_globals.cmake")
+else()
+	message(FATAL_ERROR "todo: impl")
+endif()
+
 set(KOTEK_ENGINE_ROOT_FOLDER_NAME "kotek")
 
 # TODO: when CMake will fix that we can restore but for now we can't use this due to breaking USE_FOLDERS feature...

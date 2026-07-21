@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.21)
 
 project(zircon.ecs VERSION 1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
@@ -392,7 +390,7 @@ execute_process(
 	COMMAND "${CMAKE_BINARY_DIR}/zircon_tools/${current_config}/zircon_generator" --type 2 ${CMAKE_SOURCE_DIR}/src/render/bgfx/passes/no_streaming
 )
 
-add_library(${PROJECT_NAME} STATIC
+kotek_add_library(${PROJECT_NAME}
 	${to_include_sdk_ecs_files}
 	${to_include_game_ecs_files}
 	${to_include_module_files}

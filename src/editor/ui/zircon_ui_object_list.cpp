@@ -67,7 +67,12 @@ void zircon_editor_ui_window_object_list::Draw(
 		return;
 	}
 
-	const auto& ids = p_world->get_entities();
+	// TODO(zircon): enumeration is capped by this fixed buffer; entities
+	// beyond ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT are not listed
+	kotek::entity_t ids[ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT]{};
+	kotek::uint32_t ids_count = this->m_p_factory->get_all_entities(
+		p_world->get_ecs_context(), p_world->get_entity_count_max_limit(),
+		ids, ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT);
 
 	kotek::core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
@@ -102,7 +107,8 @@ void zircon_editor_ui_window_object_list::Draw(
 
 					if (p_factory)
 					{
-						if (p_factory->IsValidEntity(
+						if (p_factory->is_valid_entity(
+								p_world->get_ecs_context(),
 								this->m_selected_entity_id))
 						{
 							this->m_p_console->Execute_Command(
@@ -110,7 +116,7 @@ void zircon_editor_ui_window_object_list::Draw(
 									kotek::core::eConsoleCommandIndex::
 										kConsoleCommand_SDK_DeleteEntity),
 								{{static_cast<kotek::uint32_t>(
-									this->m_selected_entity_id)}});
+									this->m_selected_entity_id.id)}});
 						}
 					}
 				}
@@ -127,35 +133,47 @@ void zircon_editor_ui_window_object_list::Draw(
 				p_wrapper_imgui->TableHeadersRow();
 
 				kotek::size_t i = 0;
-				for (auto id : ids)
+				for (kotek::uint32_t index = 0; index < ids_count; ++index)
 				{
+					kotek::entity_t id = ids[index];
+
 					p_wrapper_imgui->TableNextRow();
 					p_wrapper_imgui->TableSetColumnIndex(0);
 
 					kotek::static_cstring_t<128> converted_id;
 
 					bool has_sdk_name =
-						p_world->get_factory()
-							->HasComponent<zircon_component_sdk_scene_name>(id);
+						p_world->get_factory()->has_component(
+							p_world->get_ecs_context(), id,
+							eZirconComponentType::
+								kzircon_component_sdk_scene_name);
 					if (has_sdk_name)
 					{
-						auto component =
-							p_world->get_factory()
-								->GetComponent<
+						auto* p_component =
+							static_cast<zircon_component_sdk_scene_name*>(
+								p_world->get_factory()
+									->get_component_by_enum(
+										p_world->get_ecs_context(), id,
+										eZirconComponentType::
+											kzircon_component_sdk_scene_name));
 
-									zircon_component_sdk_scene_name>(id);
+						KOTEK_ASSERT(
+							p_component, "must be valid component!");
 
-						converted_id = kotek::ktk::static_format<128>(
-							"[{}]", component.get_name());
+						if (p_component)
+						{
+							converted_id = kotek::ktk::static_format<128>(
+								"[{}]", p_component->get_name());
+						}
 					}
 					else
 					{
 						converted_id = Kotek::ktk::static_format<128>(
-							"{}", static_cast<kotek::uint32_t>(id));
+							"{}", static_cast<kotek::uint32_t>(id.id));
 					}
 
 					if (p_wrapper_imgui->Selectable(converted_id.c_str(),
-							id == this->m_selected_entity_id))
+							id.id == this->m_selected_entity_id.id))
 					{
 						this->m_selected_entity_id = id;
 						KOTEK_ASSERT(
@@ -168,7 +186,7 @@ void zircon_editor_ui_window_object_list::Draw(
 					{
 						p_wrapper_imgui->SameLine();
 						p_wrapper_imgui->TextDisabled(
-							"(%d)", static_cast<kotek::uint32_t>(id));
+							"(%d)", static_cast<kotek::uint32_t>(id.id));
 					}
 
 					++i;

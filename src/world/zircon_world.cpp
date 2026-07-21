@@ -6,13 +6,13 @@ constexpr kotek::uint8_t _kInvalidWorldID =
 
 zircon_world::zircon_world(kotek::uint8_t id) :
 	m_is_initialized{}, m_id{id}, m_entity_count_max_limit{},
-	m_p_ecs_factory{}, m_name{"not_inited"}
+	m_p_ecs_factory{}, m_p_factory{}, m_name{"not_inited"}
 {
 }
 
 zircon_world::zircon_world(void) :
 	m_is_initialized{}, m_id{_kInvalidWorldID},
-	m_entity_count_max_limit{}, m_p_ecs_factory{},
+	m_entity_count_max_limit{}, m_p_ecs_factory{}, m_p_factory{},
 	m_name{"not_inited"}
 {
 }
@@ -37,6 +37,8 @@ void zircon_world::shutdown(zircon_factory* p_factory) noexcept
 		p_factory->destroy_context(this->m_p_ecs_factory);
 		this->m_p_ecs_factory = nullptr;
 	}
+
+	this->m_p_factory = nullptr;
 
 	this->m_is_initialized = false;
 }
@@ -84,12 +86,20 @@ void zircon_world::initialize(
 		);
 	}
 
+	this->m_p_factory = p_factory;
+
 	this->m_is_initialized = true;
 }
 
 kotek::uint8_t zircon_world::get_id(void) const noexcept
 {
 	return this->m_id;
+}
+
+kotek::uint32_t zircon_world::get_entity_count_max_limit(void
+) const noexcept
+{
+	return this->m_entity_count_max_limit;
 }
 
 bool zircon_world::is_initialized(void) const noexcept
@@ -106,4 +116,15 @@ zircon_ecs_context_t* zircon_world::get_ecs_context(void
 ) const noexcept
 {
 	return this->m_p_ecs_factory;
+}
+
+zircon_factory* zircon_world::get_factory(void) noexcept
+{
+	return this->m_p_factory;
+}
+
+const zircon_factory* zircon_world::get_factory(void
+) const noexcept
+{
+	return this->m_p_factory;
 }

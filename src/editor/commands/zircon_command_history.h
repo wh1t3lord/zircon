@@ -1,11 +1,12 @@
-﻿#pragma once
+#pragma once
 
 #include "zircon_command_definitions.h"
+
+#include "../../ecs/zircon_ecs_auto_enum_components.h"
 
 class zircon_world;
 class zircon_factory;
 class zircon_session_editor_manager;
-enum zircon_component_type_t;
 
 class zircon_editor_command_history
 	: public kotek::core::ktkISDKCommandHistoryManager
@@ -54,7 +55,7 @@ public:
 		kotek::ktk::json::value&
 			constructed_value_on_stack_based_on_placement_new_memory,
 		kotek::entity_t id,
-		zircon_component_type_t type_id
+		eZirconComponentType type_id
 	);
 
 private:
@@ -116,7 +117,7 @@ private:
 	);
 	bool check_json_entry_has_entity_id_and_component_type_id(
 		kotek::entity_t id,
-		zircon_component_type_t type_id,
+		eZirconComponentType type_id,
 		int real_size_for_json_data,
 		kotek::size_t& current_offset,
 		kotek::ktk::json::value& json

@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
 project(zircon_generator)
 
-# Set C++ standard
+# Set C++ standard. NOTE: this project is also configured STANDALONE (nested
+# cmake at build time, see zircon.core's pre-build step), so it must set its own
+# standard — it does not inherit the engine root's compiler globals. It is a
+# host tool, so it always uses C++20 regardless of KOTEK_CPP_STANDARD/XP rules.
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

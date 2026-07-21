@@ -59,7 +59,7 @@ kotek::ktk::json::value zircon_serialize_component(
 ) noexcept;
 
 kotek::ktk::json::value zircon_serialize_component(
-	const zircon_component_interface* p_data,
+	zircon_component_interface* p_data,
 	unsigned char* p_raw_memory,
 	kotek::size_t memory_size
 ) noexcept;
@@ -772,7 +772,18 @@ public:
 		kotek::static_vector_t<
 			eZirconComponentType,
 			zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>& result
-	); 
+	);
+
+	/// @brief \~english pico entity ids are dense indices in
+	/// [0, entity_count_max_limit), so enumeration is a scan
+	/// with ecs_is_ready; writes at most result_capacity
+	/// entries and returns the amount written
+	kotek::uint32_t get_all_entities(
+		zircon_ecs_context_t* p_context,
+		kotek::uint32_t entity_count_max_limit,
+		kotek::entity_t* p_result,
+		kotek::uint32_t result_capacity
+	) noexcept;
 
 	bool create_component(
 		zircon_ecs_context_t* p_context,
@@ -791,6 +802,19 @@ public:
 		kotek::entity_t id,
 		eZirconComponentType component_type
 	) noexcept;
+
+	void remove_component(
+		zircon_ecs_context_t* p_context,
+		kotek::entity_t id,
+		eZirconComponentType component_type
+	) noexcept;
+
+	/// @brief \~english linear search over
+	/// eZirconComponentType using get_component_name_by_enum,
+	/// returns kunknown when name is not registered
+	eZirconComponentType get_component_enum_by_name(
+		const kotek::cstring_view_t& component_name
+	) const noexcept;
 
 	const char* get_component_name_by_enum(
 		eZirconComponentType component_type

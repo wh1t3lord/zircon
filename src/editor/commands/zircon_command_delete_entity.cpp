@@ -150,8 +150,8 @@ void zircon_command_delete_entity::Execute(void)
 			p_ecs_context, this->m_entity_created
 		);
 
-		if (this->m_entity_created !=
-		    kotek::ktk::kInvalidECSEntity)
+		if (this->m_entity_created.id !=
+		    kotek::ktk::kInvalidECSEntity.id)
 		{
 			this->m_entity_previous_id = this->m_entity_created;
 
@@ -244,11 +244,15 @@ void zircon_command_delete_entity::Undo(void)
 
 	if (p_world)
 	{
-		this->m_entity_created = p_world->create_entity();
+		this->m_entity_created =
+			p_world->get_factory()->create_entity(
+				p_world->get_ecs_context()
+			);
 
-		if (this->m_entity_previous_id != entt::null &&
-		    this->m_entity_created !=
-		        this->m_entity_previous_id)
+		if (this->m_entity_previous_id.id !=
+		        kotek::ktk::kInvalidECSEntity.id &&
+		    this->m_entity_created.id !=
+		        this->m_entity_previous_id.id)
 		{
 			if (p_history)
 			{
@@ -263,7 +267,7 @@ void zircon_command_delete_entity::Undo(void)
 						this->m_p_placement_new_memory
 					);
 
-					for (zircon_component_type_t& type_id :
+					for (eZirconComponentType& type_id :
 					     this->m_components)
 					{
 						kotek::ktk::json::value
@@ -280,6 +284,7 @@ void zircon_command_delete_entity::Undo(void)
 						{
 							p_world->get_factory()
 								->create_component(
+									p_world->get_ecs_context(),
 									this->m_entity_created,
 									type_id,
 									serialized_component
@@ -295,7 +300,7 @@ void zircon_command_delete_entity::Undo(void)
 									type_id
 								),
 								static_cast<kotek::uint32_t>(
-									this->m_entity_created
+									this->m_entity_created.id
 								)
 							);
 						}
@@ -307,7 +312,7 @@ void zircon_command_delete_entity::Undo(void)
 
 		KOTEK_MESSAGE(
 			"[history][undo] created entity: {}",
-			static_cast<kotek::uint32_t>(this->m_entity_created)
+			static_cast<kotek::uint32_t>(this->m_entity_created.id)
 		);
 	}
 }
@@ -317,17 +322,17 @@ const char* zircon_command_delete_entity::GetName()
 	return "delete entity";
 }
 
-kotek::uint32_t zircon_command_delete_entity::GetEntityID(void
+kotek::entity_t zircon_command_delete_entity::GetEntityID(void
 ) const noexcept
 {
-	return static_cast<kotek::uint32_t>(this->m_entity_created);
+	return this->m_entity_created;
 }
 
 void zircon_command_delete_entity::SetEntityID(
-	kotek::uint32_t id
+	kotek::entity_t id
 ) noexcept
 {
-	this->m_entity_created = static_cast<entt::entity>(id);
+	this->m_entity_created = id;
 }
 
 kotek::enum_base_t
@@ -367,14 +372,14 @@ kotek::size_t zircon_command_delete_entity::Serialize(
 			this->GetCommandType();
 	object
 		[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME] =
-			static_cast<kotek::uint32_t>(this->m_entity_created
+			static_cast<kotek::uint32_t>(this->m_entity_created.id
 	        );
 	auto& serializing_ids =
 		object
 			[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME]
 				.emplace_array();
 
-	for (const zircon_component_type_t& type_id :
+	for (const eZirconComponentType& type_id :
 	     this->m_components)
 	{
 		serializing_ids.push_back(
@@ -520,11 +525,10 @@ void zircon_command_delete_entity::Deserialize(
 		this->GetName()
 	);
 
-	this->m_entity_created = static_cast<entt::entity>(
+	this->m_entity_created.id =
 		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
 	    )
-			.to_number<kotek::uint32_t>()
-	);
+			.to_number<decltype(kotek::entity_t::id)>();
 	this->m_entity_previous_id = this->m_entity_created;
 
 	KOTEK_ASSERT(
@@ -545,8 +549,8 @@ void zircon_command_delete_entity::Deserialize(
 	{
 		for (auto& value : serialized_components)
 		{
-			zircon_component_type_t type_id =
-				static_cast<zircon_component_type_t>(
+			eZirconComponentType type_id =
+				static_cast<eZirconComponentType>(
 					value.to_number<kotek::uint32_t>()
 				);
 

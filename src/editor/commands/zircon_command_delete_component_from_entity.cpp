@@ -150,14 +150,21 @@ void zircon_command_delete_component_from_entity::Execute(void)
 		{
 			if (this->m_p_factory->is_valid_entity(p_world->get_ecs_context(), this->m_id))
 			{
-				this->m_serialized_state_of_deleted_component =
-					this->m_p_factory
-						->SerializeComponentByNameToJSON(
-							this->m_id, this->m_p_component_name
-						);
+				zircon_component_interface* p_component =
+					this->m_p_factory->get_component_by_name(
+						p_world->get_ecs_context(),
+						this->m_id, this->m_p_component_name
+					);
 
-				this->m_p_factory->RemoveComponentByName(
-					this->m_id, this->m_p_component_name
+				this->m_serialized_state_of_deleted_component =
+					zircon_serialize_component(p_component);
+
+				this->m_p_factory->remove_component(
+					p_world->get_ecs_context(),
+					this->m_id,
+					this->m_p_factory->get_component_enum_by_name(
+						this->m_p_component_name
+					)
 				);
 
 				KOTEK_MESSAGE(
@@ -239,10 +246,21 @@ void zircon_command_delete_component_from_entity::Undo(void)
 	{
 		if (this->m_p_component_name)
 		{
-			if (this->m_p_factory->IsValidEntity(this->m_id))
+			if (this->m_p_factory->is_valid_entity(
+					p_world->get_ecs_context(), this->m_id
+				))
 			{
+				this->m_p_factory->create_component(
+					p_world->get_ecs_context(),
+					this->m_id,
+					this->m_p_factory->get_component_enum_by_name(
+						this->m_p_component_name
+					)
+				);
+
 				auto* p_component =
-					this->m_p_factory->CreateComponentByName(
+					this->m_p_factory->get_component_by_name(
+						p_world->get_ecs_context(),
 						this->m_id, this->m_p_component_name
 					);
 
@@ -394,10 +412,9 @@ zircon_command_delete_component_from_entity::Serialize(
 	object
 		[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME] =
 			static_cast<kotek::enum_base_t>(
-				this->m_p_factory
-					->get_component_type_id_by_component_name(
-						this->m_p_component_name
-					)
+				this->m_p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				)
 			);
 
 	kotek::ktk::json::serializer sr;
@@ -631,15 +648,13 @@ void zircon_command_delete_component_from_entity::Deserialize(
 #endif
 
 	this->m_p_component_name =
-		this->m_p_factory
-			->get_component_name_by_component_type_id(
-				static_cast<zircon_component_type_t>(
-					json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
-	                )
-						.to_number<kotek::enum_base_t>()
-				)
+		this->m_p_factory->get_component_name_by_enum(
+			static_cast<eZirconComponentType>(
+				json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
+	            )
+					.to_number<kotek::enum_base_t>()
 			)
-			.data();
+		);
 
 	KOTEK_ASSERT(
 		this->m_p_component_name,
@@ -740,10 +755,9 @@ zircon_command_delete_component_from_entity::get_component_type(
 		if (this->m_p_component_name)
 		{
 			result =
-				this->m_p_factory
-					->get_component_type_id_by_component_name(
-						this->m_p_component_name
-					);
+				this->m_p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				);
 		}
 	}
 

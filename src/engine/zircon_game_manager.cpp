@@ -720,7 +720,8 @@ void zircon_game_manager::Initialize(
 					ui_elements = {
 						new zircon_editor_ui_window_object_list(
 							this->m_p_session_editor_manager,
-							this->m_p_console
+							this->m_p_console,
+							this->m_p_factory
 						),
 						new zircon_editor_ui_window_top_bar(
 							this->m_p_session_editor_manager
@@ -728,7 +729,8 @@ void zircon_game_manager::Initialize(
 						new zircon_editor_ui_window_prefab(),
 						new zircon_editor_ui_window_component_inspector(
 							this->m_p_session_editor_manager,
-							p_session->get_ui_state()
+							p_session->get_ui_state(),
+							this->m_p_factory
 						),
 						new zircon_editor_ui_window_log(),
 						new zircon_editor_ui_window_history_command_log(
@@ -3694,7 +3696,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				zircon_command_delete_entity* p_command =
 					new (p_placement_new_memory)
 						zircon_command_delete_entity(
-							this->m_p_session_editor_manager, id
+							this->m_p_session_editor_manager,
+							this->m_p_factory, id
 						);
 
 				p_history_manager->ExecuteCommand(p_command);
@@ -3815,7 +3818,8 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				zircon_command_create_entity* p_command =
 					new (p_placement_new_memory)
 						zircon_command_create_entity(
-							this->m_p_session_editor_manager
+							this->m_p_session_editor_manager,
+							this->m_p_factory
 						);
 
 				p_history_manager->ExecuteCommand(p_command);

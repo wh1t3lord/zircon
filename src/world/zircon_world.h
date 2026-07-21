@@ -33,7 +33,16 @@ public:
 
 	zircon_ecs_context_t* get_ecs_context(void) const noexcept;
 
+	/// @brief \~english non-owning pointer to the factory that
+	/// created this world's ecs context (factory is owned by
+	/// zircon_game_manager)
+	zircon_factory* get_factory(void) noexcept;
+	const zircon_factory* get_factory(void) const noexcept;
+
 	kotek::uint8_t get_id(void) const noexcept;
+
+	kotek::uint32_t get_entity_count_max_limit(void
+	) const noexcept;
 
 	bool is_initialized(void) const noexcept;
 
@@ -44,6 +53,9 @@ private:
 	/// @brief for pico is ecs_new instance and for entt it is
 	/// entt::registry
 	zircon_ecs_context_t* m_p_ecs_factory;
+	/// @brief non-owning pointer, the factory is owned by
+	/// zircon_game_manager
+	zircon_factory* m_p_factory;
 	kotek::static_cstring_t<
 		ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH>
 		m_name;

@@ -122,10 +122,21 @@ void zircon_command_add_component_to_entity::Execute(void)
 
 	if (p_factory)
 	{
-		if (p_factory->IsValidEntity(this->m_id))
+		if (p_factory->is_valid_entity(
+				p_world->get_ecs_context(), this->m_id
+			))
 		{
-			auto p_raw_data_of_component =
-				p_factory->CreateComponentByName(
+			p_factory->create_component(
+				p_world->get_ecs_context(),
+				this->m_id,
+				p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				)
+			);
+
+			auto* p_raw_data_of_component =
+				p_factory->get_component_by_name(
+					p_world->get_ecs_context(),
 					this->m_id, this->m_p_component_name
 				);
 
@@ -140,14 +151,14 @@ void zircon_command_add_component_to_entity::Execute(void)
 			KOTEK_ASSERT(
 				p_raw_data_of_component,
 				"failed to create component to entity: {}",
-				static_cast<kotek::uint32_t>(this->m_id)
+				static_cast<kotek::uint32_t>(this->m_id.id)
 			);
 
 			KOTEK_MESSAGE(
 				"[history][{}] [{}] for entity[{}]",
 				this->GetName(),
 				this->m_p_component_name,
-				static_cast<kotek::uint32_t>(this->m_id)
+				static_cast<kotek::uint32_t>(this->m_id.id)
 			);
 		}
 	}
@@ -221,12 +232,19 @@ void zircon_command_add_component_to_entity::Undo(void)
 
 	if (p_factory)
 	{
-		if (p_factory->IsValidEntity(this->m_id))
+		if (p_factory->is_valid_entity(
+				p_world->get_ecs_context(), this->m_id
+			))
 		{
+			auto* p_raw_data_of_component =
+				p_factory->get_component_by_name(
+					p_world->get_ecs_context(),
+					this->m_id, this->m_p_component_name
+				);
+
 			this->m_serialized_state_of_deleted_component =
-				p_factory->SerializeComponentByNameToJSON(
-					this->m_id,
-					this->m_p_component_name,
+				zircon_serialize_component(
+					p_raw_data_of_component,
 					this->m_storage_json_memory,
 					sizeof(this->m_storage_json_memory)
 				);
@@ -280,15 +298,19 @@ void zircon_command_add_component_to_entity::Undo(void)
 
 			this->m_is_serialized = true;
 
-			p_factory->RemoveComponentByName(
-				this->m_id, this->m_p_component_name
+			p_factory->remove_component(
+				p_world->get_ecs_context(),
+				this->m_id,
+				p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				)
 			);
 
 			KOTEK_MESSAGE(
 				"[history] removed component[{}] from "
 				"entity[{}]",
 				this->m_p_component_name,
-				static_cast<kotek::uint32_t>(this->m_id)
+				static_cast<kotek::uint32_t>(this->m_id.id)
 			);
 		}
 	}
@@ -318,7 +340,7 @@ zircon_command_add_component_to_entity::GetCommandType(
 {
 	return static_cast<kotek::enum_base_t>(
 		kotek::core::eConsoleCommandIndex::
-			kConsoleCommand_SDK_CreateComponentForEntity
+			kConsoleCommand_SDK_CreateComponentForEntityByName
 	);
 }
 
@@ -412,25 +434,31 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		if (this->m_is_serialized == false)
 		{
 			KOTEK_ASSERT(
-				p_factory->IsValidEntity(this->m_id),
+				p_factory->is_valid_entity(
+					p_world->get_ecs_context(), this->m_id
+				),
 				"must be valid!"
 			);
 
-			bool has_component = p_factory->HasComponent(
-				this->m_id, this->m_p_component_name
+			bool has_component = p_factory->has_component(
+				p_world->get_ecs_context(),
+				this->m_id,
+				p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				)
 			);
 
 			if (has_component)
 			{
 				auto* p_raw_data_of_component =
-					p_factory->GetComponentByName(
+					p_factory->get_component_by_name(
+						p_world->get_ecs_context(),
 						this->m_id, this->m_p_component_name
 					);
 
 				this->m_serialized_state_of_deleted_component =
-					p_factory->SerializeComponentByNameToJSON(
-						this->m_id,
-						this->m_p_component_name,
+					zircon_serialize_component(
+						p_raw_data_of_component,
 						this->m_storage_json_memory,
 						sizeof(this->m_storage_json_memory)
 					);
@@ -440,27 +468,32 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 		}
 		else
 		{
-			if (p_factory->IsValidEntity(this->m_id))
+			if (p_factory->is_valid_entity(
+					p_world->get_ecs_context(), this->m_id
+				))
 			{
-				if (p_factory->HasComponent(
-						this->m_id, this->m_p_component_name
+				if (p_factory->has_component(
+						p_world->get_ecs_context(),
+						this->m_id,
+						p_factory->get_component_enum_by_name(
+							this->m_p_component_name
+						)
 					))
 				{
 					auto* p_raw_data_of_component =
-						p_factory->GetComponentByName(
+						p_factory->get_component_by_name(
+							p_world->get_ecs_context(),
 							this->m_id, this->m_p_component_name
 						);
 
 					this->m_serialized_state_of_deleted_component =
-						p_factory
-							->SerializeComponentByNameToJSON(
-								this->m_id,
-								this->m_p_component_name,
-								this->m_storage_json_memory,
-								sizeof(
-									this->m_storage_json_memory
-								)
-							);
+						zircon_serialize_component(
+							p_raw_data_of_component,
+							this->m_storage_json_memory,
+							sizeof(
+								this->m_storage_json_memory
+							)
+						);
 				}
 			}
 		}
@@ -474,14 +507,13 @@ kotek::size_t zircon_command_add_component_to_entity::Serialize(
 			this->GetCommandType();
 	object
 		[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME] =
-			static_cast<kotek::uint32_t>(this->m_id);
+			static_cast<kotek::uint32_t>(this->m_id.id);
 	object
 		[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME] =
 			static_cast<kotek::enum_base_t>(
-				p_factory
-					->get_component_type_id_by_component_name(
-						this->m_p_component_name
-					)
+				p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				)
 			);
 
 	kotek::ktk::json::serializer sr;
@@ -703,22 +735,19 @@ void zircon_command_add_component_to_entity::Deserialize(
 		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
 	);
 
-	this->m_id = static_cast<entt::entity>(
+	this->m_id.id =
 		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
 	    )
-			.to_number<kotek::uint32_t>()
-	);
+			.to_number<decltype(kotek::entity_t::id)>();
 
 	this->m_p_component_name =
-		p_factory
-			->get_component_name_by_component_type_id(
-				static_cast<zircon_component_type_t>(
-					json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
-	                )
-						.to_number<kotek::enum_base_t>()
-				)
+		p_factory->get_component_name_by_enum(
+			static_cast<eZirconComponentType>(
+				json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
+                )
+					.to_number<kotek::enum_base_t>()
 			)
-			.data();
+		);
 
 	KOTEK_ASSERT(
 		this->m_p_component_name,
@@ -807,7 +836,9 @@ void zircon_command_add_component_to_entity::serialize_state()
 			p_factory, "world must have valid factory!"
 		);
 		KOTEK_ASSERT(
-			p_factory->IsValidEntity(this->m_id),
+			p_factory->is_valid_entity(
+				p_world->get_ecs_context(), this->m_id
+			),
 			"entity must exist"
 		);
 		KOTEK_ASSERT(
@@ -818,8 +849,12 @@ void zircon_command_add_component_to_entity::serialize_state()
 			"must be not empty string"
 		);
 		KOTEK_ASSERT(
-			p_factory->HasComponent(
-				this->m_id, this->m_p_component_name
+			p_factory->has_component(
+				p_world->get_ecs_context(),
+				this->m_id,
+				p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				)
 			),
 			"must exist otherwise wrong calling!"
 		);
@@ -827,14 +862,14 @@ void zircon_command_add_component_to_entity::serialize_state()
 		if (p_factory)
 		{
 			auto* p_raw_data_of_component =
-				p_factory->GetComponentByName(
+				p_factory->get_component_by_name(
+					p_world->get_ecs_context(),
 					this->m_id, this->m_p_component_name
 				);
 
 			this->m_serialized_state_of_deleted_component =
-				p_factory->SerializeComponentByNameToJSON(
-					this->m_id,
-					this->m_p_component_name,
+				zircon_serialize_component(
+					p_raw_data_of_component,
 					this->m_storage_json_memory,
 					sizeof(this->m_storage_json_memory)
 				);
@@ -850,7 +885,7 @@ bool zircon_command_add_component_to_entity::
 	return this->m_is_serialized;
 }
 
-zircon_component_type_t
+eZirconComponentType
 zircon_command_add_component_to_entity::get_component_type()
 {
 	KOTEK_ASSERT(
@@ -862,7 +897,7 @@ zircon_command_add_component_to_entity::get_component_type()
 	{
 		KOTEK_MESSAGE_WARNING("failed to execute due to "
 		                      "invalid game manager pointer!");
-		return zircon_component_type_t::kComponentTypeUnknown;
+		return eZirconComponentType::kunknown;
 	}
 
 	zircon_session_editor* p_session =
@@ -886,7 +921,7 @@ zircon_command_add_component_to_entity::get_component_type()
 			this->m_p_manager_session_editor
 				->get_current_session_id()
 		);
-		return zircon_component_type_t::kComponentTypeUnknown;
+		return eZirconComponentType::kunknown;
 	}
 
 	zircon_world* p_world = p_session->get_world();
@@ -906,7 +941,7 @@ zircon_command_add_component_to_entity::get_component_type()
 			p_session->get_session_name(),
 			p_session->get_id()
 		);
-		return zircon_component_type_t::kComponentTypeUnknown;
+		return eZirconComponentType::kunknown;
 	}
 
 	zircon_factory* p_factory = p_world->get_factory();
@@ -917,18 +952,17 @@ zircon_command_add_component_to_entity::get_component_type()
 		strlen(this->m_p_component_name), "must be not empty!"
 	);
 
-	zircon_component_type_t result =
-		zircon_component_type_t::kComponentTypeUnknown;
+	eZirconComponentType result =
+		eZirconComponentType::kunknown;
 
 	if (p_factory)
 	{
 		if (this->m_p_component_name)
 		{
 			result =
-				p_factory
-					->get_component_type_id_by_component_name(
-						this->m_p_component_name
-					);
+				p_factory->get_component_enum_by_name(
+					this->m_p_component_name
+				);
 		}
 	}
 

@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.21)
 
 project(zircon.render VERSION 1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
@@ -190,7 +188,7 @@ set(to_include_opengles3
 	${to_include_passes_files_opengles3}
 )
 
-add_library(${PROJECT_NAME} STATIC
+kotek_add_library(${PROJECT_NAME}
 #	${to_include_vulkan_files}
 #	${to_include_vulkan_passes_files}
 	${to_include_shaders_gles}

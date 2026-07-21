@@ -1,5 +1,8 @@
-﻿#include "zircon_command_history.h"
+#include "zircon_command_history.h"
 #include "../../world/zircon_world.h"
+#include "../../ecs/zircon_factory.h"
+#include "../session/zircon_session_editor.h"
+#include "../session/zircon_session_editor_manager.h"
 
 #include "zircon_command_create_entity.h"
 #include "zircon_command_delete_entity.h"
@@ -175,7 +178,7 @@ void zircon_editor_command_history::ExecuteCommand(
 	if (p_command->GetCommandType() ==
 	    static_cast<kotek::enum_base_t>(
 			kotek::core::eConsoleCommandIndex::
-				kConsoleCommand_SDK_DeleteComponentFromEntity
+				kConsoleCommand_SDK_DeleteComponentFromEntityByName
 		))
 	{
 		// trying to find a component that relates to add
@@ -196,11 +199,11 @@ void zircon_editor_command_history::ExecuteCommand(
 				if (p_cmd->GetCommandType() ==
 				    static_cast<kotek::enum_base_t>(
 						kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateComponentForEntity
+							kConsoleCommand_SDK_CreateComponentForEntityByName
 					))
 				{
-					if (p_cmd->GetEntityID() ==
-					    p_command->GetEntityID())
+					if (p_cmd->GetEntityID().id ==
+					    p_command->GetEntityID().id)
 					{
 						// we found or add component version, so
 						// we need serialize it but only that
@@ -242,11 +245,11 @@ void zircon_editor_command_history::ExecuteCommand(
 				if (p_cmd->GetCommandType() ==
 				    static_cast<kotek::enum_base_t>(
 						kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateComponentForEntity
+							kConsoleCommand_SDK_CreateComponentForEntityByName
 					))
 				{
-					if (p_cmd->GetEntityID() ==
-					    p_command->GetEntityID())
+					if (p_cmd->GetEntityID().id ==
+					    p_command->GetEntityID().id)
 					{
 						zircon_command_add_component_to_entity*
 							p_casted_cmd = static_cast<
@@ -671,6 +674,21 @@ void zircon_editor_command_history::Undo()
 								json.at("command").as_int64()
 							);
 
+						zircon_factory* p_factory = nullptr;
+
+						zircon_session_editor* p_session =
+							this->m_p_manager_session_editor
+								->get_session(
+									this->m_p_manager_session_editor
+										->get_current_session_id()
+								);
+
+						if (p_session && p_session->get_world())
+						{
+							p_factory = p_session->get_world()
+											->get_factory();
+						}
+
 						switch (type)
 						{
 						case kotek::core::eConsoleCommandIndex::
@@ -683,7 +701,8 @@ void zircon_editor_command_history::Undo()
 									placement_storage
 								)
 									zircon_command_create_entity(
-										this->m_p_manager_session_editor
+										this->m_p_manager_session_editor,
+										p_factory
 									);
 							p_command->Deserialize(json);
 
@@ -704,7 +723,8 @@ void zircon_editor_command_history::Undo()
 								)
 									zircon_command_delete_entity(
 										this->m_p_manager_session_editor,
-										entt::null
+										p_factory,
+										kotek::ktk::kInvalidECSEntity
 									);
 							p_command->Deserialize(json);
 
@@ -715,7 +735,7 @@ void zircon_editor_command_history::Undo()
 							break;
 						}
 						case kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateComponentForEntity:
+							kConsoleCommand_SDK_CreateComponentForEntityByName:
 						{
 							auto placement_storage =
 								this->m_storage[copy_index];
@@ -735,7 +755,7 @@ void zircon_editor_command_history::Undo()
 							break;
 						}
 						case kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_DeleteComponentFromEntity:
+							kConsoleCommand_SDK_DeleteComponentFromEntityByName:
 						{
 							auto placement_storage =
 								this->m_storage[copy_index];
@@ -745,7 +765,8 @@ void zircon_editor_command_history::Undo()
 									placement_storage
 								)
 									zircon_command_delete_component_from_entity(
-										this->m_p_manager_session_editor
+										this->m_p_manager_session_editor,
+										p_factory
 									);
 
 							p_command->Deserialize(json);
@@ -1252,6 +1273,21 @@ void zircon_editor_command_history::Redo()
 							json.at("command").as_int64()
 						);
 
+					zircon_factory* p_factory = nullptr;
+
+					zircon_session_editor* p_session =
+						this->m_p_manager_session_editor
+							->get_session(
+								this->m_p_manager_session_editor
+									->get_current_session_id()
+							);
+
+					if (p_session && p_session->get_world())
+					{
+						p_factory =
+							p_session->get_world()->get_factory();
+					}
+
 					switch (type)
 					{
 					case kotek::core::eConsoleCommandIndex::
@@ -1262,7 +1298,8 @@ void zircon_editor_command_history::Redo()
 						zircon_command_create_entity*
 							p_command = new (placement_storage)
 								zircon_command_create_entity(
-									this->m_p_manager_session_editor
+									this->m_p_manager_session_editor,
+									p_factory
 								);
 						p_command->Deserialize(json);
 
@@ -1278,7 +1315,8 @@ void zircon_editor_command_history::Redo()
 							p_command = new (placement_storage)
 								zircon_command_delete_entity(
 									this->m_p_manager_session_editor,
-									entt::null
+									p_factory,
+									kotek::ktk::kInvalidECSEntity
 								);
 
 						p_command->Deserialize(json);
@@ -1287,7 +1325,7 @@ void zircon_editor_command_history::Redo()
 						break;
 					}
 					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_CreateComponentForEntity:
+						kConsoleCommand_SDK_CreateComponentForEntityByName:
 					{
 						auto placement_storage =
 							this->m_storage[i];
@@ -1303,14 +1341,15 @@ void zircon_editor_command_history::Redo()
 						break;
 					}
 					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_DeleteComponentFromEntity:
+						kConsoleCommand_SDK_DeleteComponentFromEntityByName:
 					{
 						auto placement_storage =
 							this->m_storage[i];
 						zircon_command_delete_component_from_entity*
 							p_command = new (placement_storage)
 								zircon_command_delete_component_from_entity(
-									this->m_p_manager_session_editor
+									this->m_p_manager_session_editor,
+									p_factory
 								);
 
 						p_command->Deserialize(json);
@@ -1534,7 +1573,7 @@ bool zircon_editor_command_history::
 		kotek::ktk::json::value&
 			constructed_value_on_stack_based_on_placement_new_memory,
 		kotek::entity_t id,
-		zircon_component_type_t type_id
+		eZirconComponentType type_id
 	)
 {
 	KOTEK_ASSERT(
@@ -3544,8 +3583,8 @@ void zircon_editor_command_history::
 // current_offset to file after all modifications
 void zircon_editor_command_history::
 	update_dependent_serialized_commands(
-		entt::entity id_what_will_be_deleted,
-		entt::entity id_that_replaces_what_will_be_deleted
+		kotek::entity_t id_what_will_be_deleted,
+		kotek::entity_t id_that_replaces_what_will_be_deleted
 	)
 {
 	//	if (this->m_p_resource_manager)
@@ -3842,6 +3881,21 @@ void zircon_editor_command_history::
 								.to_number<kotek::enum_base_t>()
 						);
 
+					zircon_factory* p_factory = nullptr;
+
+					zircon_session_editor* p_session =
+						this->m_p_manager_session_editor
+							->get_session(
+								this->m_p_manager_session_editor
+									->get_current_session_id()
+							);
+
+					if (p_session && p_session->get_world())
+					{
+						p_factory =
+							p_session->get_world()->get_factory();
+					}
+
 					switch (type)
 					{
 					case kotek::core::eConsoleCommandIndex::
@@ -3853,13 +3907,13 @@ void zircon_editor_command_history::
 						zircon_command_create_entity*
 							p_command = new (placement_storage)
 								zircon_command_create_entity(
-									this->m_p_manager_session_editor
+									this->m_p_manager_session_editor,
+									p_factory
 								);
 
-						p_command->SetEntityID(static_cast<
-											   kotek::uint32_t>(
+						p_command->SetEntityID(
 							id_that_replaces_what_will_be_deleted
-						));
+						);
 
 						KOTEK_ASSERT(
 							false, "todo: re-write please"
@@ -3891,6 +3945,7 @@ void zircon_editor_command_history::
 							p_command = new (placement_storage)
 								zircon_command_delete_entity(
 									this->m_p_manager_session_editor,
+									p_factory,
 									id_that_replaces_what_will_be_deleted
 								);
 
@@ -3915,7 +3970,7 @@ void zircon_editor_command_history::
 						break;
 					}
 					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_CreateComponentForEntity:
+						kConsoleCommand_SDK_CreateComponentForEntityByName:
 					{
 						auto placement_storage =
 							this->m_p_memory_for_stack_command_creation;
@@ -3929,10 +3984,9 @@ void zircon_editor_command_history::
 						p_command->Deserialize(
 							json_data.get_object()
 						);
-						p_command->SetEntityID(static_cast<
-											   kotek::uint32_t>(
+						p_command->SetEntityID(
 							id_that_replaces_what_will_be_deleted
-						));
+						);
 
 						KOTEK_ASSERT(
 							false, "todo: re-write please"
@@ -3956,7 +4010,7 @@ void zircon_editor_command_history::
 						break;
 					}
 					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_DeleteComponentFromEntity:
+						kConsoleCommand_SDK_DeleteComponentFromEntityByName:
 					{
 						auto placement_storage =
 							this->m_p_memory_for_stack_command_creation;
@@ -3964,16 +4018,16 @@ void zircon_editor_command_history::
 						zircon_command_delete_component_from_entity*
 							p_command = new (placement_storage)
 								zircon_command_delete_component_from_entity(
-									this->m_p_manager_session_editor
+									this->m_p_manager_session_editor,
+									p_factory
 								);
 
 						p_command->Deserialize(
 							json_data.get_object()
 						);
-						p_command->SetEntityID(static_cast<
-											   kotek::uint32_t>(
+						p_command->SetEntityID(
 							id_that_replaces_what_will_be_deleted
-						));
+						);
 
 						KOTEK_ASSERT(
 							false, "todo: re-write please"
@@ -4133,7 +4187,7 @@ void zircon_editor_command_history::
 
 bool zircon_editor_command_history::
 	check_json_entry_has_entity_id(
-		entt::entity id_what_will_be_deleted,
+		kotek::entity_t id_what_will_be_deleted,
 		int real_size_for_json_data,
 		kotek::size_t& current_offset,
 		kotek::json::value& json
@@ -4283,8 +4337,8 @@ bool zircon_editor_command_history::
 				    )
 				         .to_number<kotek::uint32_t>());
 
-				result = static_cast<entt::entity>(entity_id) ==
-					id_what_will_be_deleted;
+				result = entity_id ==
+					id_what_will_be_deleted.id;
 			}
 		}
 	}
@@ -4296,8 +4350,8 @@ bool zircon_editor_command_history::
 
 bool zircon_editor_command_history::
 	check_json_entry_has_entity_id_and_component_type_id(
-		entt::entity id,
-		zircon_component_type_t type_id,
+		kotek::entity_t id,
+		eZirconComponentType type_id,
 		int real_size_for_json_data,
 		kotek::size_t& current_offset,
 		kotek::ktk::json::value& json
@@ -4449,16 +4503,15 @@ bool zircon_editor_command_history::
 				    )
 				         .to_number<kotek::uint32_t>());
 
-				found_entity_id =
-					static_cast<entt::entity>(entity_id) == id;
+				found_entity_id = entity_id == id.id;
 			}
 
 			if (map.find(
 					ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
 				) != map.end())
 			{
-				zircon_component_type_t restored_type_id =
-					static_cast<zircon_component_type_t>(
+				eZirconComponentType restored_type_id =
+					static_cast<eZirconComponentType>(
 						map.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
 				        )
 							.to_number<kotek::uint32_t>()

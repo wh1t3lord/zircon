@@ -1,10 +1,10 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
+#include "../../ecs/zircon_component_interface.h"
 
 class zircon_factory;
 class zircon_session_editor_manager;
-enum zircon_component_type_t;
 
 class zircon_command_add_component_to_entity
 	: public kotek::core::ktkISDKRedoUndo
@@ -32,7 +32,7 @@ public:
 
 	void serialize_state();
 	bool is_state_serialized() const noexcept;
-	zircon_component_type_t get_component_type();
+	eZirconComponentType get_component_type();
 
 private:
 	bool m_is_serialized;

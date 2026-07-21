@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.21)
 
 project(zircon.game.session VERSION 1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
@@ -20,7 +18,7 @@ set(to_include_session_files
 )
 
 
-add_library(${PROJECT_NAME} STATIC
+kotek_add_library(${PROJECT_NAME}
 	${to_include_module_files}
 	${to_include_session_files}
 )
