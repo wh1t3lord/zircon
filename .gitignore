@@ -59,3 +59,6 @@ zircon_render_pass_factory.h
 
 imgui.ini
 report_memleak_*
+
+# build logs produced by validation builds at repo root
+build*.log
