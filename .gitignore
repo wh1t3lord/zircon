@@ -62,3 +62,6 @@ report_memleak_*
 
 # build logs produced by validation builds at repo root
 build*.log
+m[0-9]*.log
+*-conf.log
+reconf*.log
