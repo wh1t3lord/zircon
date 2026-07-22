@@ -91,7 +91,7 @@ public:
 	int GetWindowHeight(void) const noexcept override;
 	kotek::core::ktkProfiler* GetProfiler(void
 	) const noexcept override;
-	kotek::core::ktkConsole* GetConsole(void
+	kotek::core::ktkIConsole* GetConsole(void
 	) const noexcept override;
 
 	kotek::core::ktkIRenderer* GetRenderer(void

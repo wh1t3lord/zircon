@@ -72,7 +72,12 @@ src/
   `InitializeModule_Game / InitializeModule_Render / UpdateModule_Game /
   ShutdownModule_Game` (`src/engine/main_game_dll.cpp`).
 - **ImGui**: single global context, created in the bgfx editor-imgui pass; all calls on
-  the render thread via `ktkIImguiWrapper`. No MT support today (task K13 in kotek).
+  the render thread via `ktkIImguiWrapper`. MT support now exists in kotek
+  (K13, 2026-07-22): `ktkIImguiContextManager` via
+  `Get_ImguiWrapper()->Get_ContextManager()` — model 1 single-UI-thread
+  (current default; the pass adopts its context), model 2 context-per-thread
+  + `ktkImguiLockGuard` serialization. Pass authors must use the wrapper for
+  ALL ImGui calls (raw `ImGui::` breaks PLUGIN-mode linking — see K20).
 
 ## 4. Build
 

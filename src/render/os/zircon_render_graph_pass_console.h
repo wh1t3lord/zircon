@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kotek.render.gl/include/kotek_render_graph_simplified_render_pass.h>
+#include <kotek.render.shared.gl/include/kotek_render_graph_simplified_render_pass.h>
 
 class zircon_render_graph_pass_console : public kotek::render::gl::ktkRenderGraphSimplifiedRenderPass
 {

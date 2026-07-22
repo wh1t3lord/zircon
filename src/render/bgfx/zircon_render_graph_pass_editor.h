@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kotek.render.bgfx/include/kotek_render_graph_simplified_render_pass.h>
+#include <kotek.render.shared.bgfx/include/kotek_render_graph_simplified_render_pass.h>
 
 class zircon_session_editor_manager;
 

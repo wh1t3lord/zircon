@@ -1060,8 +1060,9 @@ void zircon_game_manager::Shutdown(
 
 	if (this->m_p_window_console)
 	{
+		// the instance is owned by kotek.core.window; we only shut down our
+		// usage of it
 		this->m_p_window_console->Shutdown();
-		delete this->m_p_window_console;
 		this->m_p_window_console = nullptr;
 	}
 
@@ -1177,7 +1178,7 @@ kotek::core::ktkProfiler* zircon_game_manager::GetProfiler(void
 	return this->m_p_profiler;
 }
 
-kotek::core::ktkConsole* zircon_game_manager::GetConsole(void
+kotek::core::ktkIConsole* zircon_game_manager::GetConsole(void
 ) const noexcept
 {
 	return this->m_p_console;
@@ -1661,8 +1662,15 @@ void zircon_game_manager::destroy_factory() noexcept
 
 void zircon_game_manager::Initialize_Renderer(void) noexcept
 {
+	// the console window instance is owned by kotek.core.window (registered
+	// into the main manager at module init)
 	this->m_p_window_console =
-		new kotek::core::ktkWindowConsole();
+		static_cast<kotek::core::ktkWindowConsole*>(
+			this->m_p_main_manager->Get_WindowConsole());
+
+	KOTEK_ASSERT(this->m_p_window_console,
+		"kotek.core.window must register a window console instance before the "
+		"game manager initializes");
 
 	ktk_filesystem_path path;
 
@@ -2026,7 +2034,18 @@ void zircon_game_manager::Destroy_ResourceManager(void) noexcept
 
 void zircon_game_manager::Initialize_Console(void) noexcept
 {
-	this->m_p_console = new kotek::core::ktkConsole();
+	// the console instance is owned by kotek.core.console (registered into
+	// the main manager at module init); we only bind our translation
+	// callback. The concrete pointer is kept because Register_Command is a
+	// template that cannot be part of the ktkIConsole interface.
+	this->m_p_console =
+		static_cast<kotek::core::ktkConsole*>(
+			this->m_p_main_manager->Get_Console());
+
+	KOTEK_ASSERT(this->m_p_console,
+		"kotek.core.console must register a console instance before the game "
+		"manager initializes");
+
 	this->m_p_console->Initialize(
 		zircon_user_console_translation_callback
 	);
@@ -4642,8 +4661,8 @@ void zircon_game_manager::Destroy_Console(void) noexcept
 {
 	KOTEK_ASSERT(this->m_p_console, "must be valid");
 
+	// the instance is owned by kotek.core.console; we only unbind our data
 	this->m_p_console->Shutdown();
-	delete this->m_p_console;
 	this->m_p_console = nullptr;
 }
 
@@ -4778,11 +4797,17 @@ zircon_game_manager::get_ui_imgui_elements()
 
 void zircon_game_manager::run_unit_tests()
 {
+	// tests are a static-linkage feature: test files instantiate concrete
+	// classes from kotek feature modules, which is forbidden in PLUGIN mode
+	// (no link edges between plugin dlls), so their registrars are not
+	// compiled there
+#if !defined(KOTEK_USE_LINKAGE_PLUGIN)
 		#ifdef KOTEK_USE_SDK_IMGUI
 	zircon_register_unit_tests_editor();
 		#endif
 
 	zircon_register_unit_tests_game();
+#endif
 
 	KOTEK_MESSAGE("//unit testing\\\\");
 	int argc =

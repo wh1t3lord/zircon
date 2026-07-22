@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kotek.render.bgfx/include/kotek_render_graph_simplified.h>
+#include <kotek.render.shared.bgfx/include/kotek_render_graph_simplified.h>
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
@@ -91,7 +91,9 @@ private:
 	zircon_session_game_manager* m_p_session_game_manager;
 	zircon_session_editor_manager* m_p_session_editor_manager;
 	kotek::render::bgfx::ktkRenderDevice* m_p_render_device;
-	kotek::render::bgfx::ktkRenderResourceManager* m_p_render_resource_manager;
+	// routed through the interface: the concrete manager lives in the
+	// backend plugin dll
+	kotek::core::ktkIRenderResourceManager* m_p_render_resource_manager;
 	kotek::render::bgfx::ktkRenderGraphSimplified* m_p_current_render_graph;
 	kotek::vector_t<zircon_render_graph_simplified_bgfx_info_t,
 		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>

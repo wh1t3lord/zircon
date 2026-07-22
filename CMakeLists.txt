@@ -53,6 +53,12 @@ message("[${PROJECT_NAME}]: output dir is '${CMAKE_BINARY_DIR}'")
 
 add_subdirectory("${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
 
+# the linkage-scenario define (KOTEK_USE_LINKAGE_STATIC/SHARED/PLUGIN) is
+# applied by kotek/cmake/library.cmake in kotek's own directory scope only;
+# zircon targets need it too (they use the KOTEK_INVOKE_MODULE_* macros and
+# guard test code with it)
+add_compile_definitions(KOTEK_USE_LINKAGE_${KOTEK_LINKAGE})
+
 message("[${PROJECT_NAME}]: KOTEK_UNICODE=${KOTEK_UNICODE}")
 message("[${PROJECT_NAME}]: KOTEK_TESTS_RUNTIME=${KOTEK_TESTS_RUNTIME}")
 message("[${PROJECT_NAME}]: KOTEK_TESTS=${KOTEK_TESTS}")

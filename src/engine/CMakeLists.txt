@@ -45,10 +45,17 @@ set(to_include_module_files
 	"main_game_dll.cpp"
 )
 
-set(to_include_unit_tests
-	"zircon_unit_tests_game.cpp"
-	"zircon_unit_tests_editor.cpp"
-)
+# tests are a static-linkage feature: they instantiate concrete classes
+# from kotek feature modules (ktkFrameworkConfig, ktkFileSystem), which is
+# forbidden in PLUGIN mode (no link edges between plugin dlls)
+if ("${KOTEK_LINKAGE}" STREQUAL "PLUGIN")
+	set(to_include_unit_tests "")
+else()
+	set(to_include_unit_tests
+		"zircon_unit_tests_game.cpp"
+		"zircon_unit_tests_editor.cpp"
+	)
+endif()
 
 add_library(${PROJECT_NAME} ${KOTEK_DEVELOPMENT_TYPE}
 	${to_include_game_files}
@@ -66,7 +73,7 @@ source_group("Game/Resource Management" FILES ${to_include_game_resource_managem
 source_group("Game/Core" FILES ${to_include_game_files})
 source_group("Module" FILES ${to_include_module_files})
 
-target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
+kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render)

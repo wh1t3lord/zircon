@@ -83,10 +83,17 @@ namespace no_streaming
 
 		if (is_imgui_enabled)
 		{
-			IMGUI_CHECKVERSION();
-
 			if (this->m_p_imgui_wrapper)
 			{
+				this->m_p_imgui_wrapper->DebugCheckVersionAndDataLayout(
+					IMGUI_VERSION,
+					sizeof(ImGuiIO),
+					sizeof(ImGuiStyle),
+					sizeof(ImVec2),
+					sizeof(ImVec4),
+					sizeof(ImDrawVert),
+					sizeof(ImDrawIdx));
+
 				this->m_p_imgui_wrapper->CreateContext();
 
 				this->m_p_imgui_wrapper->GetIO().ConfigFlags |=

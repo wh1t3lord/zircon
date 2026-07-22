@@ -1,0 +1,989 @@
+MSBuild-Version 18.8.2+ce25c0108 für .NET Framework
+
+  1>Checking Build System
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.cpp/CMakeLists.txt
+  main_core_defines_static_cpp_dll.cpp
+  kotek.core.defines.static.cpp.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.cpp.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.variant/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.unique_ptr/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.pair/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.function/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.render.vk/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.thread/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.sdk/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.tests/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.git/CMakeLists.txt
+  main_core_containers_unique_ptr_dll.cpp
+  main_core_defines_static_render_vk_dll.cpp
+  main_core_containers_function_dll.cpp
+  main_core_defines_static_sdk_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.profilers/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.tbb/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.shared_mutex/CMakeLists.txt
+  main_core_defines_static_tests_dll.cpp
+  main_core_containers_multithreading_thread_dll.cpp
+  main_core_defines_static_git_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.os.linux/CMakeLists.txt
+  main_core_defines_static_profilers_dll.cpp
+  main_core_containers_pair_dll.cpp
+  main_core_containers_multithreading_tbb_dll.cpp
+  main_core_containers_multithreading_shared_mutex_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.semaphore/CMakeLists.txt
+  main_core_defines_static_os_linux_dll.cpp
+  kotek.core.defines.static.sdk.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.sdk.lib
+  kotek.core.defines.static.git.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.git.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.math/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.render.gl/CMakeLists.txt
+  main_core_containers_multithreading_semaphore_dll.cpp
+  kotek.core.defines.static.render.vk.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.render.vk.lib
+  kotek.core.defines.static.profilers.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.profilers.lib
+  main_core_defines_static_render_gl_dll.cpp
+  main_core_defines_static_math_dll.cpp
+  kotek.core.containers.pair.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.pair.lib
+  kotek.core.defines.static.os.linux.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.os.linux.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.hash/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.mutex/CMakeLists.txt
+  kotek.core.defines.static.render.gl.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.render.gl.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.render.bgfx/CMakeLists.txt
+  kotek.core.defines.static.math.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.math.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.shared_ptr/CMakeLists.txt
+  main_core_containers_hash_dll.cpp
+  kotek.core.containers.function.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.function.lib
+  main_core_containers_multithreading_mutex_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.atomic/CMakeLists.txt
+  main_core_defines_static_render_bgfx_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.string/CMakeLists.txt
+  main_core_containers_shared_ptr_dll.cpp
+  kotek.core.containers.unique_ptr.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.unique_ptr.lib
+  kotek.core.defines.static.tests.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.tests.lib
+  main_core_containers_multithreading_atomic_dll.cpp
+  kotek.core.defines.static.render.bgfx.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.render.bgfx.lib
+  kotek.core.containers.multithreading.thread.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.thread.lib
+  main_core_containers_variant_dll.cpp
+  main_core_defines_static_string_dll.cpp
+  kotek.core.containers.hash.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.hash.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.constants.window/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.render.dx/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.condition_variable/CMakeLists.txt
+  kotek.core.containers.multithreading.semaphore.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.semaphore.lib
+  main_core_defines_static_render_dx_dll.cpp
+  main_core_constants_window_dll.cpp
+  kotek.core.containers.multithreading.shared_mutex.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.shared_mutex.lib
+  main_core_containers_multithreading_condition_variable_dll.cpp
+  kotek.core.containers.multithreading.atomic.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.atomic.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.any/CMakeLists.txt
+  kotek.core.defines.static.string.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.string.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.types.numerics/CMakeLists.txt
+  kotek.core.defines.static.render.dx.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.render.dx.lib
+  main_core_containers_any_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.gl.glad/CMakeLists.txt
+  kotek.core.constants.window.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.constants.window.lib
+  main_core_numerics_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.os.win32/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.constants.render/CMakeLists.txt
+  kotek.core.containers.shared_ptr.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.shared_ptr.lib
+  main_core_defines_static_os_win32_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.render/CMakeLists.txt
+  glad.cpp
+  main_core_constants_render_dll.cpp
+  kotek.core.containers.multithreading.mutex.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.mutex.lib
+  kotek.core.defines.static.os.win32.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.os.win32.lib
+  kotek.core.constants.render.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.constants.render.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static.os/CMakeLists.txt
+  kotek.core.containers.any.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.any.lib
+  main_core_defines_static_os_dll.cpp
+  main_core_defines_render_dll.cpp
+  kotek.core.defines.static.os.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.os.lib
+  kotek.core.containers.multithreading.condition_variable.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.condition_variable.lib
+  main_render_gl_glad_dll.cpp
+  Generating Code...
+  kotek.core.defines.static.render.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.render.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.microsoft.wrl.comptr/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.types.char/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines_dependent.text/CMakeLists.txt
+     Creating library D:/prj/cpp/zircon/build-m5b/lib/Debug/kotek.render.gl.glad.lib and object D:/prj/cpp/zircon/build-m5b/lib/Debug/kotek.render.gl.glad.exp
+  main_core_defines_dependent_text_dll.cpp
+  main_core_types_char_dll.cpp
+  kotek.core.containers.variant.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.variant.lib
+  main_core_containers_microsoft_wrl_comptr_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines.static/CMakeLists.txt
+  kotek.core.defines_dependent.text.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines_dependent.text.lib
+  kotek.core.types.char.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.types.char.lib
+  kotek.render.gl.glad.vcxproj -> D:\prj\cpp\zircon\build-m5b\bin\Debug\kotek.render.gl.glad.dll
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.constants.string/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.io/CMakeLists.txt
+  main_core_containers_io_dll.cpp
+  main_core_constants_string_dll.cpp
+  kotek.core.constants.string.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.constants.string.lib
+  main_core_defines_static_dll.cpp
+  kotek.core.types.numerics.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.types.numerics.lib
+  kotek.core.containers.microsoft.wrl.comptr.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.microsoft.wrl.comptr.lib
+  kotek.core.defines.static.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.static.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.enum.render.vk/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.constants.math/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.enum.render.dx/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.constants.ecs/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.array/CMakeLists.txt
+  main_core_constants_math_dll.cpp
+  main_core_containers_array_dll.cpp
+  main_core_enum_render_vk_dll.cpp
+  main_core_constants_ecs_dll.cpp
+  main_core_enum_render_dx_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.microsoft/CMakeLists.txt
+  kotek.core.containers.io.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.io.lib
+  main_core_containers_microsoft_dll.cpp
+  kotek.core.containers.multithreading.tbb.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.tbb.lib
+  kotek.core.containers.microsoft.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.microsoft.lib
+  kotek.core.constants.math.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.constants.math.lib
+  kotek.core.constants.ecs.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.constants.ecs.lib
+  kotek.core.enum.render.dx.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.enum.render.dx.lib
+  kotek.core.enum.render.vk.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.enum.render.vk.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.constants/CMakeLists.txt
+  main_core_constants_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.enum.render.bgfx/CMakeLists.txt
+  kotek.core.containers.array.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.array.lib
+  main_core_enum_render_bgfx_dll.cpp
+  kotek_translation.cpp
+  kotek.core.constants.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.constants.lib
+  kotek.core.enum.render.bgfx.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.enum.render.bgfx.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.enum.render.gl/CMakeLists.txt
+  main_core_enum_render_gl_dll.cpp
+  kotek_translation.cpp
+  kotek.core.enum.render.gl.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.enum.render.gl.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.enum.render/CMakeLists.txt
+  kotek_translation.cpp
+  main_core_enum_render_dll.cpp
+  kotek.core.enum.render.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.enum.render.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.enum.core/CMakeLists.txt
+  kotek_translation.cpp
+  main_core_enum_core_dll.cpp
+  kotek_core_enum_core_test_translation.cpp
+  kotek.core.enum.core.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.enum.core.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.enum/CMakeLists.txt
+  main_core_enum_dll.cpp
+  kotek.core.enum.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.enum.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.ecs/CMakeLists.txt
+  main_core_ecs_dll.cpp
+  kotek.core.ecs.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.ecs.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.main_manager/CMakeLists.txt
+  kotek_main_manager.cpp
+  kotek_plugin_invoke.cpp
+  main_core_main_manager_dll.cpp
+  Generating Code...
+  kotek.core.main_manager.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.main_manager.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.engine_config/CMakeLists.txt
+  kotek_std_config.cpp
+  main_core_engine_config_dll.cpp
+  Generating Code...
+  kotek.core.engine_config.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.engine_config.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.log/CMakeLists.txt
+  main_core_log_dll.cpp
+  kotek.core.log.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.log.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.os.win32/CMakeLists.txt
+  main_core_os_win32_dll.cpp
+  kotek.core.os.win32.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.os.win32.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.os/CMakeLists.txt
+  main_core_os_dll.cpp
+  kotek.core.os.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.os.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.memory.cpu/CMakeLists.txt
+  main_core_memory_cpu_dll.cpp
+  kotek_std_memory.cpp
+  offsetAllocator.cpp
+  kotek.core.memory.cpu.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.memory.cpu.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.format/CMakeLists.txt
+  main_core_format_dll.cpp
+  kotek.core.format.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.format.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.vector/CMakeLists.txt
+  main_core_containers_vector_dll.cpp
+  kotek.core.containers.vector.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.vector.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.unordered_set/CMakeLists.txt
+  main_core_containers_unordered_set_dll.cpp
+  kotek.core.containers.unordered_set.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.unordered_set.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.unordered_map/CMakeLists.txt
+  main_core_containers_unordered_map_dll.cpp
+  kotek.core.containers.unordered_map.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.unordered_map.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.filesystem.path/CMakeLists.txt
+  main_core_containers_filesystem_path_dll.cpp
+  kotek.core.containers.filesystem.path.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.filesystem.path.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.dll/CMakeLists.txt
+  main_core_containers_dll_dll.cpp
+  kotek.core.containers.dll.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.dll.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.string/CMakeLists.txt
+  kotek_core_test_string.cpp
+  main_core_containers_string_dll.cpp
+  kotek_std_alias_string.cpp
+  Generating Code...
+  kotek.core.containers.string.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.string.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.casting.string/CMakeLists.txt
+  main_core_casting_string_dll.cpp
+  kotek_std_alias_casting.cpp
+  Generating Code...
+  kotek.core.casting.string.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.casting.string.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.casting.lexical/CMakeLists.txt
+  main_core_casting_lexical_dll.cpp
+  kotek.core.casting.lexical.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.casting.lexical.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.types.string/CMakeLists.txt
+  main_core_types_string_dll.cpp
+  kotek.core.types.string.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.types.string.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.api/CMakeLists.txt
+  main_api_dll.cpp
+  kotek.core.api.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.api.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines_dependent.ecs/CMakeLists.txt
+  main_core_defines_dependent_ecs_dll.cpp
+  kotek.core.defines_dependent.ecs.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines_dependent.ecs.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines_dependent.assert/CMakeLists.txt
+  main_core_defines_dependent_assert_dll.cpp
+  kotek.core.defines_dependent.assert.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines_dependent.assert.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines_dependent.message/CMakeLists.txt
+  main_core_defines_dependent_message_dll.cpp
+  kotek.core.defines_dependent.message.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines_dependent.message.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.ui.videoplayer.avif/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.window.glfw/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.json/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.list/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.filesystem/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.map/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.memory.gpu.vulkan/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.deque/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.types/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.input/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.os.linux/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines_dependent/CMakeLists.txt
+  main_ui_videoplayer_avif_dll.cpp
+  main_core_containers_list_dll.cpp
+  kotek_std_json.cpp
+  main_core_containers_deque_dll.cpp
+  kotek_ui_videoplayer.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.profilers.gpu/CMakeLists.txt
+  main_core_types_dll.cpp
+  main_core_defines_dependent_dll.cpp
+  kotek_input.cpp
+  kotek_std_window.cpp
+  main_core_memory_gpu_vulkan_dll.cpp
+  main_core_profilers_gpu_dll.cpp
+  main_core_containers_map_dll.cpp
+  kotek.core.types.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.types.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.casting/CMakeLists.txt
+  main_core_casting_dll.cpp
+  kotek_std_alias_filesystem.cpp
+  kotek.core.profilers.gpu.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.profilers.gpu.lib
+  kotek.core.containers.deque.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.deque.lib
+  kotek.core.containers.list.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.list.lib
+  main_core_os_linux_dll.cpp
+  kotek.core.containers.map.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.map.lib
+  kotek.core.os.linux.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.os.linux.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.queue/CMakeLists.txt
+  main_core_containers_queue_dll.cpp
+  kotek.core.casting.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.casting.lib
+  kotek.core.defines_dependent.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines_dependent.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.defines/CMakeLists.txt
+  kotek.core.containers.queue.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.queue.lib
+  main_core_defines_dll.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading.queue/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.utility/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.console/CMakeLists.txt
+  main_core_containers_multithreading_queue_dll.cpp
+  kotek_console.cpp
+  kotek_std_utility.cpp
+  main_core_containers_json_dll.cpp
+  kotek.core.containers.multithreading.queue.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.queue.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers.multithreading/CMakeLists.txt
+  main_core_containers_multithreading_dll.cpp
+  kotek.core.memory.gpu.vulkan.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.memory.gpu.vulkan.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.memory.gpu/CMakeLists.txt
+  main_core_memory_gpu_dll.cpp
+  kotek.core.defines.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.defines.lib
+  kotek.core.containers.multithreading.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.multithreading.lib
+  Generating Code...
+  main_core_containers_filesystem_dll.cpp
+  kotek.core.containers.json.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.json.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.filesystem.file_text/CMakeLists.txt
+  kotek_file_text.cpp
+  Generating Code...
+  main_core_input_dll.cpp
+  main_core_window_glfw_dll.cpp
+  kotek.ui.videoplayer.avif.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.ui.videoplayer.avif.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.ui.videoplayer/CMakeLists.txt
+  main_ui_videoplayer_dll.cpp
+  kotek.ui.videoplayer.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.ui.videoplayer.lib
+  kotek.core.memory.gpu.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.memory.gpu.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.memory/CMakeLists.txt
+  main_core_memory_dll.cpp
+  kotek_std_utility_tests.cpp
+  main_core_filesystem_file_text_dll.cpp
+  main_core_console_dll.cpp
+  Generating Code...
+  kotek.core.containers.filesystem.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.filesystem.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.containers/CMakeLists.txt
+  main_core_containers_dll.cpp
+  Generating Code...
+  kotek.core.filesystem.file_text.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.filesystem.file_text.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.filesystem/CMakeLists.txt
+  kotek_filesystem.cpp
+  kotek_core_test_input.cpp
+  kotek.core.memory.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.memory.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.profilers.cpu/CMakeLists.txt
+  Generating Code...
+  main_core_profilers_cpu_dll.cpp
+  kotek.core.window.glfw.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.window.glfw.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.window/CMakeLists.txt
+  kotek_window_console.cpp
+  kotek.core.profilers.cpu.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.profilers.cpu.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.profilers/CMakeLists.txt
+  kotek_profiler.cpp
+  main_core_utility_dll.cpp
+  Generating Code...
+  kotek.core.console.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.console.lib
+  kotek.core.containers.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.containers.lib
+  kotek_filesystem_native.cpp
+  main_core_window_dll.cpp
+  Generating Code...
+  kotek.core.input.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.input.lib
+  main_core_profilers_dll.cpp
+  Generating Code...
+  kotek.core.utility.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.utility.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.math/CMakeLists.txt
+  kotek_core_test_math.cpp
+  Generating Code...
+  kotek_filesystem_zlib.cpp
+  kotek.core.window.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.window.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core.window_manager/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.ui.rmlui/CMakeLists.txt
+  kotek_window_manager.cpp
+  kotek_ui_game_ui_manager.cpp
+  Generating Code...
+  kotek.core.profilers.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.profilers.lib
+  kotek_std_math_vector1f.cpp
+  kotek_std_math_vector2f.cpp
+  main_core_window_manager_dll.cpp
+  main_ui_rmlui_dll.cpp
+  kotek_virtualfilemapper.cpp
+  kotek_std_math_vector3f.cpp
+  kotek_std_math_vector4f.cpp
+  Generating Code...
+  kotek.core.window_manager.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.window_manager.lib
+  Generating Code...
+  kotek.ui.rmlui.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.ui.rmlui.lib
+  main_core_filesystem_dll.cpp
+  kotek_std_math_matrix2x2_f.cpp
+  kotek_std_math_matrix3x3_f.cpp
+  kotek_std_math_matrix4x4_f.cpp
+  Generating Code...
+  Auto build dll exports
+     Creating library D:/prj/cpp/zircon/build-m5b/lib/Debug/kotek.core.filesystem.lib and object D:/prj/cpp/zircon/build-m5b/lib/Debug/kotek.core.filesystem.exp
+  kotek.core.filesystem.vcxproj -> D:\prj\cpp\zircon\build-m5b\bin\Debug\kotek.core.filesystem.dll
+  kotek_std_math_vectornf_view.cpp
+  kotek_std_math_matrixnf_view.cpp
+  main_core_math_dll.cpp
+  Generating Code...
+D:\prj\cpp\zircon\kotek\src\kotek.core.math\include\kotek_std_math_matrix_3x3_f.h(395,1): warning C4717: 'Kotek::ktk::math::operator*': recursive on all control paths, function will cause runtime stack overflow [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.core.math\kotek.core.math.vcxproj]
+D:\prj\cpp\zircon\kotek\src\kotek.core.math\src\kotek_std_math_matrix3x3_f.cpp(222,1): warning C4717: 'Kotek::ktk::math::matrix3x3f::operator+=': recursive on all control paths, function will cause runtime stack overflow [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.core.math\kotek.core.math.vcxproj]
+D:\prj\cpp\zircon\kotek\src\kotek.core.math\src\kotek_std_math_matrix3x3_f.cpp(305,1): warning C4717: 'Kotek::ktk::math::matrix3x3f::operator-=': recursive on all control paths, function will cause runtime stack overflow [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.core.math\kotek.core.math.vcxproj]
+D:\prj\cpp\zircon\kotek\src\kotek.core.math\src\kotek_std_math_matrix3x3_f.cpp(341,1): warning C4717: 'Kotek::ktk::math::matrix3x3f::operator*=': recursive on all control paths, function will cause runtime stack overflow [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.core.math\kotek.core.math.vcxproj]
+D:\prj\cpp\zircon\kotek\src\kotek.core.math\src\kotek_std_math_matrix2x2_f.cpp(330,1): warning C4717: 'Kotek::ktk::math::matrix2x2f::operator-=': recursive on all control paths, function will cause runtime stack overflow [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.core.math\kotek.core.math.vcxproj]
+D:\prj\cpp\zircon\kotek\src\kotek.core.math\src\kotek_std_math_matrix2x2_f.cpp(239,1): warning C4717: 'Kotek::ktk::math::matrix2x2f::operator+=': recursive on all control paths, function will cause runtime stack overflow [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.core.math\kotek.core.math.vcxproj]
+D:\prj\cpp\zircon\kotek\src\kotek.core.math\src\kotek_std_math_matrix2x2_f.cpp(398,1): warning C4717: 'Kotek::ktk::math::matrix2x2f::operator*=': recursive on all control paths, function will cause runtime stack overflow [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.core.math\kotek.core.math.vcxproj]
+  kotek.core.math.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.math.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.ui.imgui/CMakeLists.txt
+  kotek_ui_imgui_context_manager.cpp
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.core/CMakeLists.txt
+  main_core_dll.cpp
+  kotek_core_test_filesystem.cpp
+  kotek_core_test_json.cpp
+  kotek_core_test_string.cpp
+  kotek_core_test_container_deque.cpp
+  kotek_core_test_container_vector.cpp
+  kotek_core_test_container_unordered_set.cpp
+  kotek_core_test_container_unordered_map.cpp
+  kotek_core_test_container_set.cpp
+  kotek_core_test_container_queue.cpp
+  kotek_core_test_container_map.cpp
+  kotek_core_test_container_list.cpp
+  imgui_impl_dx9.cpp
+  imgui_impl_dx10.cpp
+  imgui_impl_dx11.cpp
+  imgui_impl_dx12.cpp
+  imgui_impl_glfw.cpp
+  imgui_impl_opengl2.cpp
+  imgui_impl_opengl3.cpp
+  imgui_impl_vulkan.cpp
+  imgui_impl_win32.cpp
+  imgui.cpp
+  kotek.core.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.core.lib
+  imgui_demo.cpp
+  Generating zircon_editor_enums.h using zircon_generator
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.software/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.bgfx/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.shared.dx/CMakeLists.txt
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.26200.
+  -- KOTEK_DEPS_FOLDER = vcpkg
+  -- KOTEK_NUGET_PLATFORM_NAME = Win11
+  -- KOTEK_NUGET_COMPILER_NAME = Msvc
+  -- KOTEK_NUGET_ARCH_BIT_NUMBER = x64
+  -- CMAKE_BINARY_DIR = D:/prj/cpp/zircon/build-m5b/zircon_tools/$<CONFIG>
+  -- D:/prj/cpp/zircon/src/tools/cpp_generators/ecs_fields_generator
+  -- nuget_clang_folder = Kotek.Packages.Clang.Vcpkg.Runtimes.Win11.Msvc.x64.18.1.6
+  -- nuget_openssl_folder = Kotek.Packages.OpenSSL.Vcpkg.Runtimes.Win11.Msvc.x64.3.5.0
+  -- nuget_zlib_folder = Kotek.Packages.zlib.Vcpkg.Runtimes.Win11.Msvc.x64.1.3.1
+  -- nuget_zstd_folder = Kotek.Packages.Zstd.Vcpkg.Runtimes.Win11.Msvc.x64.1.5.7
+  [zircon_generator][nuget]: package clang exists!
+  [zircon_generator][nuget]: package openssl exists!
+  [zircon_generator][nuget]: package zlib exists!
+  [zircon_generator][nuget]: package zstd exists!
+  -- LLVM libraries: 
+  -- Found LLVM 
+  -- LLVM include path: 
+  -- LLVM library path: 
+  -- 
+  [zircon_generator]: zstd package included directory
+  [zircon_generator][Debug]: adding zstd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zstd.lib to not Debug configurations
+  [zircon_generator]: zlib package included directory
+  [zircon_generator][Debug]: adding zlibd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zlib.lib to not Debug configurations
+  [zircon_generator]: openssl package included directory
+  [zircon_generator][Debug]: adding libcrypto.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libcrypto.lib to not Debug configurations
+  [zircon_generator]: clang package included directory
+  [zircon_generator][Debug]: adding libclang.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libclang.lib to not Debug configuration
+  -- Configuring done (0.0s)
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.shared.vk/CMakeLists.txt
+  -- Generating done (0.1s)
+  -- Build files have been written to: D:/prj/cpp/zircon/build-m5b/zircon_tools
+  cmake_pch.cxx
+  cmake_pch.cxx
+  imgui_draw.cpp
+  cmake_pch.cxx
+  MSBuild-Version 18.8.2+ce25c0108 f├╝r .NET Framework
+  cmake_pch.cxx
+  
+  imgui_tables.cpp
+    1>Checking Build System
+    Building Custom Rule D:/prj/cpp/zircon/src/tools/cpp_generators/ecs_fields_generator/CMakeLists.txt
+  imgui_widgets.cpp
+    zircon_generator.vcxproj -> D:\prj\cpp\zircon\build-m5b\zircon_tools\Debug\zircon_generator.exe
+    copying dlls after compilation of zircon_generator
+  kotek_ui_imgui_wrapper.cpp
+    Building Custom Rule D:/prj/cpp/zircon/src/tools/cpp_generators/ecs_fields_generator/CMakeLists.txt
+  argv=..\..\zircon_tools\Debug\zircon_generator | strcmp=1
+  argv=--type | strcmp=0
+  Found type!
+  type = 1
+  what_to_generate: 1
+  Generating sdk fields!
+  sdk_src_dir = D:/prj/cpp/zircon/src/editor/ui
+  output_file = D:/prj/cpp/zircon/src/core/zircon_editor_enums.h
+  SDK window enum file generated: D:/prj/cpp/zircon/src/core/zircon_editor_enums.h
+  File was generated successfully!
+  Building Custom Rule D:/prj/cpp/zircon/src/core/CMakeLists.txt
+  cmake_pch.cxx
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.shared.bgfx/CMakeLists.txt
+  cmake_pch.cxx
+  main_ui_imgui_dll.cpp
+  main_render_software_dll.cpp
+  main_render_shared_dx_dll.cpp
+  kotek.render.software.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.software.lib
+  kotek.render.shared.dx.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.shared.dx.lib
+  main_render_shared_vk_dll.cpp
+  kotek.render.shared.vk.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.shared.vk.lib
+  kotek_render_shader_manager.cpp
+  kotek_render_texture_manager.cpp
+  kotek_render_resource_manager.cpp
+  kotek_render_buffer.cpp
+  kotek_render_geometry_manager.cpp
+  kotek_render_device.cpp
+  kotek_render_swapchain.cpp
+  main_render_bgfx_dll.cpp
+  kotek_render_static_buffer_pool.cpp
+  kotek_render_static_buffer_pool_with_linear_allocator.cpp
+  kotek_render_allocator_ring_with_tabs.cpp
+  kotek_render_allocator_ring.cpp
+  Auto build dll exports
+     Creating library D:/prj/cpp/zircon/build-m5b/lib/Debug/kotek.render.bgfx.lib and object D:/prj/cpp/zircon/build-m5b/lib/Debug/kotek.render.bgfx.exp
+  kotek_render_graph_simplified.cpp
+  kotek_render_graph_simplified_render_pass.cpp
+  kotek_render_data_types.cpp
+  main_render_shared_bgfx_dll.cpp
+  main_core_dll.cpp
+  zircon_config.cpp
+  zircon_editor_ui_state_interface.cpp
+  zircon_session.cpp
+  kotek.render.bgfx.vcxproj -> D:\prj\cpp\zircon\build-m5b\bin\Debug\kotek.render.bgfx.dll
+  Generating Code...
+  kotek.render.shared.bgfx.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.shared.bgfx.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.shared.gl/CMakeLists.txt
+  cmake_pch.cxx
+  zircon.core.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.core.lib
+  Building zircon_generator
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.26200.
+  -- KOTEK_DEPS_FOLDER = vcpkg
+  -- KOTEK_NUGET_PLATFORM_NAME = Win11
+  -- KOTEK_NUGET_COMPILER_NAME = Msvc
+  -- KOTEK_NUGET_ARCH_BIT_NUMBER = x64
+  -- CMAKE_BINARY_DIR = D:/prj/cpp/zircon/build-m5b/zircon_tools/$<CONFIG>
+  -- D:/prj/cpp/zircon/src/tools/cpp_generators/ecs_fields_generator
+  -- nuget_clang_folder = Kotek.Packages.Clang.Vcpkg.Runtimes.Win11.Msvc.x64.18.1.6
+  -- nuget_openssl_folder = Kotek.Packages.OpenSSL.Vcpkg.Runtimes.Win11.Msvc.x64.3.5.0
+  -- nuget_zlib_folder = Kotek.Packages.zlib.Vcpkg.Runtimes.Win11.Msvc.x64.1.3.1
+  -- nuget_zstd_folder = Kotek.Packages.Zstd.Vcpkg.Runtimes.Win11.Msvc.x64.1.5.7
+  [zircon_generator][nuget]: package clang exists!
+  [zircon_generator][nuget]: package openssl exists!
+  [zircon_generator][nuget]: package zlib exists!
+  [zircon_generator][nuget]: package zstd exists!
+  -- LLVM libraries: 
+  -- Found LLVM 
+  -- LLVM include path: 
+  -- LLVM library path: 
+  -- 
+  [zircon_generator]: zstd package included directory
+  [zircon_generator][Debug]: adding zstd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zstd.lib to not Debug configurations
+  [zircon_generator]: zlib package included directory
+  [zircon_generator][Debug]: adding zlibd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zlib.lib to not Debug configurations
+  [zircon_generator]: openssl package included directory
+  [zircon_generator][Debug]: adding libcrypto.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libcrypto.lib to not Debug configurations
+  [zircon_generator]: clang package included directory
+  [zircon_generator][Debug]: adding libclang.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libclang.lib to not Debug configuration
+  -- Configuring done (0.0s)
+  -- Generating done (0.2s)
+  -- Build files have been written to: D:/prj/cpp/zircon/build-m5b/zircon_tools
+  MSBuild-Version 18.8.2+ce25c0108 f├╝r .NET Framework
+  
+  kotek.ui.imgui.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.ui.imgui.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.ui/CMakeLists.txt
+    zircon_generator.vcxproj -> D:\prj\cpp\zircon\build-m5b\zircon_tools\Debug\zircon_generator.exe
+    copying dlls after compilation of zircon_generator
+  main_ui_dll.cpp
+  argv=..\..\zircon_tools\Debug\zircon_generator | strcmp=1
+  argv=--type | strcmp=0
+  Found type!
+  type = 0
+  what_to_generate: 0
+  Generating ecs fields!
+  --src = D:/prj/cpp/zircon/src/ecs
+  --kotek_src = D:/prj/cpp/zircon/src/ecs/../../kotek/src/kotek.core.defines_dependent.ecs/include/
+  --output = D:/prj/cpp/zircon/src/ecs/zircon_component_fields.h
+  File was generated successfully!
+  Building Custom Rule D:/prj/cpp/zircon/src/ecs/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.vk/CMakeLists.txt
+  cmake_pch.cxx
+  kotek.ui.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.ui.lib
+  cmake_pch.cxx
+  kotek_render_graph_simplified_types.cpp
+  kotek_render_graph_simplified_types_input.cpp
+  kotek_render_graph_simplified_types_output.cpp
+  kotek_render_graph_simplified.cpp
+  kotek_render_graph_simplified_render_pass.cpp
+  kotek_render_shader_manager.cpp
+  kotek_render_buffer.cpp
+  kotek_render_geometry_manager.cpp
+  kotek_render_data_types.cpp
+  main_render_shared_gl_dll.cpp
+  kotek.render.shared.gl.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.shared.gl.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.shared/CMakeLists.txt
+  cmake_pch.cxx
+  kotek_render_allocator_ring.cpp
+  kotek_render_command_list_ring.cpp
+  zircon_component_sdk_scene_name.cpp
+  kotek_render_device.cpp
+  zircon_component_sdk_camera.cpp
+  zircon_component_sdk_input.cpp
+  zircon_component_camera.cpp
+  zircon_component_input.cpp
+  zircon_component_transform.cpp
+  zircon_component_geometry.cpp
+  zircon_component_actor.cpp
+  zircon_component_terrain_cbt.cpp
+  zircon_component_terrain_static.cpp
+  zircon_component_terrain_gcm.cpp
+  zircon_component_frustum.cpp
+  zircon_component_bounding_sphere.cpp
+  zircon_component_ui_surface.cpp
+  zircon_component_ui_camera.cpp
+  zircon_component_animation.cpp
+  kotek_render_device_properties.cpp
+  kotek_render_instance_properties.cpp
+  kotek_render_swapchain.cpp
+  kotek_render_resource_manager.cpp
+  kotek_render_static_buffer_pool.cpp
+  kotek_render_static_buffer_pool_with_linear_allocator.cpp
+  kotek_render_resource_view_heap.cpp
+  kotek_render_dynamic_buffer_ring.cpp
+  kotek_render_upload_heap.cpp
+  kotek_render_imgui_manager.cpp
+  kotek_render_texture_manager.cpp
+  kotek_render_shader_manager.cpp
+  kotek_render_shader_cache_manager.cpp
+  main_ecs_dll.cpp
+  zircon_factory.cpp
+  zircon_component_interface.cpp
+  kotek_render_graph.cpp
+  kotek_render_graph_resource_manager.cpp
+  kotek_render_graph_builder.cpp
+  kotek_render_graph_data_types.cpp
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_imgui_manager.cpp(216,45): warning C4838: conversion from 'VkDeviceSize' to 'Kotek::ktk::uint32_t' requires a narrowing conversion [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_imgui_manager.cpp')
+  
+  kotek_render_test_shader_manager.cpp
+  kotek_render_test_render_device.cpp
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x133 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x136 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x139 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x13d that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x141 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x143 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x146 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x14a that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x14b that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x14f that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x152 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x155 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x158 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x15b that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x15e that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x161 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x165 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x169 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x16c that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x16f that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x177 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x17a that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x17d that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_shader_manager.cpp(1,1): warning C4828: The file contains a character starting at offset 0x181 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_shader_manager.cpp')
+  
+  kotek_render_test_swapchain.cpp
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0xfa that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0xfd that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x100 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x104 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x108 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x10a that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x10d that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x111 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x112 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x116 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x119 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x11c that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x11f that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x122 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x125 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x128 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x12c that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x130 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x133 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x136 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x13e that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x141 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x144 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+D:\prj\cpp\zircon\kotek\src\kotek.render.vk\src\kotek_render_test_render_device.cpp(1,1): warning C4828: The file contains a character starting at offset 0x148 that is not valid in the current source character set (codepage 65001). [D:\prj\cpp\zircon\build-m5b\kotek\src\kotek.render.vk\kotek.render.vk.vcxproj]
+  (compiling source file '../../../kotek/src/kotek.render.vk/src/kotek_render_test_render_device.cpp')
+  
+  kotek_render_helper_device.cpp
+  kotek_render_helper_debug.cpp
+  kotek_render_helper_stats.cpp
+  spirv_reflect.cpp
+  main_render_vk_dll.cpp
+D:\prj\cpp\zircon\src\ecs\zircon_factory.cpp(345,1): warning C4715: 'zircon_factory::is_valid_entity': not all control paths return a value [D:\prj\cpp\zircon\build-m5b\src\ecs\zircon.ecs.vcxproj]
+  zircon.ecs.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.ecs.lib
+  Building Custom Rule D:/prj/cpp/zircon/src/world/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/src/editor/ui/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/src/editor/commands/CMakeLists.txt
+  cmake_pch.cxx
+  cmake_pch.cxx
+  cmake_pch.cxx
+  kotek.render.vk.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.vk.lib
+  kotek_render_data_types.cpp
+  main_render_shared_dll.cpp
+  kotek.render.shared.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.shared.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render.gl/CMakeLists.txt
+  cmake_pch.cxx
+  main_editor_dll.cpp
+  zircon_command_history.cpp
+  zircon_command_add_component_to_entity.cpp
+  zircon_command_delete_component_from_entity.cpp
+  zircon_command_create_entity.cpp
+  zircon_command_delete_entity.cpp
+  main_editor_dll.cpp
+  zircon_editor_ui_state.cpp
+  zircon_ui_top_bar.cpp
+  zircon_ui_object_list.cpp
+  zircon_ui_window_game.cpp
+  zircon_ui_window_animation.cpp
+  zircon_ui_window_sound.cpp
+  zircon_ui_window_log.cpp
+  zircon_ui_window_prefab.cpp
+  zircon_ui_window_prefab_browser.cpp
+  zircon_ui_component_inspector.cpp
+  zircon_ui_window_history_command_log.cpp
+  zircon_ui_window_render_stats.cpp
+  zircon_ui_window_settings.cpp
+  zircon_ui_window_debug_input.cpp
+  main_world_dll.cpp
+  zircon_world.cpp
+  zircon_world_manager.cpp
+  zircon.editor.ui.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.editor.ui.lib
+  zircon.editor.commands.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.editor.commands.lib
+  kotek_render_texture_manager.cpp
+  kotek_render_resource_manager.cpp
+  zircon.world.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.world.lib
+  kotek_render_device.cpp
+  Building Custom Rule D:/prj/cpp/zircon/src/game/session/CMakeLists.txt
+  Building Custom Rule D:/prj/cpp/zircon/src/editor/session/CMakeLists.txt
+  kotek_render_swapchain.cpp
+  cmake_pch.cxx
+  cmake_pch.cxx
+  main_render_gl_dll.cpp
+  kotek_render_static_buffer_pool.cpp
+  kotek_render_static_buffer_pool_with_linear_allocator.cpp
+  kotek_render_allocator_ring_with_tabs.cpp
+  kotek_render_allocator_ring.cpp
+  kotek.render.gl.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.gl.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.render/CMakeLists.txt
+  cmake_pch.cxx
+  main_editor_dll.cpp
+  zircon_session_editor.cpp
+  zircon_session_editor_manager.cpp
+  main_game_dll.cpp
+  zircon_session_game.cpp
+  zircon_session_game_manager.cpp
+  zircon.game.session.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.game.session.lib
+  Building Custom Rule D:/prj/cpp/zircon/src/game/CMakeLists.txt
+  cmake_pch.cxx
+  zircon.editor.session.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.editor.session.lib
+  Building Custom Rule D:/prj/cpp/zircon/src/editor/CMakeLists.txt
+  cmake_pch.cxx
+  main_render_dll.cpp
+  kotek.render.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.render.lib
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.game/CMakeLists.txt
+  cmake_pch.cxx
+  main_game_dll.cpp
+  zircon_asset_manager.cpp
+  main_editor_dll.cpp
+  zircon_asset_manager.cpp
+  zircon.game.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.game.lib
+  zircon.editor.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.editor.lib
+  generating render = no_streaming
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.26200.
+  -- KOTEK_DEPS_FOLDER = vcpkg
+  -- KOTEK_NUGET_PLATFORM_NAME = Win11
+  -- KOTEK_NUGET_COMPILER_NAME = Msvc
+  -- KOTEK_NUGET_ARCH_BIT_NUMBER = x64
+  -- CMAKE_BINARY_DIR = D:/prj/cpp/zircon/build-m5b/zircon_tools/$<CONFIG>
+  -- D:/prj/cpp/zircon/src/tools/cpp_generators/ecs_fields_generator
+  -- nuget_clang_folder = Kotek.Packages.Clang.Vcpkg.Runtimes.Win11.Msvc.x64.18.1.6
+  -- nuget_openssl_folder = Kotek.Packages.OpenSSL.Vcpkg.Runtimes.Win11.Msvc.x64.3.5.0
+  -- nuget_zlib_folder = Kotek.Packages.zlib.Vcpkg.Runtimes.Win11.Msvc.x64.1.3.1
+  -- nuget_zstd_folder = Kotek.Packages.Zstd.Vcpkg.Runtimes.Win11.Msvc.x64.1.5.7
+  -- LLVM libraries: 
+  -- Found LLVM 
+  -- LLVM include path: 
+  -- LLVM library path: 
+  -- 
+  [zircon_generator][nuget]: package clang exists!
+  [zircon_generator][nuget]: package openssl exists!
+  [zircon_generator][nuget]: package zlib exists!
+  [zircon_generator][nuget]: package zstd exists!
+  [zircon_generator]: zstd package included directory
+  [zircon_generator][Debug]: adding zstd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zstd.lib to not Debug configurations
+  [zircon_generator]: zlib package included directory
+  [zircon_generator][Debug]: adding zlibd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zlib.lib to not Debug configurations
+  [zircon_generator]: openssl package included directory
+  [zircon_generator][Debug]: adding libcrypto.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libcrypto.lib to not Debug configurations
+  [zircon_generator]: clang package included directory
+  [zircon_generator][Debug]: adding libclang.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libclang.lib to not Debug configuration
+  -- Configuring done (0.0s)
+  -- Generating done (0.1s)
+  -- Build files have been written to: D:/prj/cpp/zircon/build-m5b/zircon_tools
+  MSBuild-Version 18.8.2+ce25c0108 f├╝r .NET Framework
+  
+    zircon_generator.vcxproj -> D:\prj\cpp\zircon\build-m5b\zircon_tools\Debug\zircon_generator.exe
+    copying dlls after compilation of zircon_generator
+  argv=..\..\zircon_tools\Debug\zircon_generator | strcmp=1
+  argv=--type | strcmp=0
+  Found type!
+  type = 2
+  what_to_generate: 2
+  Generating renderer passes enums!
+  File was generated successfully!
+  Building Custom Rule D:/prj/cpp/zircon/src/render/CMakeLists.txt
+  cmake_pch.cxx
+  kotek_update.cpp
+  kotek_window_splash.cpp
+  main_game_dll.cpp
+  kotek.game.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\kotek.game.lib
+  zircon_render_graph_pass.cpp
+  zircon_render_graph_pass_editor.cpp
+  zircon_renderer.cpp
+  zircon_render_resource_manager.cpp
+  zircon_render_graph_pass_imgui.cpp
+  zircon_render_graph_pass_present.cpp
+  zircon_render_graph_pass_model_static.cpp
+  zircon_render_graph_pass_terrain.cpp
+  zircon_render_graph_pass_debug.cpp
+  zircon_render_graph_pass_editor_imgui.cpp
+  zircon_render_graph_pass_editor_present.cpp
+  zircon_render_graph_pass_editor_model_static.cpp
+  zircon_render_graph_pass_editor_debug.cpp
+  zircon_render_graph_pass_editor_grid.cpp
+  zircon_render_graph_pass_editor_camera.cpp
+  zircon_renderer.cpp
+  zircon_render_resource_manager.cpp
+  zircon_render_graph_pass_imgui.cpp
+  zircon_render_graph_pass_present.cpp
+  zircon_render_graph_pass_model_static.cpp
+  zircon_render_graph_pass_terrain.cpp
+  zircon_render_graph_pass_debug.cpp
+  zircon_render_graph_pass.cpp
+  zircon_render_graph_pass_editor_imgui.cpp
+  zircon_render_graph_pass_editor_present.cpp
+  zircon_render_graph_pass_editor_model_static.cpp
+  zircon_render_graph_pass_editor_debug.cpp
+  zircon_render_graph_pass_editor_grid.cpp
+  zircon_render_graph_pass_editor_camera.cpp
+  zircon_render_graph_pass_editor.cpp
+  main_render_dll.cpp
+  zircon_render_graph_pass_console.cpp
+  zircon.render.vcxproj -> D:\prj\cpp\zircon\build-m5b\lib\Debug\zircon.render.lib
+  Building Custom Rule D:/prj/cpp/zircon/src/engine/CMakeLists.txt
+  cmake_pch.cxx
+  zircon_game_manager.cpp
+  zircon_resource_manager.cpp
+  main_game_dll.cpp
+  zircon_unit_tests_game.cpp
+  zircon_unit_tests_editor.cpp
+D:\prj\cpp\zircon\src\engine\main_game_dll.cpp(72,6): warning C4273: 'InitializeModule_Game': inconsistent dll linkage [D:\prj\cpp\zircon\build-m5b\src\engine\zircon.vcxproj]
+  (compiling source file '../../../src/engine/main_game_dll.cpp')
+      D:\prj\cpp\zircon\src\engine\zircon_game.h(40,36):
+      see previous definition of 'InitializeModule_Game'
+  
+D:\prj\cpp\zircon\src\engine\main_game_dll.cpp(126,6): warning C4273: 'ShutdownModule_Game': inconsistent dll linkage [D:\prj\cpp\zircon\build-m5b\src\engine\zircon.vcxproj]
+  (compiling source file '../../../src/engine/main_game_dll.cpp')
+      D:\prj\cpp\zircon\src\engine\zircon_game.h(42,36):
+      see previous definition of 'ShutdownModule_Game'
+  
+D:\prj\cpp\zircon\src\engine\main_game_dll.cpp(157,6): warning C4273: 'UpdateModule_Game': inconsistent dll linkage [D:\prj\cpp\zircon\build-m5b\src\engine\zircon.vcxproj]
+  (compiling source file '../../../src/engine/main_game_dll.cpp')
+      D:\prj\cpp\zircon\src\engine\zircon_game.h(44,36):
+      see previous definition of 'UpdateModule_Game'
+  
+D:\prj\cpp\zircon\src\engine\main_game_dll.cpp(243,6): warning C4273: 'InitializeModule_Render': inconsistent dll linkage [D:\prj\cpp\zircon\build-m5b\src\engine\zircon.vcxproj]
+  (compiling source file '../../../src/engine/main_game_dll.cpp')
+      D:\prj\cpp\zircon\src\engine\zircon_game.h(46,36):
+      see previous definition of 'InitializeModule_Render'
+  
+D:\prj\cpp\zircon\src\engine\zircon_resource_manager.h(350,1): warning C4067: unexpected tokens following preprocessor directive - expected a newline [D:\prj\cpp\zircon\build-m5b\src\engine\zircon.vcxproj]
+  (compiling source file '../../../src/engine/zircon_game_manager.cpp')
+  
+D:\prj\cpp\zircon\src\engine\zircon_resource_manager.h(350,1): warning C4067: unexpected tokens following preprocessor directive - expected a newline [D:\prj\cpp\zircon\build-m5b\src\engine\zircon.vcxproj]
+  (compiling source file '../../../src/engine/zircon_unit_tests_game.cpp')
+  
+D:\prj\cpp\zircon\src\engine\zircon_resource_manager.h(350,1): warning C4067: unexpected tokens following preprocessor directive - expected a newline [D:\prj\cpp\zircon\build-m5b\src\engine\zircon.vcxproj]
+  (compiling source file '../../../src/engine/zircon_resource_manager.cpp')
+  
+     Creating library D:/prj/cpp/zircon/build-m5b/lib/Debug/game.lib and object D:/prj/cpp/zircon/build-m5b/lib/Debug/game.exp
+  zircon.vcxproj -> D:\prj\cpp\zircon\build-m5b\bin\Debug\game.ktk
+  Building Custom Rule D:/prj/cpp/zircon/kotek/src/kotek.exe/CMakeLists.txt
+  entry_point.cpp
+  kotek.vcxproj -> D:\prj\cpp\zircon\build-m5b\bin\Debug\kotek.exe
+  Building Custom Rule D:/prj/cpp/zircon/CMakeLists.txt

@@ -59,8 +59,7 @@ void zircon_renderer_gles3::Initialize(kotek::core::ktkWindowConsole* p_console,
 	this->initialize_extensions(p_con);
 
 	this->m_p_render_resource_manager =
-		dynamic_cast<Kotek::Render::gl::ktkRenderResourceManager*>(
-			this->m_p_main_manager->GetRenderResourceManager());
+		this->m_p_main_manager->GetRenderResourceManager();
 }
 
 void zircon_renderer_gles3::Shutdown(void)

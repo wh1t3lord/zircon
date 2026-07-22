@@ -131,11 +131,24 @@ namespace no_streaming
 
 		if (is_imgui_enabled)
 		{
-			IMGUI_CHECKVERSION();
-
 			if (this->m_p_imgui_wrapper)
 			{
+				this->m_p_imgui_wrapper->DebugCheckVersionAndDataLayout(
+					IMGUI_VERSION,
+					sizeof(ImGuiIO),
+					sizeof(ImGuiStyle),
+					sizeof(ImVec2),
+					sizeof(ImVec4),
+					sizeof(ImDrawVert),
+					sizeof(ImDrawIdx));
+
 				this->m_p_imgui_wrapper->CreateContext();
+
+				// the editor context is the default one for the imgui
+				// multithreading context manager (model 1: single UI thread)
+				this->m_p_imgui_wrapper->Get_ContextManager()
+					->AdoptDefaultContext(
+						this->m_p_imgui_wrapper->GetCurrentContext());
 
 				this->m_p_imgui_wrapper->GetIO().ConfigFlags |=
 					ImGuiConfigFlags_NavEnableKeyboard;
@@ -178,25 +191,28 @@ namespace no_streaming
 				int32_t width;
 				int32_t height;
 				{
-					ImFontConfig config;
+					ImFontConfig config =
+						this->m_p_imgui_wrapper->ImFontConfig_Create();
 					config.FontDataOwnedByAtlas = false;
 					config.MergeMode = false;
 					//			config.MergeGlyphCenterV = true;
 
 					const ImWchar* ranges =
-						this->m_p_imgui_wrapper->GetIO()
-							.Fonts->GetGlyphRangesCyrillic();
+						this->m_p_imgui_wrapper->FontAtlas_GetGlyphRangesCyrillic(
+							this->m_p_imgui_wrapper->GetIO().Fonts);
 
-					m_font[0] = this->m_p_imgui_wrapper->GetIO()
-									.Fonts->AddFontFromMemoryTTF(
-										(void*)s_robotoRegularTtf,
-										sizeof(s_robotoRegularTtf), 18.0f,
-										&config, ranges);
-					m_font[1] = this->m_p_imgui_wrapper->GetIO()
-									.Fonts->AddFontFromMemoryTTF(
-										(void*)s_robotoMonoRegularTtf,
-										sizeof(s_robotoMonoRegularTtf),
-										18.0f - 3.0f, &config, ranges);
+					m_font[0] =
+						this->m_p_imgui_wrapper->FontAtlas_AddFontFromMemoryTTF(
+							this->m_p_imgui_wrapper->GetIO().Fonts,
+							(void*)s_robotoRegularTtf,
+							sizeof(s_robotoRegularTtf), 18.0f,
+							&config, ranges);
+					m_font[1] =
+						this->m_p_imgui_wrapper->FontAtlas_AddFontFromMemoryTTF(
+							this->m_p_imgui_wrapper->GetIO().Fonts,
+							(void*)s_robotoMonoRegularTtf,
+							sizeof(s_robotoMonoRegularTtf),
+							18.0f - 3.0f, &config, ranges);
 
 					config.MergeMode = true;
 					config.DstFont = m_font[0];
@@ -206,14 +222,16 @@ namespace no_streaming
 					{
 						const FontRangeMerge& frm = s_fontRangeMerge[ii];
 
-						this->m_p_imgui_wrapper->GetIO()
-							.Fonts->AddFontFromMemoryTTF((void*)frm.data,
-								(int)frm.size, 18.0f - 3.0f, &config,
-								frm.ranges);
+						this->m_p_imgui_wrapper->FontAtlas_AddFontFromMemoryTTF(
+							this->m_p_imgui_wrapper->GetIO().Fonts,
+							(void*)frm.data,
+							(int)frm.size, 18.0f - 3.0f, &config,
+							frm.ranges);
 					}
 				}
 
-				this->m_p_imgui_wrapper->GetIO().Fonts->GetTexDataAsRGBA32(
+				this->m_p_imgui_wrapper->FontAtlas_GetTexDataAsRGBA32(
+					this->m_p_imgui_wrapper->GetIO().Fonts,
 					&data, &width, &height);
 
 				this->m_texture = bgfx::createTexture2D((uint16_t)width,

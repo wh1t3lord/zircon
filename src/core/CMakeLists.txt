@@ -52,6 +52,6 @@ source_group("Module" FILES ${to_include_module_files})
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DKOTEK_MODULE_GAME)
 
-target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
+kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.core)

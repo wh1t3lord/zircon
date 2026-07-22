@@ -251,7 +251,7 @@ source_group("BGFX/Passes/OS" FILES ${to_include_shared_os})
 
 source_group("Module" FILES ${to_include_module_files})
 
-target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
+kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
@@ -259,3 +259,8 @@ kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render)
+# render glue shared with the backends (pass bases, simplified graphs,
+# gl shader/geometry/buffer managers) — static leaves, linked directly
+# even in PLUGIN mode
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render.shared.gl)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render.shared.bgfx)

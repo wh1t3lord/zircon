@@ -1,6 +1,7 @@
 #include "zircon_game.h"
 #include "zircon_game_manager.h"
 #include <kotek.render/include/kotek_render.h>
+#include <kotek.core.main_manager/include/kotek_plugin_invoke.h>
 #include "../editor/ui/zircon_editor_ui_state.h"
 #include "../editor/session/zircon_session_editor.h"
 #include "../editor/session/zircon_session_editor_manager.h"
@@ -143,7 +144,8 @@ bool ShutdownModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 #endif
 	}
 
-	Kotek::Render::ShutdownModule_Render(p_main_manager);
+	KOTEK_INVOKE_MODULE_SHUTDOWN_NS(
+		Kotek::Render::, ShutdownModule_Render, p_main_manager);
 
 	g_main_manager.Shutdown(p_main_manager);
 
@@ -168,7 +170,7 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 	}
 	else
 	{
-		Kotek::Core::ktkConsole* p_console =
+		Kotek::Core::ktkIConsole* p_console =
 			p_main_manager->GetGameManager()->GetConsole();
 
 		auto* p_game_manager =
@@ -248,7 +250,8 @@ bool InitializeModule_Render(kotek::core::ktkMainManager* p_main_manager)
 	}
 
 	DeserializeRendererConfig(p_main_manager);
-	kotek::render::InitializeModule_Render(p_main_manager);
+	KOTEK_INVOKE_MODULE_INIT_NS(
+		kotek::render::, InitializeModule_Render, p_main_manager);
 
 	g_main_manager.Initialize(p_main_manager);
 	DeserializeModule_Game(p_main_manager);
