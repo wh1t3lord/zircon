@@ -26,7 +26,6 @@ enum class eZirconGameFeatures : kotek::ktk::uint16_t;
 enum class eZirconSDKFeatures : kotek::ktk::uint16_t;
 
 class zircon_editor_command_history;
-class zircon_renderer_gles3;
 class zircon_resource_manager;
 class zircon_config;
 class zircon_factory;
@@ -54,17 +53,9 @@ class zircon_game_manager : public kotek::core::ktkIGameManager
 {
 	union renderers_t
 	{
-#ifdef KOTEK_USE_VULKAN
-
-#endif
-
 #ifdef KOTEK_USE_BGFX
 		zircon_renderer_bgfx* p_bgfx;
 #endif
-
-		// todo: add preprocessor in order to determine if GLES
-		// is used by engine
-		zircon_renderer_gles3* p_gles3;
 	};
 
 public:

@@ -17,8 +17,9 @@ void zircon_render_graph_pass_console::OnCreateResources(
 }
 
 void zircon_render_graph_pass_console::OnUpdate(
-	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
-		p_previous_pass)
+	const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
+		p_previous_pass,
+	kotek::ktk::uint32_t my_id_in_queue)
 {
 	if (this->m_p_console)
 	{
@@ -27,7 +28,8 @@ void zircon_render_graph_pass_console::OnUpdate(
 }
 
 void zircon_render_graph_pass_console::OnRender(
-	const kotek::render::gl::ktkRenderGraphSimplifiedRenderPass*
-		p_previous_pass)
+	const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
+		p_previous_pass,
+	kotek::ktk::uint32_t my_id_in_queue)
 {
 }

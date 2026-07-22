@@ -5,89 +5,10 @@ project(zircon.render VERSION 1 LANGUAGES CXX)
 
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
-### VULKAN
-set(to_include_vulkan_files
-	"vk/zircon_renderer.cpp"
-	"vk/zircon_renderer.h"
-	"vk/zircon_render_resource_manager.h"
-	"vk/zircon_render_resource_manager.cpp")
-
-set(to_include_vulkan_passes_files
-	"vk/zircon_render_graph_pass_imgui.h"
-	"vk/zircon_render_graph_pass_imgui.cpp"
-	"vk/zircon_render_graph_pass_mesh.h"
-	"vk/zircon_render_graph_pass_mesh.cpp"
-	"vk/zircon_render_graph_pass_present.h"
-	"vk/zircon_render_graph_pass_present.cpp")
-### VULKAN
-
-### OPENGL
-set(to_include_opengl3_3_implementation_files
-	"gl3_3/zircon_renderer.h"
-	"gl3_3/zircon_renderer.cpp"
-	"gl3_3/zircon_render_resource_manager.h"
-	"gl3_3/zircon_render_resource_manager.cpp")
-
-set(to_include_opengl3_3_passes_files
-	"gl3_3/zircon_render_graph_pass_imgui.h"
-	"gl3_3/zircon_render_graph_pass_imgui.cpp"
-	"gl3_3/zircon_render_graph_pass_present.h"
-	"gl3_3/zircon_render_graph_pass_present.cpp"
-	"gl3_3/zircon_render_graph_pass_model.cpp"
-	"gl3_3/zircon_render_graph_pass_model.h"
-	"gl3_3/zircon_render_graph_pass_terrain.h"
-	"gl3_3/zircon_render_graph_pass_terrain.cpp"
-)
-### OPENGL
-
-### OpenGL ES
-set(to_include_opengles3_implementation_files
-	"gles3/zircon_renderer.h"
-	"gles3/zircon_renderer.cpp"
-	"gles3/zircon_render_resource_manager.h"
-	"gles3/zircon_render_resource_manager.cpp"
-)
-
-set(to_include_opengles3_game_passes_no_streaming_files
-	"gles3/passes/no_streaming/zircon_render_graph_pass_imgui.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_imgui.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_present.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_present.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_model_static.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_model_static.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_terrain.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_terrain.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_debug.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_debug.cpp"
-)
-
-set(to_include_opengles3_editor_passes_no_streaming_files
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_imgui.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_present.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_present.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_model_static.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_debug.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_grid.cpp"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_camera.h"
-	"gles3/passes/no_streaming/zircon_render_graph_pass_editor_camera.cpp"
-)
-
-set(to_include_opengles3_editor_pass_interface
-	"gles3/zircon_render_graph_pass_editor.h"
-	"gles3/zircon_render_graph_pass_editor.cpp"
-)
-
-set(to_include_opengles3_game_pass_interface
-	"gles3/zircon_render_graph_pass.h"
-	"gles3/zircon_render_graph_pass.cpp"
-)
-
-
-### OpenGL ES
+# render backends: bgfx (raster) is the only built-in one; NRI (dx12/vk +
+# ray tracing) is planned and gets its own folder with the same two-project
+# split (passes + executor). gles3/vk were removed (2026-07-22, owner
+# decision).
 
 ### BGFX
 
@@ -139,11 +60,6 @@ set(to_include_bgfx_editor_passes_no_streaming_files
 ### BGFX
 
 ### shaders
-file(GLOB to_include_shaders_gles
-	"../../data_game/shaders/glsl/gles3/*.vert"
-	"../../data_game/shaders/glsl/gles3/*.frag"
-)
-
 file(GLOB to_include_shaders_bgfx
 	"../../data_game/shaders/bgfx/*.frag"
 	"../../data_game/shaders/bgfx/*.vert"
@@ -158,18 +74,9 @@ set(to_include_shared_os
 )
 ###
 
-set(to_include_module_files 
+set(to_include_module_files
 	"zircon_render.h"
 	"main_render_dll.cpp"
-)
-
-set(to_include_passes_files_opengles3 
-	${to_include_opengles3_game_passes_no_streaming_files}
-	${to_include_opengles3_editor_passes_no_streaming_files}
-)
-
-set(to_include_passes_vulkan
-	"todo: include and merge other like I did to_include_passes_files_opengles3"
 )
 
 set(to_include_bgfx
@@ -181,18 +88,7 @@ set(to_include_bgfx
 	${to_include_shaders_bgfx}
 )
 
-set(to_include_opengles3
-	${to_include_opengles3_game_pass_interface}
-	${to_include_opengles3_editor_pass_interface}
-	${to_include_opengles3_implementation_files}
-	${to_include_passes_files_opengles3}
-)
-
 kotek_add_library(${PROJECT_NAME}
-#	${to_include_vulkan_files}
-#	${to_include_vulkan_passes_files}
-	${to_include_shaders_gles}
-	${to_include_opengles3}
 	${to_include_bgfx}
 	${to_include_module_files}
 	${to_include_shared_os}
@@ -209,8 +105,8 @@ endif()
 
 add_custom_command(
 	TARGET ${PROJECT_NAME}
-	PRE_BUILD 
-	COMMAND ${CMAKE_COMMAND} 
+	PRE_BUILD
+	COMMAND ${CMAKE_COMMAND}
 		-S ${CMAKE_SOURCE_DIR}/src/tools/cpp_generators/ecs_fields_generator
 		-B ${CMAKE_BINARY_DIR}/zircon_tools
 		-DKOTEK_DEPS_FOLDER=${KOTEK_DEPS_FOLDER}
@@ -226,20 +122,6 @@ add_custom_command(
     COMMENT "generating render = no_streaming"
 )
 
-
-# TODO: restore Vulkan when Vulkan development comes
-#source_group("Vulkan/Implementation" FILES ${to_include_vulkan_files})
-#source_group("Vulkan/Passes" FILES ${to_include_vulkan_passes_files})
-#source_group("Vulkan/Passes/RTX" FILES ${to_include_vulkan_editor_passes_rtx_no_streaming_files})
-source_group("OpenGL/3.3/Implementation" FILES ${to_include_opengl3_3_implementation_files})
-source_group("OpenGL/3.3/Passes" FILES ${to_include_opengl3_3_passes_files})
-source_group("OpenGL ES/3/Implementation" FILES ${to_include_opengles3_implementation_files})
-source_group("OpenGL ES/3/Passes/Game/No Streaming" FILES ${to_include_opengles3_game_passes_no_streaming_files})
-source_group("OpenGL ES/3/Passes/Game/Interfaces" FILES ${to_include_opengles3_game_pass_interface})
-source_group("OpenGL ES/3/Passes/Editor/No Streaming" FILES ${to_include_opengles3_editor_passes_no_streaming_files})
-source_group("OpenGL ES/3/Passes/Editor/Interfaces" FILES ${to_include_opengles3_editor_pass_interface})
-source_group("OpenGL ES/3/Shaders" FILES ${to_include_shaders_gles})
-source_group("OpenGL ES/3/Passes/OS" FILES ${to_include_shared_os})
 
 source_group("BGFX/Implementation" FILES ${to_include_bgfx_implementation_files})
 source_group("BGFX/Passes/Game/No Streaming" FILES ${to_include_bgfx_game_passes_no_streaming_files})
@@ -259,8 +141,6 @@ kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render)
-# render glue shared with the backends (pass bases, simplified graphs,
-# gl shader/geometry/buffer managers) — static leaves, linked directly
-# even in PLUGIN mode
-kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render.shared.gl)
+# render glue shared with the bgfx backend (pass bases, simplified graph) —
+# static leaf, linked directly even in PLUGIN mode
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render.shared.bgfx)

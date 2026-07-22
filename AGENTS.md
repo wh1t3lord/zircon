@@ -140,6 +140,17 @@ non-existent target name in some configs — verify when touching root CMake (ta
 - CMake: repeated `# TODO: add if when game.ktk builds as shared` in 10+ module
   CMakeLists; root `add_dependencies(kotek zircon)` suspicious.
 - `zircon_config.h` TODO: replace raw char buffers with `static_cstring_t`.
+- **OPEN RUNTIME BUG (2026-07-23, needs native debugger)**: segfault in
+  `zircon_game_manager::RegisterConsole_Commands` at the FIRST
+  `Register_Command` (id=3), inside the store to the console's command map.
+  Forensics so far: console object address sane (`this` and `&m_storage`
+  both valid heap addresses ~1 MB apart — the object is huge because of the
+  console queue member); reproduces with BOTH etl static and std dynamic
+  maps; NOT the memory leak tracker (disabled it via
+  `KOTEK_USE_MEMORY_TRACKER` and it still crashes); window manager and
+  console pointers valid. Next step: run under a native debugger (VS/WinDbg)
+  to get the exact faulting instruction — no cdb available on the
+  2026-07-22/23 session box.
 
 ## 6. Task Registry (owner's tasks — update status as work happens)
 
@@ -147,8 +158,10 @@ non-existent target name in some configs — verify when touching root CMake (ta
 |----|------|--------|-------|
 | Z1 | Fix compilation issues (whole solution, default config) | done (2026-07-21) | full Debug build green; see §5 CRT/imgui notes + PICO factory gaps below |
 | Z2 | Formulate style & philosophy | done (2026-07-21) | §2 of this file; refine as owner corrects |
-| Z3 | Render restructure: DELETE `render/vk` + `render/gles3`; split `render/bgfx` into TWO projects — (a) passes (dynamic/hot-swappable), (b) render graph + resource manager executor; validate hot-reload of pass library (see §7 verdict) | open | passes lib must be reload-safe: destroy passes BEFORE unload, recreate after |
+| Z3 | Render restructure: split `render/bgfx` into TWO projects — (a) passes (dynamic/hot-swappable), (b) render graph + resource manager executor; validate hot-reload of pass library (see §7 verdict) | open | vk/gles3 deletion part DONE (see Z10); split + hot-reload pending; passes lib must be reload-safe: destroy passes BEFORE unload, recreate after |
 | Z4 | Document codebase style (preprocessors, memory allocation patterns) | done (2026-07-21) | §2/§3; keep in sync with reality |
+| Z10 | gles3/vk backend removal (owner directive) | done (2026-07-22) | `src/render/{gles3,vk}` deleted; `src/render/CMakeLists.txt` rewritten bgfx-only; `zircon_renderer_bgfx` is the only renderer (union member `p_gles3` + all vk/gles3 branches excised from `zircon_game_manager`); `validate_extensions` (dead GL-era) removed; os console pass retargeted to the bgfx pass base (OnUpdate/OnRender signature updated with `my_id_in_queue`) |
+| Z11 | Runtime boot chain (kotek.exe runs from repo root) | in-progress (2026-07-23) | FIXED: STD-mode `ktkJson::Get` stub (kotek bug, config never parsed in STD); `dll::shared_library` move semantics; `program_location` (game.ktk resolves next to exe); stray `KOTEK_ASSERT(false)` removed from `Initialize_ResourceManager` (blocked the NEW impl below it); window-console stub assert → warning; world now initialized with factory after `create_world` (was never initialized → session assert); `--kotek_frames=N` smoke flag added (config parses it; zircon loop breaks after N); splash busy-wait bounded. VERIFIED: boots through render init (bgfx D3D11), console, renderer. OPEN: splash thread can hang main-window init (create windows on main thread only); SEGFAULT at the first `RegisterConsole_Commands`'s store (see §5) |
 | Z5 | Passes for editor AND game, for bgfx AND NRI; NRI gets own folder, same two-project split (passes + executor) | open | depends on kotek K11 (NRI backend) |
 | Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | open | see §7 verdict + §5 truncation points |
 | Z7 | Enforce static-container/`ktk`-alias rule consistently across `src/` | open | violation list in §5 |

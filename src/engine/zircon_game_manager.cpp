@@ -1,4 +1,6 @@
 #include "zircon_game_manager.h"
+#include <cstdio>
+
 #include "../ecs/zircon_factory.h"
 #include "zircon_resource_manager.h"
 #include "../world/zircon_world_manager.h"
@@ -27,20 +29,7 @@
 	#include "../editor/commands/zircon_command_add_component_to_entity.h"
 #endif
 
-// gles3
-#include "../render/gles3/zircon_renderer.h"
-
-#ifdef KOTEK_USE_SDK_IMGUI
-	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
-	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
-	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
-	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
-	#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_editor_present.h"
-#endif
-
-#include "../render/gles3/passes/no_streaming/zircon_render_graph_pass_present.h"
-
-// gles3
+// gles3/vk backends were removed (2026-07-22); bgfx is the raster backend
 
 // bgfx
 #ifdef KOTEK_USE_BGFX
@@ -58,7 +47,6 @@
 #endif
 // bgfx
 
-#include "../render/vk/zircon_renderer.h"
 #include "../core/zircon_config.h"
 #include "../core/zircon_console.h"
 #include "../world/zircon_world.h"
@@ -674,6 +662,20 @@ void zircon_game_manager::Initialize(
 		p_world, "can't allocate world or something else"
 	);
 
+	// a created world is not initialized by default — initialize it with
+	// the factory so it gets a live ecs context (sessions assert on it)
+	if (p_world)
+	{
+		p_world->initialize(
+			"game",
+			this->m_p_config,
+			this->m_p_console,
+			this->m_p_main_manager->Get_Input(),
+			this->m_p_factory,
+			ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT
+		);
+	}
+
 #ifdef KOTEK_USE_SDK_IMGUI
 	kotek::uint8_t session_editor_id =
 		this->m_p_session_editor_manager->create_session();
@@ -798,36 +800,9 @@ void zircon_game_manager::Initialize(
 					else
 					{
 						KOTEK_ASSERT(
-							this->m_renderers.p_gles3,
-							"must be iniitialized"
+							false,
+							"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 						);
-
-						if (this->m_renderers.p_gles3)
-						{
-							kotek::static_vector_t<
-								kotek::render::gl::
-									ktkRenderGraphSimplifiedRenderPass*,
-								KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
-								passes = {
-									new no_streaming::
-										zircon_render_graph_pass_editor_present_gles3(
-										),
-									new no_streaming::
-										zircon_render_graph_pass_editor_model_static_gles3(
-										),
-									new no_streaming::
-										zircon_render_graph_pass_editor_imgui_gles3(
-										)
-								};
-
-							render_graph_id =
-								this->m_renderers.p_gles3
-									->create_render_graph(
-										session_editor_id,
-										false,
-										passes
-									);
-						}
 					}
 
 					break;
@@ -941,27 +916,10 @@ void zircon_game_manager::Initialize(
 			}
 			else
 			{
-				kotek::static_vector_t<
-					kotek::render::gl::
-						ktkRenderGraphSimplifiedRenderPass*,
-					KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
-					passes = {
-						new no_streaming::
-							zircon_render_graph_pass_present_gles3(
-							)
-					};
-
 				KOTEK_ASSERT(
-					this->m_renderers.p_gles3, "must be valid"
+					false,
+					"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 				);
-
-				KOTEK_ASSERT(p_session_game, "must be valid!");
-
-				render_graph_id =
-					this->m_renderers.p_gles3
-						->create_render_graph(
-							session_game_id, true, passes
-						);
 			}
 
 			break;
@@ -1265,67 +1223,9 @@ void* zircon_game_manager::CreateSurface(
 	if (is_vk_initialized)
 	{
 		KOTEK_ASSERT(
-			this->m_p_main_manager->Get_WindowManager()
-				->Get_ActiveWindow(),
-			"you must initialize window"
+			false,
+			"vulkan backend was removed (2026-07-22), bgfx is the only raster backend"
 		);
-
-		VkInstance p_casted_instance =
-			static_cast<VkInstance>(p_instance);
-		const VkAllocationCallbacks* p_casted_callbacks =
-			static_cast<const VkAllocationCallbacks*>(
-				p_callbacks
-			);
-
-		KOTEK_ASSERT(p_casted_instance, "must be valid");
-
-		VkSurfaceKHR p_surface = nullptr;
-#ifdef KOTEK_USE_SDK
-		// TODO: fix this when you will test SDK
-		if (this->m_p_sdk_render_window)
-		{
-	#ifdef KOTEK_PLATFORM_WINDOWS
-			VkWin32SurfaceCreateInfoKHR info = {};
-
-			info.sType =
-				VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-			info.hwnd = static_cast<HWND>(
-				this->m_p_sdk_render_window->GetHWND()
-			);
-			info.hinstance = GetModuleHandle(nullptr);
-
-			VkResult status = vkCreateWin32SurfaceKHR(
-				p_casted_instance, &info, nullptr, &p_surface
-			);
-
-			KOTEK_ASSERT(
-				status == VkResult::VK_SUCCESS,
-				"failed to vkCreateWin32SurfaceKHR"
-			);
-	#elif KOTEK_PLATFORM_LINUX
-			KOTEK_ASSERT(false, "not implemented");
-	#endif
-		}
-		else
-#endif
-		{
-			VkResult status = glfwCreateWindowSurface(
-				p_casted_instance,
-				static_cast<GLFWwindow*>(
-					this->m_p_main_manager->Get_WindowManager()
-						->ActiveWindow_GetHandle()
-				),
-				p_casted_callbacks,
-				&p_surface
-			);
-
-			KOTEK_ASSERT(
-				status == VkResult::VK_SUCCESS,
-				"failed to glfwCreateWindowSurface"
-			);
-		}
-
-		return p_surface;
 	}
 
 	return nullptr;
@@ -1516,21 +1416,9 @@ void zircon_game_manager::initialize_render_graph(
 		else
 		{
 			KOTEK_ASSERT(
-				this->m_renderers.p_gles3,
-				"renderer for gles 3.0 wasn't initialized"
+				false,
+				"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 			);
-
-			if (this->m_renderers.p_gles3)
-			{
-				this->m_renderers.p_gles3
-					->initialize_render_graph(
-						render_graph_id,
-						p_main_manager,
-						p_render_resource_manager,
-						this->m_p_session_game_manager,
-						this->m_p_session_editor_manager
-					);
-			}
 		}
 
 		break;
@@ -1589,17 +1477,9 @@ bool zircon_game_manager::is_render_graph_initialized(
 		else
 		{
 			KOTEK_ASSERT(
-				this->m_renderers.p_gles3,
-				"renderer for gles 3.0 wasn't initialized"
+				false,
+				"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 			);
-
-			if (this->m_renderers.p_gles3)
-			{
-				result = this->m_renderers.p_gles3
-							 ->is_render_graph_initialized(
-								 render_graph_id
-							 );
-			}
 		}
 
 		break;
@@ -1744,14 +1624,10 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 					 kEngine_Feature_Renderer_Vulkan_SpecifiedByUser
 			 ))
 	{
-#ifdef KOTEK_USE_RENDER_VULKAN
-		this->m_p_renderer_vk = new Render::vk::zircon_Renderer(
-			*this->m_p_main_manager
+		KOTEK_ASSERT(
+			false,
+			"vulkan backend was removed (2026-07-22), bgfx is the only raster backend"
 		);
-
-		this->m_p_renderer_vk->Initialize(elements);
-		this->m_p_current_renderer = this->m_p_renderer_vk;
-#endif
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 kotek::core::eEngineFeatureRenderer::
@@ -1806,19 +1682,10 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 			}
 			else
 			{
-				this->m_renderers.p_gles3 =
-					new zircon_renderer_gles3(
-						this->m_p_main_manager
-					);
-
-				this->m_renderers.p_gles3->Initialize(
-					this->m_p_window_console,
-					this->m_p_console,
-					this->m_p_session_game_manager,
-					this->m_p_session_editor_manager
+				KOTEK_ASSERT(
+					false,
+					"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 				);
-				this->m_p_current_renderer =
-					this->m_renderers.p_gles3;
 			}
 
 			break;
@@ -1884,12 +1751,10 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 					 kEngine_Feature_Renderer_Vulkan_SpecifiedByUser
 			 ))
 	{
-#ifdef KOTEK_USE_RENDER_VULKAN
-		KOTEK_ASSERT(this->m_p_renderer_vk, "must be valid");
-
-		delete this->m_p_renderer_vk;
-		this->m_p_renderer_vk = nullptr;
-#endif
+		KOTEK_ASSERT(
+			false,
+			"vulkan backend was removed (2026-07-22), bgfx is the only raster backend"
+		);
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 kotek::core::eEngineFeatureRenderer::
@@ -1928,11 +1793,9 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 		else
 		{
 			KOTEK_ASSERT(
-				this->m_renderers.p_gles3, "must be valid"
+				false,
+				"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 			);
-
-			delete this->m_renderers.p_gles3;
-			this->m_renderers.p_gles3 = nullptr;
 		}
 	}
 	else if (p_engine_config->IsFeatureEnabled(
@@ -1967,18 +1830,6 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 		);
 	}
 
-	KOTEK_ASSERT(
-		this->m_renderers.p_gles3 == nullptr,
-		"you can't have two initialized renderers at once!"
-	);
-
-#ifdef KOTEK_USE_RENDER_VULKAN
-	KOTEK_ASSERT(
-		this->m_p_renderer_vk == nullptr,
-		"you can't have two initialized renderers at once!"
-	);
-#endif
-
 	this->m_p_current_renderer = nullptr;
 }
 
@@ -1999,8 +1850,6 @@ void zircon_game_manager::Initialize_ResourceManager(void
 	this->m_p_main_manager->SetResourceManager(
 	    this->m_p_resource_manager);
 	    */
-
-	KOTEK_ASSERT(false, "todo: re-write please");
 
 	this->m_p_resource_manager = new zircon_resource_manager();
 
@@ -2556,18 +2405,9 @@ void zircon_game_manager::RegisterConsole_Commands(void
 				else
 				{
 					KOTEK_ASSERT(
-						this->m_renderers.p_gles3,
-						"must be initialized"
+						false,
+						"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 					);
-
-					if (this->m_renderers.p_gles3)
-					{
-						this->m_renderers.p_gles3
-							->set_current_render_graph(
-								p_session_game
-									->get_render_graph_id()
-							);
-					}
 				}
 
 				break;
@@ -2659,18 +2499,9 @@ void zircon_game_manager::RegisterConsole_Commands(void
 				else
 				{
 					KOTEK_ASSERT(
-						this->m_renderers.p_gles3,
-						"must be initialized"
+						false,
+						"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 					);
-
-					if (this->m_renderers.p_gles3)
-					{
-						this->m_renderers.p_gles3
-							->set_current_render_graph(
-								p_session_editor
-									->get_render_graph_id()
-							);
-					}
 				}
 
 				break;
@@ -2826,100 +2657,9 @@ void zircon_game_manager::RegisterConsole_Commands(void
 			else
 			{
 				KOTEK_ASSERT(
-					this->m_renderers.p_gles3,
-					"must be initialized"
+					false,
+					"gles3 backend was removed (2026-07-22), bgfx is the only raster backend"
 				);
-
-				if (this->m_renderers.p_gles3)
-				{
-#ifdef KOTEK_DEBUG
-					if (this->m_p_current_session->get_type() ==
-					    eZirconSessionType::kEditor)
-					{
-						zircon_session_editor*
-							p_casted_session = static_cast<
-								zircon_session_editor*>(
-								this->m_p_current_session
-							);
-
-						if (p_casted_session)
-						{
-							KOTEK_ASSERT(
-								this->m_renderers.p_gles3
-									->is_render_graph_for_session_editor(
-										p_casted_session
-											->get_render_graph_id(
-											)
-									),
-								"you assign different type of "
-								"render graph to "
-								"editor session! You must "
-								"specify that render "
-								"graph is editor session "
-								"otherwise it is "
-								"threated "
-								"for production quality "
-								"(optimized)"
-							);
-							KOTEK_ASSERT(
-								this->m_renderers.p_gles3
-									->is_render_graph_for_session_editor(
-										render_graph_id
-									),
-								"current session is editor but "
-								"requested "
-								"render "
-								"graph was created for game "
-								"session!"
-							);
-						}
-					}
-					else
-					{
-						zircon_session_game* p_casted_session =
-							static_cast<zircon_session_game*>(
-								this->m_p_current_session
-							);
-
-						if (p_casted_session)
-						{
-							KOTEK_ASSERT(
-								this->m_renderers.p_gles3
-									->is_render_graph_for_session_game(
-										p_casted_session
-											->get_render_graph_id(
-											)
-									),
-								"you assign different type of "
-								"render graph to "
-								"game "
-								"session! You must specify "
-								"that render graph "
-								"is "
-								"game session otherwise it is "
-								"threated for "
-								"editor "
-								"quality (not optimized)"
-							);
-							KOTEK_ASSERT(
-								this->m_renderers.p_gles3
-									->is_render_graph_for_session_game(
-										render_graph_id
-									),
-								"current session is game but "
-								"requested render "
-								"graph was created for editor "
-								"session!"
-							);
-						}
-					}
-#endif
-
-					this->m_renderers.p_gles3
-						->set_current_render_graph(
-							render_graph_id
-						);
-				}
 			}
 
 			break;

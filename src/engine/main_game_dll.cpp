@@ -144,8 +144,7 @@ bool ShutdownModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 #endif
 	}
 
-	KOTEK_INVOKE_MODULE_SHUTDOWN_NS(
-		Kotek::Render::, ShutdownModule_Render, p_main_manager);
+	KOTEK_INVOKE_MODULE(SHUTDOWN, RENDER, ShutdownModule_Render, p_main_manager);
 
 	g_main_manager.Shutdown(p_main_manager);
 
@@ -180,6 +179,11 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 			p_main_manager->Get_WindowManager();
 
 		auto* p_renderer = p_game_manager->GetRenderer();
+
+		// --kotek_frames=N (smoke testing / CI): exit the loop after N frames
+		kotek::uint32_t frames_executed{};
+		const kotek::uint32_t frames_limit =
+			p_main_manager->Get_EngineConfig()->Get_FramesLimit();
 
 		while (p_main_manager->Get_EngineConfig()->IsApplicationWorking())
 		{
@@ -236,6 +240,14 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 #ifdef KOTEK_USE_CPU_PROFILER
 			p_main_manager->GetProfiler()->FrameMark();
 #endif
+
+			if (frames_limit && (++frames_executed >= frames_limit))
+			{
+				KOTEK_MESSAGE(
+					"exiting after {} frames (--kotek_frames)",
+					frames_executed);
+				break;
+			}
 		}
 	}
 }
@@ -250,8 +262,7 @@ bool InitializeModule_Render(kotek::core::ktkMainManager* p_main_manager)
 	}
 
 	DeserializeRendererConfig(p_main_manager);
-	KOTEK_INVOKE_MODULE_INIT_NS(
-		kotek::render::, InitializeModule_Render, p_main_manager);
+	KOTEK_INVOKE_MODULE(INIT, RENDER, InitializeModule_Render, p_main_manager);
 
 	g_main_manager.Initialize(p_main_manager);
 	DeserializeModule_Game(p_main_manager);
