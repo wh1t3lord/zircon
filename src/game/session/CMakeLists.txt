@@ -34,5 +34,5 @@ source_group("Session" FILES ${to_include_session_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
-target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)

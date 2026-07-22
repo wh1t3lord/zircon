@@ -112,6 +112,11 @@ non-existent target name in some configs — verify when touching root CMake (ta
   `bgfx|gles3/zircon_render_resource_manager.h` marked `todo: delete`;
   `zircon_renderer_bgfx::Get_Name` returns the GLES3 name; `Add_PassesEditor/Game`
   commented out; CMake has stale `gl3_3` lists.
+- **Linkage scenarios (2026-07-22)**: kotek implements the three output modes
+  (`KOTEK_LINKAGE=STATIC|SHARED|PLUGIN` — see kotek/AGENTS.md §5a). Zircon
+  modules participate via `kotek_add_library`; the cyclic editor cluster
+  (Z9) blocks zircon from full SHARED/PLUGIN — until Z9 is done, force it
+  static: `-DKOTEK_LINKAGE_FORCE_STATIC="zircon.editor.commands;zircon.editor.session;zircon.editor.ui"`.
 - ECS: `zircon_factory.cpp` has `#error todo: provide impl` branches; broken comment
   at `zircon_component_geometry.cpp:198`.
 - **PICO factory filled-in during Z1 (owner review wanted)**:

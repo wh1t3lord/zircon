@@ -72,6 +72,13 @@ add_subdirectory("src/editor/session")
 add_subdirectory("src/engine")
 add_subdirectory("src/render")
 add_subdirectory("src/world")
+
+# PLUGIN mode: finalize erased-edge usage for the zircon layer too (kotek's
+# own pass already ran at the end of kotek/CMakeLists.txt)
+if (COMMAND kotek_finalize_plugin_links)
+	kotek_finalize_plugin_links()
+endif()
+
 add_dependencies(${KOTEK_ENGINE_ROOT_FOLDER_NAME} zircon)
 
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${KOTEK_PROJECT_NAME_OVERRIDE_KOTEK})

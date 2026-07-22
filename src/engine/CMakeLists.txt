@@ -68,10 +68,10 @@ source_group("Module" FILES ${to_include_module_files})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
-target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render)
-target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
-target_link_libraries(${PROJECT_NAME} PUBLIC kotek.ui)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.ui)
 
 set_target_properties(
     ${PROJECT_NAME}
