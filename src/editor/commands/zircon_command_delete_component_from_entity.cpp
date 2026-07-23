@@ -4,10 +4,6 @@
 #include "../session/zircon_session_editor_manager.h"
 #include "../../ecs/zircon_factory.h"
 
-// TODO: remove all cstring to static_cstring containers!!!
-// todo: validate that current world is remain same! because we
-// don't track it and we can handle different session with
-// different world...
 zircon_command_delete_component_from_entity::
 	zircon_command_delete_component_from_entity(
 		zircon_session_editor_manager* p_manager_session_editor,
@@ -18,9 +14,8 @@ zircon_command_delete_component_from_entity::
 	m_id{id},
 	m_p_manager_session_editor{p_manager_session_editor},
 	m_p_factory{p_factory},
-	m_p_component_name{p_component_string},
-	m_serialized_state_of_deleted_component{},
-	m_serialized_component_as_string{}, m_storage_json_memory{}
+	m_component_name{p_component_string},
+	m_serialized_state_of_deleted_component{}
 {
 	KOTEK_ASSERT(
 		this->m_p_manager_session_editor,
@@ -33,11 +28,11 @@ zircon_command_delete_component_from_entity::
 	);
 
 	KOTEK_ASSERT(
-		this->m_p_component_name,
+		p_component_string,
 		"you can't pass an empty string here"
 	);
 	KOTEK_ASSERT(
-		strlen(this->m_p_component_name),
+		strlen(p_component_string),
 		"string must not be an empty!"
 	);
 }
@@ -49,9 +44,8 @@ zircon_command_delete_component_from_entity::
 	) :
 	m_id{kotek::ktk::kInvalidECSEntity},
 	m_p_manager_session_editor{p_manager_session_editor},
-	m_p_factory{p_factory}, m_p_component_name{},
-	m_serialized_state_of_deleted_component{},
-	m_serialized_component_as_string{}, m_storage_json_memory{}
+	m_p_factory{p_factory}, m_component_name{},
+	m_serialized_state_of_deleted_component{}
 {
 	KOTEK_ASSERT(
 		this->m_p_manager_session_editor,
@@ -91,8 +85,7 @@ void zircon_command_delete_component_from_entity::Execute(void)
 	KOTEK_ASSERT(
 		p_session,
 		"failed to obtain session editor by id: {}",
-		this->m_p_manager_session_editor
-			->get_current_session_id()
+		this->m_p_manager_session_editor->get_current_session_id()
 	);
 
 	if (!p_session)
@@ -100,8 +93,8 @@ void zircon_command_delete_component_from_entity::Execute(void)
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session "
 			"editor#{}",
-			this->m_p_manager_session_editor
-				->get_current_session_id()
+			this->m_p_manager_session_editor->get_current_session_id(
+			)
 		);
 		return;
 	}
@@ -128,9 +121,7 @@ void zircon_command_delete_component_from_entity::Execute(void)
 
 	if (!this->m_p_factory)
 	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid factory"
-		);
+		KOTEK_MESSAGE_WARNING("failed to execute due to invalid factory");
 		return;
 	}
 
@@ -146,16 +137,33 @@ void zircon_command_delete_component_from_entity::Execute(void)
 
 	if (this->m_p_factory && p_world && p_world->get_ecs_context())
 	{
-		if (this->m_p_component_name)
+		if (this->m_component_name.empty() == false)
 		{
-			if (this->m_p_factory->is_valid_entity(p_world->get_ecs_context(), this->m_id))
+			if (this->m_p_factory->is_valid_entity(
+					p_world->get_ecs_context(), this->m_id
+				))
 			{
 				zircon_component_interface* p_component =
 					this->m_p_factory->get_component_by_name(
 						p_world->get_ecs_context(),
-						this->m_id, this->m_p_component_name
+						this->m_id,
+						this->m_component_name.c_str()
 					);
 
+				if (p_component == nullptr)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"[history] entity {} has no component "
+						"[{}], nothing to delete",
+						static_cast<kotek::uint32_t>(this->m_id.id),
+						this->m_component_name.c_str()
+					);
+					return;
+				}
+
+				// the delta (state before deletion) is captured
+				// eagerly so the journal entry is complete even
+				// if this object gets evicted from the live pool
 				this->m_serialized_state_of_deleted_component =
 					zircon_serialize_component(p_component);
 
@@ -163,14 +171,14 @@ void zircon_command_delete_component_from_entity::Execute(void)
 					p_world->get_ecs_context(),
 					this->m_id,
 					this->m_p_factory->get_component_enum_by_name(
-						this->m_p_component_name
+						this->m_component_name.c_str()
 					)
 				);
 
 				KOTEK_MESSAGE(
 					"[history] removed component by name: {} "
 					"in entity {}",
-					this->m_p_component_name,
+					this->m_component_name.c_str(),
 					this->m_id
 				);
 			}
@@ -201,8 +209,7 @@ void zircon_command_delete_component_from_entity::Undo(void)
 	KOTEK_ASSERT(
 		p_session,
 		"failed to obtain session editor by id: {}",
-		this->m_p_manager_session_editor
-			->get_current_session_id()
+		this->m_p_manager_session_editor->get_current_session_id()
 	);
 
 	if (!p_session)
@@ -210,8 +217,8 @@ void zircon_command_delete_component_from_entity::Undo(void)
 		KOTEK_MESSAGE_WARNING(
 			"failed to execute due to invalid session "
 			"editor#{}",
-			this->m_p_manager_session_editor
-				->get_current_session_id()
+			this->m_p_manager_session_editor->get_current_session_id(
+			)
 		);
 		return;
 	}
@@ -235,7 +242,7 @@ void zircon_command_delete_component_from_entity::Undo(void)
 		);
 		return;
 	}
-	
+
 	if (!this->m_p_factory)
 	{
 		KOTEK_MESSAGE_WARNING("failed to execute due to invalid factory");
@@ -244,7 +251,7 @@ void zircon_command_delete_component_from_entity::Undo(void)
 
 	if (this->m_p_factory)
 	{
-		if (this->m_p_component_name)
+		if (this->m_component_name.empty() == false)
 		{
 			if (this->m_p_factory->is_valid_entity(
 					p_world->get_ecs_context(), this->m_id
@@ -254,31 +261,36 @@ void zircon_command_delete_component_from_entity::Undo(void)
 					p_world->get_ecs_context(),
 					this->m_id,
 					this->m_p_factory->get_component_enum_by_name(
-						this->m_p_component_name
+						this->m_component_name.c_str()
 					)
 				);
 
 				auto* p_component =
 					this->m_p_factory->get_component_by_name(
 						p_world->get_ecs_context(),
-						this->m_id, this->m_p_component_name
+						this->m_id,
+						this->m_component_name.c_str()
 					);
 
-				this->m_p_factory->DeserializeComponent(
-					p_component,
-					this->m_serialized_state_of_deleted_component
-				);
+				if (p_component)
+				{
+					this->m_p_factory->DeserializeComponent(
+						p_component,
+						this->m_serialized_state_of_deleted_component
+					);
+				}
 
 				KOTEK_MESSAGE(
 					"[history][undo] restored component by "
 					"name: {} for entity {}",
-					this->m_p_component_name,
+					this->m_component_name.c_str(),
 					this->m_id
 				);
 			}
 		}
 	}
 }
+
 const char*
 zircon_command_delete_component_from_entity::GetName()
 {
@@ -299,7 +311,7 @@ void zircon_command_delete_component_from_entity::SetEntityID(
 	this->m_id = id;
 }
 
-Kotek::enum_base_t
+kotek::enum_base_t
 zircon_command_delete_component_from_entity::GetCommandType(
 ) noexcept
 {
@@ -314,451 +326,107 @@ zircon_command_delete_component_from_entity::Serialize(
 	Kotek::core::ktkFileHandleType file
 ) noexcept
 {
-	KOTEK_ASSERT(
-		file != Kotek::core::kInvalidFileHandleType,
-		"you must pass a valid resource handl"
+	KOTEK_MESSAGE_WARNING(
+		"[history][{}]: Serialize(file) is deprecated, the "
+		"journal uses Serialize_Delta instead",
+		this->GetName()
 	);
 
-	KOTEK_ASSERT(
-		this->m_p_manager_session_editor,
-		"should be initialzed game manager here"
-	);
+	(void)file;
 
-	if (!this->m_p_manager_session_editor)
-	{
-		KOTEK_MESSAGE_WARNING("failed to execute due to "
-		                      "invalid game manager pointer!");
-		return kotek::size_t(-1);
-	}
-
-	zircon_session_editor* p_session =
-		this->m_p_manager_session_editor->get_session(
-			this->m_p_manager_session_editor
-				->get_current_session_id()
-		);
-
-	KOTEK_ASSERT(
-		p_session,
-		"failed to obtain session editor by id: {}",
-		this->m_p_manager_session_editor
-			->get_current_session_id()
-	);
-
-	if (!p_session)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid session "
-			"editor#{}",
-			this->m_p_manager_session_editor
-				->get_current_session_id()
-		);
-		return kotek::size_t(-1);
-	}
-
-	zircon_world* p_world = p_session->get_world();
-
-	KOTEK_ASSERT(
-		p_world,
-		"failed to obtain world in session editor_{}#{}",
-		p_session->get_session_name(),
-		p_session->get_id()
-	);
-
-	if (!p_world)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid world in session "
-			"editor_{}#{}",
-			p_session->get_session_name(),
-			p_session->get_id()
-		);
-		return kotek::size_t(-1);
-	}
-
-	
-	if (!this->m_p_factory)
-	{
-		KOTEK_MESSAGE_WARNING("failed to execute due to invalid factory");
-		return kotek::size_t(-1);
-	}
-
-	KOTEK_ASSERT(
-		this->m_p_component_name,
-		"this must be initialized because it is issued as "
-		"command from "
-		"console"
-	);
-	KOTEK_ASSERT(
-		strlen(this->m_p_component_name), "must be not empty!"
-	);
-
-	KOTEK_ASSERT(
-		false,
-		"todo: re-write please also replace _file to FILE* "
-		"handle"
-	);
-
-	kotek::cfstream_t _file;
-
-	auto& object = this->m_serialized_state_of_deleted_component
-					   .get_object();
-
-	object
-		[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME] =
-			this->GetCommandType();
-	object
-		[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME] =
-			static_cast<kotek::uint32_t>(this->m_id.id);
-	object
-		[ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME] =
-			static_cast<kotek::enum_base_t>(
-				this->m_p_factory->get_component_enum_by_name(
-					this->m_p_component_name
-				)
-			);
-
-	kotek::ktk::json::serializer sr;
-	sr.reset(&this->m_serialized_state_of_deleted_component);
-
-	kotek::size_t offset{};
-	constexpr kotek::size_t _kValidationSize =
-		sizeof(this->m_serialized_component_as_string);
-
-	while (!sr.done())
-	{
-		KOTEK_ASSERT(
-			offset <= _kValidationSize,
-			"you must shrink your buffer for serializing "
-			"component as string "
-			"because you got overflow state! current buffer "
-			"size for "
-			"serialization as string is: {} offset: {}",
-			_kValidationSize,
-			offset
-		);
-
-		char buf[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-		auto view = sr.read(buf, sizeof(buf));
-
-		kotek::ktk::memory::memcpy(
-			this->m_serialized_component_as_string + offset,
-			buf,
-			view.size()
-		);
-		offset += view.size();
-	}
-
-#ifdef KOTEK_DEBUG
-	KOTEK_MESSAGE(
-		"[history][{}] serialized command: [{}] with size "
-		"string: "
-		"[{}] and total offset with endl symbol: [{}]",
-		this->GetName(),
-		this->m_serialized_component_as_string,
-		offset,
-		offset + 2
-	);
-#endif
-
-	// if (p_resource_manager)
-	{
-		char offset_string[sizeof(
-			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-		)];
-		std::memset(offset_string, ' ', sizeof(offset_string));
-
-		auto null_symbol_index = kotek::ktk::sprintf(
-			offset_string,
-			sizeof(offset_string),
-			"%zu",
-			offset + 2
-		);
-
-		KOTEK_ASSERT(
-			null_symbol_index <=
-				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
-			"overflow, number is {} digits and it means we are "
-			"out of memory!",
-			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
-		);
-
-		kotek::ktk::memory::memset(
-			offset_string + null_symbol_index,
-			' ',
-			sizeof(offset_string) - null_symbol_index
-		);
-		offset_string
-			[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
-				' ';
-
-		//	p_resource_manager->Write(
-		//		resource_handle_id, offset_string,
-		// sizeof(offset_string));
-		_file.write(offset_string, sizeof(offset_string));
-		//	p_resource_manager->Write(resource_handle_id,
-		//		kotek::core::eFileWritingControlCharacterType::kNewLine);
-		_file.flush();
-		//	p_resource_manager->Write(
-		//		resource_handle_id,
-		// this->m_serialized_component_as_string);
-		_file << this->m_serialized_component_as_string;
-		//	p_resource_manager->Write(resource_handle_id,
-		//	kotek::core::eFileWritingControlCharacterType::kNewLine);
-		_file << std::endl;
-		null_symbol_index = kotek::ktk::sprintf(
-			offset_string,
-			sizeof(offset_string),
-			"%zu",
-			offset + 2
-		);
-
-		KOTEK_ASSERT(
-			null_symbol_index <=
-				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS,
-			"overflow, number is {} digits and it means we are "
-			"out of memory!",
-			zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS
-		);
-
-		kotek::ktk::memory::memset(
-			offset_string + null_symbol_index,
-			' ',
-			sizeof(offset_string) - null_symbol_index
-		);
-		offset_string
-			[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] =
-				zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY;
-
-		//	p_resource_manager->Write(
-		//		resource_handle_id, offset_string,
-		// sizeof(offset_string));
-		_file.write(offset_string, sizeof(offset_string));
-		//	p_resource_manager->Write(resource_handle_id,
-		//		kotek::core::eFileWritingControlCharacterType::kFlush);
-		_file.flush();
-	}
-
-	return offset;
+	return 0;
 }
 
-void zircon_command_delete_component_from_entity::Deserialize(
-	const kotek::ktk::json::object& json
+bool zircon_command_delete_component_from_entity::Serialize_Delta(
+	zircon_command_delta_writer& writer
 ) noexcept
 {
-	KOTEK_ASSERT(
-		this->m_p_manager_session_editor,
-		"should be initialzed game manager here"
+	bool status = writer.write_u32(
+		static_cast<kotek::uint32_t>(this->m_id.id)
 	);
 
-	if (!this->m_p_manager_session_editor)
-	{
-		KOTEK_MESSAGE_WARNING("failed to execute due to "
-		                      "invalid game manager pointer!");
-		return;
-	}
-
-	zircon_session_editor* p_session =
-		this->m_p_manager_session_editor->get_session(
-			this->m_p_manager_session_editor
-				->get_current_session_id()
+	status = status &&
+		writer.write_string(
+			this->m_component_name.c_str(),
+			this->m_component_name.size()
 		);
 
-	KOTEK_ASSERT(
-		p_session,
-		"failed to obtain session editor by id: {}",
-		this->m_p_manager_session_editor
-			->get_current_session_id()
+	auto state_string = kotek::ktk::json::serialize(
+		this->m_serialized_state_of_deleted_component
 	);
 
-	if (!p_session)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid session "
-			"editor#{}",
-			this->m_p_manager_session_editor
-				->get_current_session_id()
-		);
-		return;
-	}
-
-	zircon_world* p_world = p_session->get_world();
-
-	KOTEK_ASSERT(
-		p_world,
-		"failed to obtain world in session editor_{}#{}",
-		p_session->get_session_name(),
-		p_session->get_id()
-	);
-
-	if (!p_world)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid world in session "
-			"editor_{}#{}",
-			p_session->get_session_name(),
-			p_session->get_id()
-		);
-		return;
-	}
-
-	if (!this->m_p_factory)
-	{
-		KOTEK_MESSAGE_WARNING("failed to execute due to invalid factory");
-		return;
-	}
-
-	KOTEK_ASSERT(
-		json.find(
-			ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME
-		) != json.end(),
-		"must exist key in json-object: {}",
-		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME
-	);
-
-	auto type = static_cast<kotek::core::eConsoleCommandIndex>(
-		json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME
-	    )
-			.to_number<kotek::enum_base_t>()
-	);
-
-	KOTEK_ASSERT(
-		static_cast<kotek::enum_base_t>(type) ==
-			this->GetCommandType(),
-		"it is not {} command what expected to be based on "
-		"field {}",
-		this->GetName(),
-		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME
-	);
-
-	KOTEK_ASSERT(
-		json.find(
-			ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
-		) != json.end(),
-		"must exist key in json-object: {}",
-		ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
-	);
-
-#ifdef KOTEK_USE_ECS_BACKEND_PICO
-	this->m_id.id =
-		(json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
-	    )
-	         .to_number<decltype(kotek::entity_t::id)>());
-#elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
-	#error todo: impl
-#endif
-
-	this->m_p_component_name =
-		this->m_p_factory->get_component_name_by_enum(
-			static_cast<eZirconComponentType>(
-				json.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
-	            )
-					.to_number<kotek::enum_base_t>()
-			)
+	status = status &&
+		writer.write_string(
+			state_string.data(), state_string.size()
 		);
 
-	KOTEK_ASSERT(
-		this->m_p_component_name,
-		"must be valid pointer from string_view!"
-	);
-	KOTEK_ASSERT(
-		strlen(this->m_p_component_name),
-		"must be not empty string!"
+	return status && writer.is_valid();
+}
+
+bool zircon_command_delete_component_from_entity::
+	Deserialize_Delta(zircon_command_delta_reader& reader) noexcept
+{
+	bool status{};
+
+	const kotek::uint32_t entity_id = reader.read_u32(&status);
+
+	if (status == false)
+		return false;
+
+	this->m_id.id = entity_id;
+
+	char component_name_buffer
+		[zircon_DEF_MAX_COMPONENT_NAME_SIZE];
+
+	status = reader.read_string(
+		component_name_buffer, sizeof(component_name_buffer)
 	);
 
-	kotek::ktk::json::static_resource storage(
-		this->m_storage_json_memory
-	);
-	kotek::ktk::json::value out(&storage);
-	auto& object = out.emplace_object();
-	object = json;
-	this->m_serialized_state_of_deleted_component = out;
+	if (status == false)
+		return false;
+
+	this->m_component_name = component_name_buffer;
+
+	char state_buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
+
+	status = reader.read_string(state_buffer, sizeof(state_buffer));
+
+	if (status == false)
+		return false;
+
+	kotek::ktk::json::error_code parse_error;
+
+	this->m_serialized_state_of_deleted_component =
+		kotek::ktk::json::parse(
+			kotek::cstring_view_t(
+				state_buffer, strlen(state_buffer)
+			),
+			parse_error
+		);
+
+	if (parse_error)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"failed to parse a serialized component state: {}",
+			parse_error.message()
+		);
+		return false;
+	}
+
+	return reader.is_valid();
 }
 
 eZirconComponentType
-zircon_command_delete_component_from_entity::get_component_type(
-)
+zircon_command_delete_component_from_entity::get_component_type()
 {
-	KOTEK_ASSERT(
-		this->m_p_manager_session_editor,
-		"should be initialzed game manager here"
-	);
+	eZirconComponentType result = eZirconComponentType::kunknown;
 
-	if (!this->m_p_manager_session_editor)
+	if (this->m_p_factory &&
+	    this->m_component_name.empty() == false)
 	{
-		KOTEK_MESSAGE_WARNING("failed to execute due to "
-		                      "invalid game manager pointer!");
-		return eZirconComponentType::kunknown;
-	}
-
-	zircon_session_editor* p_session =
-		this->m_p_manager_session_editor->get_session(
-			this->m_p_manager_session_editor
-				->get_current_session_id()
+		result = this->m_p_factory->get_component_enum_by_name(
+			this->m_component_name.c_str()
 		);
-
-	KOTEK_ASSERT(
-		p_session,
-		"failed to obtain session editor by id: {}",
-		this->m_p_manager_session_editor
-			->get_current_session_id()
-	);
-
-	if (!p_session)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid session "
-			"editor#{}",
-			this->m_p_manager_session_editor
-				->get_current_session_id()
-		);
-		return eZirconComponentType::kunknown;
-	}
-
-	zircon_world* p_world = p_session->get_world();
-
-	KOTEK_ASSERT(
-		p_world,
-		"failed to obtain world in session editor_{}#{}",
-		p_session->get_session_name(),
-		p_session->get_id()
-	);
-
-	if (!p_world)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid world in session "
-			"editor_{}#{}",
-			p_session->get_session_name(),
-			p_session->get_id()
-		);
-		return eZirconComponentType::kunknown;
-	}
-
-	if (!this->m_p_factory)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid factory"
-		);
-		return eZirconComponentType::kunknown;
-	}
-
-	KOTEK_ASSERT(this->m_p_component_name, "must be valid!");
-	KOTEK_ASSERT(
-		strlen(this->m_p_component_name), "must be not empty!"
-	);
-
-	eZirconComponentType result =
-		eZirconComponentType::kunknown;
-
-	if (this->m_p_factory)
-	{
-		if (this->m_p_component_name)
-		{
-			result =
-				this->m_p_factory->get_component_enum_by_name(
-					this->m_p_component_name
-				);
-		}
 	}
 
 	return result;

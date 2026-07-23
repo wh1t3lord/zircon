@@ -4,88 +4,78 @@
 #include "../session/zircon_session_editor.h"
 #include "../session/zircon_session_editor_manager.h"
 
-#include "zircon_command_create_entity.h"
-#include "zircon_command_delete_entity.h"
-#include "zircon_command_add_component_to_entity.h"
-#include "zircon_command_delete_component_from_entity.h"
-
-constexpr const char* _kExchangeFileNameWithExtension =
-	"exchange.json";
-constexpr const char* _kTempFileNameWithExtension = "temp.json";
-constexpr const char* _kTempFileName = "temp";
-constexpr const char* _kExchangeFileName = "exchange";
-
-#define ZIRCON_ENABLE_CH_TRACE
+constexpr const char* _kJournalFileNameWithExtension =
+	"history.zjrnl";
+constexpr const char* _kSnapshotFileNameWithExtension =
+	"history.zsnap";
 
 zircon_editor_command_history::zircon_editor_command_history(
 	void
 ) :
-	m_is_changed{}, m_is_first_serialize_happened{},
-	m_is_action_issued{}, m_p_manager_session_editor{},
-	m_p_file_temp{}, m_p_file_exchange{}, m_p_filesystem{},
-	m_index{}, m_cursor_index{-1}, m_max_index{},
-	m_file_index{}, m_current_file_offset{},
-	m_after_frame_file_offset{}, m_before_frame_file_offset{},
-	m_end_of_previous_frame{}, m_start_of_next_frame{},
-	m_exchange_file_offset_after{},
-	m_current_amount_of_created_commands{}
+	m_is_changed{}, m_is_scratch_in_use{},
+	m_p_manager_session_editor{}, m_p_filesystem{},
+	m_cursor_node_id{zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID},
+	m_snapshot_interval{
+		zircon_DEF_COMMAND_HISTORY_SNAPSHOT_INTERVAL
+	},
+	m_entity_watermark{}, m_total_snapshot_count{},
+	m_pool_next_victim_slot{},
+	m_pending_slot{zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT}
 {
-	for (int i = 0; i < this->m_commands.size(); ++i)
+	for (kotek::size_t i = 0;
+	     i < this->m_pool_commands.size();
+	     ++i)
 	{
-		this->m_commands[i] = nullptr;
+		this->m_pool_commands[i] = nullptr;
+		this->m_pool_node_ids[i] =
+			zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID;
 	}
-
-	auto element_size = sizeof(this->m_storage[0]);
-	for (int i = 0; i < this->m_storage.size(); ++i)
-	{
-		memset(this->m_storage[i], 0, element_size);
-	}
-
-	memset(
-		this->m_p_memory_for_stack_command_creation,
-		0,
-		sizeof(this->m_p_memory_for_stack_command_creation)
-	);
-
-	static_assert(
-		zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY !=
-			' ' &&
-		"you can't use whitespace as delimiter because with "
-	    "whitespace we "
-		"define right side (e.g. next entry) for moving cursor "
-	    "otherwise it is "
-		"impossible to determine which direction we want to "
-	    "use in file for "
-		"moving cursor that means we can't define operations "
-	    "like undo and "
-		"redo, undo is moving to the beggining of file redo "
-	    "means moving to "
-		"the end of file"
-	);
 }
+
 zircon_editor_command_history::~zircon_editor_command_history(
 	void
 )
 {
+	if (this->m_journal.is_open())
+	{
+		this->shutdown();
+	}
 }
 
 void zircon_editor_command_history::initialize(
 	zircon_session_editor_manager* p_manager_session_editor,
-	kotek::core::ktkIFileSystem* p_filesystem
+	kotek::core::ktkIFileSystem* p_filesystem,
+	const char* p_streaming_folder_name
 )
 {
 	KOTEK_ASSERT(
 		p_filesystem,
 		"you must pass a valid pointer of file system "
-	    "interface!"
+		"interface!"
 	);
 	KOTEK_ASSERT(
 		p_manager_session_editor,
 		"you must pass a valid session editor manager!"
 	);
+	KOTEK_ASSERT(
+		p_streaming_folder_name,
+		"you must pass a valid folder name!"
+	);
 
 	this->m_p_filesystem = p_filesystem;
 	this->m_p_manager_session_editor = p_manager_session_editor;
+
+	zircon_register_builtin_command_types(
+		zircon_command_registry::get_instance()
+	);
+
+	KOTEK_ASSERT(
+		zircon_command_registry::get_instance()
+				.get_max_instance_size() <=
+			zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE,
+		"registered commands do not fit into the pool slots, "
+		"increase zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE"
+	);
 
 	ktk_filesystem_path path_to_file;
 
@@ -95,15 +85,18 @@ void zircon_editor_command_history::initialize(
 			kFolderIndex_DataUser_SDK_Scenes
 	);
 
-	//= this->m_p_filesystem->GetFolderByEnum(
-	//		kotek::core::eFolderIndex::kFolderIndex_DataUser_SDK_Scenes);
+	path_to_file /= p_streaming_folder_name;
 
-	path_to_file /= "current";
+	this->m_path_to_streaming_folder.clear();
 
-	this->m_path_to_streaming_folder.append(
-		reinterpret_cast<char*>(path_to_file.u8string().data()),
-		path_to_file.u8string().size()
-	);
+	{
+		auto u8_string = path_to_file.u8string();
+
+		this->m_path_to_streaming_folder.append(
+			reinterpret_cast<const char*>(u8_string.data()),
+			u8_string.size()
+		);
+	}
 
 	bool is_valid_path = this->m_p_filesystem->Is_Exists(
 		this->m_path_to_streaming_folder.c_str()
@@ -117,49 +110,175 @@ void zircon_editor_command_history::initialize(
 		);
 	}
 
-	KOTEK_ASSERT(false, "todo: re-write please");
-	/* todo: re-write please
-	if (this->m_p_resource_manager)
+	// reset the tree to the root sentinel
+	this->m_nodes.clear();
+
+	zircon_history_tree_node root_node{};
+	root_node.m_parent_node_id =
+		zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID;
+	root_node.m_preferred_child_node_id =
+		zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID;
+	root_node.m_command_type = 0;
+	root_node.m_entity_id = 0;
+	root_node.m_depth = 0;
+	root_node.m_pool_slot =
+		zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT;
+	root_node.m_locator = {};
+	root_node.m_snapshot_offset = 0;
+	root_node.m_snapshot_compressed_size = 0;
+	root_node.m_snapshot_raw_size = 0;
+
+	this->m_nodes.push_back(root_node);
+
+	this->m_cursor_node_id =
+		zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID;
+	this->m_entity_id_translation.clear();
+	this->m_entity_watermark = 0;
+	this->m_total_snapshot_count = 0;
+
+	ktk_filesystem_path journal_path = path_to_file;
+	journal_path /= _kJournalFileNameWithExtension;
+
+	ktk_filesystem_path snapshot_path = path_to_file;
+	snapshot_path /= _kSnapshotFileNameWithExtension;
+
+	if (this->m_journal.open(journal_path, snapshot_path) ==
+	    false)
 	{
-	    kotek::core::ktkResourceFileStreamRequest request;
-	    request.path_to_file = path_to_file /
-	_kTempFileNameWithExtension; request.resource_type =
-	        kotek::core::eResourceRequestResourceType::kText;
-	    request.operation_type =
-	        kotek::core::eResourceRequestOperationType::kSave;
+		KOTEK_MESSAGE_ERROR(
+			"failed to open the command journal in folder: {}",
+			this->m_path_to_streaming_folder.c_str()
+		);
+		return;
+	}
 
-	    this->m_p_file_temp =
-	        this->m_p_resource_manager->Open_FileStream(request);
+	// rebuild the tree from an existing journal (full retention
+	// across sessions); the cursor lands on the last recorded node
+	if (this->m_journal.get_total_entry_count() > 0)
+	{
+		this->m_journal.read_all_entries(
+			[this](
+				const zircon_command_journal_entry_header& header,
+				const unsigned char* p_payload,
+				const zircon_command_journal_locator& locator
+			)
+			{
+				(void)p_payload;
 
-	    request.path_to_file = path_to_file /
-	_kExchangeFileNameWithExtension;
+				zircon_history_tree_node node{};
+				node.m_parent_node_id = header.m_parent_node_id;
+				node.m_preferred_child_node_id =
+					zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID;
+				node.m_command_type = header.m_command_type;
+				node.m_entity_id = header.m_entity_id;
+				node.m_pool_slot =
+					zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT;
+				node.m_locator = locator;
+				node.m_snapshot_offset = 0;
+				node.m_snapshot_compressed_size = 0;
+				node.m_snapshot_raw_size = 0;
 
-	    this->m_p_file_exchange =
-	        this->m_p_resource_manager->Open_FileStream(request);
+				const kotek::uint32_t new_node_id =
+					static_cast<kotek::uint32_t>(
+						this->m_nodes.size()
+					);
 
-	    KOTEK_ASSERT(this->m_p_file_temp,
-	        "no avaiable fstream from resource manager! Out of
-	resource!!!"); KOTEK_ASSERT(this->m_p_file_exchange, "no
-	available fstream from resource manager! Out of
-	resources!!!");
-	}*/
+				if (node.m_parent_node_id <
+				    this->m_nodes.size())
+				{
+					node.m_depth =
+						this->m_nodes[node.m_parent_node_id]
+							.m_depth +
+						1;
+
+					// the last appended child is the preferred
+					// one
+					this->m_nodes[node.m_parent_node_id]
+						.m_preferred_child_node_id = new_node_id;
+				}
+				else
+				{
+					node.m_depth = 1;
+				}
+
+				if (node.m_entity_id >
+				    this->m_entity_watermark)
+				{
+					this->m_entity_watermark =
+						node.m_entity_id;
+				}
+
+				this->m_nodes.push_back(node);
+				this->m_cursor_node_id = new_node_id;
+			}
+		);
+
+		// re-attach snapshot records to their nodes
+		this->m_journal.read_all_snapshot_headers(
+			[this](
+				kotek::uint32_t node_id,
+				kotek::uint64_t offset,
+				kotek::uint32_t compressed_size,
+				kotek::uint32_t raw_size
+			)
+			{
+				if (node_id < this->m_nodes.size())
+				{
+					this->m_nodes[node_id]
+						.m_snapshot_offset = offset;
+					this->m_nodes[node_id]
+						.m_snapshot_compressed_size =
+						compressed_size;
+					this->m_nodes[node_id]
+						.m_snapshot_raw_size = raw_size;
+
+					++this->m_total_snapshot_count;
+				}
+			}
+		);
+
+		KOTEK_MESSAGE(
+			"[history]: loaded {} commands from the journal",
+			this->m_nodes.size() - 1
+		);
+	}
 }
 
 void zircon_editor_command_history::shutdown(void)
 {
-	KOTEK_ASSERT(false, "todo: re-write please");
-
-	/* todo: re-write please
-	this->m_p_resource_manager->Close_FileStream(this->m_p_file_temp);
-	this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);*/
-
-	for (const auto& path_file :
-	     kotek::ktk::filesystem::directory_iterator(
-			 this->m_path_to_streaming_folder.c_str()
-		 ))
+	for (kotek::size_t i = 0;
+	     i < this->m_pool_commands.size();
+	     ++i)
 	{
-		kotek::ktk::filesystem::remove(path_file);
+		if (this->m_pool_commands[i])
+		{
+			this->m_pool_commands[i]->~ktkISDKRedoUndo();
+			this->m_pool_commands[i] = nullptr;
+			this->m_pool_node_ids[i] =
+				zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID;
+		}
 	}
+
+	if (this->m_is_scratch_in_use)
+	{
+		kotek::core::ktkISDKRedoUndo* p_command =
+			reinterpret_cast<kotek::core::ktkISDKRedoUndo*>(
+				this->m_scratch_storage
+			);
+		p_command->~ktkISDKRedoUndo();
+		this->m_is_scratch_in_use = false;
+	}
+
+	// flushes and closes the files; the content stays on disk
+	// forever (no wipe, full retention)
+	this->m_journal.close();
+
+	this->m_nodes.clear();
+	this->m_entity_id_translation.clear();
+	this->m_cursor_node_id =
+		zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID;
+	this->m_pending_slot =
+		zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT;
 }
 
 void zircon_editor_command_history::ExecuteCommand(
@@ -170,1241 +289,208 @@ void zircon_editor_command_history::ExecuteCommand(
 		p_command, "you can't send an invalid command here"
 	);
 
-	//	this->m_index = this->m_cursor_index %
-	//	static_cast<size_t>(zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE);
+	if (p_command == nullptr)
+		return;
 
-	this->m_commands[this->m_index] = p_command;
+	const kotek::uint32_t command_type =
+		static_cast<kotek::uint32_t>(
+			p_command->GetCommandType()
+		);
 
-	if (p_command->GetCommandType() ==
-	    static_cast<kotek::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::
-				kConsoleCommand_SDK_DeleteComponentFromEntityByName
-		))
-	{
-		// trying to find a component that relates to add
-		// component from entity where entity is same as in
-		// delete component otherwise serialization of add
-		// component is invalid because the serialization state
-		// was never issued when frame moves next
-		zircon_command_delete_component_from_entity*
-			p_casted_command = static_cast<
-				zircon_command_delete_component_from_entity*>(
-				p_command
-			);
-
-		for (auto* p_cmd : this->m_commands)
-		{
-			if (p_cmd)
-			{
-				if (p_cmd->GetCommandType() ==
-				    static_cast<kotek::enum_base_t>(
-						kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateComponentForEntityByName
-					))
-				{
-					if (p_cmd->GetEntityID().id ==
-					    p_command->GetEntityID().id)
-					{
-						// we found or add component version, so
-						// we need serialize it but only that
-						// relates to the same component and
-						// entity
-
-						zircon_command_add_component_to_entity*
-							p_casted_cmd = static_cast<
-								zircon_command_add_component_to_entity*>(
-								p_cmd
-							);
-
-						if (p_casted_command
-						        ->get_component_type() ==
-						    p_casted_cmd->get_component_type())
-						{
-							p_casted_cmd->serialize_state();
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (p_command->GetCommandType() ==
-	    static_cast<kotek::enum_base_t>(
-			kotek::core::eConsoleCommandIndex::
-				kConsoleCommand_SDK_DeleteEntity
-		))
-	{
-		zircon_command_delete_entity* p_casted_command =
-			static_cast<zircon_command_delete_entity*>(p_command
-		    );
-
-		for (auto* p_cmd : this->m_commands)
-		{
-			if (p_cmd)
-			{
-				if (p_cmd->GetCommandType() ==
-				    static_cast<kotek::enum_base_t>(
-						kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateComponentForEntityByName
-					))
-				{
-					if (p_cmd->GetEntityID().id ==
-					    p_command->GetEntityID().id)
-					{
-						zircon_command_add_component_to_entity*
-							p_casted_cmd = static_cast<
-								zircon_command_add_component_to_entity*>(
-								p_cmd
-							);
-
-						p_casted_cmd->serialize_state();
-					}
-				}
-			}
-		}
-	}
+	KOTEK_ASSERT(
+		zircon_command_registry::get_instance().find_by_type(
+			command_type
+		),
+		"command [{}] with type {} is not registered in "
+		"zircon_command_registry!",
+		p_command->GetName(),
+		command_type
+	);
 
 	p_command->Execute();
 
-	set_changed(true);
+	// serialize the delta payload; every registered command
+	// implements the delta interface (registry contract)
+	zircon_interface_command_delta* p_delta =
+		dynamic_cast<zircon_interface_command_delta*>(p_command);
+
+	KOTEK_ASSERT(
+		p_delta,
+		"command [{}] does not implement "
+		"zircon_interface_command_delta",
+		p_command->GetName()
+	);
+
+	if (p_delta == nullptr)
+		return;
+
+	zircon_command_delta_writer writer(
+		this->m_payload_scratch, sizeof(this->m_payload_scratch)
+	);
+
+	const bool serialized = p_delta->Serialize_Delta(writer);
+
+	KOTEK_ASSERT(
+		serialized && writer.is_valid(),
+		"command [{}] failed to serialize its delta, the "
+		"payload is too big for zircon_DEF_MAXIMUM_COMMAND_SIZE "
+		"({})",
+		p_command->GetName(),
+		zircon_DEF_MAXIMUM_COMMAND_SIZE
+	);
+
+	if (serialized == false || writer.is_valid() == false)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[history]: command [{}] was executed but NOT "
+			"journaled (delta serialization failed), history "
+			"and world diverge!",
+			p_command->GetName()
+		);
+		return;
+	}
+
+	const kotek::uint32_t recorded_entity_id =
+		static_cast<kotek::uint32_t>(
+			p_command->GetEntityID().id
+		);
+
+	zircon_command_journal_entry_header entry_header{};
+	entry_header.m_node_id = static_cast<kotek::uint32_t>(
+		this->m_nodes.size()
+	);
+	entry_header.m_parent_node_id = this->m_cursor_node_id;
+	entry_header.m_command_type = command_type;
+	entry_header.m_entity_id = recorded_entity_id;
+	entry_header.m_payload_size =
+		static_cast<kotek::uint32_t>(writer.get_offset());
+
+	zircon_command_journal_locator locator{};
+
+	if (this->m_journal.append_entry(
+			entry_header,
+			this->m_payload_scratch,
+			entry_header.m_payload_size,
+			locator
+		) == false)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[history]: failed to append a journal entry for "
+			"[{}]",
+			p_command->GetName()
+		);
+		return;
+	}
+
+	// new child at the cursor: a new action after undo creates a
+	// BRANCH, nothing is ever truncated
+	zircon_history_tree_node node{};
+	node.m_parent_node_id = this->m_cursor_node_id;
+	node.m_preferred_child_node_id =
+		zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID;
+	node.m_command_type = command_type;
+	node.m_entity_id = recorded_entity_id;
+	node.m_depth =
+		this->m_nodes[this->m_cursor_node_id].m_depth + 1;
+	node.m_pool_slot =
+		zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT;
+	node.m_locator = locator;
+	node.m_snapshot_offset = 0;
+	node.m_snapshot_compressed_size = 0;
+	node.m_snapshot_raw_size = 0;
+
+	const kotek::uint32_t new_node_id =
+		static_cast<kotek::uint32_t>(this->m_nodes.size());
+
+	this->m_nodes[this->m_cursor_node_id]
+		.m_preferred_child_node_id = new_node_id;
+
+	this->m_nodes.push_back(node);
+	this->m_cursor_node_id = new_node_id;
+
+	// bind the pool slot that allocate_memory_for_command handed
+	// out for this command
+	if (this->m_pending_slot !=
+	    zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT)
+	{
+		this->m_pool_commands[this->m_pending_slot] = p_command;
+		this->m_pool_node_ids[this->m_pending_slot] =
+			new_node_id;
+		this->m_nodes[new_node_id].m_pool_slot =
+			this->m_pending_slot;
+		this->m_pending_slot =
+			zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT;
+	}
+
+	this->observe_entity_id(p_command, recorded_entity_id);
+
+	this->take_snapshot_if_needed(new_node_id);
+
+	this->set_changed(true);
 }
 
 void zircon_editor_command_history::Undo()
 {
-#ifdef ZIRCON_ENABLE_CH_TRACE
-	KOTEK_TRACE("undo: {}", this->m_cursor_index);
-#endif
-
-	if (this->m_cursor_index > -1)
+	if (this->m_cursor_node_id ==
+	    zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID)
 	{
-		KOTEK_ASSERT(
-			this->m_commands[this->m_index],
-			"something is wrong!"
-		);
-		this->m_commands[this->m_index]->Undo();
-
-		if (this->m_index > 0)
-			--this->m_index;
-
-		m_is_action_issued = true;
-
-		if (this->m_current_file_offset > 0)
-		{
-			// TODO: реализовать удаление команд когда совершили
-			// действие после undo
-			if (this->m_index == 0)
-			{
-				if (this->m_cursor_index > 0 &&
-				    this->m_cursor_index %
-				            zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE ==
-				        0)
-				{
-					this->unload_content();
-
-					//	this->reopen_current_file(this->m_file_resource_handle_id);
-
-					this->m_p_file_temp =
-						this->reopen_current_file(
-							this->m_p_file_temp
-						);
-
-					if (this->m_p_file_temp == nullptr)
-						return;
-
-					this->insert_content(
-						0, this->m_exchange_file_offset_after, 0
-					);
-
-					// this->m_p_resource_manager->Seekg(
-					//	this->m_file_resource_handle_id,
-					//	this->m_before_frame_file_offset,
-					//	kotek::core::eFileSeekDirectionType::
-					//		kSeekDirectionBegin);
-
-					this->m_p_file_temp->seekg(
-						this->m_before_frame_file_offset,
-						std::ios_base::beg
-					);
-
-					//	auto file_size =
-					//this->m_p_resource_manager->Tellg(
-					//	this->m_file_resource_handle_id);
-
-					auto file_size =
-						this->m_p_file_temp->tellg();
-
-					char buffer[sizeof(
-						zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-					)]{};
-
-					this->m_index =
-						zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE -
-						1;
-
-					for (auto* p_command : this->m_commands)
-					{
-						if (p_command)
-						{
-							KOTEK_ASSERT(
-								false, "todo: re-write please"
-							);
-							//	p_command->Serialize(this->m_p_file_temp);
-						}
-					}
-
-					for (auto* p_command : this->m_commands)
-					{
-						if (p_command)
-						{
-							p_command->~ktkISDKRedoUndo();
-						}
-					}
-
-					for (auto* p_placement_new_memory :
-					     this->m_storage)
-					{
-						std::memset(
-							p_placement_new_memory,
-							0,
-							sizeof(this->m_storage[0])
-						);
-					}
-
-					std::memset(
-						this->m_commands.data(),
-						0,
-						sizeof(this->m_commands)
-					);
-
-					auto total_count =
-						zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
-					const auto size_for_number = sizeof(
-						zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-					);
-					char stream_buffer_for_json_data
-						[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-					// this is only for placing memory for each
-					// restored command
-					auto copy_index = this->m_index;
-
-					// this->m_p_resource_manager->Seekg(
-					//	this->m_file_resource_handle_id, 0,
-					//	kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-					this->m_p_file_temp->seekg(
-						0, std::ios_base::end
-					);
-
-					// auto file_size_after_serialize =
-					//	this->m_p_resource_manager->Tellg(
-					//		this->m_file_resource_handle_id);
-
-					auto file_size_after_serialize =
-						this->m_p_file_temp->tellg();
-
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_exchange_resource_handle_id,
-					//0,
-					//		kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-					this->m_p_file_exchange->seekg(
-						0, std::ios_base::end
-					);
-
-					//	auto file_size_of_exchange =
-					//		this->m_p_resource_manager->Tellg(
-					//			this->m_file_exchange_resource_handle_id);
-
-					auto file_size_of_exchange =
-						this->m_p_file_exchange->tellg();
-
-					this->insert_content(
-						this->m_exchange_file_offset_after,
-						file_size_of_exchange,
-						file_size_after_serialize
-					);
-
-					this->m_after_frame_file_offset =
-						this->m_before_frame_file_offset;
-					this->m_current_file_offset =
-						this->m_after_frame_file_offset;
-
-					for (int i = 0; i < total_count; ++i)
-					{
-						std::memset(buffer, 0, sizeof(buffer));
-						this->m_current_file_offset -=
-							size_for_number;
-
-						// this->m_p_resource_manager->Seekg(
-						//	this->m_file_resource_handle_id,
-						//	this->m_current_file_offset,
-						//	kotek::core::eFileSeekDirectionType::
-						//		kSeekDirectionBegin);
-
-						this->m_p_file_temp->seekg(
-							this->m_current_file_offset,
-							std::ios_base::beg
-						);
-
-						// this->m_p_resource_manager->Read(
-						//	this->m_file_resource_handle_id,
-						//buffer, 	sizeof(buffer));
-
-						this->m_p_file_temp->read(
-							buffer, sizeof(buffer)
-						);
-
-						if (buffer
-						        [zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] !=
-						    zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY)
-						{
-							// making a suggestion that we need
-							// to read next because we're on
-							// right side
-
-							this->m_current_file_offset -=
-								size_for_number;
-
-							// this->m_p_resource_manager->Seekg(
-							//	this->m_file_resource_handle_id,
-							//	this->m_current_file_offset,
-							//	kotek::core::eFileSeekDirectionType::
-							//		kSeekDirectionBegin);
-
-							this->m_p_file_temp->seekg(
-								this->m_current_file_offset,
-								std::ios_base::beg
-							);
-
-							//	this->m_p_resource_manager->Read(
-							//		this->m_file_resource_handle_id,
-							//buffer, 		sizeof(buffer));
-
-							this->m_p_file_temp->read(
-								buffer, sizeof(buffer)
-							);
-
-							KOTEK_ASSERT(
-								buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] ==
-									zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY,
-								"something is broken, maybe "
-							    "corrupted data, "
-								"unable parse data!"
-							);
-						}
-
-						auto offset_for_json_data =
-							std::atoi(buffer);
-
-						KOTEK_ASSERT(
-							offset_for_json_data > 0,
-							"something is not right!"
-						);
-
-						this->m_current_file_offset -=
-							offset_for_json_data;
-						// removing endl size
-						auto real_size_for_json_data =
-							offset_for_json_data - 2;
-
-						// this->m_p_resource_manager->Seekg(
-						//	this->m_file_resource_handle_id,
-						//	this->m_current_file_offset,
-						//	kotek::core::eFileSeekDirectionType::
-						//	kSeekDirectionBegin);
-
-						this->m_p_file_temp->seekg(
-							this->m_current_file_offset,
-							std::ios_base::beg
-						);
-
-						kotek::json::stream_parser parser;
-						kotek::json::static_resource storage_ptr(
-							this->m_p_memory_for_stack_parser
-						);
-						parser.reset(&storage_ptr);
-
-						if (real_size_for_json_data >
-						    zircon_DEF_STREAM_JSON_STACK_SIZE)
-						{
-							int counter{real_size_for_json_data
-							};
-							auto prev_size{
-								this->m_current_file_offset
-							};
-
-							while (counter > 0)
-							{
-								if (counter >
-								    zircon_DEF_STREAM_JSON_STACK_SIZE)
-								{
-									//	this->m_p_resource_manager->Read(
-									//		this->m_file_resource_handle_id,
-									//		stream_buffer_for_json_data,
-									//		sizeof(stream_buffer_for_json_data));
-
-									this->m_p_file_temp->read(
-										stream_buffer_for_json_data,
-										sizeof(
-											stream_buffer_for_json_data
-										)
-									);
-
-									this->m_current_file_offset +=
-										zircon_DEF_STREAM_JSON_STACK_SIZE;
-									//	this->m_p_resource_manager->Seekg(
-									//		this->m_file_resource_handle_id,
-									//		this->m_current_file_offset,
-									//		kotek::core::eFileSeekDirectionType::
-									//			kSeekDirectionBegin);
-
-									this->m_p_file_temp->seekg(
-										this->m_current_file_offset,
-										std::ios_base::beg
-									);
-								}
-								else
-								{
-									//	this->m_p_resource_manager->Read(
-									//		this->m_file_resource_handle_id,
-									//		stream_buffer_for_json_data,
-									// counter);
-									this->m_p_file_temp->read(
-										stream_buffer_for_json_data,
-										counter
-									);
-									this->m_current_file_offset +=
-										counter;
-								}
-
-								if (counter >
-								    zircon_DEF_STREAM_JSON_STACK_SIZE)
-								{
-									parser.write(
-										stream_buffer_for_json_data,
-										sizeof(
-											stream_buffer_for_json_data
-										)
-									);
-								}
-								else
-								{
-									parser.write(
-										stream_buffer_for_json_data,
-										counter
-									);
-								}
-
-								counter -=
-									zircon_DEF_STREAM_JSON_STACK_SIZE;
-								std::memset(
-									stream_buffer_for_json_data,
-									0,
-									sizeof(
-										stream_buffer_for_json_data
-									)
-								);
-							}
-							this->m_current_file_offset -=
-								real_size_for_json_data;
-							KOTEK_ASSERT(
-								this->m_current_file_offset ==
-									prev_size,
-								"wrong calculations! after "
-							    "parsing you have to "
-								"get exactly the same size as "
-							    "you minused "
-								"offset_for_json_data!"
-							);
-
-							if (this->m_current_file_offset > 0)
-								this->m_current_file_offset -=
-									2;
-
-							auto status = parser.done();
-
-							KOTEK_ASSERT(
-								status, "must be valid json!"
-							);
-						}
-						else
-						{
-							//	this->m_p_resource_manager->Read(
-							//		this->m_file_resource_handle_id,
-							//		stream_buffer_for_json_data,
-							//		real_size_for_json_data);
-							this->m_p_file_temp->read(
-								stream_buffer_for_json_data,
-								real_size_for_json_data
-							);
-							parser.write(
-								stream_buffer_for_json_data
-							);
-							auto status = parser.done();
-							KOTEK_ASSERT(
-								status,
-								"must be valid json in stream "
-							    "buffer!"
-							);
-						}
-
-						kotek::json::value json_data =
-							parser.release();
-
-						KOTEK_ASSERT(
-							json_data.is_object(),
-							"must be object!"
-						);
-
-						auto& json = json_data.as_object();
-
-						KOTEK_ASSERT(
-							json.find("command") != json.end(),
-							"must exist a such key, because we "
-						    "can't "
-							"understand which command we need "
-						    "to restore!"
-						);
-
-						kotek::core::eConsoleCommandIndex type =
-							static_cast<
-								kotek::core::
-									eConsoleCommandIndex>(
-								json.at("command").as_int64()
-							);
-
-						zircon_factory* p_factory = nullptr;
-
-						zircon_session_editor* p_session =
-							this->m_p_manager_session_editor
-								->get_session(
-									this->m_p_manager_session_editor
-										->get_current_session_id()
-								);
-
-						if (p_session && p_session->get_world())
-						{
-							p_factory = p_session->get_world()
-											->get_factory();
-						}
-
-						switch (type)
-						{
-						case kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateEntity:
-						{
-							auto placement_storage =
-								this->m_storage[copy_index];
-							zircon_command_create_entity*
-								p_command = new (
-									placement_storage
-								)
-									zircon_command_create_entity(
-										this->m_p_manager_session_editor,
-										p_factory
-									);
-							p_command->Deserialize(json);
-
-							this->m_commands[copy_index] =
-								p_command;
-
-							--copy_index;
-							break;
-						}
-						case kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_DeleteEntity:
-						{
-							auto placement_storage =
-								this->m_storage[copy_index];
-							zircon_command_delete_entity*
-								p_command = new (
-									placement_storage
-								)
-									zircon_command_delete_entity(
-										this->m_p_manager_session_editor,
-										p_factory,
-										kotek::ktk::kInvalidECSEntity
-									);
-							p_command->Deserialize(json);
-
-							this->m_commands[copy_index] =
-								p_command;
-
-							--copy_index;
-							break;
-						}
-						case kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_CreateComponentForEntityByName:
-						{
-							auto placement_storage =
-								this->m_storage[copy_index];
-							zircon_command_add_component_to_entity*
-								p_command = new (
-									placement_storage
-								)
-									zircon_command_add_component_to_entity(
-										this->m_p_manager_session_editor
-									);
-							p_command->Deserialize(json);
-
-							this->m_commands[copy_index] =
-								p_command;
-
-							--copy_index;
-							break;
-						}
-						case kotek::core::eConsoleCommandIndex::
-							kConsoleCommand_SDK_DeleteComponentFromEntityByName:
-						{
-							auto placement_storage =
-								this->m_storage[copy_index];
-
-							zircon_command_delete_component_from_entity*
-								p_command = new (
-									placement_storage
-								)
-									zircon_command_delete_component_from_entity(
-										this->m_p_manager_session_editor,
-										p_factory
-									);
-
-							p_command->Deserialize(json);
-
-							this->m_commands[copy_index] =
-								p_command;
-							--copy_index;
-							break;
-						}
-						default:
-						{
-							KOTEK_ASSERT(
-								false,
-								"can't be!!! data corruption?! "
-							    "or you forgot "
-								"to add a new type"
-							);
-							break;
-						}
-						}
-					}
-
-					KOTEK_ASSERT(
-						this->m_current_file_offset >=
-							sizeof(buffer),
-						"something is really wrong because I "
-					    "need to get "
-						"offset equal or higher than 0"
-					);
-
-					this->m_current_file_offset -=
-						sizeof(buffer);
-					this->m_before_frame_file_offset =
-						this->m_current_file_offset;
-				}
-			}
-		}
-
-		--this->m_cursor_index;
-		set_changed(true);
+		KOTEK_TRACE("[history]: nothing to undo");
+		return;
 	}
+
+	zircon_history_tree_node& node =
+		this->m_nodes[this->m_cursor_node_id];
+
+	kotek::core::ktkISDKRedoUndo* p_command =
+		this->get_command_for_node(this->m_cursor_node_id);
+
+	if (p_command == nullptr)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[history]: failed to obtain a command for node {}",
+			this->m_cursor_node_id
+		);
+		return;
+	}
+
+	const kotek::uint32_t recorded_id = node.m_entity_id;
+	const kotek::uint32_t live_id =
+		this->translate_entity_id(recorded_id);
+
+	if (live_id != recorded_id)
+	{
+		p_command->SetEntityID(kotek::entity_t{live_id});
+	}
+
+	p_command->Undo();
+
+	this->observe_entity_id(p_command, recorded_id);
+
+	this->release_scratch_command(p_command);
+
+	this->m_cursor_node_id = node.m_parent_node_id;
+
+	this->set_changed(true);
 }
 
 void zircon_editor_command_history::Redo()
 {
-	/*
-	if (this->m_storage.empty() == false &&
-	    this->m_index < this->m_storage.size())
+	const kotek::uint32_t child_node_id =
+		this->m_nodes[this->m_cursor_node_id]
+			.m_preferred_child_node_id;
+
+	if (child_node_id ==
+	    zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID)
 	{
-	    this->m_storage[this->m_index]->Execute();
-	    ++this->m_index;
+		KOTEK_TRACE("[history]: nothing to redo");
+		return;
 	}
-	*/
 
-#ifdef ZIRCON_ENABLE_CH_TRACE
-	KOTEK_TRACE("redo: {}", this->m_cursor_index);
-#endif
+	this->execute_node(child_node_id);
 
-	if (this->m_cursor_index < this->m_max_index - 1 ||
-	    (this->m_cursor_index == -1 && this->m_max_index > 0))
-	{
-		m_is_action_issued = true;
+	this->m_cursor_node_id = child_node_id;
 
-		constexpr auto index_when_moving_to_next_frame =
-			zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE - 1;
-
-		auto real_cursor_index = this->m_cursor_index %
-			zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
-
-#ifdef KOTEK_DEBUG
-		if (real_cursor_index ==
-		    index_when_moving_to_next_frame)
-		{
-			KOTEK_ASSERT(
-				this->m_index ==
-					index_when_moving_to_next_frame,
-				"something is wrong with calculations, because "
-			    "m_index must be "
-				"equal to index_when_moving_to_next_frame as "
-			    "well as "
-				"m_cursor_index to the same "
-				"value (index_when_moving_to_next_frame)"
-			);
-		}
-#endif
-
-		if (this->m_index == index_when_moving_to_next_frame)
-		{
-			KOTEK_ASSERT(
-				real_cursor_index ==
-					index_when_moving_to_next_frame,
-				"something is  broken because it is expected "
-			    "that when m_index "
-				"== index_when_moving_to_next_frame then it "
-			    "means "
-				"m_cursor_index must be equal to the same "
-			    "value it doesn't so "
-				"it can't be"
-			);
-
-			if (real_cursor_index ==
-			    index_when_moving_to_next_frame)
-			{
-				this->unload_content();
-
-				this->m_p_file_temp = this->reopen_current_file(
-					this->m_p_file_temp
-				);
-
-				this->insert_content(
-					0, this->m_exchange_file_offset_after, 0
-				);
-
-				// this->m_p_resource_manager->Seekg(
-				//	this->m_file_resource_handle_id,
-				//	this->m_before_frame_file_offset,
-				//	kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-				this->m_p_file_temp->seekg(
-					this->m_before_frame_file_offset,
-					std::ios_base::beg
-				);
-
-				// auto file_size =
-				// this->m_p_resource_manager->Tellg(
-				//	this->m_file_resource_handle_id);
-
-				auto file_size = this->m_p_file_temp->tellg();
-
-				for (auto* p_command : this->m_commands)
-				{
-					if (p_command)
-					{
-						KOTEK_ASSERT(
-							false, "todo: re-write please"
-						);
-						//	p_command->Serialize(
-						//		this->m_p_file_temp);
-					}
-				}
-
-				for (auto* p_command : this->m_commands)
-				{
-					if (p_command)
-					{
-						p_command->~ktkISDKRedoUndo();
-					}
-				}
-
-				for (auto* p_placement_new_memory :
-				     this->m_storage)
-				{
-					std::memset(
-						p_placement_new_memory,
-						0,
-						sizeof(this->m_storage[0])
-					);
-				}
-
-				std::memset(
-					this->m_commands.data(),
-					0,
-					sizeof(this->m_commands)
-				);
-
-				char stream_buffer_for_json_data
-					[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-				char buffer[sizeof(
-					zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-				)]{};
-
-				// this->m_p_resource_manager->Seekg(
-				//	this->m_file_resource_handle_id, 0,
-				//	kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-				this->m_p_file_temp->seekg(
-					0, std::ios_base::end
-				);
-
-				// auto file_size_after_serialize =
-				//	this->m_p_resource_manager->Tellg(
-				//		this->m_file_resource_handle_id);
-
-				auto file_size_after_serialize =
-					this->m_p_file_temp->tellg();
-
-				// this->m_p_resource_manager->Seekg(
-				//	this->m_file_exchange_resource_handle_id, 0,
-				//	kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-				this->m_p_file_exchange->seekg(
-					0, std::ios_base::end
-				);
-
-				// auto file_size_of_exchange =
-				// this->m_p_resource_manager->Tellg(
-				//	this->m_file_exchange_resource_handle_id);
-
-				auto file_size_of_exchange =
-					this->m_p_file_exchange->tellg();
-
-				this->insert_content(
-					this->m_exchange_file_offset_after,
-					file_size_of_exchange,
-					file_size_after_serialize
-				);
-
-				this->m_before_frame_file_offset =
-					file_size_after_serialize;
-
-				this->m_current_file_offset =
-					this->m_before_frame_file_offset;
-				int command_count{};
-				for (int i = 0; i <
-				     zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
-				     ++i)
-				{
-					std::memset(buffer, 0, sizeof(buffer));
-					// this->m_p_resource_manager->Seekg(
-					//	this->m_file_resource_handle_id,
-					//	this->m_current_file_offset,
-					//	kotek::core::eFileSeekDirectionType::
-					//		kSeekDirectionBegin);
-					this->m_p_file_temp->seekg(
-						this->m_current_file_offset,
-						std::ios_base::beg
-					);
-					// this->m_p_resource_manager->Read(
-					//	this->m_file_resource_handle_id, buffer,
-					//	sizeof(buffer));
-					this->m_p_file_temp->read(
-						buffer, sizeof(buffer)
-					);
-					if (buffer
-					        [zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] ==
-					    zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY)
-					{
-						auto current_offset =
-							this->m_current_file_offset;
-						current_offset += sizeof(buffer);
-
-						// this->m_p_resource_manager->Seekg(
-						//	this->m_file_resource_handle_id, 0,
-						//	kotek::core::eFileSeekDirectionType::
-						//		kSeekDirectionEnd);
-						this->m_p_file_temp->seekg(
-							0, std::ios_base::end
-						);
-
-						//	auto file_size =
-						//this->m_p_resource_manager->Tellg(
-						//		this->m_file_resource_handle_id);
-
-						auto file_size =
-							this->m_p_file_temp->tellg();
-
-						// we reached end of file, so we can't
-						// move further, making leaving from
-						// this stack...
-						if (current_offset == file_size)
-						{
-							this->m_current_file_offset =
-								this->m_before_frame_file_offset;
-							//	this->m_p_resource_manager->Seekg(
-							//		this->m_file_resource_handle_id,
-							//		this->m_current_file_offset,
-							//		kotek::core::eFileSeekDirectionType::
-							//			kSeekDirectionBegin);
-							this->m_p_file_temp->seekg(
-								this->m_current_file_offset,
-								std::ios_base::beg
-							);
-							this->m_current_file_offset -=
-								sizeof(buffer);
-
-							break;
-						}
-						else
-						{
-							// everything is fine we can move
-							// further
-							this->m_current_file_offset +=
-								sizeof(buffer);
-							// this->m_p_resource_manager->Seekg(
-							//	this->m_file_resource_handle_id,
-							//	this->m_current_file_offset,
-							//	kotek::core::eFileSeekDirectionType::
-							//		kSeekDirectionBegin);
-							this->m_p_file_temp->seekg(
-								this->m_current_file_offset,
-								std::ios_base::beg
-							);
-							// this->m_p_resource_manager->Read(
-							//	this->m_file_resource_handle_id,
-							//buffer, 	sizeof(buffer));
-							this->m_p_file_temp->read(
-								buffer, sizeof(buffer)
-							);
-						}
-					}
-
-					KOTEK_ASSERT(
-						buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] !=
-							zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY,
-						"that means we are reading for going "
-					    "to back (to "
-						"the "
-						"beginning of file) that's not correct "
-					    "and data "
-						"might "
-						"be corrupted, check everything again!"
-					);
-
-					auto offset_for_json_data =
-						std::atoi(buffer);
-
-					KOTEK_ASSERT(
-						offset_for_json_data > 0,
-						"bad cast or something is broken when "
-					    "data was "
-						"written "
-						"to file!"
-					);
-
-					this->m_current_file_offset +=
-						sizeof(buffer) + 2;
-
-					// getting real json exact string size for
-					// reading
-					auto real_size_for_json_data =
-						offset_for_json_data - 2;
-
-					// this->m_p_resource_manager->Seekg(
-					//	this->m_file_resource_handle_id,
-					//	this->m_current_file_offset,
-					//	kotek::core::eFileSeekDirectionType::
-					//		kSeekDirectionBegin);
-
-					this->m_p_file_temp->seekg(
-						this->m_current_file_offset,
-						std::ios_base::beg
-					);
-
-					kotek::json::stream_parser parser;
-					kotek::json::static_resource storage_ptr(
-						this->m_p_memory_for_stack_parser
-					);
-					parser.reset(&storage_ptr);
-
-					if (real_size_for_json_data >
-					    zircon_DEF_STREAM_JSON_STACK_SIZE)
-					{
-						int counter{real_size_for_json_data};
-						auto prev_size{
-							this->m_current_file_offset
-						};
-
-						while (counter > 0)
-						{
-							if (counter >
-							    zircon_DEF_STREAM_JSON_STACK_SIZE)
-							{
-								// this->m_p_resource_manager->Read(
-								//	this->m_file_resource_handle_id,
-								//	stream_buffer_for_json_data,
-								//	sizeof(stream_buffer_for_json_data));
-								this->m_p_file_temp->read(
-									stream_buffer_for_json_data,
-									sizeof(
-										stream_buffer_for_json_data
-									)
-								);
-								this->m_current_file_offset +=
-									zircon_DEF_STREAM_JSON_STACK_SIZE;
-								// this->m_p_resource_manager->Seekg(
-								//	this->m_file_resource_handle_id,
-								//	this->m_current_file_offset,
-								//	kotek::core::eFileSeekDirectionType::
-								//		kSeekDirectionBegin);
-								this->m_p_file_temp->seekg(
-									this->m_current_file_offset,
-									std::ios_base::beg
-								);
-							}
-							else
-							{
-								//	this->m_p_resource_manager->Read(
-								//		this->m_file_resource_handle_id,
-								//		stream_buffer_for_json_data,
-								//counter);
-								this->m_p_file_temp->read(
-									stream_buffer_for_json_data,
-									counter
-								);
-								this->m_current_file_offset +=
-									counter;
-							}
-
-							if (counter >
-							    zircon_DEF_STREAM_JSON_STACK_SIZE)
-							{
-								parser.write(
-									stream_buffer_for_json_data,
-									sizeof(
-										stream_buffer_for_json_data
-									)
-								);
-							}
-							else
-							{
-								parser.write(
-									stream_buffer_for_json_data,
-									counter
-								);
-							}
-
-							counter -=
-								zircon_DEF_STREAM_JSON_STACK_SIZE;
-							std::memset(
-								stream_buffer_for_json_data,
-								0,
-								sizeof(
-									stream_buffer_for_json_data
-								)
-							);
-						}
-
-						KOTEK_ASSERT(
-							(this->m_current_file_offset -
-						     real_size_for_json_data) ==
-								prev_size,
-							"wrong calculations! after parsing "
-						    "you have to "
-							"get exactly the same size as you "
-						    "minused "
-							"offset_for_json_data! "
-						    "curret_offset:[{}] "
-							"real_size_for_json_data:[{}] "
-						    "dif:[{}] "
-							"prev_size:[{}]",
-							this->m_current_file_offset,
-							real_size_for_json_data,
-							(this->m_current_file_offset -
-						     real_size_for_json_data),
-							prev_size
-						);
-
-						if (this->m_current_file_offset > 0)
-							this->m_current_file_offset += 2;
-
-						auto status = parser.done();
-
-						KOTEK_ASSERT(
-							status, "must be valid json!"
-						);
-					}
-					else
-					{
-						// this->m_p_resource_manager->Read(
-						//	this->m_file_resource_handle_id,
-						//	stream_buffer_for_json_data,
-						//	real_size_for_json_data);
-						this->m_p_file_temp->read(
-							stream_buffer_for_json_data,
-							real_size_for_json_data
-						);
-						parser.write(stream_buffer_for_json_data
-						);
-						auto status = parser.done();
-						KOTEK_ASSERT(
-							status,
-							"must be valid json in stream "
-						    "buffer!"
-						);
-
-						this->m_current_file_offset +=
-							real_size_for_json_data;
-
-						if (this->m_current_file_offset > 0)
-							this->m_current_file_offset += 2;
-					}
-
-					kotek::json::value json_data =
-						parser.release();
-
-					KOTEK_ASSERT(
-						json_data.is_object(), "must be object!"
-					);
-
-					auto& json = json_data.as_object();
-
-					KOTEK_ASSERT(
-						json.find("command") != json.end(),
-						"must exist a such key, because we "
-					    "can't "
-						"understand which command we need to "
-					    "restore!"
-					);
-
-					kotek::core::eConsoleCommandIndex type =
-						static_cast<
-							kotek::core::eConsoleCommandIndex>(
-							json.at("command").as_int64()
-						);
-
-					zircon_factory* p_factory = nullptr;
-
-					zircon_session_editor* p_session =
-						this->m_p_manager_session_editor
-							->get_session(
-								this->m_p_manager_session_editor
-									->get_current_session_id()
-							);
-
-					if (p_session && p_session->get_world())
-					{
-						p_factory =
-							p_session->get_world()->get_factory();
-					}
-
-					switch (type)
-					{
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_CreateEntity:
-					{
-						auto placement_storage =
-							this->m_storage[i];
-						zircon_command_create_entity*
-							p_command = new (placement_storage)
-								zircon_command_create_entity(
-									this->m_p_manager_session_editor,
-									p_factory
-								);
-						p_command->Deserialize(json);
-
-						this->m_commands[i] = p_command;
-						break;
-					}
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_DeleteEntity:
-					{
-						auto placement_storage =
-							this->m_storage[i];
-						zircon_command_delete_entity*
-							p_command = new (placement_storage)
-								zircon_command_delete_entity(
-									this->m_p_manager_session_editor,
-									p_factory,
-									kotek::ktk::kInvalidECSEntity
-								);
-
-						p_command->Deserialize(json);
-
-						this->m_commands[i] = p_command;
-						break;
-					}
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_CreateComponentForEntityByName:
-					{
-						auto placement_storage =
-							this->m_storage[i];
-						zircon_command_add_component_to_entity*
-							p_command = new (placement_storage)
-								zircon_command_add_component_to_entity(
-									this->m_p_manager_session_editor
-								);
-
-						p_command->Deserialize(json);
-
-						this->m_commands[i] = p_command;
-						break;
-					}
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_DeleteComponentFromEntityByName:
-					{
-						auto placement_storage =
-							this->m_storage[i];
-						zircon_command_delete_component_from_entity*
-							p_command = new (placement_storage)
-								zircon_command_delete_component_from_entity(
-									this->m_p_manager_session_editor,
-									p_factory
-								);
-
-						p_command->Deserialize(json);
-
-						this->m_commands[i] = p_command;
-						break;
-					}
-					default:
-					{
-						KOTEK_ASSERT(
-							false,
-							"can't be!!! data corruption?! or "
-						    "you forgot to "
-							"add a new type"
-						);
-						break;
-					}
-					}
-
-					++command_count;
-				}
-
-				// in order to save the logic when we move
-				// cursor further
-				this->m_index = 0;
-				this->m_current_file_offset += sizeof(buffer);
-				this->m_after_frame_file_offset =
-					this->m_current_file_offset;
-			}
-		}
-
-		// todo: think about this logical carefully, i think
-		// something is wrong here
-		if (this->m_cursor_index <
-		    kotek::ptrdiff_t(this->m_max_index) - 1)
-		{
-			++this->m_cursor_index;
-			this->m_index = this->m_cursor_index %
-				zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
-
-			KOTEK_ASSERT(
-				this->m_commands[this->m_index],
-				"something is wrong"
-			);
-			auto* p_command = this->m_commands[this->m_index];
-			if (p_command)
-				p_command->Execute();
-
-			set_changed(true);
-		}
-		else
-		{
-			int a = 0;
-		}
-	}
+	this->set_changed(true);
 }
 
 void zircon_editor_command_history::set_changed(bool status
@@ -1423,7 +509,7 @@ const kotek::array_t<
 	zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
 zircon_editor_command_history::GetCommands(void) const noexcept
 {
-	return this->m_commands;
+	return this->m_pool_commands;
 }
 
 void zircon_editor_command_history::update_dependent_commands(
@@ -1431,36 +517,39 @@ void zircon_editor_command_history::update_dependent_commands(
 	kotek::entity_t id_that_replaces_what_will_be_deleted
 ) noexcept
 {
-#ifdef KOTEK_USE_ECS_BACKEND_ENTT
-	for (auto* p_command : this->m_commands)
+	if (id_what_will_be_deleted.id ==
+	    id_that_replaces_what_will_be_deleted.id)
 	{
+		return;
+	}
+
+	this->set_entity_translation(
+		static_cast<kotek::uint32_t>(id_what_will_be_deleted.id),
+		static_cast<kotek::uint32_t>(
+			id_that_replaces_what_will_be_deleted.id
+		)
+	);
+
+	// fix the live pool so that pending commands reference the
+	// new live id
+	for (kotek::size_t i = 0;
+	     i < this->m_pool_commands.size();
+	     ++i)
+	{
+		kotek::core::ktkISDKRedoUndo* p_command =
+			this->m_pool_commands[i];
+
 		if (p_command)
 		{
-			if (p_command->GetEntityID() ==
-			    static_cast<kotek::uint32_t>(
-					id_what_will_be_deleted
-				))
+			if (p_command->GetEntityID().id ==
+			    id_what_will_be_deleted.id)
 			{
 				p_command->SetEntityID(
-					static_cast<kotek::uint32_t>(
-						id_that_replaces_what_will_be_deleted
-					)
+					id_that_replaces_what_will_be_deleted
 				);
 			}
 		}
 	}
-#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
-
-#endif
-
-	// update info in serialized commands
-	// also update offsets before and after
-	// and offsets for reading in file
-
-	this->update_dependent_serialized_commands(
-		id_what_will_be_deleted,
-		id_that_replaces_what_will_be_deleted
-	);
 }
 
 unsigned char*
@@ -1474,98 +563,223 @@ zircon_editor_command_history::allocate_memory_for_command(
 		"you can't pass a invalid size!"
 	);
 	KOTEK_ASSERT(
-		size_of_class <= zircon_DEF_MAXIMUM_COMMAND_SIZE,
-		"you passed size larger than standard we can't "
-	    "allocate!"
+		size_of_class <=
+			zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE,
+		"you passed size larger than the command slot ({} > "
+		"{})!",
+		size_of_class,
+		zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE
 	);
 
-	unsigned char* pResultPlacementNewBuffer{};
+	const kotek::uint32_t slot_index =
+		this->m_pool_next_victim_slot;
 
-	constexpr size_t _kLimitSize =
-		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE - 1;
+	this->m_pool_next_victim_slot =
+		(this->m_pool_next_victim_slot + 1) %
+		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
 
-	this->clear_content_when_action_issued();
+	this->evict_pool_slot(slot_index);
 
-	++this->m_cursor_index;
-	++this->m_max_index;
-
-#ifdef ZIRCON_ENABLE_CH_TRACE
-	KOTEK_TRACE(
-		"command: {} ({})", this->m_max_index, p_debug_type_name
+	std::memset(
+		this->m_pool_storage[slot_index],
+		0,
+		zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE
 	);
-#endif
 
-	this->m_index =
-		this->m_cursor_index %
-		static_cast<size_t>(
-			zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE
-		);
-	// update new data
-	if (this->m_cursor_index > 0 &&
-	    this->m_cursor_index %
-	            zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE ==
-	        0)
-	{
-		for (auto* p_command : this->m_commands)
-		{
-			KOTEK_ASSERT(p_command, "must be valid!");
-			KOTEK_ASSERT(false, "todo: re-write please");
-			//	p_command->Serialize(
-			//		this->m_p_file_temp);
-		}
+	this->m_pending_slot = slot_index;
 
-		for (auto* p_command : this->m_commands)
-		{
-			KOTEK_ASSERT(p_command, "must be valid");
-			p_command->~ktkISDKRedoUndo();
-		}
-
-		for (auto* p_placement_new_memory : this->m_storage)
-		{
-			std::memset(
-				p_placement_new_memory,
-				0,
-				sizeof(this->m_storage[0])
-			);
-		}
-
-		std::memset(
-			this->m_commands.data(), 0, sizeof(this->m_commands)
-		);
-
-		auto pStart = this->m_storage[this->m_index];
-		pResultPlacementNewBuffer = pStart;
-
-		this->m_current_file_offset =
-			this->m_p_file_temp->tellg();
-
-		this->m_end_of_previous_frame =
-			this->m_start_of_next_frame;
-		this->m_start_of_next_frame =
-			this->m_current_file_offset;
-
-		this->m_before_frame_file_offset =
-			this->m_start_of_next_frame;
-	}
-	else
-	{
-		auto pStart = this->m_storage[this->m_index];
-		pResultPlacementNewBuffer = pStart;
-	}
-
-	return pResultPlacementNewBuffer;
+	return this->m_pool_storage[slot_index];
 }
 
 kotek::size_t
 zircon_editor_command_history::get_current_index(void) const
 {
-	return this->m_index;
+	return this->m_cursor_node_id;
 }
 
 kotek::ptrdiff_t
 zircon_editor_command_history::get_cursor_index(void) const
 {
-	return this->m_cursor_index;
+	return static_cast<kotek::ptrdiff_t>(
+		this->m_cursor_node_id
+	);
+}
+
+kotek::uint64_t
+zircon_editor_command_history::get_total_recorded_commands(void
+) const noexcept
+{
+	return this->m_nodes.empty()
+		? 0
+		: static_cast<kotek::uint64_t>(this->m_nodes.size() - 1);
+}
+
+kotek::uint32_t
+zircon_editor_command_history::get_cursor_node_id(void
+) const noexcept
+{
+	return this->m_cursor_node_id;
+}
+
+kotek::entity_t
+zircon_editor_command_history::get_live_entity_id(
+	kotek::entity_t recorded_id
+) const noexcept
+{
+	kotek::entity_t result = kotek::ktk::kInvalidECSEntity;
+
+	const kotek::uint32_t recorded =
+		static_cast<kotek::uint32_t>(recorded_id.id);
+
+	if (recorded < this->m_entity_id_translation.size())
+	{
+		const kotek::uint32_t translated =
+			this->m_entity_id_translation[recorded];
+
+		if (translated !=
+		    zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID)
+		{
+			result.id = translated;
+		}
+	}
+
+	return result;
+}
+
+kotek::uint32_t
+zircon_editor_command_history::get_entity_watermark(void
+) const noexcept
+{
+	return this->m_entity_watermark;
+}
+
+bool zircon_editor_command_history::restore_node(
+	kotek::uint32_t node_id
+) noexcept
+{
+	KOTEK_ASSERT(
+		node_id < this->m_nodes.size(),
+		"node {} does not exist (nodes: {})",
+		node_id,
+		this->m_nodes.size()
+	);
+
+	if (node_id >= this->m_nodes.size())
+		return false;
+
+	zircon_world* p_world = this->get_current_world();
+
+	if (p_world == nullptr ||
+	    p_world->get_ecs_context() == nullptr)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[history]: restore_node requires an initialized "
+			"world"
+		);
+		return false;
+	}
+
+	// build the path root..target (stored target-first)
+	kotek::hybrid_vector_t<
+		kotek::uint32_t,
+		zircon_DEF_COMMAND_HISTORY_PATH_INLINE_COUNT>
+		path;
+
+	for (kotek::uint32_t current = node_id; current !=
+	     zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID;
+	     current = this->m_nodes[current].m_parent_node_id)
+	{
+		path.push_back(current);
+	}
+
+	// find the deepest node with a snapshot (path[0] is the
+	// target itself)
+	int snapshot_path_index = -1;
+
+	for (kotek::size_t i = 0; i < path.size(); ++i)
+	{
+		if (this->m_nodes[path[i]].m_snapshot_offset != 0)
+		{
+			snapshot_path_index = static_cast<int>(i);
+			break;
+		}
+	}
+
+	this->destroy_all_entities(p_world);
+
+	this->m_cursor_node_id =
+		zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID;
+
+	int replay_start_index = static_cast<int>(path.size()) - 1;
+
+	if (snapshot_path_index >= 0)
+	{
+		const zircon_history_tree_node& snapshot_node =
+			this->m_nodes[path[snapshot_path_index]];
+
+		KOTEK_TRACE(
+			"[history]: restore_node {} from snapshot of node {} "
+			"(raw {} bytes)",
+			node_id,
+			path[snapshot_path_index],
+			snapshot_node.m_snapshot_raw_size
+		);
+
+		kotek::hybrid_vector_t<unsigned char, 4096>
+			snapshot_data;
+		snapshot_data.resize(
+			snapshot_node.m_snapshot_raw_size
+		);
+
+		if (this->m_journal.read_snapshot(
+				snapshot_node.m_snapshot_offset,
+				snapshot_node.m_snapshot_compressed_size,
+				snapshot_node.m_snapshot_raw_size,
+				snapshot_data.data(),
+				snapshot_node.m_snapshot_raw_size
+			) == false)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[history]: failed to read the snapshot of "
+				"node {}",
+				path[snapshot_path_index]
+			);
+			return false;
+		}
+
+		if (this->apply_world_state(
+				p_world,
+				snapshot_data.data(),
+				snapshot_node.m_snapshot_raw_size
+			) == false)
+		{
+			return false;
+		}
+
+		KOTEK_TRACE(
+			"[history]: restore_node {} snapshot applied",
+			node_id
+		);
+
+		this->m_cursor_node_id = path[snapshot_path_index];
+		replay_start_index = snapshot_path_index - 1;
+	}
+
+	// replay the journal forward to the target
+	for (int i = replay_start_index; i >= 0; --i)
+	{
+		this->execute_node(path[i]);
+		this->m_cursor_node_id = path[i];
+	}
+
+	KOTEK_TRACE(
+		"[history]: restore_node {} done",
+		node_id
+	);
+
+	this->set_changed(true);
+
+	return true;
 }
 
 bool zircon_editor_command_history::
@@ -1576,2956 +790,853 @@ bool zircon_editor_command_history::
 		eZirconComponentType type_id
 	)
 {
-	KOTEK_ASSERT(
-		this->m_p_file_temp,
-		"early calling, must be initialized!"
-	);
+	constexpr kotek::uint32_t delete_entity_command_type =
+		static_cast<kotek::uint32_t>(
+			kotek::core::eConsoleCommandIndex::
+				kConsoleCommand_SDK_DeleteEntity
+		);
 
-	bool result{};
+	kotek::uint32_t current = this->m_cursor_node_id;
 
-	//	if (this->m_p_resource_manager)
+	while (current != zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID)
 	{
-		if (this->m_p_file_temp->is_open())
+		const zircon_history_tree_node& node =
+			this->m_nodes[current];
 
+		if (node.m_command_type == delete_entity_command_type &&
+		    node.m_entity_id ==
+		        static_cast<kotek::uint32_t>(id.id))
 		{
-			//	kotek::size_t restored_offset =
-			// this->m_p_resource_manager->Tellg(
-			//		this->m_file_resource_handle_id);
-			kotek::size_t restored_offset =
-				this->m_p_file_temp->tellg();
+			zircon_command_journal_entry_header header{};
 
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		0,
-			//kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-			this->m_p_file_temp->seekg(0, std::ios_base::end);
+			if (this->m_journal.read_entry(
+					node.m_locator,
+					header,
+					this->m_payload_scratch,
+					sizeof(this->m_payload_scratch)
+				) == false)
+			{
+				return false;
+			}
 
-			//	kotek::size_t file_size =
-			//this->m_p_resource_manager->Tellg(
-			//		this->m_file_resource_handle_id);
-			kotek::size_t file_size =
-				this->m_p_file_temp->tellg();
-
-			kotek::size_t current_offset{};
-
-			char stream_buffer_for_json_data
-				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-			char buffer[sizeof(
-				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-			)]{};
-
-			this->m_p_file_exchange =
-				this->reopen_exchange_file(
-					this->m_p_file_exchange
-				);
-
-			// this->m_p_resource_manager->Seekg(
-			//	this->m_file_exchange_resource_handle_id, 0,
-			//	kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_exchange->seekg(
-				0, std::ios_base::beg
+			zircon_command_delta_reader reader(
+				this->m_payload_scratch,
+				header.m_payload_size
 			);
 
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		0,
-			// kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_temp->seekg(0, std::ios_base::beg);
+			bool status{};
 
-			while (current_offset < file_size)
+			reader.read_u32(&status);
+
+			if (status == false)
+				return false;
+
+			const kotek::uint32_t component_count =
+				reader.read_u32(&status);
+
+			if (status == false)
+				return false;
+
+			for (kotek::uint32_t i = 0;
+			     i < component_count;
+			     ++i)
 			{
-				std::memset(buffer, 0, sizeof(buffer));
+				const kotek::uint32_t component_type =
+					reader.read_u32(&status);
 
-				kotek::size_t current_section_offset_begin{
-					current_offset
-				};
-				kotek::size_t current_section_offset_end{};
+				if (status == false)
+					return false;
 
-				//	this->m_p_resource_manager->Read(
-				//		this->m_file_resource_handle_id, buffer,
-				// sizeof(buffer));
+				char state_buffer
+					[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
 
-				this->m_p_file_temp->read(
-					buffer, sizeof(buffer)
+				status = reader.read_string(
+					state_buffer, sizeof(state_buffer)
 				);
 
-				if (buffer
-				        [zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] ==
-				    zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY)
+				if (status == false)
+					return false;
+
+				if (component_type ==
+				    static_cast<kotek::uint32_t>(type_id))
 				{
-					auto test_current_offset = current_offset;
-					test_current_offset += sizeof(buffer);
+					kotek::ktk::json::error_code
+						parse_error;
 
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id, 0,
-					//		kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-					this->m_p_file_temp->seekg(
-						0, std::ios_base::end
-					);
-
-					//	auto file_size =
-					//this->m_p_resource_manager->Tellg(
-					//		this->m_file_resource_handle_id);
-
-					auto file_size =
-						this->m_p_file_temp->tellg();
-
-					// we reached end of file, so we can't move
-					// further, making leaving from this
-					// stack...
-					if (test_current_offset == file_size)
-					{
-						break;
-					}
-					else
-					{
-						// everything is fine we can move
-						// further
-						current_offset += sizeof(buffer);
-						// this->m_p_resource_manager->Seekg(
-						//	this->m_file_resource_handle_id,
-						//current_offset,
-						//	kotek::core::eFileSeekDirectionType::
-						//		kSeekDirectionBegin);
-
-						this->m_p_file_temp->seekg(
-							current_offset, std::ios_base::beg
+					kotek::ktk::json::value parsed =
+						kotek::ktk::json::parse(
+							kotek::cstring_view_t(
+								state_buffer,
+								strlen(state_buffer)
+							),
+							parse_error
 						);
 
-						// this->m_p_resource_manager->Read(
-						//	this->m_file_resource_handle_id,
-						//buffer, 	sizeof(buffer));
-						this->m_p_file_temp->read(
-							buffer, sizeof(buffer)
+					if (parse_error)
+					{
+						KOTEK_MESSAGE_ERROR(
+							"[history]: failed to parse a "
+							"serialized component: {}",
+							parse_error.message()
 						);
+						return false;
 					}
-				}
 
-				KOTEK_ASSERT(
-					buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] !=
-						zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY,
-					"that means we are reading for going to "
-				    "back (to "
-					"the "
-					"beginning of file) that's not correct and "
-				    "data "
-					"might "
-					"be corrupted, check everything again!"
-				);
-
-				auto offset_for_json_data = std::atoi(buffer);
-
-				current_offset += sizeof(buffer) + 2;
-
-				auto real_size_for_json_data =
-					offset_for_json_data - 2;
-
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id,
-				//current_offset,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-				this->m_p_file_temp->seekg(
-					current_offset, std::ios_base::beg
-				);
-
-				kotek::json::value json_data;
-
-				bool is_contain =
-					this->check_json_entry_has_entity_id_and_component_type_id(
-						id,
-						type_id,
-						real_size_for_json_data,
-						current_offset,
-						json_data
-					);
-
-				if (is_contain)
-				{
 					constructed_value_on_stack_based_on_placement_new_memory =
-						json_data;
-					result = true;
-					break;
-				}
-				else
-				{
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id,
-					//current_offset,
-					//		kotek::core::eFileSeekDirectionType::
-					//			kSeekDirectionBegin);
+						parsed;
 
-					this->m_p_file_temp->seekg(
-						current_offset, std::ios_base::beg
-					);
-
-					if (current_offset + sizeof(buffer) ==
-					    file_size)
-					{
-						break;
-					}
+					return true;
 				}
 			}
+		}
 
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		restored_offset,
-			//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_temp->seekg(
-				restored_offset, std::ios_base::beg
-			);
+		current = node.m_parent_node_id;
+	}
+
+	return false;
+}
+
+void zircon_editor_command_history::set_snapshot_interval(
+	kotek::uint32_t interval
+) noexcept
+{
+	this->m_snapshot_interval = interval;
+}
+
+kotek::uint32_t
+zircon_editor_command_history::get_snapshot_interval(void
+) const noexcept
+{
+	return this->m_snapshot_interval;
+}
+
+kotek::uint64_t
+zircon_editor_command_history::get_journal_file_size(
+	void
+) noexcept
+{
+	return this->m_journal.get_journal_file_size();
+}
+
+kotek::uint64_t
+zircon_editor_command_history::get_snapshot_file_size(
+	void
+) noexcept
+{
+	return this->m_journal.get_snapshot_file_size();
+}
+
+kotek::uint64_t
+zircon_editor_command_history::get_journal_raw_entry_bytes(
+	void
+) const noexcept
+{
+	return this->m_journal.get_total_raw_entry_bytes();
+}
+
+kotek::uint64_t
+zircon_editor_command_history::get_total_snapshot_count(void
+) const noexcept
+{
+	return this->m_total_snapshot_count;
+}
+
+kotek::core::ktkISDKRedoUndo*
+zircon_editor_command_history::get_command_for_node(
+	kotek::uint32_t node_id
+) noexcept
+{
+	const zircon_history_tree_node& node =
+		this->m_nodes[node_id];
+
+	if (node.m_pool_slot !=
+	        zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT &&
+	    node.m_pool_slot <
+	        zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE)
+	{
+		if (this->m_pool_node_ids[node.m_pool_slot] == node_id &&
+		    this->m_pool_commands[node.m_pool_slot] !=
+		        nullptr)
+		{
+			return this->m_pool_commands[node.m_pool_slot];
+		}
+	}
+
+	return this->reconstruct_command(node_id);
+}
+
+kotek::core::ktkISDKRedoUndo*
+zircon_editor_command_history::reconstruct_command(
+	kotek::uint32_t node_id
+) noexcept
+{
+	KOTEK_ASSERT(
+		this->m_is_scratch_in_use == false,
+		"scratch command slot is already in use, undo/redo "
+		"must not nest"
+	);
+
+	if (this->m_is_scratch_in_use)
+		return nullptr;
+
+	const zircon_history_tree_node& node =
+		this->m_nodes[node_id];
+
+	const zircon_command_type_info* p_type_info =
+		zircon_command_registry::get_instance().find_by_type(
+			node.m_command_type
+		);
+
+	if (p_type_info == nullptr)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[history]: unknown command type {} in node {}",
+			node.m_command_type,
+			node_id
+		);
+		return nullptr;
+	}
+
+	zircon_command_journal_entry_header header{};
+
+	if (this->m_journal.read_entry(
+			node.m_locator,
+			header,
+			this->m_payload_scratch,
+			sizeof(this->m_payload_scratch)
+		) == false)
+	{
+		return nullptr;
+	}
+
+	zircon_factory* p_factory = nullptr;
+
+	if (zircon_world* p_world = this->get_current_world())
+	{
+		p_factory = p_world->get_factory();
+	}
+
+	kotek::core::ktkISDKRedoUndo* p_command =
+		p_type_info->m_p_create(
+			this->m_scratch_storage,
+			this->m_p_manager_session_editor,
+			p_factory
+		);
+
+	if (p_command == nullptr)
+		return nullptr;
+
+	zircon_interface_command_delta* p_delta =
+		dynamic_cast<zircon_interface_command_delta*>(
+			p_command
+		);
+
+	KOTEK_ASSERT(
+		p_delta,
+		"reconstructed command of type {} does not implement "
+		"zircon_interface_command_delta",
+		node.m_command_type
+	);
+
+	if (p_delta == nullptr)
+	{
+		p_command->~ktkISDKRedoUndo();
+		return nullptr;
+	}
+
+	zircon_command_delta_reader reader(
+		this->m_payload_scratch, header.m_payload_size
+	);
+
+	if (p_delta->Deserialize_Delta(reader) == false)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[history]: failed to deserialize the delta of "
+			"node {}",
+			node_id
+		);
+
+		p_command->~ktkISDKRedoUndo();
+		return nullptr;
+	}
+
+	this->m_is_scratch_in_use = true;
+
+	return p_command;
+}
+
+void zircon_editor_command_history::release_scratch_command(
+	kotek::core::ktkISDKRedoUndo* p_command
+) noexcept
+{
+	if (p_command == nullptr)
+		return;
+
+	if (this->m_is_scratch_in_use == false)
+		return;
+
+	if (reinterpret_cast<unsigned char*>(p_command) >=
+	        this->m_scratch_storage &&
+	    reinterpret_cast<unsigned char*>(p_command) <
+	        this->m_scratch_storage +
+	            zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE)
+	{
+		p_command->~ktkISDKRedoUndo();
+		this->m_is_scratch_in_use = false;
+	}
+}
+
+void zircon_editor_command_history::execute_node(
+	kotek::uint32_t node_id
+) noexcept
+{
+	kotek::core::ktkISDKRedoUndo* p_command =
+		this->get_command_for_node(node_id);
+
+	if (p_command == nullptr)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[history]: failed to obtain a command for node {}",
+			node_id
+		);
+		return;
+	}
+
+	const kotek::uint32_t recorded_id =
+		this->m_nodes[node_id].m_entity_id;
+	const kotek::uint32_t live_id =
+		this->translate_entity_id(recorded_id);
+
+	KOTEK_TRACE(
+		"[history]: execute_node {} type {} entity {} -> {}",
+		node_id,
+		this->m_nodes[node_id].m_command_type,
+		recorded_id,
+		live_id
+	);
+
+	if (live_id != recorded_id)
+	{
+		p_command->SetEntityID(kotek::entity_t{live_id});
+	}
+
+	p_command->Execute();
+
+	this->observe_entity_id(p_command, recorded_id);
+
+	this->release_scratch_command(p_command);
+
+	this->take_snapshot_if_needed(node_id);
+}
+
+kotek::uint32_t
+zircon_editor_command_history::translate_entity_id(
+	kotek::uint32_t recorded_id
+) const noexcept
+{
+	kotek::uint32_t result = recorded_id;
+
+	if (recorded_id < this->m_entity_id_translation.size())
+	{
+		const kotek::uint32_t translated =
+			this->m_entity_id_translation[recorded_id];
+
+		if (translated !=
+		    zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID)
+		{
+			result = translated;
 		}
 	}
 
 	return result;
 }
 
-void zircon_editor_command_history::unload_content()
+void zircon_editor_command_history::set_entity_translation(
+	kotek::uint32_t recorded_id, kotek::uint32_t live_id
+) noexcept
 {
-	// я нахожусь между первым и последним фреймом
-	if (this->m_cursor_index > 9 &&
-	    this->m_cursor_index < (this->m_max_index - 1) -
-	            ((this->m_max_index - 1) %
-	             zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE))
+	if (recorded_id == 0)
+		return;
+
+	if (recorded_id >= this->m_entity_id_translation.size())
 	{
-		this->unload_content_before();
-		this->unload_content_after(false);
-	}
-	// я на самом первом фрейме (самое начало)
-	else if (this->m_cursor_index <= 9 && this->m_max_index > 9)
-	{
-		this->m_exchange_file_offset_after = 0;
-		this->unload_content_after(true);
-	}
-	// я на самом последнем фрейме (самый конец)
-	else if (this->m_cursor_index > 9 &&
-	         this->m_cursor_index ==
-	             (this->m_max_index - 1) -
-	                 ((this->m_max_index - 1) %
-	                  zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE
-	                 ))
-	{
-		this->m_exchange_file_offset_after = 0;
-		this->unload_content_before();
-	}
-#ifdef KOTEK_DEBUG
-	else
-	{
-		KOTEK_ASSERT(false, "unhanlded situation!");
-	}
-#endif
-}
-
-void zircon_editor_command_history::unload_content_before()
-{
-	//	this->m_p_resource_manager->Close_Saver(
-	//		this->m_file_exchange_resource_handle_id);
-
-	KOTEK_ASSERT(false, "todo: re-write please");
-	// this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
-
-	//	kotek::core::ktkResourceWritingRequest request;
-	//	request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
-
-	const auto& path_to_exchange = this->get_full_path_of_file(
-		_kExchangeFileNameWithExtension
-	);
-
-	//	request.Set_Path(path_to_exchange);
-	//	request.Set_ID(this->m_file_exchange_resource_handle_id);
-
-	//	this->m_p_resource_manager->Open(request);
-
-	KOTEK_ASSERT(false, "todo: re-write please");
-	/* todo: re-write please
-	kotek::core::ktkResourceFileStreamRequest request;
-
-	request.resource_type =
-	kotek::core::eResourceRequestResourceType::kText;
-	request.path_to_file = path_to_exchange;
-	request.operation_type =
-	kotek::core::eResourceRequestOperationType::kSave;
-
-	this->m_p_file_exchange =
-	    this->m_p_resource_manager->Open_FileStream(request);*/
-
-	auto file_size = this->m_before_frame_file_offset;
-
-	//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-	//0,
-	//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-	this->m_p_file_temp->seekg(0, std::ios_base::beg);
-
-	kotek::size_t current_size{};
-	kotek::size_t size_reading{};
-	kotek::size_t size_writing{};
-
-	while (current_size < file_size)
-	{
-		char buffer[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-		if (current_size + zircon_DEF_STREAM_JSON_STACK_SIZE >
-		    file_size)
-		{
-			size_reading = (file_size - current_size);
-			size_writing = size_reading;
-		}
-		else
-		{
-			size_reading = zircon_DEF_STREAM_JSON_STACK_SIZE;
-			size_writing = zircon_DEF_STREAM_JSON_STACK_SIZE;
-		}
-
-		//	this->m_p_resource_manager->Read(
-		//		this->m_file_resource_handle_id, buffer,
-		//size_reading);
-
-		this->m_p_file_temp->read(buffer, size_reading);
-
-		// control character is '\n' because FILE interprets is
-		// as a complex char so it is two values not one as we
-		// write in code
-		kotek::size_t control_character_amount_of_repetitions{};
-		bool is_contain_control_character =
-			this->is_contain_control_character(
-				buffer,
-				control_character_amount_of_repetitions,
-				size_reading
-			);
-
-		if (size_writing < zircon_DEF_STREAM_JSON_STACK_SIZE &&
-		    buffer[size_writing] == '\0')
-		{
-			if (is_contain_control_character)
-				size_writing -=
-					control_character_amount_of_repetitions;
-
-			KOTEK_ASSERT(
-				buffer[size_writing - 1] != '\0', "can't be!"
-			);
-		}
-		else
-		{
-			if (current_size +
-			        zircon_DEF_STREAM_JSON_STACK_SIZE ==
-			    file_size)
-			{
-				if (is_contain_control_character)
-					size_writing -=
-						control_character_amount_of_repetitions;
-
-				KOTEK_ASSERT(
-					buffer[size_writing - 1] != '\0',
-					"can't be!"
-				);
-			}
-		}
-
-		//	this->m_p_resource_manager->Write(
-		//		this->m_file_exchange_resource_handle_id,
-		//buffer, size_writing);
-		this->m_p_file_exchange->write(buffer, size_writing);
-		//	this->m_p_resource_manager->Write(
-		//		this->m_file_exchange_resource_handle_id,
-		//		kotek::core::eFileWritingControlCharacterType::kFlush);
-		this->m_p_file_exchange->flush();
-
-		current_size += zircon_DEF_STREAM_JSON_STACK_SIZE +
-			control_character_amount_of_repetitions;
-
-		//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-		//		current_size,
-		//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-		this->m_p_file_temp->seekg(
-			current_size, std::ios_base::beg
+		this->m_entity_id_translation.resize(
+			recorded_id + 1,
+			zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID
 		);
 	}
 
-	//	this->m_p_resource_manager->Seekg(this->m_file_exchange_resource_handle_id,
-	//		0,
-	//kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
+	this->m_entity_id_translation[recorded_id] = live_id;
 
-	this->m_p_file_exchange->seekg(0, std::ios_base::end);
-
-	//	this->m_exchange_file_offset_after =
-	//this->m_p_resource_manager->Tellg(
-	//		this->m_file_exchange_resource_handle_id);
-	this->m_exchange_file_offset_after =
-		this->m_p_file_exchange->tellg();
-}
-
-void zircon_editor_command_history::unload_content_after(
-	bool is_need_to_reopen
-)
-{
-	KOTEK_ASSERT(
-		this->m_p_file_exchange->is_open(),
-		"you must write some data that goes BEFORE this method"
-	);
-	KOTEK_ASSERT(
-		this->m_p_file_temp->is_open(),
-		"something is wrong, that file must be opened before "
-	    "calling this "
-		"method!"
-	);
-
-	if (is_need_to_reopen)
+	if (recorded_id > this->m_entity_watermark)
 	{
-		//	this->m_p_resource_manager->Close_Saver(
-		//		this->m_file_exchange_resource_handle_id);
-
-		KOTEK_ASSERT(false, "todo: re-write please");
-		//	this->m_p_resource_manager->Close_FileStream(this->m_p_file_exchange);
-
-		//	kotek::core::ktkResourceWritingRequest request;
-		//	request.Set_ResourceType(kotek::core::eResourceWritingType::kText);
-
-		const auto& path_to_exchange =
-			this->get_full_path_of_file(
-				_kExchangeFileNameWithExtension
-			);
-
-		//	request.Set_Path(path_to_exchange);
-		//	request.Set_ID(this->m_file_exchange_resource_handle_id);
-
-		//	this->m_p_resource_manager->Open(request);
-
-		KOTEK_ASSERT(false, "todo: re-write please");
-		/* todo: re-write please
-		kotek::core::ktkResourceFileStreamRequest request;
-		request.resource_type =
-		    kotek::core::eResourceRequestResourceType::kText;
-		request.path_to_file = path_to_exchange;
-		request.operation_type =
-		    kotek::core::eResourceRequestOperationType::kSave;
-
-		this->m_p_file_exchange =
-		    this->m_p_resource_manager->Open_FileStream(request);*/
+		this->m_entity_watermark = recorded_id;
 	}
 
-	//	if (this->m_p_resource_manager->Is_Open(
-	//			this->m_file_exchange_resource_handle_id))
-	if (this->m_p_file_exchange->is_open())
+	if (live_id != zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID &&
+	    live_id > this->m_entity_watermark)
 	{
-		//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-		// 0,
-		// kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
+		this->m_entity_watermark = live_id;
+	}
+}
 
-		this->m_p_file_temp->seekg(0, std::ios_base::end);
+void zircon_editor_command_history::observe_entity_id(
+	kotek::core::ktkISDKRedoUndo* p_command,
+	kotek::uint32_t recorded_id
+) noexcept
+{
+	KOTEK_ASSERT(p_command, "must be a valid command");
 
-		// kotek::size_t file_size =
-		//	this->m_p_resource_manager->Tellg(this->m_file_resource_handle_id);
+	if (p_command == nullptr)
+		return;
 
-		kotek::size_t file_size = this->m_p_file_temp->tellg();
-
-		//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-		//		this->m_after_frame_file_offset,
-		//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-		this->m_p_file_temp->seekg(
-			this->m_after_frame_file_offset, std::ios_base::beg
+	const kotek::uint32_t live_id =
+		static_cast<kotek::uint32_t>(
+			p_command->GetEntityID().id
 		);
 
-		if (file_size == kotek::size_t(-1))
-			return;
+	if (live_id == 0)
+		return;
 
-		kotek::size_t current_size{
-			this->m_after_frame_file_offset
-		};
-		kotek::size_t size_reading{};
-		kotek::size_t size_writing{};
+	this->set_entity_translation(recorded_id, live_id);
+}
 
-		while (current_size < file_size)
-		{
-			char buffer[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
+void zircon_editor_command_history::evict_pool_slot(
+	kotek::uint32_t slot_index
+) noexcept
+{
+	kotek::core::ktkISDKRedoUndo* p_command =
+		this->m_pool_commands[slot_index];
 
-			if (current_size +
-			        zircon_DEF_STREAM_JSON_STACK_SIZE >
-			    file_size)
-			{
-				size_reading = (file_size - current_size);
-				size_writing = size_reading;
-			}
-			else
-			{
-				size_reading =
-					zircon_DEF_STREAM_JSON_STACK_SIZE;
-				size_writing =
-					zircon_DEF_STREAM_JSON_STACK_SIZE;
-			}
+	if (p_command)
+	{
+		p_command->~ktkISDKRedoUndo();
+		this->m_pool_commands[slot_index] = nullptr;
+	}
 
-			//	this->m_p_resource_manager->Read(
-			//		this->m_file_resource_handle_id, buffer,
-			//size_reading);
+	const kotek::uint32_t evicted_node_id =
+		this->m_pool_node_ids[slot_index];
 
-			this->m_p_file_temp->read(buffer, size_reading);
+	if (evicted_node_id !=
+	        zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID &&
+	    evicted_node_id < this->m_nodes.size())
+	{
+		this->m_nodes[evicted_node_id].m_pool_slot =
+			zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT;
+	}
 
-			// control character is '\n' because FILE interprets
-			// is as a complex char so it is two values not one
-			// as we write in code
-			kotek::size_t
-				control_character_amount_of_repetitions{};
-			bool is_contain_control_character =
-				this->is_contain_control_character(
-					buffer,
-					control_character_amount_of_repetitions,
-					size_reading
-				);
+	this->m_pool_node_ids[slot_index] =
+		zircon_DEF_COMMAND_HISTORY_INVALID_NODE_ID;
+}
 
-			if (size_writing <
-			        zircon_DEF_STREAM_JSON_STACK_SIZE &&
-			    buffer[size_writing] == '\0')
-			{
-				if (is_contain_control_character)
-					size_writing -=
-						control_character_amount_of_repetitions;
+void zircon_editor_command_history::take_snapshot_if_needed(
+	kotek::uint32_t node_id
+) noexcept
+{
+	if (this->m_snapshot_interval == 0)
+		return;
 
-				KOTEK_ASSERT(
-					buffer[size_writing - 1] != '\0',
-					"can't be!"
-				);
-			}
-			else
-			{
-				if (current_size +
-				        zircon_DEF_STREAM_JSON_STACK_SIZE ==
-				    file_size)
-				{
-					if (is_contain_control_character)
-						size_writing -=
-							control_character_amount_of_repetitions;
+	zircon_history_tree_node& node = this->m_nodes[node_id];
 
-					KOTEK_ASSERT(
-						buffer[size_writing - 1] != '\0',
-						"can't be!"
-					);
-				}
-			}
+	if (node.m_depth % this->m_snapshot_interval != 0)
+		return;
 
-			//	this->m_p_resource_manager->Write(
-			//		this->m_file_exchange_resource_handle_id,
-			//buffer,
-			// size_writing);
-			this->m_p_file_exchange->write(
-				buffer, size_writing
-			);
-			//	this->m_p_resource_manager->Write(
-			//		this->m_file_exchange_resource_handle_id,
-			//		kotek::core::eFileWritingControlCharacterType::kFlush);
-			this->m_p_file_exchange->flush();
+	if (node.m_snapshot_offset != 0)
+		return;
 
-			current_size += zircon_DEF_STREAM_JSON_STACK_SIZE +
-				control_character_amount_of_repetitions;
+	zircon_world* p_world = this->get_current_world();
 
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		current_size,
-			//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_temp->seekg(
-				current_size, std::ios_base::beg
-			);
-		}
+	if (p_world == nullptr ||
+	    p_world->get_ecs_context() == nullptr)
+		return;
+
+	kotek::hybrid_vector_t<unsigned char, 4096> world_state;
+
+	this->capture_world_state(p_world, world_state);
+
+	kotek::uint64_t offset{};
+	kotek::uint32_t compressed_size{};
+
+	if (this->m_journal.append_snapshot(
+			node_id,
+			world_state.data(),
+			static_cast<kotek::uint32_t>(world_state.size()),
+			offset,
+			compressed_size
+		))
+	{
+		node.m_snapshot_offset = offset;
+		node.m_snapshot_compressed_size = compressed_size;
+		node.m_snapshot_raw_size =
+			static_cast<kotek::uint32_t>(world_state.size());
+
+		++this->m_total_snapshot_count;
 	}
 }
 
-void zircon_editor_command_history::insert_content(
-	kotek::size_t from_offset,
-	kotek::size_t to_offset,
-	kotek::size_t cursor_offset_current
-)
+zircon_world*
+zircon_editor_command_history::get_current_world(void) noexcept
 {
-	if (to_offset == size_t(-1))
-		return;
+	zircon_world* p_result = nullptr;
 
-	if (from_offset == to_offset)
-		return;
-
-	// this->m_p_resource_manager->Seekg(this->m_file_exchange_resource_handle_id,
-	//	0,
-	//kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-	this->m_p_file_exchange->seekg(0, std::ios_base::end);
-
-	kotek::size_t current_file_exchange_size{from_offset};
-	kotek::size_t current_file_current_size{
-		cursor_offset_current
-	};
-
-	// потому что мы очистили наш файл путем его "переоткрытия"
-	// this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-	//	cursor_offset_current,
-	//	kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-	this->m_p_file_temp->seekg(
-		cursor_offset_current, std::ios_base::beg
-	);
-
-	kotek::size_t size_writing{};
-	kotek::size_t size_reading{};
-
-	while (current_file_exchange_size < to_offset)
+	if (this->m_p_manager_session_editor)
 	{
-		char buffer[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-		if (current_file_exchange_size +
-		        zircon_DEF_STREAM_JSON_STACK_SIZE >
-		    to_offset)
-		{
-			size_reading =
-				(to_offset - current_file_exchange_size);
-			size_writing = size_reading;
-		}
-		else
-		{
-			size_reading = zircon_DEF_STREAM_JSON_STACK_SIZE;
-			size_writing = zircon_DEF_STREAM_JSON_STACK_SIZE;
-		}
-
-		//	this->m_p_resource_manager->Seekg(
-		//		this->m_file_exchange_resource_handle_id,
-		//		current_file_exchange_size,
-		//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-		this->m_p_file_exchange->seekg(
-			current_file_exchange_size, std::ios_base::beg
-		);
-
-		//	this->m_p_resource_manager->Read(
-		//		this->m_file_exchange_resource_handle_id,
-		//buffer, size_reading);
-
-		this->m_p_file_exchange->read(buffer, size_reading);
-
-		kotek::size_t amount_of_repeats{};
-		bool is_contain_control_character =
-			this->is_contain_control_character(
-				buffer, amount_of_repeats, size_reading
+		zircon_session_editor* p_session =
+			this->m_p_manager_session_editor->get_session(
+				this->m_p_manager_session_editor
+					->get_current_session_id()
 			);
 
-		if (size_writing < zircon_DEF_STREAM_JSON_STACK_SIZE &&
-		    buffer[size_writing] == '\0')
+		if (p_session)
 		{
-			if (is_contain_control_character)
-				size_writing -= amount_of_repeats;
-
-			KOTEK_ASSERT(
-				buffer[size_writing - 1] != '\0', "can't be!"
-			);
+			p_result = p_session->get_world();
 		}
-		else
-		{
-			if (current_file_exchange_size +
-			        zircon_DEF_STREAM_JSON_STACK_SIZE ==
-			    to_offset)
-			{
-				if (is_contain_control_character)
-					size_writing -= amount_of_repeats;
-
-				KOTEK_ASSERT(
-					buffer[size_writing - 1] != '\0',
-					"can't be!"
-				);
-			}
-		}
-		// if (is_contain_control_character)
-		// size_writing -= amount_of_repeats;
-
-		//	this->m_p_resource_manager->Write(
-		//		this->m_file_resource_handle_id, buffer,
-		//size_writing);
-		this->m_p_file_temp->write(buffer, size_writing);
-		//	this->m_p_resource_manager->Write(this->m_file_resource_handle_id,
-		//		kotek::core::eFileWritingControlCharacterType::kFlush);
-		this->m_p_file_temp->flush();
-
-		current_file_exchange_size +=
-			zircon_DEF_STREAM_JSON_STACK_SIZE +
-			amount_of_repeats;
-	}
-}
-
-void zircon_editor_command_history::insert_content_exchange(
-	kotek::size_t offset_cursor_exchange,
-	kotek::size_t read_until_offset_in_file,
-	kotek::size_t cursor_offset_of_file
-)
-{
-	if (read_until_offset_in_file == size_t(-1))
-		return;
-
-	if (offset_cursor_exchange == read_until_offset_in_file)
-		return;
-
-	kotek::size_t current_file_exchange_size{
-		offset_cursor_exchange
-	};
-	kotek::size_t current_file_current_size{
-		cursor_offset_of_file
-	};
-
-	// потому что мы очистили наш файл путем его "переоткрытия"
-	// this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-	//	cursor_offset_of_file,
-	//	kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-	this->m_p_file_temp->seekg(
-		cursor_offset_of_file, std::ios_base::beg
-	);
-
-	kotek::size_t size_writing{};
-	kotek::size_t size_reading{};
-
-	while (current_file_exchange_size <
-	       read_until_offset_in_file)
-	{
-		char buffer[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-		if (current_file_exchange_size +
-		        zircon_DEF_STREAM_JSON_STACK_SIZE >
-		    read_until_offset_in_file)
-		{
-			size_reading =
-				(read_until_offset_in_file -
-			     current_file_exchange_size);
-			size_writing = size_reading;
-		}
-		else
-		{
-			size_reading = zircon_DEF_STREAM_JSON_STACK_SIZE;
-			size_writing = zircon_DEF_STREAM_JSON_STACK_SIZE;
-		}
-
-		//		this->m_p_resource_manager->Seekg(
-		//			this->m_file_exchange_resource_handle_id,
-		//			current_file_exchange_size,
-		//			kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-		//	this->m_p_resource_manager->Read(
-		//		this->m_file_resource_handle_id, buffer,
-		//size_reading);
-
-		this->m_p_file_temp->read(buffer, size_reading);
-
-		kotek::size_t amount_of_repeats{};
-		bool is_contain_control_character =
-			this->is_contain_control_character(
-				buffer, amount_of_repeats, size_reading
-			);
-
-		if (size_writing < zircon_DEF_STREAM_JSON_STACK_SIZE &&
-		    buffer[size_writing] == '\0')
-		{
-			if (is_contain_control_character)
-				size_writing -= amount_of_repeats;
-
-			KOTEK_ASSERT(
-				buffer[size_writing - 1] != '\0', "can't be!"
-			);
-		}
-		else
-		{
-			// fix in case
-			if (current_file_exchange_size +
-			        zircon_DEF_STREAM_JSON_STACK_SIZE ==
-			    read_until_offset_in_file)
-			{
-				if (is_contain_control_character)
-					size_writing -= amount_of_repeats;
-
-				KOTEK_ASSERT(
-					buffer[size_writing - 1] != '\0',
-					"can't be!"
-				);
-			}
-		}
-		// if (is_contain_control_character)
-		// size_writing -= amount_of_repeats;
-
-		//	this->m_p_resource_manager->Write(
-		//		this->m_file_exchange_resource_handle_id,
-		//buffer, size_writing);
-		this->m_p_file_exchange->write(buffer, size_writing);
-		//	this->m_p_resource_manager->Write(
-		//		this->m_file_exchange_resource_handle_id,
-		//		kotek::core::eFileWritingControlCharacterType::kFlush);
-		this->m_p_file_exchange->flush();
-
-		current_file_exchange_size +=
-			zircon_DEF_STREAM_JSON_STACK_SIZE +
-			amount_of_repeats;
-	}
-}
-
-bool zircon_editor_command_history::
-	is_contain_control_character(
-		const char* p_buffer,
-		kotek::ktk::size_t&
-			how_much_time_control_character_repeats,
-		kotek::ktk::size_t size_of_buffer,
-		char control_character
-	)
-{
-	KOTEK_ASSERT(p_buffer, "you passed an invalid buffer!");
-	KOTEK_ASSERT(
-		size_of_buffer,
-		"you must have a valid length that determines the "
-	    "buffer!"
-	);
-
-	bool result{};
-	how_much_time_control_character_repeats = 0;
-
-	for (kotek::size_t i = 0; i < size_of_buffer; ++i)
-	{
-		if (p_buffer[i] == control_character)
-		{
-			how_much_time_control_character_repeats++;
-			result = true;
-		}
-#ifdef KOTEK_DEBUG
-		else if (p_buffer[i] == '\t' || p_buffer[i] == '\b' ||
-		         p_buffer[i] == '\r' || p_buffer[i] == '\f')
-		{
-			KOTEK_ASSERT(
-				false,
-				"control character must be '\n' but not any "
-			    "other control "
-				"character that contains json of commands! "
-			    "Can't be something "
-				"is wrong!"
-			);
-		}
-#endif
-	}
-
-	return result;
-}
-
-kotek::static_path_t
-zircon_editor_command_history::get_full_path_of_file(
-	const char* filename_with_extension
-)
-{
-	KOTEK_ASSERT(
-		this->m_path_to_streaming_folder.empty() == false,
-		"early calling you should intialize the path of "
-	    "streaming folder!"
-	);
-	return kotek::static_path_t(this->m_path_to_streaming_folder
-	       ) /
-		filename_with_extension;
-}
-
-kotek::cfstream_t*
-zircon_editor_command_history::reopen_current_file(
-	kotek::cfstream_t* p_file
-)
-{
-	KOTEK_ASSERT(p_file, "must be valid!");
-
-	kotek::cfstream_t* p_result{};
-	//	if (this->m_p_resource_manager)
-	{
-		KOTEK_ASSERT(false, "todo: re-write please");
-		/* todo: re-write please
-		this->m_p_resource_manager->Close_FileStream(p_file);
-
-		const auto& path_to_exchange =
-		    this->get_full_path_of_file(_kTempFileNameWithExtension);
-
-		kotek::core::ktkResourceFileStreamRequest request;
-
-		request.path_to_file = path_to_exchange;
-		request.resource_type =
-		    kotek::core::eResourceRequestResourceType::kText;
-		request.operation_type =
-		    kotek::core::eResourceRequestOperationType::kSave;
-
-		p_result =
-		this->m_p_resource_manager->Open_FileStream(request);*/
-		KOTEK_ASSERT(
-			p_result,
-			"must return a valid otherwise out of resources!"
-		);
 	}
 
 	return p_result;
 }
 
-kotek::cfstream_t*
-zircon_editor_command_history::reopen_exchange_file(
-	kotek::cfstream_t* p_file
-)
+void zircon_editor_command_history::capture_world_state(
+	zircon_world* p_world,
+	kotek::hybrid_vector_t<unsigned char, 4096>& output
+) noexcept
 {
-	KOTEK_ASSERT(p_file, "must be valid!");
+	output.clear();
 
-	kotek::cfstream_t* p_result{};
-	//	if (this->m_p_resource_manager)
+	KOTEK_ASSERT(p_world, "must be a valid world");
+
+	if (p_world == nullptr)
+		return;
+
+	zircon_factory* p_factory = p_world->get_factory();
+	zircon_ecs_context_t* p_context =
+		p_world->get_ecs_context();
+
+	KOTEK_ASSERT(p_factory, "world must have a factory");
+	KOTEK_ASSERT(p_context, "world must have an ecs context");
+
+	if (p_factory == nullptr || p_context == nullptr)
+		return;
+
+	auto append_u32 =
+		[&output](kotek::uint32_t value)
 	{
-		KOTEK_ASSERT(false, "todo: re-write please");
-		/* todo: re-write please
-		this->m_p_resource_manager->Close_FileStream(p_file);
-
-		const auto& path_to_exchange =
-		    this->get_full_path_of_file(_kExchangeFileNameWithExtension);
-
-		kotek::core::ktkResourceFileStreamRequest request;
-		request.path_to_file = path_to_exchange;
-		request.resource_type =
-		    kotek::core::eResourceRequestResourceType::kText;
-		request.operation_type =
-		    kotek::core::eResourceRequestOperationType::kSave;
-
-		p_result =
-		this->m_p_resource_manager->Open_FileStream(request);*/
-		KOTEK_ASSERT(
-			p_result,
-			"must return a valid otherwise out of resources!"
+		const unsigned char* p_bytes =
+			reinterpret_cast<const unsigned char*>(&value);
+		output.insert(
+			output.end(), p_bytes, p_bytes + sizeof(value)
 		);
-	}
+	};
 
-	return p_result;
-}
+	// live entities come out ordered by their (dense) id, so the
+	// serialization is canonical
+	kotek::hybrid_vector_t<kotek::entity_t, 1024> entities;
+	entities.resize(this->m_entity_watermark + 16);
 
-void zircon_editor_command_history::
-	clear_content_when_action_issued()
-{
-	if (this->m_is_action_issued)
-	{
-		bool is_need_to_file_clear{};
-		bool is_need_to_buffer_clear{};
-
-		kotek::size_t index{this->m_index};
-		if (this->m_cursor_index <
-		    static_cast<kotek::ptrdiff_t>(
-				this->m_max_index - 1
-			))
-		{
-			is_need_to_file_clear = true;
-			if (this->m_cursor_index >= 0)
-			{
-				if (index + 1 <
-				    zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE)
-				{
-					index += 1;
-					is_need_to_buffer_clear = true;
-				}
-			}
-			else
-			{
-				is_need_to_buffer_clear = true;
-			}
-		}
-		else
-		{
-			this->m_is_action_issued = false;
-			return;
-		}
-
-		// how much we deleted in buffer
-		kotek::size_t command_count_from_buffer{};
-
-		if (is_need_to_buffer_clear)
-		{
-			for (kotek::size_t i = index;
-			     i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
-			     ++i)
-			{
-				if (this->m_commands[i])
-				{
-					this->m_commands[i]->~ktkISDKRedoUndo();
-					this->m_commands[i] = nullptr;
-					++command_count_from_buffer;
-				}
-			}
-
-#ifdef ZIRCON_ENABLE_CH_TRACE
-			KOTEK_TRACE(
-				"before[max_index] = {} before[cursor_index] = "
-			    "{}",
-				this->m_max_index,
-				this->m_cursor_index
-			);
-#endif
-
-			this->m_max_index -= command_count_from_buffer;
-
-#ifdef ZIRCON_ENABLE_CH_TRACE
-			KOTEK_TRACE(
-				"after[max_index] = {} after[cursor_index] = "
-			    "{} "
-				"c_from_buffer = {}",
-				this->m_max_index,
-				this->m_cursor_index,
-				command_count_from_buffer
-			);
-#endif
-
-			for (kotek::size_t i = index;
-			     i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
-			     ++i)
-			{
-				auto* p_ptr = this->m_storage[i];
-				std::memset(
-					p_ptr, 0, sizeof(this->m_storage[0])
-				);
-			}
-
-			if (is_need_to_file_clear)
-			{
-				if (this->m_cursor_index >
-				    static_cast<kotek::ptrdiff_t>(
-						this->m_max_index - 1
-					))
-				{
-					is_need_to_file_clear = false;
-				}
-			}
-		}
-
-		if (is_need_to_file_clear)
-		{
-			kotek::size_t delete_from_offset =
-				this->get_offset_of_current_index_in_file();
-			kotek::size_t command_count_from_file =
-				this->get_count_of_commands_in_file(
-					delete_from_offset
-				);
-
-			kotek::ptrdiff_t expected_count =
-				this->m_max_index - this->m_cursor_index;
-
-			KOTEK_ASSERT(
-				static_cast<kotek::ptrdiff_t>(
-					command_count_from_file
-				) <= expected_count,
-				"something is wrong!"
-			);
-
-			KOTEK_ASSERT(
-				command_count_from_file > 0 ||
-					(command_count_from_file == 0 &&
-			         this->m_cursor_index >= 0) ||
-					(command_count_from_file == 0 &&
-			         this->m_cursor_index < 0),
-				"if you make a diff between you will get a "
-			    "negative value and "
-				"casted to size_t will cause overflow!!! So "
-			    "that means "
-				"something is wrong"
-			);
-
-			kotek::size_t diff{};
-
-			if (command_count_from_file == 0 &&
-			    this->m_cursor_index < 0)
-				diff = this->m_max_index;
-			else if (command_count_from_file == 0 &&
-			         this->m_cursor_index > 0)
-				diff = 0;
-			else
-			{
-				// it is good and it means we didn't serialize
-				// our data from current storage buffer
-				if (this->m_max_index -
-				        command_count_from_file ==
-				    this->m_cursor_index + 1)
-				{
-#ifdef ZIRCON_ENABLE_CH_TRACE
-					KOTEK_TRACE(
-						"serialized commands: {}",
-						command_count_from_file
-					);
-#endif
-
-					diff = command_count_from_file;
-				}
-				else if ((static_cast<kotek::ptrdiff_t>(
-							  this->m_max_index
-						  ) -
-				          command_count_from_file) <=
-				             this->m_cursor_index &&
-				         ((this->m_cursor_index + 1) -
-				              (static_cast<kotek::ptrdiff_t>(
-								   this->m_max_index
-							   ) -
-				               command_count_from_file) <=
-				          zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE
-				         ))
-				{
-					// the difference between cursor_index + 1
-					// aand max_index - count_from_file tells us
-					// how many commands were serialized in
-					// command_count_from_buffer variable
-
-#ifdef ZIRCON_ENABLE_CH_TRACE
-					KOTEK_TRACE(
-						"serialized commands in "
-					    "command_count_from_buffer: {}",
-						((this->m_cursor_index + 1) -
-					     (static_cast<kotek::ptrdiff_t>(
-							  this->m_max_index
-						  ) -
-					      command_count_from_file))
-					);
-#endif
-
-					diff = command_count_from_file -
-						((this->m_cursor_index + 1) -
-					     (static_cast<kotek::ptrdiff_t>(
-							  this->m_max_index
-						  ) -
-					      command_count_from_file));
-
-					KOTEK_ASSERT(
-						this->m_max_index - diff ==
-							this->m_cursor_index + 1,
-						"can't be!"
-					);
-				}
-				else
-				{
-					diff = command_count_from_file -
-						command_count_from_buffer;
-
-					KOTEK_ASSERT(
-						(this->m_max_index - 1) - diff ==
-							this->m_cursor_index,
-						"something is wrong and you should "
-					    "detail your "
-						"heusristic. it means that some part "
-					    "of "
-						"command_count_from_buffer has in "
-						"command_count_from_file and we need "
-					    "to understand "
-						"which buffers were serialized in "
-					    "file. So like "
-						"command_from_buffer = 5 but "
-					    "command_from_file = 12 "
-						"but suppose 3 were serialized from "
-					    "buffer and it "
-						"means real amount is only 2 not 5 and "
-					    "we should "
-						"command_from_file - 2 not 5"
-					);
-				}
-			}
-
-			this->m_max_index -= (diff);
-
-#ifdef ZIRCON_ENABLE_CH_TRACE
-			KOTEK_TRACE(
-				"clear: max_index {} cursor_index {} "
-			    "c_from_file {} "
-				"c_from_buffer {} diff {}",
-				this->m_max_index,
-				this->m_cursor_index,
-				command_count_from_file,
-				command_count_from_buffer,
-				diff
-			);
-#endif
-
-			if (delete_from_offset > 0)
-			{
-				if (this->m_max_index > 0)
-				{
-					this->move_content_from_file_to_exchange(
-						0, delete_from_offset
-					);
-					this->move_content_from_exchange_to_file(
-						0, delete_from_offset
-					);
-				}
-				else
-				{
-					this->m_p_file_temp =
-						this->reopen_current_file(
-							this->m_p_file_temp
-						);
-					this->m_p_file_exchange =
-						this->reopen_exchange_file(
-							this->m_p_file_exchange
-						);
-				}
-			}
-		}
-
-		KOTEK_ASSERT(
-			(this->m_max_index == 0 && this->m_cursor_index < 0
-		    ) || (this->m_max_index > this->m_cursor_index),
-			"can't be! max_index is always bigger than cursor!"
+	const kotek::uint32_t entity_count =
+		p_factory->get_all_entities(
+			p_context,
+			this->m_entity_watermark + 16,
+			entities.data(),
+			static_cast<kotek::uint32_t>(entities.size())
 		);
 
-		this->m_is_action_issued = false;
-	}
-}
+	entities.resize(entity_count);
 
-kotek::size_t zircon_editor_command_history::
-	get_offset_of_current_index_in_file()
-{
-	kotek::size_t result{};
-	//	if (this->m_p_resource_manager)
+	append_u32(entity_count);
+
+	for (const kotek::entity_t& entity : entities)
 	{
-		if (this->m_p_file_temp->is_open())
+		kotek::uint32_t component_count = 0;
+
+		for (int i = 0;
+		     i < static_cast<int>(eZirconComponentType::kunknown);
+		     ++i)
 		{
-			// мое начало текущего фрейма в файле
-			char stream_buffer_for_json_data
-				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-			char buffer[sizeof(
-				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-			)]{};
-
-			int command_count{};
-			kotek::size_t current_file_offset =
-				this->m_before_frame_file_offset;
-
-			if (this->m_cursor_index < 0)
+			if (p_factory->has_component(
+					p_context,
+					entity,
+					static_cast<eZirconComponentType>(i)
+				))
 			{
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id, 0,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-				this->m_p_file_temp->seekg(
-					0, std::ios_base::end
-				);
-
-				//	auto file_size =
-				//this->m_p_resource_manager->Tellg(
-				//		this->m_file_resource_handle_id);
-
-				auto file_size = this->m_p_file_temp->tellg();
-
-				result = file_size;
+				++component_count;
 			}
-			else
-			{
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id, 0,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-				this->m_p_file_temp->seekg(
-					0, std::ios_base::end
-				);
-
-				//	auto file_size =
-				//this->m_p_resource_manager->Tellg(
-				//		this->m_file_resource_handle_id);
-
-				auto file_size = this->m_p_file_temp->tellg();
-
-				if (current_file_offset == file_size)
-				{
-					// this->m_p_resource_manager->Seekg(
-					//	this->m_file_resource_handle_id,
-					//	this->m_current_file_offset,
-					//		kotek::core::eFileSeekDirectionType::
-					//			kSeekDirectionBegin);
-					this->m_p_file_temp->seekg(
-						this->m_current_file_offset,
-						std::ios_base::beg
-					);
-					return file_size;
-				}
-
-				for (int i = 0; i <
-				     zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE;
-				     ++i)
-				{
-					std::memset(buffer, 0, sizeof(buffer));
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id,
-					// current_file_offset,
-					// kotek::core::eFileSeekDirectionType::
-					//			kSeekDirectionBegin);
-					this->m_p_file_temp->seekg(
-						current_file_offset, std::ios_base::beg
-					);
-					//	this->m_p_resource_manager->Read(
-					//		this->m_file_resource_handle_id,
-					//buffer, 		sizeof(buffer));
-					this->m_p_file_temp->read(
-						buffer, sizeof(buffer)
-					);
-
-					if (buffer
-					        [zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] ==
-					    zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY)
-					{
-						auto current_offset =
-							current_file_offset;
-						current_offset += sizeof(buffer);
-
-						//	this->m_p_resource_manager->Seekg(
-						//		this->m_file_resource_handle_id,
-						//0,
-						//		kotek::core::eFileSeekDirectionType::
-						//			kSeekDirectionEnd);
-						this->m_p_file_temp->seekg(
-							0, std::ios_base::end
-						);
-
-						//	auto file_size =
-						//this->m_p_resource_manager->Tellg(
-						//		this->m_file_resource_handle_id);
-
-						auto file_size =
-							this->m_p_file_temp->tellg();
-
-						// we reached end of file, so we can't
-						// move further, making leaving from
-						// this stack...
-						if (current_offset == file_size)
-						{
-							current_file_offset =
-								this->m_before_frame_file_offset;
-							current_file_offset -=
-								sizeof(buffer);
-
-							break;
-						}
-						else
-						{
-							// everything is fine we can move
-							// further
-							current_file_offset +=
-								sizeof(buffer);
-							//	this->m_p_resource_manager->Seekg(
-							//		this->m_file_resource_handle_id,
-							//		current_file_offset,
-							//		kotek::core::eFileSeekDirectionType::
-							//			kSeekDirectionBegin);
-
-							this->m_p_file_temp->seekg(
-								current_file_offset,
-								std::ios_base::beg
-							);
-
-							//	this->m_p_resource_manager->Read(
-							//		this->m_file_resource_handle_id,
-							//buffer, 		sizeof(buffer));
-							this->m_p_file_temp->read(
-								buffer, sizeof(buffer)
-							);
-						}
-					}
-
-					KOTEK_ASSERT(
-						buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] !=
-							zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY,
-						"that means we are reading for going "
-					    "to back (to "
-						"the "
-						"beginning of file) that's not correct "
-					    "and data "
-						"might "
-						"be corrupted, check everything again!"
-					);
-
-					auto offset_for_json_data =
-						std::atoi(buffer);
-
-					KOTEK_ASSERT(
-						offset_for_json_data > 0,
-						"bad cast or something is broken when "
-					    "data was "
-						"written "
-						"to file!"
-					);
-
-					current_file_offset += sizeof(buffer) + 2;
-
-					// getting real json exact string size for
-					// reading
-					auto real_size_for_json_data =
-						offset_for_json_data - 2;
-
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id,
-					// current_file_offset,
-					// kotek::core::eFileSeekDirectionType::
-					//			kSeekDirectionBegin);
-					this->m_p_file_temp->seekg(
-						current_file_offset, std::ios_base::beg
-					);
-
-					kotek::json::stream_parser parser;
-					kotek::json::static_resource storage_ptr(
-						this->m_p_memory_for_stack_parser
-					);
-					parser.reset(&storage_ptr);
-
-					if (real_size_for_json_data >
-					    zircon_DEF_STREAM_JSON_STACK_SIZE)
-					{
-						int counter{real_size_for_json_data};
-						auto prev_size{current_file_offset};
-
-						while (counter > 0)
-						{
-							if (counter >
-							    zircon_DEF_STREAM_JSON_STACK_SIZE)
-							{
-								//	this->m_p_resource_manager->Read(
-								//		this->m_file_resource_handle_id,
-								//		stream_buffer_for_json_data,
-								//			sizeof(stream_buffer_for_json_data));
-								this->m_p_file_temp->read(
-									stream_buffer_for_json_data,
-									sizeof(
-										stream_buffer_for_json_data
-									)
-								);
-								current_file_offset +=
-									zircon_DEF_STREAM_JSON_STACK_SIZE;
-								//	this->m_p_resource_manager->Seekg(
-								//		this->m_file_resource_handle_id,
-								//		current_file_offset,
-								//		kotek::core::eFileSeekDirectionType::
-								//			kSeekDirectionBegin);
-								this->m_p_file_temp->seekg(
-									current_file_offset,
-									std::ios_base::beg
-								);
-							}
-							else
-							{
-								//	this->m_p_resource_manager->Read(
-								//		this->m_file_resource_handle_id,
-								//		stream_buffer_for_json_data,
-								//counter);
-								this->m_p_file_temp->read(
-									stream_buffer_for_json_data,
-									counter
-								);
-								current_file_offset += counter;
-							}
-
-							if (counter >
-							    zircon_DEF_STREAM_JSON_STACK_SIZE)
-							{
-								parser.write(
-									stream_buffer_for_json_data,
-									sizeof(
-										stream_buffer_for_json_data
-									)
-								);
-							}
-							else
-							{
-								parser.write(
-									stream_buffer_for_json_data,
-									counter
-								);
-							}
-
-							counter -=
-								zircon_DEF_STREAM_JSON_STACK_SIZE;
-							std::memset(
-								stream_buffer_for_json_data,
-								0,
-								sizeof(
-									stream_buffer_for_json_data
-								)
-							);
-						}
-
-						KOTEK_ASSERT(
-							(current_file_offset -
-						     real_size_for_json_data) ==
-								prev_size,
-							"wrong calculations! after parsing "
-						    "you have to "
-							"get exactly the same size as you "
-						    "minused "
-							"offset_for_json_data! "
-						    "curret_offset:[{}] "
-							"real_size_for_json_data:[{}] "
-						    "dif:[{}] "
-							"prev_size:[{}]",
-							current_file_offset,
-							real_size_for_json_data,
-							(current_file_offset -
-						     real_size_for_json_data),
-							prev_size
-						);
-
-						if (current_file_offset > 0)
-							current_file_offset += 2;
-
-						auto status = parser.done();
-
-						KOTEK_ASSERT(
-							status, "must be valid json!"
-						);
-					}
-					else
-					{
-						//	this->m_p_resource_manager->Read(
-						//		this->m_file_resource_handle_id,
-						//		stream_buffer_for_json_data,
-						//		real_size_for_json_data);
-						this->m_p_file_temp->read(
-							stream_buffer_for_json_data,
-							real_size_for_json_data
-						);
-						parser.write(stream_buffer_for_json_data
-						);
-						auto status = parser.done();
-						KOTEK_ASSERT(
-							status,
-							"must be valid json in stream "
-						    "buffer!"
-						);
-					}
-
-					kotek::json::value json_data =
-						parser.release();
-
-					KOTEK_ASSERT(
-						json_data.is_object(), "must be object!"
-					);
-
-					++command_count;
-
-					if (this->m_index == command_count - 1)
-					{
-						current_file_offset += sizeof(buffer);
-						result = current_file_offset;
-						break;
-					}
-				}
-			}
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		this->m_current_file_offset,
-			//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_temp->seekg(
-				this->m_current_file_offset, std::ios_base::beg
-			);
 		}
-	}
 
-	return result;
-}
+		append_u32(static_cast<kotek::uint32_t>(entity.id));
+		append_u32(component_count);
 
-kotek::size_t
-zircon_editor_command_history::get_count_of_commands_in_file(
-	kotek::size_t start_offset
-)
-{
-	kotek::size_t result{};
-	//	if (this->m_p_resource_manager)
-	{
-		if (this->m_p_file_temp->is_open())
+		for (int i = 0;
+		     i < static_cast<int>(eZirconComponentType::kunknown);
+		     ++i)
 		{
-			// мое начало текущего фрейма в файле
-			char stream_buffer_for_json_data
-				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
+			const eZirconComponentType component_type =
+				static_cast<eZirconComponentType>(i);
 
-			char buffer[sizeof(
-				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-			)]{};
-
-			int command_count{};
-			kotek::size_t current_file_offset = start_offset;
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		0,
-			//kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-			this->m_p_file_temp->seekg(0, std::ios_base::end);
-
-			//	auto file_size =
-			//this->m_p_resource_manager->Tellg(
-			//		this->m_file_resource_handle_id);
-
-			auto file_size = this->m_p_file_temp->tellg();
-
-			if (start_offset == file_size)
+			if (p_factory->has_component(
+					p_context, entity, component_type
+				) == false)
 			{
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id,
-				//		this->m_before_frame_file_offset,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-				this->m_p_file_temp->seekg(
-					this->m_before_frame_file_offset,
-					std::ios_base::beg
-				);
-
-				return result;
+				continue;
 			}
 
-			kotek::ptrdiff_t expected_count =
-				static_cast<kotek::ptrdiff_t>(this->m_max_index
-			    ) -
-				this->m_cursor_index;
-
-			KOTEK_ASSERT(
-				expected_count >= 0, "can't be negative!"
-			);
-
-			for (kotek::size_t i = 0; i < expected_count; ++i)
-			{
-				std::memset(buffer, 0, sizeof(buffer));
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id,
-				//current_file_offset,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-				this->m_p_file_temp->seekg(
-					current_file_offset, std::ios_base::beg
-				);
-				//	this->m_p_resource_manager->Read(
-				//		this->m_file_resource_handle_id, buffer,
-				// sizeof(buffer));
-
-				this->m_p_file_temp->read(
-					buffer, sizeof(buffer)
+			zircon_component_interface* p_component =
+				p_factory->get_component_by_enum(
+					p_context, entity, component_type
 				);
 
-				if (buffer
-				        [zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] ==
-				    zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY)
-				{
-					auto current_offset = current_file_offset;
-					current_offset += sizeof(buffer);
+			if (p_component == nullptr)
+				continue;
 
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id, 0,
-					//		kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
+			kotek::ktk::json::value serialized_state =
+				zircon_serialize_component(p_component);
 
-					this->m_p_file_temp->seekg(
-						0, std::ios_base::end
-					);
+			auto state_string =
+				kotek::ktk::json::serialize(serialized_state);
 
-					//	auto file_size =
-					//this->m_p_resource_manager->Tellg(
-					//		this->m_file_resource_handle_id);
+			append_u32(static_cast<kotek::uint32_t>(
+				component_type
+			));
+			append_u32(static_cast<kotek::uint32_t>(
+				state_string.size()
+			));
 
-					auto file_size =
-						this->m_p_file_temp->tellg();
-
-					// we reached end of file, so we can't move
-					// further, making leaving from this
-					// stack...
-					if (current_offset == file_size)
-					{
-						break;
-					}
-					else
-					{
-						// everything is fine we can move
-						// further
-						current_file_offset += sizeof(buffer);
-						//	this->m_p_resource_manager->Seekg(
-						//			this->m_file_resource_handle_id,
-						//		current_file_offset,
-						//		kotek::core::eFileSeekDirectionType::
-						//			kSeekDirectionBegin);
-
-						this->m_p_file_temp->seekg(
-							current_file_offset,
-							std::ios_base::beg
-						);
-
-						//	this->m_p_resource_manager->Read(
-						//		this->m_file_resource_handle_id,
-						//buffer, 		sizeof(buffer));
-						this->m_p_file_temp->read(
-							buffer, sizeof(buffer)
-						);
-					}
-				}
-
-				KOTEK_ASSERT(
-					buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] !=
-						zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY,
-					"that means we are reading for going to "
-				    "back (to "
-					"the "
-					"beginning of file) that's not correct and "
-				    "data "
-					"might "
-					"be corrupted, check everything again!"
-				);
-
-				auto offset_for_json_data = std::atoi(buffer);
-
-				KOTEK_ASSERT(
-					offset_for_json_data > 0,
-					"bad cast or something is broken when data "
-				    "was "
-					"written "
-					"to file!"
-				);
-
-				current_file_offset += sizeof(buffer) + 2;
-
-				// getting real json exact string size for
-				// reading
-				auto real_size_for_json_data =
-					offset_for_json_data - 2;
-
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id,
-				//current_file_offset,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-				this->m_p_file_temp->seekg(
-					current_file_offset, std::ios_base::beg
-				);
-
-				kotek::json::stream_parser parser;
-				kotek::json::static_resource storage_ptr(
-					this->m_p_memory_for_stack_parser
-				);
-				parser.reset(&storage_ptr);
-
-				if (real_size_for_json_data >
-				    zircon_DEF_STREAM_JSON_STACK_SIZE)
-				{
-					int counter{real_size_for_json_data};
-					auto prev_size{current_file_offset};
-
-					while (counter > 0)
-					{
-						if (counter >
-						    zircon_DEF_STREAM_JSON_STACK_SIZE)
-						{
-							//	this->m_p_resource_manager->Read(
-							//		this->m_file_resource_handle_id,
-							//		stream_buffer_for_json_data,
-							//		sizeof(stream_buffer_for_json_data));
-							this->m_p_file_temp->read(
-								stream_buffer_for_json_data,
-								sizeof(
-									stream_buffer_for_json_data
-								)
-							);
-							current_file_offset +=
-								zircon_DEF_STREAM_JSON_STACK_SIZE;
-							//	this->m_p_resource_manager->Seekg(
-							//		this->m_file_resource_handle_id,
-							//		current_file_offset,
-							//		kotek::core::eFileSeekDirectionType::
-							//			kSeekDirectionBegin);
-							this->m_p_file_temp->seekg(
-								current_file_offset,
-								std::ios_base::beg
-							);
-						}
-						else
-						{
-							//	this->m_p_resource_manager->Read(
-							//		this->m_file_resource_handle_id,
-							//		stream_buffer_for_json_data,
-							//counter);
-							this->m_p_file_temp->read(
-								stream_buffer_for_json_data,
-								counter
-							);
-							current_file_offset += counter;
-						}
-
-						if (counter >
-						    zircon_DEF_STREAM_JSON_STACK_SIZE)
-						{
-							parser.write(
-								stream_buffer_for_json_data,
-								sizeof(
-									stream_buffer_for_json_data
-								)
-							);
-						}
-						else
-						{
-							parser.write(
-								stream_buffer_for_json_data,
-								counter
-							);
-						}
-
-						counter -=
-							zircon_DEF_STREAM_JSON_STACK_SIZE;
-						std::memset(
-							stream_buffer_for_json_data,
-							0,
-							sizeof(stream_buffer_for_json_data)
-						);
-					}
-
-					KOTEK_ASSERT(
-						(current_file_offset -
-					     real_size_for_json_data) == prev_size,
-						"wrong calculations! after parsing you "
-					    "have to "
-						"get exactly the same size as you "
-					    "minused "
-						"offset_for_json_data! "
-					    "curret_offset:[{}] "
-						"real_size_for_json_data:[{}] dif:[{}] "
-						"prev_size:[{}]",
-						current_file_offset,
-						real_size_for_json_data,
-						(current_file_offset -
-					     real_size_for_json_data),
-						prev_size
-					);
-
-					if (current_file_offset > 0)
-						current_file_offset += 2;
-
-					auto status = parser.done();
-
-					KOTEK_ASSERT(status, "must be valid json!");
-				}
-				else
-				{
-					//	this->m_p_resource_manager->Read(
-					//		this->m_file_resource_handle_id,
-					//		stream_buffer_for_json_data,
-					// real_size_for_json_data);
-					this->m_p_file_temp->read(
-						stream_buffer_for_json_data,
-						real_size_for_json_data
-					);
-					parser.write(stream_buffer_for_json_data);
-					auto status = parser.done();
-					KOTEK_ASSERT(
-						status,
-						"must be valid json in stream buffer!"
-					);
-				}
-
-				kotek::json::value json_data = parser.release();
-
-				KOTEK_ASSERT(
-					json_data.is_object(), "must be object!"
-				);
-
-				++command_count;
-			}
-
-			result = command_count;
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		this->m_before_frame_file_offset,
-			//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_temp->seekg(
-				this->m_before_frame_file_offset,
-				std::ios_base::beg
-			);
-		}
-	}
-
-	return result;
-}
-
-void zircon_editor_command_history::
-	move_content_from_file_to_exchange(
-		kotek::size_t start_offset_in_file,
-		kotek::size_t end_offset_in_file
-	)
-{
-	//	if (this->m_p_resource_manager)
-	{
-		if (this->m_p_file_temp->is_open())
-		{
-			// clear content in exchange file
-			this->m_p_file_exchange =
-				this->reopen_exchange_file(
-					this->m_p_file_exchange
-				);
-
-			auto file_size = end_offset_in_file;
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		0,
-			// kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-			this->m_p_file_temp->seekg(0, std::ios_base::beg);
-
-			kotek::size_t current_size{};
-			kotek::size_t size_reading{};
-			kotek::size_t size_writing{};
-
-			while (current_size < file_size)
-			{
-				char buffer[zircon_DEF_STREAM_JSON_STACK_SIZE]{
-				};
-
-				if (current_size +
-				        zircon_DEF_STREAM_JSON_STACK_SIZE >
-				    file_size)
-				{
-					size_reading = (file_size - current_size);
-					size_writing = size_reading;
-				}
-				else
-				{
-					size_reading =
-						zircon_DEF_STREAM_JSON_STACK_SIZE;
-					size_writing =
-						zircon_DEF_STREAM_JSON_STACK_SIZE;
-				}
-
-				//	this->m_p_resource_manager->Read(
-				//		this->m_file_resource_handle_id, buffer,
-				//size_reading);
-
-				this->m_p_file_temp->read(buffer, size_reading);
-
-				// control character is '\n' because FILE
-				// interprets is as a complex char so it is two
-				// values not one as we write in code
-				kotek::size_t
-					control_character_amount_of_repetitions{};
-				bool is_contain_control_character =
-					this->is_contain_control_character(
-						buffer,
-						control_character_amount_of_repetitions,
-						size_reading
-					);
-
-				if (size_writing <
-				        zircon_DEF_STREAM_JSON_STACK_SIZE &&
-				    buffer[size_writing] == '\0')
-				{
-					if (is_contain_control_character)
-						size_writing -=
-							control_character_amount_of_repetitions;
-
-					KOTEK_ASSERT(
-						buffer[size_writing - 1] != '\0',
-						"can't be!"
-					);
-				}
-				else
-				{
-					if (current_size +
-					        zircon_DEF_STREAM_JSON_STACK_SIZE ==
-					    file_size)
-					{
-						if (is_contain_control_character)
-							size_writing -=
-								control_character_amount_of_repetitions;
-
-						KOTEK_ASSERT(
-							buffer[size_writing - 1] != '\0',
-							"can't be!"
-						);
-					}
-				}
-
-				//	this->m_p_resource_manager->Write(
-				//		this->m_file_exchange_resource_handle_id,
-				//buffer, 		size_writing);
-				this->m_p_file_exchange->write(
-					buffer, size_writing
-				);
-				// this->m_p_resource_manager->Write(
-				//	this->m_file_exchange_resource_handle_id,
-				//	kotek::core::eFileWritingControlCharacterType::kFlush);
-				this->m_p_file_exchange->flush();
-
-				current_size +=
-					zircon_DEF_STREAM_JSON_STACK_SIZE +
-					control_character_amount_of_repetitions;
-
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id,
-				//current_size,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-				this->m_p_file_temp->seekg(
-					current_size, std::ios_base::beg
-				);
-			}
-
-			// this->m_p_resource_manager->Seekg(
-			//	this->m_file_exchange_resource_handle_id, 0,
-			//	kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_exchange->seekg(
-				0, std::ios_base::beg
+			output.insert(
+				output.end(),
+				reinterpret_cast<const unsigned char*>(
+					state_string.data()
+				),
+				reinterpret_cast<const unsigned char*>(
+					state_string.data()
+				) +
+					state_string.size()
 			);
 		}
 	}
 }
 
-void zircon_editor_command_history::
-	move_content_from_exchange_to_file(
-		kotek::size_t start_offset_in_file,
-		kotek::size_t end_offset_in_file
-	)
+bool zircon_editor_command_history::apply_world_state(
+	zircon_world* p_world,
+	const unsigned char* p_data,
+	kotek::uint32_t data_size
+) noexcept
 {
-	//	if (this->m_p_resource_manager)
+	KOTEK_ASSERT(p_world, "must be a valid world");
+	KOTEK_ASSERT(p_data, "must be a valid buffer");
+
+	if (p_world == nullptr || p_data == nullptr)
+		return false;
+
+	zircon_factory* p_factory = p_world->get_factory();
+	zircon_ecs_context_t* p_context =
+		p_world->get_ecs_context();
+
+	if (p_factory == nullptr || p_context == nullptr)
+		return false;
+
+	// reverse translation: which recorded id currently maps to a
+	// given live id (used to rebind translations to the freshly
+	// created entities)
+	kotek::hybrid_vector_t<
+		kotek::uint32_t,
+		zircon_DEF_COMMAND_HISTORY_ID_MAP_INLINE_COUNT>
+		reverse_translation;
+
+	reverse_translation.resize(
+		this->m_entity_watermark + 16,
+		zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID
+	);
+
+	for (kotek::uint32_t recorded = 0;
+	     recorded < this->m_entity_id_translation.size();
+	     ++recorded)
 	{
-		if (this->m_p_file_exchange->is_open())
+		const kotek::uint32_t live =
+			this->m_entity_id_translation[recorded];
+
+		if (live != zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID &&
+		    live < reverse_translation.size())
 		{
-			this->m_p_file_temp =
-				this->reopen_current_file(this->m_p_file_temp);
-
-			this->insert_content(
-				start_offset_in_file, end_offset_in_file, 0
-			);
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		this->m_before_frame_file_offset,
-			//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_temp->seekg(
-				this->m_before_frame_file_offset,
-				std::ios_base::beg
-			);
-		}
-	}
-}
-
-// todo: update before offset, after offset, set correct
-// current_offset to file after all modifications
-void zircon_editor_command_history::
-	update_dependent_serialized_commands(
-		kotek::entity_t id_what_will_be_deleted,
-		kotek::entity_t id_that_replaces_what_will_be_deleted
-	)
-{
-	//	if (this->m_p_resource_manager)
-	{
-		if (this->m_p_file_temp->is_open())
-		{
-			//	kotek::size_t restored_offset =
-			// this->m_p_resource_manager->Tellg(
-			//		this->m_file_resource_handle_id);
-
-			kotek::size_t restored_offset =
-				this->m_p_file_temp->tellg();
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		0,
-			//kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-			this->m_p_file_temp->seekg(0, std::ios_base::end);
-
-			//	kotek::size_t file_size =
-			//this->m_p_resource_manager->Tellg(
-			//		this->m_file_resource_handle_id);
-
-			kotek::size_t file_size =
-				this->m_p_file_temp->tellg();
-
-			kotek::size_t current_offset{};
-
-			char stream_buffer_for_json_data
-				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-			char buffer[sizeof(
-				zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_HOW_MANY_SYMBOLS
-			)]{};
-
-			this->m_p_file_exchange =
-				this->reopen_exchange_file(
-					this->m_p_file_exchange
-				);
-
-			//	this->m_p_resource_manager->Seekg(
-			//		this->m_file_exchange_resource_handle_id, 0,
-			//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-			this->m_p_file_exchange->seekg(
-				0, std::ios_base::beg
-			);
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		0,
-			// kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-			this->m_p_file_temp->seekg(0, std::ios_base::beg);
-
-			while (current_offset < file_size)
-			{
-				std::memset(buffer, 0, sizeof(buffer));
-
-				kotek::size_t current_section_offset_begin{
-					current_offset
-				};
-				kotek::size_t current_section_offset_end{};
-
-				//	this->m_p_resource_manager->Read(
-				//		this->m_file_resource_handle_id, buffer,
-				// sizeof(buffer));
-
-				this->m_p_file_temp->read(
-					buffer, sizeof(buffer)
-				);
-
-				if (buffer
-				        [zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] ==
-				    zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY)
-				{
-					auto test_current_offset = current_offset;
-					test_current_offset += sizeof(buffer);
-
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id, 0,
-					//		kotek::core::eFileSeekDirectionType::kSeekDirectionEnd);
-
-					this->m_p_file_temp->seekg(
-						0, std::ios_base::end
-					);
-
-					//	auto file_size =
-					//this->m_p_resource_manager->Tellg(
-					//		this->m_file_resource_handle_id);
-
-					auto file_size =
-						this->m_p_file_temp->tellg();
-
-					// we reached end of file, so we can't move
-					// further, making leaving from this
-					// stack...
-					if (test_current_offset == file_size)
-					{
-						//	auto update_offset =
-						// this->m_p_resource_manager->Tellg(
-						//		this->m_file_exchange_resource_handle_id);
-
-						auto update_offset =
-							this->m_p_file_exchange->tellg();
-
-						if (file_size ==
-						    this->m_before_frame_file_offset)
-						{
-							auto previous =
-								this->m_before_frame_file_offset;
-
-							this->m_before_frame_file_offset =
-								update_offset;
-
-							KOTEK_TRACE(
-								"[test_current_offset == "
-							    "file_size] updated "
-								"before offset: before={} "
-							    "after={} ",
-								previous,
-								this->m_before_frame_file_offset
-							);
-						}
-
-						if (file_size ==
-						    this->m_after_frame_file_offset)
-						{
-							auto previous =
-								this->m_after_frame_file_offset;
-
-							this->m_after_frame_file_offset =
-								update_offset;
-
-							KOTEK_TRACE(
-								"[test_current_offset == "
-							    "file_size] updated "
-								"after offset: before={} "
-							    "after={}",
-								previous,
-								this->m_after_frame_file_offset
-							);
-						}
-
-						if (file_size ==
-						    this->m_current_file_offset)
-						{
-							auto previous =
-								this->m_current_file_offset;
-
-							this->m_current_file_offset =
-								update_offset;
-
-							KOTEK_TRACE(
-								"[test_current_offset == "
-							    "file_size] updated "
-								"current offset: before={} "
-							    "after={}",
-								previous,
-								this->m_current_file_offset
-							);
-						}
-
-						break;
-					}
-					else
-					{
-						// everything is fine we can move
-						// further
-						current_offset += sizeof(buffer);
-						//	this->m_p_resource_manager->Seekg(
-						//		this->m_file_resource_handle_id,
-						//current_offset,
-						//		kotek::core::eFileSeekDirectionType::
-						//			kSeekDirectionBegin);
-
-						this->m_p_file_temp->seekg(
-							current_offset, std::ios_base::beg
-						);
-
-						//		this->m_p_resource_manager->Read(
-						//			this->m_file_resource_handle_id,
-						//buffer, 			sizeof(buffer));
-						this->m_p_file_temp->read(
-							buffer, sizeof(buffer)
-						);
-					}
-				}
-
-				KOTEK_ASSERT(
-					buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON_EXACT_DIGITS] !=
-						zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY,
-					"that means we are reading for going to "
-				    "back (to "
-					"the "
-					"beginning of file) that's not correct and "
-				    "data "
-					"might "
-					"be corrupted, check everything again!"
-				);
-
-				auto offset_for_json_data = std::atoi(buffer);
-				//	auto offset_from_exchange =
-				// this->m_p_resource_manager->Tellg(
-				//		this->m_file_exchange_resource_handle_id);
-
-				auto offset_from_exchange =
-					this->m_p_file_exchange->tellg();
-
-				if (current_offset ==
-				    this->m_before_frame_file_offset)
-				{
-					auto previous =
-						this->m_before_frame_file_offset;
-
-					this->m_before_frame_file_offset =
-						offset_from_exchange;
-
-					KOTEK_TRACE(
-						"[in while] updated before offset: "
-					    "before={} after={}",
-						previous,
-						this->m_before_frame_file_offset
-					);
-				}
-
-				if (current_offset ==
-				    this->m_after_frame_file_offset)
-				{
-					auto previous =
-						this->m_after_frame_file_offset;
-
-					this->m_after_frame_file_offset =
-						offset_from_exchange;
-
-					KOTEK_TRACE(
-						"[in while] updated after offset: "
-					    "before={} after={}",
-						previous,
-						this->m_after_frame_file_offset
-					);
-				}
-
-				if (current_offset ==
-				    this->m_current_file_offset)
-				{
-					auto previous = this->m_current_file_offset;
-
-					this->m_current_file_offset =
-						offset_from_exchange;
-
-					KOTEK_TRACE(
-						"[in while] updated current offset: "
-					    "before={} after={}",
-						previous,
-						this->m_current_file_offset
-					);
-				}
-
-				current_offset += sizeof(buffer) + 2;
-
-				auto real_size_for_json_data =
-					offset_for_json_data - 2;
-
-				//	this->m_p_resource_manager->Seekg(
-				//		this->m_file_resource_handle_id,
-				//current_offset,
-				//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-
-				this->m_p_file_temp->seekg(
-					current_offset, std::ios_base::beg
-				);
-
-				kotek::json::value json_data;
-
-				kotek::size_t before_reading_json_entry =
-					current_offset;
-
-				bool is_contain =
-					this->check_json_entry_has_entity_id(
-						id_what_will_be_deleted,
-						real_size_for_json_data,
-						current_offset,
-						json_data
-					);
-
-				if (is_contain)
-				{
-					kotek::size_t updated_size_of_entry{};
-
-					kotek::core::eConsoleCommandIndex type =
-						static_cast<
-							kotek::core::eConsoleCommandIndex>(
-							json_data.at("command")
-								.to_number<kotek::enum_base_t>()
-						);
-
-					zircon_factory* p_factory = nullptr;
-
-					zircon_session_editor* p_session =
-						this->m_p_manager_session_editor
-							->get_session(
-								this->m_p_manager_session_editor
-									->get_current_session_id()
-							);
-
-					if (p_session && p_session->get_world())
-					{
-						p_factory =
-							p_session->get_world()->get_factory();
-					}
-
-					switch (type)
-					{
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_CreateEntity:
-					{
-						auto placement_storage =
-							this->m_p_memory_for_stack_command_creation;
-
-						zircon_command_create_entity*
-							p_command = new (placement_storage)
-								zircon_command_create_entity(
-									this->m_p_manager_session_editor,
-									p_factory
-								);
-
-						p_command->SetEntityID(
-							id_that_replaces_what_will_be_deleted
-						);
-
-						KOTEK_ASSERT(
-							false, "todo: re-write please"
-						);
-						/* todo: re-write please
-						updated_size_of_entry =
-						    p_command->Serialize(this->m_p_file_exchange);*/
-
-						p_command
-							->~zircon_command_create_entity();
-
-						std::memset(
-							this->m_p_memory_for_stack_command_creation,
-							0,
-							sizeof(
-								this->m_p_memory_for_stack_command_creation
-							)
-						);
-
-						break;
-					}
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_DeleteEntity:
-					{
-						auto placement_storage =
-							this->m_p_memory_for_stack_command_creation;
-
-						zircon_command_delete_entity*
-							p_command = new (placement_storage)
-								zircon_command_delete_entity(
-									this->m_p_manager_session_editor,
-									p_factory,
-									id_that_replaces_what_will_be_deleted
-								);
-
-						KOTEK_ASSERT(
-							false, "todo: re-write please"
-						);
-						/* todo: re-write please
-						updated_size_of_entry =
-						    p_command->Serialize(this->m_p_file_exchange);*/
-
-						p_command
-							->~zircon_command_delete_entity();
-
-						std::memset(
-							this->m_p_memory_for_stack_command_creation,
-							0,
-							sizeof(
-								this->m_p_memory_for_stack_command_creation
-							)
-						);
-
-						break;
-					}
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_CreateComponentForEntityByName:
-					{
-						auto placement_storage =
-							this->m_p_memory_for_stack_command_creation;
-
-						zircon_command_add_component_to_entity*
-							p_command = new (placement_storage)
-								zircon_command_add_component_to_entity(
-									this->m_p_manager_session_editor
-								);
-
-						p_command->Deserialize(
-							json_data.get_object()
-						);
-						p_command->SetEntityID(
-							id_that_replaces_what_will_be_deleted
-						);
-
-						KOTEK_ASSERT(
-							false, "todo: re-write please"
-						);
-						/* todo: re-write please
-						updated_size_of_entry =
-						    p_command->Serialize(this->m_p_file_exchange);*/
-
-						p_command
-							->~zircon_command_add_component_to_entity(
-							);
-
-						std::memset(
-							this->m_p_memory_for_stack_command_creation,
-							0,
-							sizeof(
-								this->m_p_memory_for_stack_command_creation
-							)
-						);
-
-						break;
-					}
-					case kotek::core::eConsoleCommandIndex::
-						kConsoleCommand_SDK_DeleteComponentFromEntityByName:
-					{
-						auto placement_storage =
-							this->m_p_memory_for_stack_command_creation;
-
-						zircon_command_delete_component_from_entity*
-							p_command = new (placement_storage)
-								zircon_command_delete_component_from_entity(
-									this->m_p_manager_session_editor,
-									p_factory
-								);
-
-						p_command->Deserialize(
-							json_data.get_object()
-						);
-						p_command->SetEntityID(
-							id_that_replaces_what_will_be_deleted
-						);
-
-						KOTEK_ASSERT(
-							false, "todo: re-write please"
-						);
-						/* todo: re-write please
-						updated_size_of_entry =
-						    p_command->Serialize(this->m_p_file_exchange);*/
-
-						p_command
-							->~zircon_command_delete_component_from_entity(
-							);
-
-						std::memset(
-							this->m_p_memory_for_stack_command_creation,
-							0,
-							sizeof(
-								this->m_p_memory_for_stack_command_creation
-							)
-						);
-						break;
-					}
-					default:
-					{
-						KOTEK_ASSERT(
-							false,
-							"provide implementation in case if "
-						    "you forgot to "
-							"add new command index"
-						);
-						break;
-					}
-					}
-
-					KOTEK_ASSERT(
-						updated_size_of_entry != 0,
-						"can't be something is wrong!"
-					);
-
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id,
-					//current_offset,
-					//		kotek::core::eFileSeekDirectionType::
-					//			kSeekDirectionBegin);
-					this->m_p_file_temp->seekg(
-						current_offset, std::ios_base::beg
-					);
-				}
-				else
-				{
-					// we can just write to exchange
-
-					kotek::size_t start_offset =
-						before_reading_json_entry -
-						(sizeof(buffer) + 2);
-
-					this->insert_content_exchange(
-						start_offset,
-						current_offset + (sizeof(buffer)),
-						start_offset
-					);
-
-					//	this->m_p_resource_manager->Seekg(
-					//		this->m_file_resource_handle_id,
-					//current_offset,
-					//		kotek::core::eFileSeekDirectionType::
-					//			kSeekDirectionBegin);
-
-					this->m_p_file_temp->seekg(
-						current_offset, std::ios_base::beg
-					);
-
-					if (current_offset + sizeof(buffer) ==
-					    file_size)
-					{
-						//	auto update_offset =
-						// this->m_p_resource_manager->Tellg(
-						//		this->m_file_exchange_resource_handle_id);
-
-						auto update_offset =
-							this->m_p_file_exchange->tellg();
-
-						if (file_size ==
-						    this->m_before_frame_file_offset)
-						{
-							auto previous =
-								this->m_before_frame_file_offset;
-
-							this->m_before_frame_file_offset =
-								update_offset;
-
-							KOTEK_TRACE(
-								"[end of while] updated before "
-							    "offset: "
-								"before={} after={} ",
-								previous,
-								this->m_before_frame_file_offset
-							);
-						}
-
-						if (file_size ==
-						    this->m_after_frame_file_offset)
-						{
-							auto previous =
-								this->m_after_frame_file_offset;
-
-							this->m_after_frame_file_offset =
-								update_offset;
-
-							KOTEK_TRACE(
-								"[end of while] updated after "
-							    "offset: "
-								"before={} after={}",
-								previous,
-								this->m_after_frame_file_offset
-							);
-						}
-
-						if (file_size ==
-						    this->m_current_file_offset)
-						{
-							auto previous =
-								this->m_current_file_offset;
-
-							this->m_current_file_offset =
-								update_offset;
-
-							KOTEK_TRACE(
-								"[end of while] updated "
-							    "current "
-								"offset: before={} after={}",
-								previous,
-								this->m_current_file_offset
-							);
-						}
-
-						break;
-					}
-				}
-			}
-
-			this->move_content_from_exchange_to_file(
-				0,
-				//	this->m_p_resource_manager->Tellg(
-			    //		this->m_file_exchange_resource_handle_id));
-				this->m_p_file_exchange->tellg()
-			);
-
-			//	this->m_p_resource_manager->Seekg(this->m_file_resource_handle_id,
-			//		this->m_current_file_offset,
-			//		kotek::core::eFileSeekDirectionType::kSeekDirectionBegin);
-			this->m_p_file_temp->seekg(
-				this->m_current_file_offset, std::ios_base::beg
-			);
-		}
-	}
-}
-
-bool zircon_editor_command_history::
-	check_json_entry_has_entity_id(
-		kotek::entity_t id_what_will_be_deleted,
-		int real_size_for_json_data,
-		kotek::size_t& current_offset,
-		kotek::json::value& json
-	)
-{
-	kotek::size_t copy_offset = current_offset;
-
-	bool result{};
-
-	// if (this->m_p_resource_manager)
-	{
-		if (this->m_p_file_temp)
-		{
-			kotek::json::stream_parser parser;
-			kotek::json::static_resource storage_ptr(
-				this->m_p_memory_for_stack_parser
-			);
-			parser.reset(&storage_ptr);
-
-			char stream_buffer_for_json_data
-				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
-
-			if (real_size_for_json_data >
-			    zircon_DEF_STREAM_JSON_STACK_SIZE)
-			{
-				int counter{real_size_for_json_data};
-				auto prev_size{copy_offset};
-
-				while (counter > 0)
-				{
-					if (counter >
-					    zircon_DEF_STREAM_JSON_STACK_SIZE)
-					{
-						//	this->m_p_resource_manager->Read(
-						//		this->m_file_resource_handle_id,
-						//		stream_buffer_for_json_data,
-						//		sizeof(stream_buffer_for_json_data));
-
-						this->m_p_file_temp->read(
-							stream_buffer_for_json_data,
-							sizeof(stream_buffer_for_json_data)
-						);
-						copy_offset +=
-							zircon_DEF_STREAM_JSON_STACK_SIZE;
-						// this->m_p_resource_manager->Seekg(
-						//	this->m_file_resource_handle_id,
-						//copy_offset,
-						//	kotek::core::eFileSeekDirectionType::
-						//		kSeekDirectionBegin);
-						this->m_p_file_temp->seekg(
-							copy_offset, std::ios_base::beg
-						);
-					}
-					else
-					{
-						//	this->m_p_resource_manager->Read(
-						//		this->m_file_resource_handle_id,
-						//		stream_buffer_for_json_data,
-						//counter);
-						this->m_p_file_temp->read(
-							stream_buffer_for_json_data, counter
-						);
-						copy_offset += counter;
-					}
-
-					if (counter >
-					    zircon_DEF_STREAM_JSON_STACK_SIZE)
-					{
-						parser.write(
-							stream_buffer_for_json_data,
-							sizeof(stream_buffer_for_json_data)
-						);
-					}
-					else
-					{
-						parser.write(
-							stream_buffer_for_json_data, counter
-						);
-					}
-
-					counter -=
-						zircon_DEF_STREAM_JSON_STACK_SIZE;
-					std::memset(
-						stream_buffer_for_json_data,
-						0,
-						sizeof(stream_buffer_for_json_data)
-					);
-				}
-
-				KOTEK_ASSERT(
-					(copy_offset - real_size_for_json_data) ==
-						prev_size,
-					"wrong calculations! after parsing you "
-				    "have to "
-					"get exactly the same size as you minused "
-					"offset_for_json_data! curret_offset:[{}] "
-					"real_size_for_json_data:[{}] dif:[{}] "
-					"prev_size:[{}]",
-					copy_offset,
-					real_size_for_json_data,
-					(copy_offset - real_size_for_json_data),
-					prev_size
-				);
-
-				if (copy_offset > 0)
-					copy_offset += 2;
-
-				auto status = parser.done();
-
-				KOTEK_ASSERT(status, "must be valid json!");
-			}
-			else
-			{
-				//	this->m_p_resource_manager->Read(
-				//		this->m_file_resource_handle_id,
-				//		stream_buffer_for_json_data,
-				//real_size_for_json_data);
-				this->m_p_file_temp->read(
-					stream_buffer_for_json_data,
-					real_size_for_json_data
-				);
-				parser.write(stream_buffer_for_json_data);
-				auto status = parser.done();
-				KOTEK_ASSERT(
-					status,
-					"must be valid json in stream buffer!"
-				);
-
-				copy_offset += real_size_for_json_data;
-
-				if (copy_offset > 0)
-					copy_offset += 2;
-			}
-
-			json = parser.release();
-
-			KOTEK_ASSERT(json.is_object(), "must be object!");
-
-			auto& map = json.as_object();
-
-			if (map.find(
-					ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
-				) != map.end())
-			{
-				kotek::uint32_t entity_id =
-					(map.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
-				    )
-				         .to_number<kotek::uint32_t>());
-
-				result = entity_id ==
-					id_what_will_be_deleted.id;
-			}
+			reverse_translation[live] = recorded;
 		}
 	}
 
-	current_offset = copy_offset;
+	// everything live becomes dead now, translations are
+	// re-established below and by replayed commands
+	this->m_entity_id_translation.clear();
 
-	return result;
-}
+	zircon_command_delta_reader reader(p_data, data_size);
 
-bool zircon_editor_command_history::
-	check_json_entry_has_entity_id_and_component_type_id(
-		kotek::entity_t id,
-		eZirconComponentType type_id,
-		int real_size_for_json_data,
-		kotek::size_t& current_offset,
-		kotek::ktk::json::value& json
-	)
-{
-	kotek::size_t copy_offset = current_offset;
+	bool status{};
 
-	bool result{};
+	const kotek::uint32_t entity_count =
+		reader.read_u32(&status);
 
-	bool found_entity_id{};
-	bool found_component_type_id{};
+	if (status == false)
+		return false;
 
-	// if (this->m_p_resource_manager)
+	for (kotek::uint32_t i = 0; i < entity_count; ++i)
 	{
-		if (this->m_p_file_temp->is_open())
+		const kotek::uint32_t snapshot_live_id =
+			reader.read_u32(&status);
+		const kotek::uint32_t component_count =
+			reader.read_u32(&status);
+
+		if (status == false)
+			return false;
+
+		kotek::entity_t new_entity =
+			p_factory->create_entity(p_context);
+
+		if (static_cast<kotek::uint32_t>(new_entity.id) >
+		    this->m_entity_watermark)
 		{
-			kotek::json::stream_parser parser;
-			kotek::json::static_resource storage_ptr(
-				this->m_p_memory_for_stack_parser
+			this->m_entity_watermark =
+				static_cast<kotek::uint32_t>(new_entity.id);
+		}
+
+		// base binding: journal entries reference the entity by
+		// its recorded id, which is the id stored in the snapshot
+		this->set_entity_translation(
+			snapshot_live_id,
+			static_cast<kotek::uint32_t>(new_entity.id)
+		);
+
+		// alias rebinding: recorded ids that were remapped to the
+		// snapshot's live id (entity got recreated by undo/redo
+		// between the snapshot and now) must point at the fresh
+		// entity too
+		if (snapshot_live_id < reverse_translation.size() &&
+		    reverse_translation[snapshot_live_id] !=
+		        zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID &&
+		    reverse_translation[snapshot_live_id] !=
+		        snapshot_live_id)
+		{
+			this->set_entity_translation(
+				reverse_translation[snapshot_live_id],
+				static_cast<kotek::uint32_t>(new_entity.id)
 			);
-			parser.reset(&storage_ptr);
+		}
 
-			char stream_buffer_for_json_data
-				[zircon_DEF_STREAM_JSON_STACK_SIZE]{};
+		for (kotek::uint32_t j = 0; j < component_count; ++j)
+		{
+			const kotek::uint32_t component_type =
+				reader.read_u32(&status);
+			const kotek::uint32_t state_size =
+				reader.read_u32(&status);
 
-			if (real_size_for_json_data >
-			    zircon_DEF_STREAM_JSON_STACK_SIZE)
+			if (status == false)
+				return false;
+
+			if (state_size >=
+			    zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON)
 			{
-				int counter{real_size_for_json_data};
-				auto prev_size{copy_offset};
-
-				while (counter > 0)
-				{
-					if (counter >
-					    zircon_DEF_STREAM_JSON_STACK_SIZE)
-					{
-						//	this->m_p_resource_manager->Read(
-						//		this->m_file_resource_handle_id,
-						//		stream_buffer_for_json_data,
-						//		sizeof(stream_buffer_for_json_data));
-						this->m_p_file_temp->read(
-							stream_buffer_for_json_data,
-							sizeof(stream_buffer_for_json_data)
-						);
-						copy_offset +=
-							zircon_DEF_STREAM_JSON_STACK_SIZE;
-						//	this->m_p_resource_manager->Seekg(
-						//		this->m_file_resource_handle_id,
-						//copy_offset,
-						//		kotek::core::eFileSeekDirectionType::
-						//			kSeekDirectionBegin);
-						this->m_p_file_temp->seekg(
-							copy_offset, std::ios_base::beg
-						);
-					}
-					else
-					{
-						//	this->m_p_resource_manager->Read(
-						//		this->m_file_resource_handle_id,
-						//		stream_buffer_for_json_data,
-						//counter);
-						this->m_p_file_temp->read(
-							stream_buffer_for_json_data, counter
-						);
-						copy_offset += counter;
-					}
-
-					if (counter >
-					    zircon_DEF_STREAM_JSON_STACK_SIZE)
-					{
-						parser.write(
-							stream_buffer_for_json_data,
-							sizeof(stream_buffer_for_json_data)
-						);
-					}
-					else
-					{
-						parser.write(
-							stream_buffer_for_json_data, counter
-						);
-					}
-
-					counter -=
-						zircon_DEF_STREAM_JSON_STACK_SIZE;
-					std::memset(
-						stream_buffer_for_json_data,
-						0,
-						sizeof(stream_buffer_for_json_data)
-					);
-				}
-
-				KOTEK_ASSERT(
-					(copy_offset - real_size_for_json_data) ==
-						prev_size,
-					"wrong calculations! after parsing you "
-				    "have to "
-					"get exactly the same size as you minused "
-					"offset_for_json_data! curret_offset:[{}] "
-					"real_size_for_json_data:[{}] dif:[{}] "
-					"prev_size:[{}]",
-					copy_offset,
-					real_size_for_json_data,
-					(copy_offset - real_size_for_json_data),
-					prev_size
+				KOTEK_MESSAGE_ERROR(
+					"[history]: snapshot component state is "
+					"too big ({} bytes)",
+					state_size
 				);
-
-				if (copy_offset > 0)
-					copy_offset += 2;
-
-				auto status = parser.done();
-
-				KOTEK_ASSERT(status, "must be valid json!");
-			}
-			else
-			{
-				//	this->m_p_resource_manager->Read(
-				//		this->m_file_resource_handle_id,
-				//		stream_buffer_for_json_data,
-				//real_size_for_json_data);
-				this->m_p_file_temp->read(
-					stream_buffer_for_json_data,
-					real_size_for_json_data
-				);
-				parser.write(stream_buffer_for_json_data);
-				auto status = parser.done();
-				KOTEK_ASSERT(
-					status,
-					"must be valid json in stream buffer!"
-				);
-
-				copy_offset += real_size_for_json_data;
-
-				if (copy_offset > 0)
-					copy_offset += 2;
+				return false;
 			}
 
-			json = parser.release();
+			char state_buffer
+				[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
 
-			KOTEK_ASSERT(json.is_object(), "must be object!");
+			status = reader.read_bytes(
+				state_buffer, state_size
+			);
 
-			auto& map = json.as_object();
+			if (status == false)
+				return false;
 
-			if (map.find(
-					ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
-				) != map.end())
-			{
-				kotek::uint32_t entity_id =
-					(map.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME
-				    )
-				         .to_number<kotek::uint32_t>());
+			state_buffer[state_size] = 0;
 
-				found_entity_id = entity_id == id.id;
-			}
+			p_factory->create_component(
+				p_context,
+				new_entity,
+				static_cast<eZirconComponentType>(
+					component_type
+				)
+			);
 
-			if (map.find(
-					ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
-				) != map.end())
-			{
-				eZirconComponentType restored_type_id =
+			zircon_component_interface* p_component =
+				p_factory->get_component_by_enum(
+					p_context,
+					new_entity,
 					static_cast<eZirconComponentType>(
-						map.at(ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME
-				        )
-							.to_number<kotek::uint32_t>()
-					);
+						component_type
+					)
+				);
 
-				found_component_type_id =
-					restored_type_id == type_id;
+			if (p_component == nullptr)
+				continue;
+
+			kotek::ktk::json::error_code parse_error;
+
+			kotek::ktk::json::value component_state =
+				kotek::ktk::json::parse(
+					kotek::cstring_view_t(
+						state_buffer, state_size
+					),
+					parse_error
+				);
+
+			if (parse_error)
+			{
+				KOTEK_MESSAGE_ERROR(
+					"[history]: failed to parse a snapshot "
+					"component: {}",
+					parse_error.message()
+				);
+				return false;
 			}
 
-			result = found_component_type_id && found_entity_id;
+			KOTEK_TRACE(
+				"[history]: snapshot restore component {} for "
+				"entity {}: [{}]",
+				component_type,
+				static_cast<kotek::uint32_t>(new_entity.id),
+				state_buffer
+			);
+
+			p_factory->DeserializeComponent(
+				p_component, component_state
+			);
 		}
 	}
 
-	current_offset = copy_offset;
+	return reader.is_valid();
+}
 
-	return result;
+void zircon_editor_command_history::destroy_all_entities(
+	zircon_world* p_world
+) noexcept
+{
+	KOTEK_ASSERT(p_world, "must be a valid world");
+
+	if (p_world == nullptr)
+		return;
+
+	zircon_factory* p_factory = p_world->get_factory();
+	zircon_ecs_context_t* p_context =
+		p_world->get_ecs_context();
+
+	if (p_factory == nullptr || p_context == nullptr)
+		return;
+
+	kotek::hybrid_vector_t<kotek::entity_t, 1024> entities;
+	entities.resize(this->m_entity_watermark + 16);
+
+	const kotek::uint32_t entity_count =
+		p_factory->get_all_entities(
+			p_context,
+			this->m_entity_watermark + 16,
+			entities.data(),
+			static_cast<kotek::uint32_t>(entities.size())
+		);
+
+	for (kotek::uint32_t i = 0; i < entity_count; ++i)
+	{
+		p_factory->destroy_entity(p_context, entities[i]);
+	}
 }

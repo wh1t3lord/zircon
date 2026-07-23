@@ -41,7 +41,8 @@ public:
 		zircon_session_editor_manager* p_manager_session_editor,
 		kotek::core::ktkMainManager* p_main_manager,
 		kotek::core::ktkConsole* p_console,
-		kotek::core::ktkIFileSystem* p_filesystem
+		kotek::core::ktkIFileSystem* p_filesystem,
+		const char* p_history_streaming_folder_name = "current"
 	);
 	void shutdown(void) override;
 	void update(void) override;

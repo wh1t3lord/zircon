@@ -54,6 +54,7 @@ else()
 	set(to_include_unit_tests
 		"zircon_unit_tests_game.cpp"
 		"zircon_unit_tests_editor.cpp"
+		"tests/zircon_unit_tests_command_history.cpp"
 	)
 endif()
 

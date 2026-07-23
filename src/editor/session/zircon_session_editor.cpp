@@ -53,7 +53,8 @@ void zircon_session_editor::initialize(
 	zircon_session_editor_manager* p_manager_session_editor,
 	kotek::core::ktkMainManager* p_main_manager,
 	kotek::core::ktkConsole* p_console,
-	kotek::core::ktkIFileSystem* p_filesystem)
+	kotek::core::ktkIFileSystem* p_filesystem,
+	const char* p_history_streaming_folder_name)
 {
 	KOTEK_ASSERT(
 		session_name.empty() == false, "pass a reasonable name please!");
@@ -86,7 +87,8 @@ void zircon_session_editor::initialize(
 		this->m_p_main_manager = p_main_manager;
 		this->m_p_console = p_console;
 		this->m_command_history_manager.initialize(
-			p_manager_session_editor, p_filesystem);
+			p_manager_session_editor, p_filesystem,
+			p_history_streaming_folder_name);
 		this->m_state.initialize(p_current_world->get_factory());
 
 		this->m_was_initialized = true;

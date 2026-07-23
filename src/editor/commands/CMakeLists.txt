@@ -5,6 +5,13 @@ project(zircon.editor.commands VERSION 1 LANGUAGES CXX)
 
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
 
+# zstd compresses the journal blocks and the world snapshots (task
+# Z6); the package was already located globally in kotek's root
+# CMakeLists, re-find it here per module convention
+if ("${KOTEK_DEPS_FOLDER}" STREQUAL "vcpkg")
+	find_package(zstd CONFIG REQUIRED)
+endif()
+
 set(to_include_module_files 
 	"main_editor_dll.cpp"
 )
@@ -12,6 +19,10 @@ set(to_include_module_files
 set(to_include_manager_files
 	"zircon_command_history.h"
 	"zircon_command_history.cpp"
+	"zircon_command_journal.h"
+	"zircon_command_journal.cpp"
+	"zircon_command_registry.h"
+	"zircon_command_registry.cpp"
 )
 
 set(to_include_commands_files
@@ -46,3 +57,7 @@ kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CX
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
+
+if ("${KOTEK_DEPS_FOLDER}" STREQUAL "vcpkg")
+	kotek_target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_static)
+endif()

@@ -6,6 +6,10 @@
 #include "../editor/session/zircon_session_editor.h"
 #include "../editor/session/zircon_session_editor_manager.h"
 
+#if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
+	#include <crtdbg.h>
+#endif
+
 zircon_game_manager g_main_manager;
 
 constexpr const char* kUserInfoField_RendererForLoading =
@@ -71,6 +75,18 @@ bool DeserializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 
 bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 {
+#if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
+	setvbuf(stderr, nullptr, _IONBF, 0);
+	// route CRT asserts to stderr instead of the modal dialog as
+	// early as possible (the game library is the first user code
+	// that runs after the engine core)
+	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+	fprintf(stderr, "[boot]: InitializeModule_Game entered\n");
+#endif
+
 	if (p_main_manager->Get_Splash())
 	{
 		p_main_manager->Get_Splash()->Set_Text("[user_game_module]: init");
@@ -119,6 +135,10 @@ bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 		p_main_manager->Get_EngineConfig()->SetFeatureStatus(
 			Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui, true);
 	}
+
+#if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
+	fprintf(stderr, "[boot]: InitializeModule_Game finished\n");
+#endif
 
 	return true;
 }
@@ -184,6 +204,9 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 		kotek::uint32_t frames_executed{};
 		const kotek::uint32_t frames_limit =
 			p_main_manager->Get_EngineConfig()->Get_FramesLimit();
+
+		KOTEK_MESSAGE("[zircon]: entering frame loop (frames_limit=%u)",
+			frames_limit);
 
 		while (p_main_manager->Get_EngineConfig()->IsApplicationWorking())
 		{
@@ -262,9 +285,20 @@ bool InitializeModule_Render(kotek::core::ktkMainManager* p_main_manager)
 	}
 
 	DeserializeRendererConfig(p_main_manager);
+
+#if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
+	fprintf(stderr, "[boot]: before kotek render module init\n");
+#endif
+
 	KOTEK_INVOKE_MODULE(INIT, RENDER, InitializeModule_Render, p_main_manager);
 
+#if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
+	fprintf(stderr, "[boot]: after kotek render module init\n");
+#endif
+
 	g_main_manager.Initialize(p_main_manager);
+
+	KOTEK_MESSAGE("[zircon]: game manager initialized, entering main loop");
 	DeserializeModule_Game(p_main_manager);
 
 	return true;

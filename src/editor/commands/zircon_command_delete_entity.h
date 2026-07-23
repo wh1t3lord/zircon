@@ -1,19 +1,37 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
+#include "zircon_command_registry.h"
 #include "../../ecs/zircon_factory_definitions.h"
 
 class zircon_factory;
 class zircon_editor_command_history;
 class zircon_world;
 class zircon_session_editor_manager;
+struct zircon_ecs_context_t;
 
 enum eZirconComponentType;
 
-// TODO: implement streaming of json size of 30k+ while we are
-// limited in our storage
+/// @brief \~english one captured component state of a deleted
+/// entity: type + byte range inside the command's states buffer
+struct zircon_delete_entity_component_state_entry
+{
+	kotek::uint16_t m_component_type;
+	kotek::uint16_t m_state_offset;
+	kotek::uint16_t m_state_size;
+	kotek::uint16_t m_reserved;
+};
+
+/// @brief \~english deletes an entity; its inverse data (component
+/// types + their serialized states before the deletion) is captured
+/// by Execute itself, so undo/redo works from the journal without
+/// any cross-command lookups. The states buffer is fixed (see
+/// zircon_DEF_COMMAND_DELETE_ENTITY_STATE_BUFFER_SIZE), an overflow
+/// degrades to a warning instead of an exception (the old design had
+/// the same class of limit, see the old 4096 bytes json buffer)
 class zircon_command_delete_entity
-	: public kotek::core::ktkISDKRedoUndo
+	: public kotek::core::ktkISDKRedoUndo,
+	  public zircon_interface_command_delta
 {
 public:
 	zircon_command_delete_entity(
@@ -32,9 +50,27 @@ public:
 	void SetEntityID(kotek::entity_t id) noexcept override;
 
 	kotek::enum_base_t GetCommandType() noexcept override;
+
+	/// @brief \~english deprecated file serialization from the old
+	/// streaming design, the journal uses Serialize_Delta instead
 	kotek::size_t Serialize(kotek::core::ktkFileHandleType file
 	) noexcept override;
-	void Deserialize(const kotek::json::object& json_data
+
+	/// @brief \~english delta = entity id + per component
+	/// [type, json state]
+	bool Serialize_Delta(
+		zircon_command_delta_writer& writer
+	) noexcept override;
+	bool Deserialize_Delta(
+		zircon_command_delta_reader& reader
+	) noexcept override;
+
+private:
+	/// @brief \~english captures component types and their states
+	/// into m_components / m_states_buffer; called by Execute before
+	/// the entity is destroyed
+	void capture_component_states(
+		zircon_ecs_context_t* p_ecs_context
 	) noexcept;
 
 private:
@@ -46,11 +82,11 @@ private:
 		eZirconComponentType,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 		m_components;
-	char m_p_serialized_json_as_string
-		[ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE];
-	unsigned char m_p_placement_new_memory
-		[(zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON -
-	      ZIRCON_DEF_COMMAND_SDK_ENTITY_MAX_SERIALIZED_STRING_SIZE
-	     ) -
-	     sizeof(m_components)];
+	kotek::static_vector_t<
+		zircon_delete_entity_component_state_entry,
+		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
+		m_states_index;
+	kotek::uint32_t m_states_used;
+	unsigned char m_states_buffer
+		[zircon_DEF_COMMAND_DELETE_ENTITY_STATE_BUFFER_SIZE];
 };

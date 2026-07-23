@@ -75,8 +75,34 @@ inline zircon_component_transform tag_invoke(
 		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_POSITION)));
 	result.set_scale(kotek::json::value_to<kotek::math::vec3f_t>(
 		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_SCALE)));
-	result.set_rotation(kotek::json::value_to<kotek::math::quatf_t>(
-		data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION)));
+
+	// NOTE: the quaternion is parsed manually through the mutable
+	// accessors because value_to<quatf_t> builds the quaternion via
+	// the (x,y,z,w) ctor which forwards to glm::quat in (w,x,y,z)
+	// order under KOTEK_MATH_LIBRARY=GLM and swaps the components
+	// (kotek-side bug, kotek/ sources must not be modified)
+	{
+		const auto& rotation_array =
+			data.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TRANSFORM_FIELD_M_ROTATION)
+				.as_array();
+
+		kotek::math::quatf_t rotation;
+
+		rotation.x() = static_cast<float>(
+			rotation_array[0].as_double()
+		);
+		rotation.y() = static_cast<float>(
+			rotation_array[1].as_double()
+		);
+		rotation.z() = static_cast<float>(
+			rotation_array[2].as_double()
+		);
+		rotation.w() = static_cast<float>(
+			rotation_array[3].as_double()
+		);
+
+		result.set_rotation(rotation);
+	}
 
 	return result;
 }

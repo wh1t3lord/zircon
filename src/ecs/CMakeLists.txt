@@ -138,6 +138,8 @@ foreach (filename IN LISTS filenames_list)
 			${filename}* p_casted = static_cast<${filename}*>(p_result);
 
 			(*p_casted) = kotek::json::value_to<${filename}>(serialized_data);
+
+			break;
 		}
 	")
 	file(APPEND ${zircon_create_component_by_enum_file_name} "

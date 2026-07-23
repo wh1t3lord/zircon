@@ -127,15 +127,15 @@ public:
 	) noexcept;
 
 	/// @brief \~english iterates all entries in append order and
-	/// invokes callback(header, p_payload) for each; used by the
-	/// history to rebuild its tree after loading an existing journal
+	/// invokes callback(header, p_payload, locator) for each; used
+	/// by the history to rebuild its tree after loading an existing
+	/// journal
 	template <typename CallbackType>
 	bool read_all_entries(CallbackType&& callback) noexcept
 	{
 		bool result = true;
 
 		zircon_command_journal_entry_header header;
-		kotek::hybrid_vector_t<unsigned char, 256> payload;
 
 		const kotek::uint32_t block_count =
 			static_cast<kotek::uint32_t>(
@@ -153,6 +153,9 @@ public:
 			{
 				return false;
 			}
+
+			zircon_command_journal_locator locator{};
+			locator.m_block_id = block_id;
 
 			kotek::uint32_t offset = 0;
 			while (offset < block_raw_size)
@@ -185,7 +188,9 @@ public:
 				const unsigned char* p_payload =
 					p_block_data + offset + sizeof(header);
 
-				callback(header, p_payload);
+				locator.m_offset_in_block = offset;
+
+				callback(header, p_payload, locator);
 
 				offset += static_cast<kotek::uint32_t>(
 					sizeof(header) + header.m_payload_size
@@ -193,8 +198,82 @@ public:
 			}
 		}
 
-		(void)payload;
 		return result;
+	}
+
+	/// @brief \~english iterates all snapshot records in append
+	/// order and invokes callback(node_id, offset, compressed_size,
+	/// raw_size) for each; used by the history to re-attach
+	/// snapshots to the rebuilt tree
+	template <typename CallbackType>
+	bool read_all_snapshot_headers(
+		CallbackType&& callback
+	) noexcept
+	{
+		if (this->m_is_open == false)
+			return false;
+
+		this->m_snapshot_stream.seekg(0, std::ios::end);
+		const kotek::uint64_t file_size =
+			static_cast<kotek::uint64_t>(
+				this->m_snapshot_stream.tellg()
+			);
+
+		kotek::uint64_t offset = _k_snapshot_header_size;
+
+		while (offset + _k_snapshot_record_header_size <=
+		       file_size)
+		{
+			kotek::uint32_t record_header
+				[_k_snapshot_record_header_size /
+				 sizeof(kotek::uint32_t)];
+
+			this->m_snapshot_stream.seekg(
+				static_cast<std::streamoff>(offset),
+				std::ios::beg
+			);
+			this->m_snapshot_stream.read(
+				reinterpret_cast<char*>(record_header),
+				sizeof(record_header)
+			);
+
+			if (this->m_snapshot_stream.good() == false)
+			{
+				KOTEK_MESSAGE_ERROR(
+					"failed to scan a snapshot record at "
+					"offset {}",
+					offset
+				);
+				return false;
+			}
+
+			const kotek::uint32_t compressed_size =
+				record_header[1];
+
+			if (offset + _k_snapshot_record_header_size +
+			        compressed_size >
+			    file_size)
+			{
+				KOTEK_MESSAGE_WARNING(
+					"snapshot file has a truncated tail "
+					"record at offset {}, ignoring it",
+					offset
+				);
+				break;
+			}
+
+			callback(
+				record_header[0],
+				offset,
+				compressed_size,
+				record_header[2]
+			);
+
+			offset += _k_snapshot_record_header_size +
+				compressed_size;
+		}
+
+		return true;
 	}
 
 private:

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
+#include "zircon_command_journal.h"
+#include "zircon_command_registry.h"
 
 #include "../../ecs/zircon_ecs_auto_enum_components.h"
 
@@ -8,6 +10,56 @@ class zircon_world;
 class zircon_factory;
 class zircon_session_editor_manager;
 
+/// @brief \~english one node of the history tree: a journaled
+/// command with branch links. Node 0 is the root sentinel (the
+/// initial world state, holds no command)
+struct zircon_history_tree_node
+{
+	kotek::uint32_t m_parent_node_id;
+	/// @brief \~english the child that redo descends into; a new
+	/// action after undo creates a NEW child (branch) and replaces
+	/// this pointer, the old child stays in the tree forever
+	kotek::uint32_t m_preferred_child_node_id;
+	kotek::uint32_t m_command_type;
+	/// @brief \~english entity id as it was recorded when the
+	/// command was first executed; translated through the history's
+	/// id map on (re)application
+	kotek::uint32_t m_entity_id;
+	kotek::uint32_t m_depth;
+	/// @brief \~english live pool slot or
+	/// zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT when the command
+	/// object is only present in the journal
+	kotek::uint32_t m_pool_slot;
+	zircon_command_journal_locator m_locator;
+	/// @brief \~english snapshot identification, all zero when the
+	/// node has no snapshot
+	kotek::uint64_t m_snapshot_offset;
+	kotek::uint32_t m_snapshot_compressed_size;
+	kotek::uint32_t m_snapshot_raw_size;
+};
+
+/// @brief \~english full-retention undo/redo history (task Z6):
+/// append-only zstd-compressed journal on disk + history tree with
+/// branching in RAM + periodic world snapshots. Nothing is ever
+/// deleted: a new action after undo creates a branch node at the
+/// cursor, the old redo path stays reachable.
+///
+/// Undo/redo walk the tree along the preferred path. Commands of the
+/// last zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE nodes live in a
+/// fixed pool for instant access; older commands are reconstructed
+/// from the journal (type registry + delta payload).
+///
+/// Entity ids: pico_ecs never recycles ids (destroyed entities are
+/// queued and never flushed by zircon), so a re-executed
+/// create/delete obtains a NEW id. The history keeps a flat
+/// translation table "recorded id -> currently live id" that is
+/// updated on every (re)application by comparing
+/// GetEntityID() before/after; journal entries stay immutable.
+///
+/// Snapshots (binary world states, zstd-compressed) are taken every
+/// zircon_DEF_COMMAND_HISTORY_SNAPSHOT_INTERVAL applied commands and
+/// accelerate restore_node; plain undo/redo never needs them because
+/// command inverses are always available.
 class zircon_editor_command_history
 	: public kotek::core::ktkISDKCommandHistoryManager
 {
@@ -17,7 +69,8 @@ public:
 
 	void initialize(
 		zircon_session_editor_manager* p_manager_session_editor,
-		kotek::core::ktkIFileSystem* p_filesystem
+		kotek::core::ktkIFileSystem* p_filesystem,
+		const char* p_streaming_folder_name = "current"
 	);
 	void shutdown(void);
 
@@ -30,164 +83,191 @@ public:
 	void set_changed(bool status) noexcept;
 	bool is_changed() const noexcept;
 
+	/// @brief \~english the live command pool (last executed
+	/// commands around the cursor), kept for compatibility with the
+	/// history log window
 	const kotek::array_t<
 		kotek::core::ktkISDKRedoUndo*,
 		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
 	GetCommands(void) const noexcept;
 
+	/// @brief \~english called by commands when the ecs backend
+	/// hands them a different entity id than the recorded one
+	/// (entity id recycling / re-execution); updates the id
+	/// translation table and the live pool
 	void update_dependent_commands(
 		kotek::entity_t id_what_will_be_deleted,
 		kotek::entity_t id_that_replaces_what_will_be_deleted
 	) noexcept;
 
+	/// @brief \~english returns a pool slot for placement-new of the
+	/// next command; the oldest live command is evicted (its delta
+	/// stays in the journal and can be reconstructed at any time)
 	unsigned char* allocate_memory_for_command(
 		kotek::size_t size_of_class,
 		const char* p_debug_type_name
 	) noexcept;
 
+	/// @brief \~english the node id the cursor points at
 	kotek::size_t get_current_index(void) const;
 	kotek::ptrdiff_t get_cursor_index(void) const;
 
-	// returns if component was serialized for id otherwise
-	// value will be empty
-	bool
-	get_serialized_component_by_entity_and_component_type_id(
+	/// @brief \~english total amount of recorded commands (tree
+	/// nodes minus the root sentinel)
+	kotek::uint64_t get_total_recorded_commands(void
+	) const noexcept;
+
+	kotek::uint32_t get_cursor_node_id(void) const noexcept;
+
+	/// @brief \~english the currently live entity id for a recorded
+	/// one (the translation table the history maintains for entity
+	/// id re-creation); returns kotek::ktk::kInvalidECSEntity when
+	/// there is no translation (id is its own live id then)
+	kotek::entity_t get_live_entity_id(
+		kotek::entity_t recorded_id
+	) const noexcept;
+
+	/// @brief \~english the highest entity id the history has ever
+	/// observed (used to bound world scans by tests and snapshots)
+	kotek::uint32_t get_entity_watermark(void) const noexcept;
+
+	/// @brief \~english restores the world to an arbitrary history
+	/// node: nearest snapshot on the node's path + journal replay
+	/// forward (or plain replay from the root when the path has no
+	/// snapshot). Nothing is deleted from the history itself.
+	bool restore_node(kotek::uint32_t node_id) noexcept;
+
+	/// @brief \~english returns if component was serialized for id
+	/// otherwise value will be empty; scans the current path for
+	/// the nearest delete-entity entry that contains the component
+	bool get_serialized_component_by_entity_and_component_type_id(
 		kotek::ktk::json::value&
 			constructed_value_on_stack_based_on_placement_new_memory,
 		kotek::entity_t id,
 		eZirconComponentType type_id
 	);
 
+	/// @brief \~english tunables and disk statistics (tests, budget
+	/// checks)
+	void set_snapshot_interval(
+		kotek::uint32_t interval
+	) noexcept;
+	kotek::uint32_t get_snapshot_interval(void) const noexcept;
+	kotek::uint64_t get_journal_file_size(void) noexcept;
+	kotek::uint64_t get_snapshot_file_size(void) noexcept;
+	kotek::uint64_t get_journal_raw_entry_bytes(void) const noexcept;
+	kotek::uint64_t get_total_snapshot_count(void) const noexcept;
+
 private:
-	void unload_content();
-	void unload_content_before();
-	void unload_content_after(bool is_need_to_reopen);
-	// данный метод вызывается дважды чтобы вставить контент
-	// которые относится к блоку "до" и "после" очевидно что
-	// блок "после" идет после того как сериализируются текущий
-	// фрейм
-	void insert_content(
-		kotek::size_t before_offset,
-		kotek::size_t after_offset,
-		kotek::size_t cursor_offset_current
-	);
-	void insert_content_exchange(
-		kotek::size_t offset_cursor_exchange,
-		kotek::size_t read_until_offset_in_file,
-		kotek::size_t cursor_offset_of_file
-	);
+	/// @brief \~english the command object for a node: live pool
+	/// hit or reconstruction from the journal into the scratch slot
+	kotek::core::ktkISDKRedoUndo* get_command_for_node(
+		kotek::uint32_t node_id
+	) noexcept;
 
-	bool is_contain_control_character(
-		const char* p_buffer,
-		kotek::size_t& how_much_time_control_character_repeats,
-		kotek::size_t size_of_buffer,
-		char control_character = '\n'
-	);
+	kotek::core::ktkISDKRedoUndo* reconstruct_command(
+		kotek::uint32_t node_id
+	) noexcept;
 
-	ktk_filesystem_path
-	get_full_path_of_file(const char* filename_with_extension);
+	/// @brief \~english destructs the scratch command when it was
+	/// used for the given pointer
+	void release_scratch_command(
+		kotek::core::ktkISDKRedoUndo* p_command
+	) noexcept;
 
-	kotek::cfstream_t*
-	reopen_current_file(kotek::cfstream_t* p_file);
-	kotek::cfstream_t*
-	reopen_exchange_file(kotek::cfstream_t* p_file);
+	/// @brief \~english shared execute step of Redo/restore_node:
+	/// translates the entity id, executes, observes id changes
+	void execute_node(kotek::uint32_t node_id) noexcept;
 
-	void clear_content_when_action_issued();
-	kotek::size_t get_offset_of_current_index_in_file();
-	kotek::size_t
-	get_count_of_commands_in_file(kotek::size_t start_offset);
-	void move_content_from_file_to_exchange(
-		kotek::size_t start_offset_in_file,
-		kotek::size_t end_offset_in_file
-	);
-	void move_content_from_exchange_to_file(
-		kotek::size_t start_offset_in_file,
-		kotek::size_t end_offset_in_file
-	);
+	kotek::uint32_t translate_entity_id(
+		kotek::uint32_t recorded_id
+	) const noexcept;
 
-	void update_dependent_serialized_commands(
-		kotek::entity_t id_what_will_be_deleted,
-		kotek::entity_t id_that_replaces_what_will_be_deleted
-	);
-	bool check_json_entry_has_entity_id(
-		kotek::entity_t id_what_will_be_deleted,
-		int real_size_for_json_data,
-		kotek::size_t& current_offset,
-		kotek::json::value& json
-	);
-	bool check_json_entry_has_entity_id_and_component_type_id(
-		kotek::entity_t id,
-		eZirconComponentType type_id,
-		int real_size_for_json_data,
-		kotek::size_t& current_offset,
-		kotek::ktk::json::value& json
-	);
+	void set_entity_translation(
+		kotek::uint32_t recorded_id, kotek::uint32_t live_id
+	) noexcept;
+
+	/// @brief \~english records the live id of a command after
+	/// (re)application into the translation table
+	void observe_entity_id(
+		kotek::core::ktkISDKRedoUndo* p_command,
+		kotek::uint32_t recorded_id
+	) noexcept;
+
+	void evict_pool_slot(kotek::uint32_t slot_index) noexcept;
+
+	void take_snapshot_if_needed(kotek::uint32_t node_id) noexcept;
+
+	zircon_world* get_current_world(void) noexcept;
+
+	/// @brief \~english binary world state: [u32 entity_count] then
+	/// per entity [u32 live_id][u32 component_count][u32 type][u32
+	/// json_size][json]..., entities ordered by live id
+	void capture_world_state(
+		zircon_world* p_world,
+		kotek::hybrid_vector_t<unsigned char, 4096>& output
+	) noexcept;
+
+	bool apply_world_state(
+		zircon_world* p_world,
+		const unsigned char* p_data,
+		kotek::uint32_t data_size
+	) noexcept;
+
+	void destroy_all_entities(zircon_world* p_world) noexcept;
 
 private:
 	bool m_is_changed;
-	bool m_is_first_serialize_happened;
-	bool m_is_action_issued;
+	bool m_is_scratch_in_use;
 	zircon_session_editor_manager* m_p_manager_session_editor;
-	kotek::cfstream_t* m_p_file_temp;
-	kotek::cfstream_t* m_p_file_exchange;
-
 	Kotek::Core::ktkIFileSystem* m_p_filesystem;
 
-	kotek::size_t m_index;
-	kotek::ptrdiff_t m_cursor_index;
-	// last time max value
-	// todo: update this value when we deleted commands because
-	// of undo/redo thing
-	kotek::size_t m_max_index;
-	kotek::size_t m_file_index;
-	kotek::size_t m_current_file_offset;
-	// показывает оффсет когда сделали переход на предыдущий
-	// фрейм за счет undo чтобы когда редо делаем мы не
-	// пробегались по всему файлу а сразу переместились когда
-	// начинали считывание на предыдущий фрейм чтобы сразу же
-	// начать двигаться дальше, эдакая оптимизация
-	kotek::size_t m_after_frame_file_offset;
-	// показывает оффсет когда мы сделали undo на том месте что
-	// когда делаем redo мы перезаписали результат undo
-	kotek::size_t m_before_frame_file_offset;
-	kotek::size_t m_end_of_previous_frame;
-	kotek::size_t m_start_of_next_frame;
-	// конец данных "после" фрейма, он же определяет конец
-	// before блока
-	/*
-	    после - означают данные которые выгружались после
-	   текущего фрейма до - означает данные которые шли перед
-	   текущим фреймом
+	kotek::uint32_t m_cursor_node_id;
+	kotek::uint32_t m_snapshot_interval;
+	kotek::uint32_t m_entity_watermark;
+	kotek::uint64_t m_total_snapshot_count;
 
-	    Допустим у нас 30 команд, один фрейм у нас 10 команд
-	   итого 3 фрейма Теперь когда мы находимся на втором фрейма
-	   с 9 по 19 мы имеем блок командо "до" и "после"
+	/// @brief \~english node storage, index == node id, node 0 is
+	/// the root sentinel
+	kotek::hybrid_vector_t<
+		zircon_history_tree_node,
+		zircon_DEF_COMMAND_HISTORY_NODES_INLINE_COUNT>
+		m_nodes;
 
-	    Таким образом файл exchange хранит информацию о "до" и
-	   "после" чтобы вставлять в текущий файл
-	*/
-	kotek::size_t m_exchange_file_offset_after;
-	// статистика о созданных на текущий момент команд, todo:
-	// стоит учитывать факт удаления команд когда мы сделали
-	// действие то есть тупо сделали 10 команд делали несколько
-	// андо потом действие тут затирается информация факт
-	// затирания информации есть ее потеря то есть удаление
-	// команд поэтому мы должны вычитать то сколько мы удалили,
-	// поэтому эта переменная показывает текущее количество
-	// команд
-	kotek::size_t m_current_amount_of_created_commands;
-	kotek::array_t<
-		Kotek::Core::ktkISDKRedoUndo*,
-		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>
-		m_commands;
+	/// @brief \~english flat id translation table indexed by the
+	/// recorded entity id: value is the currently live id or
+	/// zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID
+	kotek::hybrid_vector_t<
+		kotek::uint32_t,
+		zircon_DEF_COMMAND_HISTORY_ID_MAP_INLINE_COUNT>
+		m_entity_id_translation;
+
+	zircon_command_journal m_journal;
+
 	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
 		m_path_to_streaming_folder;
-	unsigned char m_p_memory_for_stack_parser
-		[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
-	unsigned char m_p_memory_for_stack_command_creation
-		[zircon_DEF_MAXIMUM_COMMAND_SIZE];
+
+	/// @brief \~english live command pool: ring of the most recent
+	/// commands with fixed slots for placement-new
 	kotek::array_t<
-		unsigned char[zircon_DEF_MAXIMUM_COMMAND_SIZE],
+		kotek::core::ktkISDKRedoUndo*,
 		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>
-		m_storage;
+		m_pool_commands;
+	kotek::array_t<
+		kotek::uint32_t,
+		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>
+		m_pool_node_ids;
+	kotek::uint32_t m_pool_next_victim_slot;
+	kotek::uint32_t m_pending_slot;
+	unsigned char m_pool_storage
+		[zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE]
+		[zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE];
+
+	/// @brief \~english one scratch slot for journal reconstruction
+	unsigned char
+		m_scratch_storage[zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE];
+
+	/// @brief \~english reused buffer for delta (de)serialization
+	unsigned char
+		m_payload_scratch[zircon_DEF_MAXIMUM_COMMAND_SIZE];
 };

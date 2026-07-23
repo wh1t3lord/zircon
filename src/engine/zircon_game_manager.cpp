@@ -616,6 +616,10 @@ void zircon_game_manager::Initialize(
 	kotek::core::ktkMainManager* p_main_manager
 )
 {
+#if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
+	fprintf(stderr, "[boot]: zircon_game_manager::Initialize entered\n");
+#endif
+
 	this->m_p_main_manager = p_main_manager;
 
 #ifdef KOTEK_USE_TESTS_RUNTIME
@@ -4534,9 +4538,25 @@ zircon_game_manager::get_ui_imgui_elements()
 	#ifdef KOTEK_USE_TESTS_RUNTIME
 
 		#include <gtest/gtest.h>
+		#include <crtdbg.h>
 
 void zircon_game_manager::run_unit_tests()
 {
+	// route CRT asserts (KOTEK_ASSERT, pico ECS_ASSERT) to stderr
+	// instead of the modal CRT dialog, otherwise a failed assert
+	// hangs the whole test run waiting for a user click
+	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+
+	// test output must survive an abort: block-buffered pipes lose
+	// everything that was not flushed
+	setvbuf(stdout, nullptr, _IONBF, 0);
+	setvbuf(stderr, nullptr, _IONBF, 0);
+
+	fprintf(stderr, "[tests]: entering run_unit_tests\n");
+
 	// tests are a static-linkage feature: test files instantiate concrete
 	// classes from kotek feature modules, which is forbidden in PLUGIN mode
 	// (no link edges between plugin dlls), so their registrars are not
@@ -4562,6 +4582,9 @@ void zircon_game_manager::run_unit_tests()
 	);
 
 	auto status = RUN_ALL_TESTS();
+	fprintf(
+		stderr, "[tests]: RUN_ALL_TESTS finished with %d\n", status
+	);
 	KOTEK_ASSERT(status == 0, "unit tests failed!");
 	KOTEK_MESSAGE("//unit testing\\\\");
 }
