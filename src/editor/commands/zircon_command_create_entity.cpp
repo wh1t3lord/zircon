@@ -78,30 +78,6 @@ void zircon_command_create_entity::Execute()
 		return;
 	}
 
-	zircon_editor_command_history* p_history =
-		p_session->get_command_history();
-
-	KOTEK_ASSERT(
-		p_history,
-		"failed to execute due to invalid history command "
-		"manager is nullptr "
-		"in session editor_{}#{}",
-		p_session->get_session_name(),
-		p_session->get_id()
-	);
-
-	if (!p_history)
-	{
-		KOTEK_MESSAGE_WARNING(
-			"failed to execute due to invalid history "
-			"command manager is nullptr "
-			"in session editor_{}#{}",
-			p_session->get_session_name(),
-			p_session->get_id()
-		);
-		return;
-	}
-
 	if (p_world->get_ecs_context() == nullptr)
 	{
 		KOTEK_MESSAGE_WARNING(
@@ -113,30 +89,17 @@ void zircon_command_create_entity::Execute()
 
 	if (p_world)
 	{
+		// NOTE: the entity id reincarnation on re-execution is
+		// reported to the history by
+		// zircon_editor_command_history::execute_node itself (it
+		// observes GetEntityID before/after), the command must not
+		// call update_dependent_commands on its own: a
+		// journal-reconstructed command only knows its recorded id
+		// and would write a chain link that skips incarnations
 		this->m_created_entity =
 			this->m_p_factory->create_entity(
 				p_world->get_ecs_context()
 			);
-
-#ifdef KOTEK_USE_ECS_BACKEND_PICO
-		if (this->m_entity_previous_id.id !=
-		        kotek::ktk::kInvalidECSEntity.id &&
-		    this->m_created_entity.id !=
-		        this->m_entity_previous_id.id)
-#elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
-		if (this->m_entity_previous_id != entt::null &&
-		    this->m_created_entity !=
-		        this->m_entity_previous_id)
-#endif
-		{
-			if (p_history)
-			{
-				p_history->update_dependent_commands(
-					this->m_entity_previous_id,
-					this->m_created_entity
-				);
-			}
-		}
 
 		KOTEK_MESSAGE(
 			"[history]: created entity: {}",

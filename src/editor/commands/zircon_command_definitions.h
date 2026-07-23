@@ -61,6 +61,12 @@
 #define zircon_DEF_COMMAND_HISTORY_INVALID_POOL_SLOT 0xFFFFFFFF
 #define zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID 0xFFFFFFFF
 
+// zircon-local command type ids for journaled commands that have no
+// eConsoleCommandIndex entry (they are not console commands, the
+// registry only needs a unique uint32 key, the high bit keeps them
+// clear of kotek's enum range)
+#define zircon_DEF_COMMAND_TYPE_EDIT_COMPONENT_STATE 0x80000001
+
 #ifdef KOTEK_DEBUG
 	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME \
 		"entity_id"

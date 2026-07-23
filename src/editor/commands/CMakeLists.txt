@@ -34,6 +34,8 @@ set(to_include_commands_files
 	"zircon_command_create_entity.cpp"
 	"zircon_command_delete_entity.h"
 	"zircon_command_delete_entity.cpp"
+	"zircon_command_edit_component_state.h"
+	"zircon_command_edit_component_state.cpp"
 )
 
 kotek_add_library(${PROJECT_NAME}

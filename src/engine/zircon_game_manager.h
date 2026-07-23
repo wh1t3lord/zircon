@@ -175,6 +175,11 @@ private:
 	kotek::uint8_t m_world_id;
 	kotek::core::ktkProfiler* m_p_profiler;
 	kotek::core::ktkConsole* m_p_console;
+	/// @brief \~english the console instance that kotek.core.console
+	/// registered into the main manager (owned by that module, it is
+	/// only saved and restored around our own instance so ownership
+	/// and destruction stay in the constructing module)
+	kotek::core::ktkIConsole* m_p_console_exe_owned{};
 	kotek::core::ktkMainManager* m_p_main_manager;
 	kotek::core::ktkIRenderer* m_p_current_renderer;
 	kotek::core::ktkWindowConsole* m_p_window_console;

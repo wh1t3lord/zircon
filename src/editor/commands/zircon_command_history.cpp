@@ -133,6 +133,7 @@ void zircon_editor_command_history::initialize(
 	this->m_cursor_node_id =
 		zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID;
 	this->m_entity_id_translation.clear();
+	this->m_entity_reincarnation.clear();
 	this->m_entity_watermark = 0;
 	this->m_total_snapshot_count = 0;
 
@@ -275,6 +276,7 @@ void zircon_editor_command_history::shutdown(void)
 
 	this->m_nodes.clear();
 	this->m_entity_id_translation.clear();
+	this->m_entity_reincarnation.clear();
 	this->m_cursor_node_id =
 		zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID;
 	this->m_pending_slot =
@@ -464,6 +466,24 @@ void zircon_editor_command_history::Undo()
 
 	p_command->Undo();
 
+	// an undone delete-entity reincarnates its entity: record the
+	// chain link so every recorded alias of it resolves to the new
+	// incarnation (the command itself may report a stale alias when
+	// it was reconstructed from the journal)
+	const kotek::uint32_t live_id_after =
+		static_cast<kotek::uint32_t>(p_command->GetEntityID().id);
+
+	if (live_id_after != live_id &&
+	    live_id_after != 0 &&
+	    live_id_after !=
+	        zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID)
+	{
+		this->update_dependent_commands(
+			kotek::entity_t{live_id},
+			kotek::entity_t{live_id_after}
+		);
+	}
+
 	this->observe_entity_id(p_command, recorded_id);
 
 	this->release_scratch_command(p_command);
@@ -523,7 +543,7 @@ void zircon_editor_command_history::update_dependent_commands(
 		return;
 	}
 
-	this->set_entity_translation(
+	this->set_entity_reincarnation(
 		static_cast<kotek::uint32_t>(id_what_will_be_deleted.id),
 		static_cast<kotek::uint32_t>(
 			id_that_replaces_what_will_be_deleted.id
@@ -626,22 +646,10 @@ zircon_editor_command_history::get_live_entity_id(
 	kotek::entity_t recorded_id
 ) const noexcept
 {
-	kotek::entity_t result = kotek::ktk::kInvalidECSEntity;
-
-	const kotek::uint32_t recorded =
-		static_cast<kotek::uint32_t>(recorded_id.id);
-
-	if (recorded < this->m_entity_id_translation.size())
-	{
-		const kotek::uint32_t translated =
-			this->m_entity_id_translation[recorded];
-
-		if (translated !=
-		    zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID)
-		{
-			result.id = translated;
-		}
-	}
+	kotek::entity_t result;
+	result.id = this->translate_entity_id(
+		static_cast<kotek::uint32_t>(recorded_id.id)
+	);
 
 	return result;
 }
@@ -1122,6 +1130,24 @@ void zircon_editor_command_history::execute_node(
 
 	p_command->Execute();
 
+	// a redone create-entity reincarnates its entity: record the
+	// chain link so every recorded alias of it resolves to the new
+	// incarnation (the command itself may report a stale alias when
+	// it was reconstructed from the journal)
+	const kotek::uint32_t live_id_after =
+		static_cast<kotek::uint32_t>(p_command->GetEntityID().id);
+
+	if (live_id_after != live_id &&
+	    live_id_after != 0 &&
+	    live_id_after !=
+	        zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID)
+	{
+		this->update_dependent_commands(
+			kotek::entity_t{live_id},
+			kotek::entity_t{live_id_after}
+		);
+	}
+
 	this->observe_entity_id(p_command, recorded_id);
 
 	this->release_scratch_command(p_command);
@@ -1148,7 +1174,70 @@ zircon_editor_command_history::translate_entity_id(
 		}
 	}
 
+	// follow the reincarnation chain to the latest incarnation;
+	// chain values strictly increase (pico_ecs hands out fresh ids
+	// and never recycles while zircon does not flush the destroy
+	// queue), so the walk always terminates
+	kotek::uint32_t guard = 0;
+	const kotek::uint32_t guard_limit =
+		static_cast<kotek::uint32_t>(
+			this->m_entity_reincarnation.size()
+		) + 16;
+
+	while (result < this->m_entity_reincarnation.size())
+	{
+		const kotek::uint32_t next =
+			this->m_entity_reincarnation[result];
+
+		if (next ==
+		    zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID)
+		{
+			break;
+		}
+
+		result = next;
+
+		if (++guard > guard_limit)
+		{
+			KOTEK_ASSERT(
+				false,
+				"reincarnation chain has a cycle at entity {}",
+				result
+			);
+			break;
+		}
+	}
+
 	return result;
+}
+
+void zircon_editor_command_history::set_entity_reincarnation(
+	kotek::uint32_t live_id, kotek::uint32_t next_id
+) noexcept
+{
+	if (live_id == 0)
+		return;
+
+	if (live_id >= this->m_entity_reincarnation.size())
+	{
+		this->m_entity_reincarnation.resize(
+			live_id + 1,
+			zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID
+		);
+	}
+
+	this->m_entity_reincarnation[live_id] = next_id;
+
+	if (live_id > this->m_entity_watermark)
+	{
+		this->m_entity_watermark = live_id;
+	}
+
+	if (next_id != zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID &&
+	    next_id > this->m_entity_watermark)
+	{
+		this->m_entity_watermark = next_id;
+	}
 }
 
 void zircon_editor_command_history::set_entity_translation(
@@ -1434,36 +1523,13 @@ bool zircon_editor_command_history::apply_world_state(
 	if (p_factory == nullptr || p_context == nullptr)
 		return false;
 
-	// reverse translation: which recorded id currently maps to a
-	// given live id (used to rebind translations to the freshly
-	// created entities)
-	kotek::hybrid_vector_t<
-		kotek::uint32_t,
-		zircon_DEF_COMMAND_HISTORY_ID_MAP_INLINE_COUNT>
-		reverse_translation;
-
-	reverse_translation.resize(
-		this->m_entity_watermark + 16,
-		zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID
-	);
-
-	for (kotek::uint32_t recorded = 0;
-	     recorded < this->m_entity_id_translation.size();
-	     ++recorded)
-	{
-		const kotek::uint32_t live =
-			this->m_entity_id_translation[recorded];
-
-		if (live != zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID &&
-		    live < reverse_translation.size())
-		{
-			reverse_translation[live] = recorded;
-		}
-	}
-
-	// everything live becomes dead now, translations are
-	// re-established below and by replayed commands
-	this->m_entity_id_translation.clear();
+	// NOTE: the translation hint table and the reincarnation chain
+	// are deliberately NOT cleared here. The world is recreated with
+	// fresh ids and every historical incarnation id of a restored
+	// entity is chained forward to its fresh incarnation below; ids
+	// that belong to entities not present in the snapshot stay dead
+	// and are rebound by the replayed commands (restore_node
+	// re-executes every command after the snapshot point).
 
 	zircon_command_delta_reader reader(p_data, data_size);
 
@@ -1495,27 +1561,56 @@ bool zircon_editor_command_history::apply_world_state(
 				static_cast<kotek::uint32_t>(new_entity.id);
 		}
 
-		// base binding: journal entries reference the entity by
-		// its recorded id, which is the id stored in the snapshot
-		this->set_entity_translation(
-			snapshot_live_id,
-			static_cast<kotek::uint32_t>(new_entity.id)
-		);
-
-		// alias rebinding: recorded ids that were remapped to the
-		// snapshot's live id (entity got recreated by undo/redo
-		// between the snapshot and now) must point at the fresh
-		// entity too
-		if (snapshot_live_id < reverse_translation.size() &&
-		    reverse_translation[snapshot_live_id] !=
-		        zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID &&
-		    reverse_translation[snapshot_live_id] !=
-		        snapshot_live_id)
+		// chain rebinding: journal entries may reference ANY
+		// historical incarnation id of this logical entity (the
+		// snapshot stores the incarnation that was live when the
+		// snapshot was taken, undo/redo may have reincarnated it
+		// several times since). Walk the reincarnation chain from
+		// the snapshot's incarnation forward and rebind every link
+		// to the fresh entity
 		{
-			this->set_entity_translation(
-				reverse_translation[snapshot_live_id],
-				static_cast<kotek::uint32_t>(new_entity.id)
-			);
+			const kotek::uint32_t fresh_id =
+				static_cast<kotek::uint32_t>(new_entity.id);
+
+			kotek::uint32_t chain_walker = snapshot_live_id;
+			kotek::uint32_t chain_guard = 0;
+			const kotek::uint32_t chain_guard_limit =
+				static_cast<kotek::uint32_t>(
+					this->m_entity_reincarnation.size()
+				) + 16;
+
+			while (chain_walker !=
+			           zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID &&
+			       chain_walker != fresh_id)
+			{
+				kotek::uint32_t next =
+					zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID;
+
+				if (chain_walker <
+				    this->m_entity_reincarnation.size())
+				{
+					next =
+						this->m_entity_reincarnation
+							[chain_walker];
+				}
+
+				this->set_entity_reincarnation(
+					chain_walker, fresh_id
+				);
+
+				if (++chain_guard > chain_guard_limit)
+				{
+					KOTEK_ASSERT(
+						false,
+						"reincarnation chain has a cycle at "
+						"entity {}",
+						chain_walker
+					);
+					break;
+				}
+
+				chain_walker = next;
+			}
 		}
 
 		for (kotek::uint32_t j = 0; j < component_count; ++j)

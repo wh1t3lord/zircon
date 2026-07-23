@@ -13,6 +13,7 @@
 		#include "../../editor/commands/zircon_command_delete_entity.h"
 		#include "../../editor/commands/zircon_command_add_component_to_entity.h"
 		#include "../../editor/commands/zircon_command_delete_component_from_entity.h"
+		#include "../../editor/commands/zircon_command_edit_component_state.h"
 		#include "../../editor/session/zircon_session_editor.h"
 		#include "../../editor/session/zircon_session_editor_manager.h"
 		#include "../../ecs/zircon_factory.h"
@@ -69,7 +70,7 @@ namespace
 	struct zircon_test_op_record
 	{
 		// 1 = create entity, 2 = delete entity, 3 = add component,
-		// 4 = delete component
+		// 4 = delete component, 5 = edit component state
 		kotek::uint32_t m_type;
 		/// @brief \~english index into the entity model vector
 		kotek::uint32_t m_model_index;
@@ -474,32 +475,6 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 		return static_cast<kotek::uint32_t>(alive_indices.size());
 	};
 
-	auto mutate_transform =
-		[&env](kotek::uint32_t live_id, kotek::uint32_t salt)
-	{
-		zircon_component_transform* p_transform =
-			static_cast<zircon_component_transform*>(
-				env.factory.get_component_by_enum(
-					env.ecs_context(),
-					kotek::entity_t{live_id},
-					eZirconComponentType::
-						kzircon_component_transform
-				)
-			);
-
-		if (p_transform)
-		{
-			// integer valued floats keep the json text
-			// deterministic across serialize/deserialize
-			p_transform->set_position(
-				kotek::math::vec3f_t{
-					static_cast<float>(salt % 97),
-					static_cast<float>((salt / 7) % 89),
-					static_cast<float>((salt / 13) % 83)}
-			);
-		}
-	};
-
 	auto issue_create = [&]()
 	{
 		unsigned char* p_memory =
@@ -547,13 +522,6 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 			stderr,
 			"[z6 op]: delete entity recorded %u live %u\n",
 			entry.m_recorded_id, entry.m_live_id
-		);
-
-		// mutate the transform first so the delete delta has to
-		// prove it restores content, not only structure
-		mutate_transform(
-			entry.m_live_id,
-			static_cast<kotek::uint32_t>(rng())
 		);
 
 		unsigned char* p_memory =
@@ -682,16 +650,6 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 			component_index, entry.m_recorded_id, entry.m_live_id
 		);
 
-		// mutate the component so the delete delta has to
-		// restore content, not only structure
-		if (component_index == 0)
-		{
-			mutate_transform(
-				entry.m_live_id,
-				static_cast<kotek::uint32_t>(rng())
-			);
-		}
-
 		const char* p_component_name =
 			zircon_translate_component_type_enum_to_string(
 				_k_component_pool[component_index]
@@ -728,11 +686,91 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 		++executed_count;
 	};
 
+		// a component mutation must go through the journal like any
+		// other command: the redo/restore replay reproduces the
+		// world from the journal only, a direct in-place edit
+		// would diverge (the "same final state" promise, task Z6)
+	auto issue_edit_component = [&](kotek::uint32_t model_index)
+	{
+		zircon_test_entity_model& entry = model[model_index];
+
+		// the transform is component pool index 0
+		if ((entry.m_components_mask & 1u) == 0)
+			return;
+
+		zircon_component_transform* p_transform =
+			static_cast<zircon_component_transform*>(
+				env.factory.get_component_by_enum(
+					env.ecs_context(),
+					kotek::entity_t{entry.m_live_id},
+					eZirconComponentType::
+						kzircon_component_transform
+				)
+			);
+
+		if (p_transform == nullptr)
+			return;
+
+		const kotek::uint32_t salt =
+			static_cast<kotek::uint32_t>(rng());
+
+		// integer valued floats keep the json text
+		// deterministic across serialize/deserialize
+		const kotek::math::vec3f_t previous_position =
+			p_transform->get_position();
+
+		p_transform->set_position(
+			kotek::math::vec3f_t{
+				static_cast<float>(salt % 97),
+				static_cast<float>((salt / 7) % 89),
+				static_cast<float>((salt / 13) % 83)}
+		);
+
+		kotek::ktk::json::value state_after =
+			zircon_serialize_component(p_transform);
+
+		p_transform->set_position(previous_position);
+
+		fprintf(
+			stderr,
+			"[z6 op]: edit transform of recorded %u live %u\n",
+			entry.m_recorded_id, entry.m_live_id
+		);
+
+		unsigned char* p_memory =
+			p_history->allocate_memory_for_command(
+				sizeof(zircon_command_edit_component_state),
+				"zircon_command_edit_component_state"
+			);
+
+		zircon_command_edit_component_state* p_command =
+			new (p_memory) zircon_command_edit_component_state(
+				&env.session_manager,
+				&env.factory,
+				kotek::entity_t{entry.m_live_id},
+				zircon_translate_component_type_enum_to_string(
+					eZirconComponentType::
+						kzircon_component_transform
+				),
+				state_after
+			);
+
+		p_history->ExecuteCommand(p_command);
+
+		if (model_cursor < model_log.size())
+		{
+			model_log.resize(model_cursor);
+		}
+
+		model_log.push_back({5, model_index, 0});
+		++model_cursor;
+		++executed_count;
+	};
+
 	auto issue_undo = [&]()
 	{
 		const kotek::uint32_t cursor_before =
 			p_history->get_cursor_node_id();
-
 		p_history->Undo();
 
 		const kotek::uint32_t cursor_after =
@@ -787,6 +825,11 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 		{
 			p_entry->m_components_mask |=
 				(1u << op.m_component_index);
+			break;
+		}
+		case 5:
+		{
+			// an edit changes no structure the model tracks
 			break;
 		}
 		default:
@@ -860,6 +903,11 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 				~(1u << op.m_component_index);
 			break;
 		}
+		case 5:
+		{
+			// an edit changes no structure the model tracks
+			break;
+		}
 		default:
 		{
 			FAIL() << "unknown op in the model log";
@@ -918,7 +966,7 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 				issue_create();
 			}
 		}
-		else if (roll < 55)
+		else if (roll < 50)
 		{
 			const kotek::uint32_t target = pick_alive_entity();
 
@@ -932,7 +980,21 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 				issue_create();
 			}
 		}
-		else if (roll < 70)
+		else if (roll < 65)
+		{
+			const kotek::uint32_t target = pick_alive_entity();
+
+			if (target !=
+			    zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID)
+			{
+				issue_edit_component(target);
+			}
+			else
+			{
+				issue_create();
+			}
+		}
+		else if (roll < 75)
 		{
 			const kotek::uint32_t target = pick_alive_entity();
 
@@ -946,7 +1008,7 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 				issue_create();
 			}
 		}
-		else if (roll < 85)
+		else if (roll < 90)
 		{
 			issue_undo();
 		}
@@ -964,6 +1026,14 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 
 	const kotek::uint32_t final_node_id =
 		p_history->get_cursor_node_id();
+
+	// the history's watermark tracks every entity id it has ever
+	// observed (pico_ecs never recycles ids, re-executions mint
+	// fresh ones), resync the scan range from it
+	if (p_history->get_entity_watermark() > entity_watermark)
+	{
+		entity_watermark = p_history->get_entity_watermark();
+	}
 
 	zircon_test_serialize_world(
 		&env.factory,
@@ -992,6 +1062,13 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 		undone_steps
 	);
 
+	// undoing delete-commands minted fresh entity ids too, resync
+	// the scan range so nothing alive can be missed
+	if (p_history->get_entity_watermark() > entity_watermark)
+	{
+		entity_watermark = p_history->get_entity_watermark();
+	}
+
 	zircon_test_serialize_world(
 		&env.factory,
 		env.ecs_context(),
@@ -1015,6 +1092,12 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 		p_history->Redo();
 	}
 
+	// redo minted fresh entity ids again, resync the scan range
+	if (p_history->get_entity_watermark() > entity_watermark)
+	{
+		entity_watermark = p_history->get_entity_watermark();
+	}
+
 	zircon_test_serialize_world(
 		&env.factory,
 		env.ecs_context(),
@@ -1027,10 +1110,68 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 		world_state_restored.size()
 	);
 
-	EXPECT_EQ(final_hash, redone_hash);
-	EXPECT_TRUE(zircon_test_byte_vectors_equal(
+	// divergence diagnostics: dump both canonical world states so
+	// the differing component json can be inspected offline (must
+	// run BEFORE the EXPECTs: run_unit_tests sets gtest
+	// break_on_failure, the first failed EXPECT aborts the
+	// process)
+	const bool is_redone_equal = zircon_test_byte_vectors_equal(
 		world_state_final, world_state_restored
-	));
+	);
+
+	if (is_redone_equal == false)
+	{
+		const kotek::size_t min_size =
+			world_state_final.size() < world_state_restored.size()
+			? world_state_final.size()
+			: world_state_restored.size();
+
+		kotek::size_t first_diff = min_size;
+
+		for (kotek::size_t k = 0; k < min_size; ++k)
+		{
+			if (world_state_final[k] != world_state_restored[k])
+			{
+				first_diff = k;
+				break;
+			}
+		}
+
+		fprintf(
+			stderr,
+			"[z6 stress]: redo divergence, final size %zu, "
+			"redone size %zu, first diff at byte %zu\n",
+			world_state_final.size(),
+			world_state_restored.size(), first_diff
+		);
+
+		const kotek::size_t dump_from =
+			first_diff > 200 ? first_diff - 200 : 0;
+
+		int final_left = static_cast<int>(
+			world_state_final.size() - dump_from
+		);
+		int redone_left = static_cast<int>(
+			world_state_restored.size() - dump_from
+		);
+
+		if (final_left > 400)
+			final_left = 400;
+		if (redone_left > 400)
+			redone_left = 400;
+
+		fprintf(
+			stderr, "[z6 stress]: final:  %.*s\n", final_left,
+			world_state_final.data() + dump_from
+		);
+		fprintf(
+			stderr, "[z6 stress]: redone: %.*s\n", redone_left,
+			world_state_restored.data() + dump_from
+		);
+	}
+
+	EXPECT_EQ(final_hash, redone_hash);
+	EXPECT_TRUE(is_redone_equal);
 
 	// (d) disk budget: the journal must compress to at least half
 	// of its raw size (zstd on repetitive command payloads), and

@@ -51,10 +51,15 @@ struct zircon_history_tree_node
 ///
 /// Entity ids: pico_ecs never recycles ids (destroyed entities are
 /// queued and never flushed by zircon), so a re-executed
-/// create/delete obtains a NEW id. The history keeps a flat
-/// translation table "recorded id -> currently live id" that is
-/// updated on every (re)application by comparing
-/// GetEntityID() before/after; journal entries stay immutable.
+/// create/delete obtains a NEW id. The history keeps two flat
+/// tables: "recorded id -> last observed live id" (a chain-start
+/// hint updated on every (re)application) and a reincarnation chain
+/// "incarnation id -> id it was recreated as" (updated by
+/// update_dependent_commands whenever an entity is reincarnated).
+/// translate_entity_id resolves a recorded id by following the
+/// chain to the latest incarnation, so every recorded alias of a
+/// logical entity stays valid no matter which alias was
+/// reincarnated; journal entries stay immutable.
 ///
 /// Snapshots (binary world states, zstd-compressed) are taken every
 /// zircon_DEF_COMMAND_HISTORY_SNAPSHOT_INTERVAL applied commands and
@@ -120,9 +125,8 @@ public:
 	kotek::uint32_t get_cursor_node_id(void) const noexcept;
 
 	/// @brief \~english the currently live entity id for a recorded
-	/// one (the translation table the history maintains for entity
-	/// id re-creation); returns kotek::ktk::kInvalidECSEntity when
-	/// there is no translation (id is its own live id then)
+	/// one (resolves the reincarnation chain); returns the
+	/// recorded id itself when the entity was never rebound
 	kotek::entity_t get_live_entity_id(
 		kotek::entity_t recorded_id
 	) const noexcept;
@@ -187,6 +191,13 @@ private:
 		kotek::uint32_t recorded_id, kotek::uint32_t live_id
 	) noexcept;
 
+	/// @brief \~english records that the entity that lived as
+	/// live_id was reincarnated as next_id (undo of delete-entity,
+	/// redo of create-entity, snapshot restore)
+	void set_entity_reincarnation(
+		kotek::uint32_t live_id, kotek::uint32_t next_id
+	) noexcept;
+
 	/// @brief \~english records the live id of a command after
 	/// (re)application into the translation table
 	void observe_entity_id(
@@ -235,12 +246,23 @@ private:
 		m_nodes;
 
 	/// @brief \~english flat id translation table indexed by the
-	/// recorded entity id: value is the currently live id or
+	/// recorded entity id: value is the last observed live id (a
+	/// chain-start hint) or
 	/// zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID
 	kotek::hybrid_vector_t<
 		kotek::uint32_t,
 		zircon_DEF_COMMAND_HISTORY_ID_MAP_INLINE_COUNT>
 		m_entity_id_translation;
+
+	/// @brief \~english reincarnation chain indexed by an
+	/// incarnation id: value is the id the entity was recreated as
+	/// (or zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID when the
+	/// entity was never reincarnated). Values strictly increase,
+	/// so chain walks always terminate at the latest incarnation
+	kotek::hybrid_vector_t<
+		kotek::uint32_t,
+		zircon_DEF_COMMAND_HISTORY_ID_MAP_INLINE_COUNT>
+		m_entity_reincarnation;
 
 	zircon_command_journal m_journal;
 

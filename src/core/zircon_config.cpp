@@ -113,7 +113,7 @@ void zircon_config::serialize(
 		KOTEK_ASSERT(status, "failed to serialize!");
 
 		status = p_filesystem->Write_File(
-			path_to_file, text, sizeof(text) / sizeof(text[0])
+			path_to_file, text, text_real_length
 		);
 		KOTEK_ASSERT(
 			status, "failed to write to file: {}", path_to_file
@@ -164,7 +164,7 @@ void zircon_config::deserialize(
 			);
 
 			status = file.Create_FromMemory(
-				text, sizeof(text) / sizeof(text[0])
+				text, text_size
 			);
 
 			KOTEK_ASSERT(

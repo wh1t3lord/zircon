@@ -185,17 +185,6 @@ void zircon_command_delete_entity::Undo(void)
 		return;
 	}
 
-	zircon_editor_command_history* p_history =
-		p_session->get_command_history();
-
-	KOTEK_ASSERT(
-		p_history,
-		"failed to obtain command history manager in session "
-		"editor_{}#{}",
-		p_session->get_session_name(),
-		p_session->get_id()
-	);
-
 	KOTEK_ASSERT(
 		p_world->get_factory(), "world must contain factory!"
 	);
@@ -204,23 +193,15 @@ void zircon_command_delete_entity::Undo(void)
 	{
 		zircon_factory* p_factory = p_world->get_factory();
 
+		// NOTE: the entity id reincarnation is reported to the
+		// history by zircon_editor_command_history::Undo itself
+		// (it observes GetEntityID before/after), the command must
+		// not call update_dependent_commands on its own: a
+		// journal-reconstructed command only knows its recorded id
+		// and would write a chain link that skips incarnations
 		this->m_entity_created = p_factory->create_entity(
 			p_world->get_ecs_context()
 		);
-
-		if (this->m_entity_previous_id.id !=
-		        kotek::ktk::kInvalidECSEntity.id &&
-		    this->m_entity_created.id !=
-		        this->m_entity_previous_id.id)
-		{
-			if (p_history)
-			{
-				p_history->update_dependent_commands(
-					this->m_entity_previous_id,
-					this->m_entity_created
-				);
-			}
-		}
 
 		// restore the components with the states that were
 		// captured by Execute (self-contained delta, no history

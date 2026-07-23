@@ -6,7 +6,7 @@
 #include "../editor/session/zircon_session_editor.h"
 #include "../editor/session/zircon_session_editor_manager.h"
 
-#if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
+#if defined(KOTEK_DEBUG) && defined(KOTEK_PLATFORM_WINDOWS)
 	#include <crtdbg.h>
 #endif
 
@@ -145,6 +145,20 @@ bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 
 bool ShutdownModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 {
+#if defined(KOTEK_DEBUG) && defined(KOTEK_PLATFORM_WINDOWS)
+	// kotek.core.memory.cpu enabled the CRT exit leak dump
+	// (_CRTDBG_LEAK_CHECK_DF) at core init; in this multi-CRT
+	// process the debug block lists are cross-poisoned by shutdown
+	// time and the dump floods the log with
+	// __acrt_first_block asserts before dying, so the dump is
+	// disabled for this module before it unloads (allocation
+	// tracking itself stays on, see zircon/AGENTS.md §5)
+	_CrtSetDbgFlag(
+		_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) &
+		~_CRTDBG_LEAK_CHECK_DF
+	);
+#endif
+
 	SerializeModule_Game(p_main_manager);
 
 #ifdef KOTEK_USE_CPU_PROFILER

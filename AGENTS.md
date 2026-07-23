@@ -129,13 +129,29 @@ non-existent target name in some configs — verify when touching root CMake (ta
   CRT asserts print to stderr and abort (code 3) instead of hanging on a
   modal dialog. For stuck dialogs from any other tool, `taskkill //F //IM
   kotek.exe` clears them; UI-automation clicking is possible but avoided.
+- **Cross-CRT heap frees (root-caused 2026-07-23, mitigated)**: `/MT` gives
+  kotek.exe and game.ktk separate debug-heap block lists; objects with
+  header-inline code (std::string with `_ITERATOR_DEBUG_LEVEL=2` proxies,
+  etl/std containers) crossing module boundaries get freed by the wrong CRT →
+  `__acrt_first_block == header` (debug_heap.cpp:996) plus list poisoning that
+  can HANG a later free (an engine-config `delete` stormed 5.68M asserts).
+  Mitigation: `_CRTDBG_ALLOC_MEM_DF` off in BOTH modules via
+  `#pragma init_seg(compiler)` statics (must run before global ctors like
+  `g_main_manager` — plain calls at main()/module-init are too late), so
+  blocks free straight through to the shared process heap. Residual: a few
+  asserts from blocks allocated by CRT startup (pre-flag) — tolerated.
+  **Real fix is K9 (shared allocator / new+delete override) — then no
+  cross-CRT free exists at all.** Until then: `ShutdownModule_Core_
+  Engine_Config` intentionally LEAKS the config (deleting it walks
+  cross-module string members; OS reclaims at exit). Same hazard class as
+  the etl-terminator rule in Z11: do not share heap-owning objects across
+  module boundaries; construct+destroy in the consuming module.
 - **Test-found issues (2026-07-23)**: `Zircon_Game.
   ResourceManagerLoadTextResourceNoCache` aborts at
   `zircon_resource_manager.cpp:163` (resource desc_id invalid after the
   test's own file write+load of `rsltrnc.json` — load path bug, not data
   env). Z6 replay hits `ecs_is_entity_ready` (pico id lifecycle on undo —
-  see Z6). A heap-corruption marker (`debug_heap.cpp:996
-  __acrt_first_block == header`) appears in test runs — under investigation.
+  see Z6).
 - **PICO factory filled-in during Z1 (owner review wanted)**:
   `zircon_factory::register_components` (per-type switch over
   `eZirconComponentType` — must be kept in sync manually, candidate for CMake
@@ -187,7 +203,7 @@ non-existent target name in some configs — verify when touching root CMake (ta
 | Z3 | Render restructure: split `render/bgfx` into TWO projects — (a) passes (dynamic/hot-swappable), (b) render graph + resource manager executor; validate hot-reload of pass library (see §7 verdict) | open | vk/gles3 deletion part DONE (see Z10); split + hot-reload pending; passes lib must be reload-safe: destroy passes BEFORE unload, recreate after |
 | Z4 | Document codebase style (preprocessors, memory allocation patterns) | done (2026-07-21) | §2/§3; keep in sync with reality |
 | Z10 | gles3/vk backend removal (owner directive) | done (2026-07-22) | `src/render/{gles3,vk}` deleted; `src/render/CMakeLists.txt` rewritten bgfx-only; `zircon_renderer_bgfx` is the only renderer (union member `p_gles3` + all vk/gles3 branches excised from `zircon_game_manager`); `validate_extensions` (dead GL-era) removed; os console pass retargeted to the bgfx pass base (OnUpdate/OnRender signature updated with `my_id_in_queue`) |
-| Z11 | Runtime boot chain (kotek.exe runs from repo root) | in-progress (2026-07-23) | FIXED: STD-mode `ktkJson::Get` stub (kotek bug, config never parsed in STD); `dll::shared_library` move semantics; `program_location` (game.ktk resolves next to exe); stray `KOTEK_ASSERT(false)` removed from `Initialize_ResourceManager` (blocked the NEW impl below it); window-console stub assert → warning; world now initialized with factory after `create_world` (was never initialized → session assert); `--kotek_frames=N` smoke flag added (config parses it; zircon loop breaks after N); splash busy-wait bounded. VERIFIED: boots through render init (bgfx D3D11), console, renderer. OPEN: splash thread can hang main-window init (create windows on main thread only); SEGFAULT at the first `RegisterConsole_Commands`'s store (see §5) |
+| Z11 | Runtime boot chain (kotek.exe runs from repo root) | done (2026-07-23) | FIXED earlier: STD-mode `ktkJson::Get` stub (kotek bug, config never parsed in STD); `dll::shared_library` move semantics; `program_location`; stray `KOTEK_ASSERT(false)` in `Initialize_ResourceManager`; window-console stub assert → warning; world init with factory; `--kotek_frames=N`; splash busy-wait bounded. FIXED 2026-07-23 evening: console `Register_Command` segfault = **etl intrusive-list terminator is a module-local static** — a container built by one module (exe) terminates buckets with an address the other module (game.ktk) never matches, any cross-module insert walks off the end (null+8). Fix: game manager constructs its OWN console and restores the engine's at shutdown (`m_p_console_exe_owned`), ownership stays in the constructing module — THE rule for every object whose inline/template methods touch etl containers. Render shutdown dispatch: stray `if (is_gl)` swallowed the whole else-if chain (bgfx shutdown never ran → `status=false` assert). `zircon_config`: serialize wrote 1024B fixed buffer (garbage tail → json "extra data"), now writes `text_real_length`; deserialize parsed `sizeof(text)` instead of the Read_File-returned size. `matrix2x2_f::e/c`: 6 inverted range asserts (fired on VALID indices). VERIFIED: boot → 14/14 + 163/163 tests → 30 frames → full shutdown → **exit 0**. OPEN: splash thread can hang main-window init (create windows on main thread only); 6 residual CRT-startup heap asserts (pre-flag blocks, tolerated until K9) |
 | Z5 | Passes for editor AND game, for bgfx AND NRI; NRI gets own folder, same two-project split (passes + executor) | open | depends on kotek K11 (NRI backend) |
 | Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | in-progress (2026-07-23) | journal+registry+history rewrite landed (`zircon_command_journal/registry.{h,cpp}`, history now 1642 lines, builds green) + 100k stress test exists (`src/engine/tests/zircon_unit_tests_command_history.cpp`, runs at engine boot). Test CAUGHT a real bug: replay hits `ecs_is_entity_ready` (pico id lifecycle across undo/redo — `m_entity_id_translation` not maintained on delete/undo) + a heap-corruption marker; fix in progress |
 | Z7 | Enforce static-container/`ktk`-alias rule consistently across `src/` | open | violation list in §5 |

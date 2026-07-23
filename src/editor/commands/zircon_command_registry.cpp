@@ -4,6 +4,7 @@
 #include "zircon_command_delete_entity.h"
 #include "zircon_command_add_component_to_entity.h"
 #include "zircon_command_delete_component_from_entity.h"
+#include "zircon_command_edit_component_state.h"
 
 zircon_command_delta_writer::zircon_command_delta_writer(
 	unsigned char* p_buffer, kotek::size_t capacity
@@ -337,6 +338,19 @@ namespace
 				p_manager_session_editor, p_factory
 			);
 	}
+
+	kotek::core::ktkISDKRedoUndo*
+	zircon_create_command_edit_component_state(
+		void* p_placement_memory,
+		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_factory* p_factory
+	) noexcept
+	{
+		return new (p_placement_memory)
+			zircon_command_edit_component_state(
+				p_manager_session_editor, p_factory
+			);
+	}
 } // namespace
 
 void zircon_register_builtin_command_types(
@@ -381,5 +395,12 @@ void zircon_register_builtin_command_types(
 		 "zircon_command_delete_component_from_entity",
 		 &zircon_create_command_delete_component,
 		 sizeof(zircon_command_delete_component_from_entity)}
+	);
+
+	registry.register_type(
+		{zircon_DEF_COMMAND_TYPE_EDIT_COMPONENT_STATE,
+		 "zircon_command_edit_component_state",
+		 &zircon_create_command_edit_component_state,
+		 sizeof(zircon_command_edit_component_state)}
 	);
 }

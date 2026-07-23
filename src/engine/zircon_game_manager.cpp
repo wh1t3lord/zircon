@@ -1887,17 +1887,30 @@ void zircon_game_manager::Destroy_ResourceManager(void) noexcept
 
 void zircon_game_manager::Initialize_Console(void) noexcept
 {
-	// the console instance is owned by kotek.core.console (registered into
-	// the main manager at module init); we only bind our translation
-	// callback. The concrete pointer is kept because Register_Command is a
-	// template that cannot be part of the ktkIConsole interface.
-	this->m_p_console =
-		static_cast<kotek::core::ktkConsole*>(
-			this->m_p_main_manager->Get_Console());
+	// The console must be constructed in THIS module: its command
+	// storage is an etl static unordered_map whose intrusive-list
+	// terminator is a template-static — every module (kotek.exe vs
+	// game.ktk under static CRT) has its own copy at a different
+	// address, so a map constructed by another module terminates its
+	// buckets with a foreign terminator and any insert/erase done by
+	// our header-inline Register_Command runs off the end of the
+	// bucket (was the segfault in RegisterConsole_Commands). The
+	// template API also cannot be reached through the ktkIConsole
+	// interface, so we create and own our own instance here and
+	// restore the engine's one on shutdown (see Destroy_Console).
+	this->m_p_console_exe_owned =
+		this->m_p_main_manager->Get_Console();
 
-	KOTEK_ASSERT(this->m_p_console,
-		"kotek.core.console must register a console instance before the game "
-		"manager initializes");
+	kotek::core::ktkConsole* p_console =
+		new kotek::core::ktkConsole();
+
+	KOTEK_ASSERT(
+		p_console, "failed to allocate the console instance"
+	);
+
+	this->m_p_main_manager->Set_Console(p_console);
+
+	this->m_p_console = p_console;
 
 	this->m_p_console->Initialize(
 		zircon_user_console_translation_callback
@@ -2034,7 +2047,6 @@ void zircon_game_manager::RegisterConsole_Commands(void
 	);
 
 	auto* p_main_manager = this->m_p_main_manager;
-
 	/* todo: re-write please
 	    auto* p_resource_manager =
 	   p_main_manager->GetResourceManager();
@@ -2218,7 +2230,6 @@ void zircon_game_manager::RegisterConsole_Commands(void
 		    height ==
 		        p_main_manager->getRenderDevice()->GetHeight())
 			return true;
-
 		p_main_manager->getRenderDevice()->GPUFlush();
 		p_main_manager->getRenderDevice()->Resize(
 			p_main_manager->getRenderSwapchainManager(),
@@ -4405,9 +4416,23 @@ void zircon_game_manager::Destroy_Console(void) noexcept
 {
 	KOTEK_ASSERT(this->m_p_console, "must be valid");
 
-	// the instance is owned by kotek.core.console; we only unbind our data
+	// restore the engine module's console before deleting ours:
+	// kotek.core.console deletes whatever is registered in the main
+	// manager at its shutdown and ownership must stay in the
+	// constructing module (see Initialize_Console)
+	if (this->m_p_main_manager)
+	{
+		this->m_p_main_manager->Set_Console(
+			this->m_p_console_exe_owned
+		);
+	}
+
 	this->m_p_console->Shutdown();
+
+	delete this->m_p_console;
+
 	this->m_p_console = nullptr;
+	this->m_p_console_exe_owned = nullptr;
 }
 
 void zircon_game_manager::Initialize_UI(void) noexcept

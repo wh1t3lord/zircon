@@ -130,6 +130,29 @@ zircon_resource_manager::load(
 			path
 		);
 
+		// same contract as the async path (make_request): the
+		// resource handle must own a desc and a view slot before
+		// load touches m_resources_desc/m_resources_view
+		result->desc_id = this->allocate_desc();
+		result->view_id = this->allocate_view();
+
+		KOTEK_ASSERT(
+			result->desc_id != _kZirconInvalidResourceID &&
+				result->view_id != _kZirconInvalidResourceID,
+			"failed to allocate desc/view for resource -> {}",
+			path
+		);
+
+		if (result->desc_id == _kZirconInvalidResourceID ||
+		    result->view_id == _kZirconInvalidResourceID)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"failed to allocate desc/view for resource -> {}",
+				path
+			);
+			return std::shared_ptr<zircon_resource_t>();
+		}
+
 		this->load(path, flags, result.get(), override_type);
 
 		return result;
@@ -616,7 +639,10 @@ zircon_resource_manager::allocate_desc() noexcept
 	}
 	else
 	{
+		// a fresh index must reference a constructed slot: the
+		// vectors are only reserved in the ctor, so grow here
 		result = this->m_resources_desc.size();
+		this->m_resources_desc.emplace_back();
 	}
 
 	return result;
@@ -634,7 +660,10 @@ zircon_resource_manager::allocate_view() noexcept
 	}
 	else
 	{
+		// a fresh index must reference a constructed slot: the
+		// vectors are only reserved in the ctor, so grow here
 		result = this->m_resources_view.size();
+		this->m_resources_view.emplace_back();
 	}
 
 	return result;
