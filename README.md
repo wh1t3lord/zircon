@@ -1,5 +1,8 @@
 # zircon
 
+[![build](https://github.com/wh1t3lord/zircon/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/wh1t3lord/zircon/actions/workflows/build.yml)
+[![tests](https://github.com/wh1t3lord/zircon/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/wh1t3lord/zircon/actions/workflows/tests.yml)
+
 ## Building
 
 Requirements:

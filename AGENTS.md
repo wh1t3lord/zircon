@@ -151,6 +151,20 @@ non-existent target name in some configs — verify when touching root CMake (ta
   console pointers valid. Next step: run under a native debugger (VS/WinDbg)
   to get the exact faulting instruction — no cdb available on the
   2026-07-22/23 session box.
+- **ROOT-CAUSED (2026-07-23)**: the RegisterConsole_Commands "segfault" was
+  actually **etl pool exhaustion**: the console's static command map
+  (`KOTEK_DEF_COMMAND_CONSOLE_COMMAND_STORAGE_COUNT`, was 128) fills up —
+  the engine registers more than 128 commands, and etl's `ipool.h:605`
+  assert aborts on the 128th insertion (isolated via a minimal repro:
+  `Assertion failed: (false), etl/ipool.h, line 605` at ~128 registrations).
+  Raised to 512 with headroom (kotek defines cmake). Note: the console
+  object is ~1 MB because `m_buffer`'s static queue holds fat
+  string-variants — allocating `ktkConsole` on the STACK overflows it
+  (0xC00000FD); it must always be heap-allocated (it is, via `new`).
+- Remaining open runtime item: after render init the app still does not
+  reach a clean loop exit under `--kotek_frames=30` — investigation
+  continues (session creation/first-frame area; the stderr-milestones
+  method is the proven way to narrow it).
 
 ## 6. Task Registry (owner's tasks — update status as work happens)
 
@@ -163,7 +177,7 @@ non-existent target name in some configs — verify when touching root CMake (ta
 | Z10 | gles3/vk backend removal (owner directive) | done (2026-07-22) | `src/render/{gles3,vk}` deleted; `src/render/CMakeLists.txt` rewritten bgfx-only; `zircon_renderer_bgfx` is the only renderer (union member `p_gles3` + all vk/gles3 branches excised from `zircon_game_manager`); `validate_extensions` (dead GL-era) removed; os console pass retargeted to the bgfx pass base (OnUpdate/OnRender signature updated with `my_id_in_queue`) |
 | Z11 | Runtime boot chain (kotek.exe runs from repo root) | in-progress (2026-07-23) | FIXED: STD-mode `ktkJson::Get` stub (kotek bug, config never parsed in STD); `dll::shared_library` move semantics; `program_location` (game.ktk resolves next to exe); stray `KOTEK_ASSERT(false)` removed from `Initialize_ResourceManager` (blocked the NEW impl below it); window-console stub assert → warning; world now initialized with factory after `create_world` (was never initialized → session assert); `--kotek_frames=N` smoke flag added (config parses it; zircon loop breaks after N); splash busy-wait bounded. VERIFIED: boots through render init (bgfx D3D11), console, renderer. OPEN: splash thread can hang main-window init (create windows on main thread only); SEGFAULT at the first `RegisterConsole_Commands`'s store (see §5) |
 | Z5 | Passes for editor AND game, for bgfx AND NRI; NRI gets own folder, same two-project split (passes + executor) | open | depends on kotek K11 (NRI backend) |
-| Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | open | see §7 verdict + §5 truncation points |
+| Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | in-progress (2026-07-23) | owner approved journal+snapshots+branching with zstd binary deltas (§7 design + data-minimality rules); history manager rewrite on `zircon_editor_command_history` + 100k randomized stress suite |
 | Z7 | Enforce static-container/`ktk`-alias rule consistently across `src/` | open | violation list in §5 |
 | Z8 | Track codebase TODOs | open | ~130 hits in `src/`; major clusters: command history, game manager, factory `#error`s, render passes |
 | Z9 | Make zircon layer SHARED-capable (break editor cycles) | open | found 2026-07-22 during K18 validation: `zircon.editor.session` ↔ `zircon.editor.commands` ↔ `zircon.editor.ui` are cyclic at symbol level (session constructs command_history + ui_state; commands/ui call session getters). Static linking hides it; DLLs forbid it. Fixes (choose): (a) merge the 3 editor targets into one DLL; (b) extract interfaces (`zircon_interface_command_history`, `zircon_interface_editor_ui_state`) into `zircon.core` + register via locator, i.e. apply kotek's own ktkI* discipline to zircon — preferred, matches engine philosophy. Other zircon modules (core/ecs/game/game.session/world) already link fine as DLLs |
@@ -187,6 +201,47 @@ history, like Emacs/persistent undo — restorable always). Persist journal on d
 remove the `shutdown()` folder wipe. Memory stays bounded via snapshots. The command
 interface (`ktkISDKRedoUndo`: Execute/Undo/Serialize) is adequate; the history manager
 is what gets rewritten.
+
+### Z6 data minimality & compression (owner directive 2026-07-23)
+
+Even with disk streaming, what we write must be minimal. Rules for the implementation:
+1. **Journal entries store deltas, not states.** A command serializes only: its type
+   id, the target entity, the changed component fields (before/after), and branch
+   links. Never a full component blob when one field changed.
+2. **Binary format, not JSON, for the journal** (JSON only as the debug
+   representation). `zstd` (already a kotek dependency) compresses journal blocks
+   and snapshots — commands are highly repetitive and compress ~10-20x.
+3. **Snapshots every N commands** (tunable, default ~256): the full ECS state at
+   that point, zstd-compressed. Undo across a snapshot boundary = nearest snapshot
+   + replay journal forward; undo within = apply inverses backward.
+4. **Branching**: nodes form a tree (child pointers + parent id); the linear
+   "current path" cursor moves, nothing is ever truncated. New action after undo =
+   new child at the cursor's node.
+5. **Registration**: command types register into a static type table (id →
+   create/deserialize fn) so future editor commands (terrain ops, prefab ops,
+   component-array edits, multi-entity batch ops — see "Future editor commands"
+   below) join the journal with zero history-manager changes.
+
+### Future editor commands to keep in mind (design the journal for them)
+
+- batch/multi-entity commands (delete N entities — the existing 30k+ JSON concern
+  in `zircon_command_delete_entity.h:13` must be a delta list, not N full serializations)
+- component field-array edits (terrain brushes, tile ops — high frequency; journal
+  must not thrash; coalescing window: same entity+field within T ms merges entries)
+- prefab instantiate/remove
+- scene load/save as journaled operations (or explicitly excluded — decide)
+
+### Unit-test philosophy (owner directive 2026-07-23)
+
+Tests are functional proofs, not per-method formalities: each test targets what a
+class/module PROMISES. For the command history specifically: a stress suite —
+~100k randomized commands across all command types, verifying (a) every entry was
+recorded, (b) full undo to origin restores byte-identical state, (c) redo replays
+to the same final state, (d) journal+snapshot sizes stay within compression
+budgets. Same pattern for other modules: containers (capacity/overflow/UB edges),
+factory (create/destroy/serialize roundtrips at scale), sessions, resource manager.
+Editor+game integration test: boot the engine (--no_splash --kotek_frames=N),
+create a scene, issue real commands, verify state.
 
 ## 8. Open questions awaiting owner
 
