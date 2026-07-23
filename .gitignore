@@ -64,4 +64,4 @@ report_memleak_*
 build*.log
 m[0-9]*.log
 *-conf.log
-reconf*.log
+reconf*.logasan*.log
