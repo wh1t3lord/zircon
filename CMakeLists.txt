@@ -59,6 +59,22 @@ add_subdirectory("${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
 # guard test code with it)
 add_compile_definitions(KOTEK_USE_LINKAGE_${KOTEK_LINKAGE})
 
+# Z12 embedded-config guard: force-include into every zircon.* target defined
+# BELOW (directory scope — kotek's targets were already added above and are
+# unaffected, so kotek itself stays configurable with any library type).
+# Fails the build unless ktk_* aliases resolve to static containers.
+if (WIN32)
+	add_compile_options("/FI${CMAKE_CURRENT_SOURCE_DIR}/src/core/include/zircon_config_guard.h")
+else()
+	add_compile_options("-include" "${CMAKE_CURRENT_SOURCE_DIR}/src/core/include/zircon_config_guard.h")
+endif()
+
+# mirror of kotek's option (cache var is global): game.ktk's CRT routes its
+# asserts to stderr too when automation runs without modal dialogs
+if ("${KOTEK_ASSERT_STDERR_ROUTING}" STREQUAL "ON")
+	add_compile_definitions(KOTEK_USE_ASSERT_STDERR_ROUTING)
+endif()
+
 message("[${PROJECT_NAME}]: KOTEK_UNICODE=${KOTEK_UNICODE}")
 message("[${PROJECT_NAME}]: KOTEK_TESTS_RUNTIME=${KOTEK_TESTS_RUNTIME}")
 message("[${PROJECT_NAME}]: KOTEK_TESTS=${KOTEK_TESTS}")

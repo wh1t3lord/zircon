@@ -3,7 +3,8 @@
 > Living document. Every agent working in this repo MUST read this first and MUST
 > update the Task Registry (status + date + notes) when it advances or finishes a task.
 > Also read `kotek/AGENTS.md` — zircon is built on kotek and must not violate its rules.
-> Last updated: 2026-07-21 (initial creation after full codebase analysis).
+> Last updated: 2026-07-23 (Z6 done: history fixes verified by stress/restore suites;
+> console etl-terminator crash fixed; CRT leak-dump flood contained — see §5).
 
 ## 1. What zircon is
 
@@ -17,10 +18,20 @@
 
 ## 2. Philosophy & style rules (owner's intent — enforce strictly)
 
-1. **Static containers only in engine runtime code.** Use kotek aliases:
-   `kotek::static_vector_t`, `kotek::array_t`, `kotek::static_cstring_t`,
-   `kotek::static_unordered_map_t`, etc. Raw `std::vector/std::string/raw char[]` in
-   `src/` (outside `src/tools`) is a defect — migrate to `ktk` aliases (task Z7).
+1. **NO dynamic containers in zircon — embedded discipline, enforced.**
+   Only etl-based / static containers, reached through kotek's switchable
+   aliases (`ktk_vector`, `kotek::static_vector_t`, `array_t`,
+   `static_cstring_t`, `static_unordered_map_t`, ...), and the aliases must
+   resolve to their static form under kotek's embedded configuration
+   (task Z12 adds a hard `#error` guard so zircon only compiles against
+   that config). Raw `std::vector/std::string/raw char[]` or anything that
+   reallocates behind your back in `src/` (outside `src/tools`) is a defect.
+   Memory budget rules: allocations are rare and bounded; prefer smaller
+   arithmetic types (`short`/`char` over `int`) wherever the value range
+   provably allows it; prefer **streaming** (append-only journal, chunked
+   IO) over materializing whole blobs in RAM. The undo/redo journal is the
+   reference design: per-command *deltas* (never full state), fixed-size
+   buffers, disk spill, zstd-compressed blocks, snapshots every N.
    Host tools (`src/tools/cpp_generators`) are exempt.
 2. **Lookup tables on vectors by default** (cache-friendly linear search over small N);
    `unordered_map` only when N or access patterns justify it — and the choice must be
@@ -40,6 +51,11 @@
 7. Memory: allocate via kotek containers/allocators; placement-new into fixed buffers is
    an accepted pattern (see command history storage). No global `new/delete` games in
    zircon — allocator policy belongs to kotek.
+8. **Unit tests are living code — always actualized.** Every test must match the
+   current codebase's contracts: when behavior changes, the test changes in the
+   same commit. A test that no longer matches reality is refactored or deleted
+   (context decides) — never left rotting. Tests stay functional proofs of what
+   a class/module PROMISES (§7 test philosophy), not per-method formalities.
 
 ## 3. Current architecture map
 
@@ -168,31 +184,40 @@ non-existent target name in some configs — verify when touching root CMake (ta
 - CMake: repeated `# TODO: add if when game.ktk builds as shared` in 10+ module
   CMakeLists; root `add_dependencies(kotek zircon)` suspicious.
 - `zircon_config.h` TODO: replace raw char buffers with `static_cstring_t`.
-- **OPEN RUNTIME BUG (2026-07-23, needs native debugger)**: segfault in
-  `zircon_game_manager::RegisterConsole_Commands` at the FIRST
-  `Register_Command` (id=3), inside the store to the console's command map.
-  Forensics so far: console object address sane (`this` and `&m_storage`
-  both valid heap addresses ~1 MB apart — the object is huge because of the
-  console queue member); reproduces with BOTH etl static and std dynamic
-  maps; NOT the memory leak tracker (disabled it via
-  `KOTEK_USE_MEMORY_TRACKER` and it still crashes); window manager and
-  console pointers valid. Next step: run under a native debugger (VS/WinDbg)
-  to get the exact faulting instruction — no cdb available on the
-  2026-07-22/23 session box.
-- **ROOT-CAUSED (2026-07-23)**: the RegisterConsole_Commands "segfault" was
-  actually **etl pool exhaustion**: the console's static command map
-  (`KOTEK_DEF_COMMAND_CONSOLE_COMMAND_STORAGE_COUNT`, was 128) fills up —
-  the engine registers more than 128 commands, and etl's `ipool.h:605`
-  assert aborts on the 128th insertion (isolated via a minimal repro:
-  `Assertion failed: (false), etl/ipool.h, line 605` at ~128 registrations).
-  Raised to 512 with headroom (kotek defines cmake). Note: the console
-  object is ~1 MB because `m_buffer`'s static queue holds fat
-  string-variants — allocating `ktkConsole` on the STACK overflows it
-  (0xC00000FD); it must always be heap-allocated (it is, via `new`).
-- Remaining open runtime item: after render init the app still does not
-  reach a clean loop exit under `--kotek_frames=30` — investigation
-  continues (session creation/first-frame area; the stderr-milestones
-  method is the proven way to narrow it).
+- **RESOLVED (2026-07-23)**: the `RegisterConsole_Commands` segfault (see
+  Z11 notes for the full fix). The earlier "etl pool exhaustion"
+  hypothesis below was a red herring from a minimal repro: the real
+  cause is that etl's intrusive-list `terminator` is a **module-local
+  static** (`intrusive_forward_list_base<TLink>::terminator`, one per
+  module per link type), so an etl container constructed in one module
+  and driven by another module's header-inline code never matches the
+  using module's terminator and walks off the bucket list into
+  `equal_to` on garbage (AV). Rule: every object whose inline/template
+  methods touch etl containers must be constructed in the module that
+  uses those methods — the console is therefore built in game.ktk now
+  (engine's instance is saved/restored around it). Same family as the
+  CRT issue below: per-module statics + cross-module inline code.
+- **Cross-CRT heap diagnostics (2026-07-23; residual markers tolerated
+  until K9)**: with static MTd, kotek.exe and game.ktk each keep a CRT
+  debug block list but share one process heap. Heap-owning objects
+  crossing the module boundary (`std::string` incl. its
+  `_ITERATOR_DEBUG_LEVEL=2` `_Container_proxy`, by-value `ktk::cstring`
+  interface returns like `GetRenderName()`) are freed by the other CRT;
+  `_free_dbg`'s unlink path asserts `__acrt_first_block == header`
+  (debug_heap.cpp:996) whenever the freed block is the head of its home
+  list — a non-fatal report that also poisons both debug lists.
+  kotek.core.memory.cpu force-enables
+  `_CRTDBG_ALLOC_MEM_DF|_CRTDBG_LEAK_CHECK_DF`
+  (`main_core_memory_cpu_dll.cpp:23`), and the **exit leak dump** then
+  walked the poisoned lists into a multi-minute, multi-million-line
+  assert flood (exit 1/139). Containment landed: the dump is disabled
+  again at each module's shutdown (`kotek.exe` main after
+  ShutdownEngine, zircon `ShutdownModule_Game`) — allocation tracking
+  itself stays on. Verified 2026-07-23: full boot + tests + frame loop
+  + shutdown reach **exit 0** with only ~4-6 discrete residual markers
+  of the same cross-CRT class. The proper fix is kotek-side: stop
+  passing heap-owning objects across module boundaries or share one
+  CRT (K9); do not "fix" it by hiding reports.
 
 ## 6. Task Registry (owner's tasks — update status as work happens)
 
@@ -205,10 +230,11 @@ non-existent target name in some configs — verify when touching root CMake (ta
 | Z10 | gles3/vk backend removal (owner directive) | done (2026-07-22) | `src/render/{gles3,vk}` deleted; `src/render/CMakeLists.txt` rewritten bgfx-only; `zircon_renderer_bgfx` is the only renderer (union member `p_gles3` + all vk/gles3 branches excised from `zircon_game_manager`); `validate_extensions` (dead GL-era) removed; os console pass retargeted to the bgfx pass base (OnUpdate/OnRender signature updated with `my_id_in_queue`) |
 | Z11 | Runtime boot chain (kotek.exe runs from repo root) | done (2026-07-23) | FIXED earlier: STD-mode `ktkJson::Get` stub (kotek bug, config never parsed in STD); `dll::shared_library` move semantics; `program_location`; stray `KOTEK_ASSERT(false)` in `Initialize_ResourceManager`; window-console stub assert → warning; world init with factory; `--kotek_frames=N`; splash busy-wait bounded. FIXED 2026-07-23 evening: console `Register_Command` segfault = **etl intrusive-list terminator is a module-local static** — a container built by one module (exe) terminates buckets with an address the other module (game.ktk) never matches, any cross-module insert walks off the end (null+8). Fix: game manager constructs its OWN console and restores the engine's at shutdown (`m_p_console_exe_owned`), ownership stays in the constructing module — THE rule for every object whose inline/template methods touch etl containers. Render shutdown dispatch: stray `if (is_gl)` swallowed the whole else-if chain (bgfx shutdown never ran → `status=false` assert). `zircon_config`: serialize wrote 1024B fixed buffer (garbage tail → json "extra data"), now writes `text_real_length`; deserialize parsed `sizeof(text)` instead of the Read_File-returned size. `matrix2x2_f::e/c`: 6 inverted range asserts (fired on VALID indices). VERIFIED: boot → 14/14 + 163/163 tests → 30 frames → full shutdown → **exit 0**. OPEN: splash thread can hang main-window init (create windows on main thread only); 6 residual CRT-startup heap asserts (pre-flag blocks, tolerated until K9) |
 | Z5 | Passes for editor AND game, for bgfx AND NRI; NRI gets own folder, same two-project split (passes + executor) | open | depends on kotek K11 (NRI backend) |
-| Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | in-progress (2026-07-23) | journal+registry+history rewrite landed (`zircon_command_journal/registry.{h,cpp}`, history now 1642 lines, builds green) + 100k stress test exists (`src/engine/tests/zircon_unit_tests_command_history.cpp`, runs at engine boot). Test CAUGHT a real bug: replay hits `ecs_is_entity_ready` (pico id lifecycle across undo/redo — `m_entity_id_translation` not maintained on delete/undo) + a heap-corruption marker; fix in progress |
+| Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | done (2026-07-23) | journal+registry+history rewrite (previous agent) + four fixes landed: (1) **replay crash** `ecs_is_entity_ready` (pico_ecs.h:1102): delete-undo/create-redo reincarnate an entity under a fresh id and the flat recorded→live map went stale for OTHER aliases of the same logical entity (repro chain 12→18→47) — fixed with a reincarnation chain (`m_entity_reincarnation`: incarnation id → next id, values strictly increase so walks always terminate) + history-side before/after `GetEntityID` observation in `Undo()`/`execute_node()` (commands no longer call `update_dependent_commands` themselves — journal-reconstructed ones only know recorded ids and wrote chain-skipping links) + `apply_world_state` rebinds whole chains on snapshot restore. (2) **redo-to-final diverged**: the test mutated components directly (unjournaled edits are unreplayable by design) — added journaled `zircon_command_edit_component_state` (registry type `zircon_DEF_COMMAND_TYPE_EDIT_COMPONENT_STATE`, delta = before+after json) and the stress mix drives edits through it. (3) test scan watermark must resync from `get_entity_watermark()` (pico never recycles, redo mints fresh ids past the model's range → empty serialize). (4) `ResourceManagerLoadTextResourceNoCache` abort (`zircon_resource_manager.cpp:163`): sync `load` never allocated desc/view ids (async path did) and `allocate_desc/view` returned indices into a reserved-but-never-grown vector (OOB on use) — both fixed. VERIFIED full suite green: `CommandHistory_Stress_100k_Commands` (~63k executed ops over 100k iterations: 100% recorded, full undo-to-origin byte-identical, full redo byte-identical, journal ≥2× compression + ≤64 MB disk, journal reopen retains every command) + `CommandHistory_Restore_Node_From_Snapshots` + 12 Zircon_Game + 163 kotek tests, all PASSED, exit 0 |
 | Z7 | Enforce static-container/`ktk`-alias rule consistently across `src/` | open | violation list in §5 |
 | Z8 | Track codebase TODOs | open | ~130 hits in `src/`; major clusters: command history, game manager, factory `#error`s, render passes |
 | Z9 | Make zircon layer SHARED-capable (break editor cycles) | open | found 2026-07-22 during K18 validation: `zircon.editor.session` ↔ `zircon.editor.commands` ↔ `zircon.editor.ui` are cyclic at symbol level (session constructs command_history + ui_state; commands/ui call session getters). Static linking hides it; DLLs forbid it. Fixes (choose): (a) merge the 3 editor targets into one DLL; (b) extract interfaces (`zircon_interface_command_history`, `zircon_interface_editor_ui_state`) into `zircon.core` + register via locator, i.e. apply kotek's own ktkI* discipline to zircon — preferred, matches engine philosophy. Other zircon modules (core/ecs/game/game.session/world) already link fine as DLLs |
+| Z12 | Replace every raw container in `src/` with switchable kotek aliases + hard-require kotek's embedded config | open | owner directive 2026-07-23: zircon must not contain raw `std::vector/std::string/raw char[]` at all (only `ktk_*` aliases resolving to etl/static). Add a compile-time `#error` guard (one central zircon header included everywhere, e.g. via the PCH) that fails the build unless kotek's embedded container configuration is active — dynamic (regular STL) and hybrid containers disabled at preprocessor level. Kotek side: verify/implement that config (`KOTEK_USE_LIBRARY_TYPE_EMB` + friends exist in alias headers; check it covers ALL containers and actually compiles — HYB is broken today, EMB state unverified). Until the guard lands, the Z7 violation list is the migration backlog |
 
 ## 7. Design verdicts (2026-07-21 analysis — basis for Z3/Z6)
 

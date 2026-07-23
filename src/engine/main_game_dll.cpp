@@ -77,13 +77,16 @@ bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 {
 #if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
 	setvbuf(stderr, nullptr, _IONBF, 0);
-	// route CRT asserts to stderr instead of the modal dialog as
-	// early as possible (the game library is the first user code
-	// that runs after the engine core)
+#ifdef KOTEK_USE_ASSERT_STDERR_ROUTING
+	// automation configuration (-DKOTEK_ASSERT_STDERR_ROUTING=ON): route
+	// CRT asserts to stderr instead of the modal dialog as early as
+	// possible (the game library is the first user code that runs after
+	// the engine core). Default configuration keeps the modal dialog.
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+#endif
 	fprintf(stderr, "[boot]: InitializeModule_Game entered\n");
 #endif
 
