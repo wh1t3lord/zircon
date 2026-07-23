@@ -124,6 +124,18 @@ non-existent target name in some configs — verify when touching root CMake (ta
   static: `-DKOTEK_LINKAGE_FORCE_STATIC="zircon.editor.commands;zircon.editor.session;zircon.editor.ui"`.
 - ECS: `zircon_factory.cpp` has `#error todo: provide impl` branches; broken comment
   at `zircon_component_geometry.cpp:198`.
+- **Console assert-dialog handling**: `_CrtSetReportMode/_CrtSetReportFile/
+  _set_error_mode(_OUT_TO_STDERR)` now set at `kotek.exe` entry in Debug —
+  CRT asserts print to stderr and abort (code 3) instead of hanging on a
+  modal dialog. For stuck dialogs from any other tool, `taskkill //F //IM
+  kotek.exe` clears them; UI-automation clicking is possible but avoided.
+- **Test-found issues (2026-07-23)**: `Zircon_Game.
+  ResourceManagerLoadTextResourceNoCache` aborts at
+  `zircon_resource_manager.cpp:163` (resource desc_id invalid after the
+  test's own file write+load of `rsltrnc.json` — load path bug, not data
+  env). Z6 replay hits `ecs_is_entity_ready` (pico id lifecycle on undo —
+  see Z6). A heap-corruption marker (`debug_heap.cpp:996
+  __acrt_first_block == header`) appears in test runs — under investigation.
 - **PICO factory filled-in during Z1 (owner review wanted)**:
   `zircon_factory::register_components` (per-type switch over
   `eZirconComponentType` — must be kept in sync manually, candidate for CMake
@@ -177,7 +189,7 @@ non-existent target name in some configs — verify when touching root CMake (ta
 | Z10 | gles3/vk backend removal (owner directive) | done (2026-07-22) | `src/render/{gles3,vk}` deleted; `src/render/CMakeLists.txt` rewritten bgfx-only; `zircon_renderer_bgfx` is the only renderer (union member `p_gles3` + all vk/gles3 branches excised from `zircon_game_manager`); `validate_extensions` (dead GL-era) removed; os console pass retargeted to the bgfx pass base (OnUpdate/OnRender signature updated with `my_id_in_queue`) |
 | Z11 | Runtime boot chain (kotek.exe runs from repo root) | in-progress (2026-07-23) | FIXED: STD-mode `ktkJson::Get` stub (kotek bug, config never parsed in STD); `dll::shared_library` move semantics; `program_location` (game.ktk resolves next to exe); stray `KOTEK_ASSERT(false)` removed from `Initialize_ResourceManager` (blocked the NEW impl below it); window-console stub assert → warning; world now initialized with factory after `create_world` (was never initialized → session assert); `--kotek_frames=N` smoke flag added (config parses it; zircon loop breaks after N); splash busy-wait bounded. VERIFIED: boots through render init (bgfx D3D11), console, renderer. OPEN: splash thread can hang main-window init (create windows on main thread only); SEGFAULT at the first `RegisterConsole_Commands`'s store (see §5) |
 | Z5 | Passes for editor AND game, for bgfx AND NRI; NRI gets own folder, same two-project split (passes + executor) | open | depends on kotek K11 (NRI backend) |
-| Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | in-progress (2026-07-23) | owner approved journal+snapshots+branching with zstd binary deltas (§7 design + data-minimality rules); history manager rewrite on `zircon_editor_command_history` + 100k randomized stress suite |
+| Z6 | Undo/redo: store ALL history (no cutting), reliable restore; assess design & shrinkability | in-progress (2026-07-23) | journal+registry+history rewrite landed (`zircon_command_journal/registry.{h,cpp}`, history now 1642 lines, builds green) + 100k stress test exists (`src/engine/tests/zircon_unit_tests_command_history.cpp`, runs at engine boot). Test CAUGHT a real bug: replay hits `ecs_is_entity_ready` (pico id lifecycle across undo/redo — `m_entity_id_translation` not maintained on delete/undo) + a heap-corruption marker; fix in progress |
 | Z7 | Enforce static-container/`ktk`-alias rule consistently across `src/` | open | violation list in §5 |
 | Z8 | Track codebase TODOs | open | ~130 hits in `src/`; major clusters: command history, game manager, factory `#error`s, render passes |
 | Z9 | Make zircon layer SHARED-capable (break editor cycles) | open | found 2026-07-22 during K18 validation: `zircon.editor.session` ↔ `zircon.editor.commands` ↔ `zircon.editor.ui` are cyclic at symbol level (session constructs command_history + ui_state; commands/ui call session getters). Static linking hides it; DLLs forbid it. Fixes (choose): (a) merge the 3 editor targets into one DLL; (b) extract interfaces (`zircon_interface_command_history`, `zircon_interface_editor_ui_state`) into `zircon.core` + register via locator, i.e. apply kotek's own ktkI* discipline to zircon — preferred, matches engine philosophy. Other zircon modules (core/ecs/game/game.session/world) already link fine as DLLs |
