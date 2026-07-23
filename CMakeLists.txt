@@ -51,6 +51,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 message("[${PROJECT_NAME}]: output dir is '${CMAKE_BINARY_DIR}'")
 
+# full-static configuration (KOTEK_DEVELOPMENT_TYPE=STATIC): kotek.game
+# calls the game-module entry points directly and needs the declaring
+# header — kotek's defines module hard-fails (FATAL_ERROR at
+# kotek.core.defines.static.cpp/CMakeLists.txt:551) without these vars.
+# zircon_game.h is self-contained (only the ktkMainManager fwd-decl), so it
+# is safe to include from kotek.game's TU. Keep the paths relocatable:
+# bare quoted header name + its directory as KOTEK_USER_GAME_PROJECT_NAME
+# (kotek.game turns it into ../../../<name> from its own source dir, which
+# lands on this repo's root).
+if ("${KOTEK_DEVELOPMENT_TYPE}" STREQUAL "STATIC")
+	set(KOTEK_GAME_MODULE_FUNCTIONS_FILE "\"zircon_game.h\"" CACHE INTERNAL "header declaring the user's game-module entry points (STATIC dev type)")
+	set(KOTEK_USER_GAME_PROJECT_NAME "src/engine" CACHE INTERNAL "include dir of the user's game-module entry header, relative to the layer root")
+	set(KOTEK_USER_GAME_MODULE_FOR_LINK_NAME "zircon" CACHE INTERNAL "CMake target of the user's game module for kotek.game to link (STATIC dev type)")
+	message("[${PROJECT_NAME}]: full-static game module, functions file: ${KOTEK_GAME_MODULE_FUNCTIONS_FILE}")
+endif()
+
 add_subdirectory("${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
 
 # the linkage-scenario define (KOTEK_USE_LINKAGE_STATIC/SHARED/PLUGIN) is
