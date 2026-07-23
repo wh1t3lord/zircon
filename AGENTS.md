@@ -56,6 +56,25 @@
    same commit. A test that no longer matches reality is refactored or deleted
    (context decides) — never left rotting. Tests stay functional proofs of what
    a class/module PROMISES (§7 test philosophy), not per-method formalities.
+   Coverage bar (task Z14): every class and every public function in zircon
+   gets one; cover behavior and edge cases, not happy paths only.
+9. **Memory, streaming, cache (the standing engineering bar).** Memory is a
+   budgeted resource: every capacity is a named preprocessor constant
+   (`zircon_DEF_*` / `KOTEK_DEF_*`), sized from measured data — never a magic
+   number. Container choice: `array_t` when the count is fixed at compile
+   time (zero overhead, fully constexpr); `static_vector_t` when bounded but
+   variable; a hash map only with written justification (N, load factor,
+   access pattern) — the default is lookup-table-on-vector (rule 2).
+   Arithmetic types: smallest that provably fits for *stored* data
+   (`char`/`short` over `int`); native word for loop counters and hot math.
+   Hot iteration runs over contiguous, pointer-free storage (SoA where a
+   system touches one field of many entities — the ECS dense arrays are the
+   reference); no per-element heap nodes in hot paths. Big or unbounded data
+   is **streamed**: fixed-size chunks, bounded queues, double buffers — never
+   materialize a whole file/scene/journal in RAM when a forward cursor
+   suffices (the undo/redo journal is the reference implementation).
+   Scalability rule: code must scale DOWN (embedded/consoles) and UP (PC)
+   purely by changing preprocessor capacities, not by changing code.
 
 ## 3. Current architecture map
 
@@ -235,6 +254,8 @@ non-existent target name in some configs — verify when touching root CMake (ta
 | Z8 | Track codebase TODOs | open | ~130 hits in `src/`; major clusters: command history, game manager, factory `#error`s, render passes |
 | Z9 | Make zircon layer SHARED-capable (break editor cycles) | open | found 2026-07-22 during K18 validation: `zircon.editor.session` ↔ `zircon.editor.commands` ↔ `zircon.editor.ui` are cyclic at symbol level (session constructs command_history + ui_state; commands/ui call session getters). Static linking hides it; DLLs forbid it. Fixes (choose): (a) merge the 3 editor targets into one DLL; (b) extract interfaces (`zircon_interface_command_history`, `zircon_interface_editor_ui_state`) into `zircon.core` + register via locator, i.e. apply kotek's own ktkI* discipline to zircon — preferred, matches engine philosophy. Other zircon modules (core/ecs/game/game.session/world) already link fine as DLLs |
 | Z12 | Replace every raw container in `src/` with switchable kotek aliases + hard-require kotek's embedded config | open | owner directive 2026-07-23: zircon must not contain raw `std::vector/std::string/raw char[]` at all (only `ktk_*` aliases resolving to etl/static). Add a compile-time `#error` guard (one central zircon header included everywhere, e.g. via the PCH) that fails the build unless kotek's embedded container configuration is active — dynamic (regular STL) and hybrid containers disabled at preprocessor level. Kotek side: verify/implement that config (`KOTEK_USE_LIBRARY_TYPE_EMB` + friends exist in alias headers; check it covers ALL containers and actually compiles — HYB is broken today, EMB state unverified). Until the guard lands, the Z7 violation list is the migration backlog |
+| Z13 | CI/CD green on GitHub + three linkage configurations in CI | in-progress (2026-07-23) | workflows build/tests exist and run on every push; fixed so far: vcpkg cache 6.5GB→1.2GB (quota), tests workflow runs the real engine boot with `KOTEK_ASSERT_STDERR_ROUTING=ON`, vcpkg pinned to the validated snapshot (29fb1f4, was floating master). STILL RED at configure on the CI image (vcpkg port build; job logs are admin-only — need owner access or the K16 nuget binary cache). Owner requirement: CI compiles THREE configurations — full static (all .lib + kotek.exe), full dynamic (all .dll + kotek.exe; **blocked today by kotek's cyclic module graph, K18 — CI leg exists as continue-on-error**), and the default (kotek static + game.ktk) |
+| Z14 | Unit tests for every class and public function (both repos, kotek K22) | open | owner directive 2026-07-23: functional proofs, not per-method formalities — behavior + edge cases + stress where the contract promises it (the 100k-command history stress is the reference). Rule 8 (tests are living code) governs maintenance |
 
 ## 7. Design verdicts (2026-07-21 analysis — basis for Z3/Z6)
 

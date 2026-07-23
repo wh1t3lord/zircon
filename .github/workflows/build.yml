@@ -13,13 +13,28 @@ concurrency:
 
 jobs:
   windows:
-    name: windows (${{ matrix.config }})
+    name: windows (${{ matrix.config }}, ${{ matrix.linkage.name }})
     runs-on: windows-2022
     timeout-minutes: 120
+    # full dynamic is blocked today by kotek's cyclic module graph (K18):
+    # it runs as a visible-but-non-blocking leg until the cycles are broken
+    continue-on-error: ${{ matrix.linkage.experimental }}
     strategy:
       fail-fast: false
       matrix:
         config: [Debug, Release]
+        linkage:
+          # owner requirement (2026-07-23): CI compiles all three output
+          # configurations of the engine
+          - name: default
+            flags: ""
+            experimental: false
+          - name: static
+            flags: "-DKOTEK_LINKAGE=STATIC -DKOTEK_DEVELOPMENT_TYPE=STATIC"
+            experimental: false
+          - name: dynamic
+            flags: "-DKOTEK_LINKAGE=SHARED -DKOTEK_DEVELOPMENT_TYPE=SHARED"
+            experimental: true
 
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +56,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1.13.0
 
       - name: configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${{ matrix.linkage.flags }}
 
       - name: build
         run: cmake --build build --config ${{ matrix.config }} --parallel
@@ -52,7 +67,8 @@ jobs:
           if (-not (Test-Path "build/bin/${{ matrix.config }}/kotek.exe")) {
             throw "kotek.exe was not produced"
           }
-          if (-not (Test-Path "build/bin/${{ matrix.config }}/game.ktk")) {
+          # full-static links the game module into the exe (no game.ktk)
+          if ("${{ matrix.linkage.name }}" -ne "static" -and -not (Test-Path "build/bin/${{ matrix.config }}/game.ktk")) {
             throw "game.ktk was not produced"
           }
 
@@ -60,6 +76,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs-${{ matrix.config }}
+          name: build-logs-${{ matrix.config }}-${{ matrix.linkage.name }}
           path: build/**/*.log
           retention-days: 7
