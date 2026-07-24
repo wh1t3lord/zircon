@@ -2917,6 +2917,34 @@ void zircon_game_manager::RegisterConsole_Commands(void
 			eZirconConsoleCommands::initialize_world
 		)
 	);
+
+	// --exec="<cmd>" (task K23): every queued console command runs right
+	// after all built-in commands are registered, in the order the flags
+	// were given
+	{
+		auto* p_engine_config = this->m_p_main_manager->Get_EngineConfig();
+
+		for (kotek::uint8_t i = 0;
+		     i < p_engine_config->Get_ExecCommandCount(); ++i)
+		{
+			const char* p_exec_command =
+				p_engine_config->Get_ExecCommand(i);
+
+			if (p_exec_command && p_exec_command[0] != '\0')
+			{
+				bool pushed =
+					this->m_p_console->Push_Command(p_exec_command);
+
+				if (!pushed)
+				{
+					KOTEK_MESSAGE_WARNING(
+						"--exec: failed to push console command: {}",
+						p_exec_command
+					);
+				}
+			}
+		}
+	}
 }
 
 void zircon_game_manager::RegisterConsole_Commands_SDK(void
