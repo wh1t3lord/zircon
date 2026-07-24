@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../core/zircon_defs.h"
 #include "../../core/zircon_session.h"
 
 class zircon_world;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/zircon_defs.h"
+
 #ifdef KOTEK_USE_SDK
 namespace zircon
 {

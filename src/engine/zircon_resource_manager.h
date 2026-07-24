@@ -310,7 +310,7 @@ public:
 	);
 	void shutdown(void);
 
-	std::shared_ptr<zircon_resource_t> load(
+	kotek::shared_ptr_t<zircon_resource_t> load(
 		const kotek::static_path_t& path,
 		eZirconResourceLoadingFlags flags,
 		eZirconResourceType override_type =
@@ -323,7 +323,7 @@ public:
 	get_desc(zircon_resource_id_t id) const noexcept;
 
 private:
-	std::shared_ptr<zircon_resource_t> make_request(
+	kotek::shared_ptr_t<zircon_resource_t> make_request(
 		const kotek::static_path_t& path,
 		eZirconResourceLoadingFlags flags
 	);
@@ -355,7 +355,7 @@ private:
 	kotek::core::ktkIFileSystem* m_p_filesystem;
 	kotek::core::ktkIFrameworkConfig* m_p_config;
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
-	std::thread m_worker_thread;
+	kotek::mt::thread_t m_worker_thread;
 	kotek::static_queue_t<
 		zircon_async_unload_request_t,
 		ZIRCON_DEF_RESOURCE_MANAGER_MAX_QUEUE_LOADING_REQUESTS>

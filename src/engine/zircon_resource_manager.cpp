@@ -64,7 +64,7 @@ void zircon_resource_manager::initialize(
 	}
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
-	this->m_worker_thread = std::thread(
+	this->m_worker_thread = kotek::mt::thread_t(
 		&zircon_resource_manager::worker_thread, this
 	);
 	this->m_worker_thread.detach();
@@ -77,7 +77,7 @@ void zircon_resource_manager::shutdown(void)
 	m_was_shutdown_called = 1;
 }
 
-std::shared_ptr<zircon_resource_t>
+kotek::shared_ptr_t<zircon_resource_t>
 zircon_resource_manager::load(
 	const kotek::static_path_t& path,
 	eZirconResourceLoadingFlags flags,
@@ -98,7 +98,7 @@ zircon_resource_manager::load(
 	KOTEK_ASSERT(path.empty() == false, "passed empty path");
 
 	if (path.empty())
-		return std::shared_ptr<zircon_resource_t>();
+		return kotek::shared_ptr_t<zircon_resource_t>();
 
 #if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
 	if ((flags & eZirconResourceLoadingFlags::kAsync) ==
@@ -116,11 +116,11 @@ zircon_resource_manager::load(
 		{
 			KOTEK_MESSAGE_WARNING("failed to allocate resource!"
 			);
-			return std::shared_ptr<zircon_resource_t>();
+			return kotek::shared_ptr_t<zircon_resource_t>();
 		}
 
-		std::shared_ptr<zircon_resource_t> result =
-			std::allocate_shared<zircon_resource_t>(
+		kotek::shared_ptr_t<zircon_resource_t> result =
+			kotek::ktk::allocate_shared<zircon_resource_t>(
 				m_allocator_shared_ptr.allocator
 			);
 
@@ -150,7 +150,7 @@ zircon_resource_manager::load(
 				"failed to allocate desc/view for resource -> {}",
 				path
 			);
-			return std::shared_ptr<zircon_resource_t>();
+			return kotek::shared_ptr_t<zircon_resource_t>();
 		}
 
 		this->load(path, flags, result.get(), override_type);
@@ -158,7 +158,7 @@ zircon_resource_manager::load(
 		return result;
 	}
 
-	return std::shared_ptr<zircon_resource_t>();
+	return kotek::shared_ptr_t<zircon_resource_t>();
 }
 
 void zircon_resource_manager::load(
@@ -533,7 +533,8 @@ void zircon_resource_manager::unload(
 			zircon_async_unload_request_t req;
 			req.desc_id = p_resource->desc_id;
 
-			std::lock_guard lock(this->m_wt_queue_mutex_unload);
+			kotek::mt::lock_guard_t<kotek::mt::mutex_t> lock(
+				this->m_wt_queue_mutex_unload);
 
 			this->m_wt_queue_unload.push(std::move(req));
 		}
@@ -563,7 +564,7 @@ zircon_resource_manager::get_desc(zircon_resource_id_t id
 	return nullptr;
 }
 
-std::shared_ptr<zircon_resource_t>
+kotek::shared_ptr_t<zircon_resource_t>
 zircon_resource_manager::make_request(
 	const kotek::static_path_t& path,
 	eZirconResourceLoadingFlags flags
@@ -584,9 +585,10 @@ zircon_resource_manager::make_request(
 	);
 
 	if (!can_make_request)
-		return std::shared_ptr<zircon_resource_t>();
+		return kotek::shared_ptr_t<zircon_resource_t>();
 
-	std::lock_guard lock(this->m_wt_queue_mutex);
+	kotek::mt::lock_guard_t<kotek::mt::mutex_t> lock(
+		this->m_wt_queue_mutex);
 
 	req.desc_id = this->allocate_desc();
 	KOTEK_ASSERT(
@@ -595,10 +597,10 @@ zircon_resource_manager::make_request(
 	);
 
 	if (req.desc_id == _kZirconInvalidResourceID)
-		return std::shared_ptr<zircon_resource_t>();
+		return kotek::shared_ptr_t<zircon_resource_t>();
 
-	std::shared_ptr<zircon_resource_t> result =
-		std::move(std::allocate_shared<zircon_resource_t>(
+	kotek::shared_ptr_t<zircon_resource_t> result =
+		std::move(kotek::ktk::allocate_shared<zircon_resource_t>(
 			m_allocator_shared_ptr.allocator
 		));
 	result->desc_id = req.desc_id;
@@ -607,7 +609,7 @@ zircon_resource_manager::make_request(
 
 	return result;
 #else
-	return std::allocate_shared<zircon_resource_t>(
+	return kotek::ktk::allocate_shared<zircon_resource_t>(
 		m_allocator_shared_ptr.allocator
 	);
 #endif

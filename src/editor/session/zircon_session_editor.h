@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../core/zircon_defs.h"
 #include "../../core/zircon_session.h"
 #include "../ui/zircon_editor_ui_state.h"
 #include "../commands\zircon_command_history.h"
