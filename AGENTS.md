@@ -46,7 +46,15 @@
 5. **Naming**: files/classes `zircon_snake_case`, constants `zircon_DEF_*` /
    `ZIRCON_DEF_*`; CMake targets `zircon.<module>` (STATIC libs today; `src/engine`
    builds `${KOTEK_DEVELOPMENT_TYPE}` → `game.ktk`).
-6. **Every module keeps `main_<module>_dll.cpp`** (kotek module-entry convention) even
+6. **Namespace form**: the real namespace is `Kotek` (capital, renamable via
+   `KOTEK_BEGIN_NAMESPACE_KOTEK`); `kotek.core/include/kotek_core.h` defines the
+   lowercase aliases (`namespace kotek/core/render = Kotek::Core/...`).
+   **Zircon code uses the lowercase aliases (`kotek::...`) — never write
+   `Kotek::` directly** (that bypasses the cmake rename feature the alias layer
+   exists for). Mixed forms are Z7 debt: measured 2026-07-24 — 258 direct
+   `Kotek::` sites in zircon (task Z16 sweep), 43 in kotek (its own code stays
+   on the `KUN_*`/`kun_*` macros).
+7. **Every module keeps `main_<module>_dll.cpp`** (kotek module-entry convention) even
    though linking is currently static.
 7. Memory: allocate via kotek containers/allocators; placement-new into fixed buffers is
    an accepted pattern (see command history storage). No global `new/delete` games in
@@ -257,6 +265,7 @@ non-existent target name in some configs — verify when touching root CMake (ta
 | Z13 | CI/CD green on GitHub + three linkage configurations in CI | in-progress (2026-07-23) | workflows build/tests exist and run on every push; fixed so far: vcpkg cache 6.5GB→1.2GB (quota), tests workflow runs the real engine boot with `KOTEK_ASSERT_STDERR_ROUTING=ON`, vcpkg pinned to the validated snapshot (29fb1f4, was floating master). STILL RED at configure on the CI image (vcpkg port build; job logs are admin-only — need owner access or the K16 nuget binary cache). Owner requirement: CI compiles THREE configurations — full static (all .lib + kotek.exe), full dynamic (all .dll + kotek.exe; **blocked today by kotek's cyclic module graph, K18 — CI leg exists as continue-on-error**), and the default (kotek static + game.ktk) |
 | Z14 | Unit tests for every class and public function (both repos, kotek K22) | open | owner directive 2026-07-23: functional proofs, not per-method formalities — behavior + edge cases + stress where the contract promises it (the 100k-command history stress is the reference). Rule 8 (tests are living code) governs maintenance |
 | Z15 | Plugin override system exists at kotek level (kotek K21) — informational | done at kotek level (2026-07-23) | `KOTEK_INVOKE_MODULE` is override-first in EVERY linkage mode: drop `plugins/<module-folder-name>.dll` (or map it in `plugins/plugins.json`, json wins) next to the data dirs and the user's dll replaces that kotek module's `InitializeModule_*/ShutdownModule_*/Serialize/Deserialize` entries; `--kotek_plugins_template` / `--kotek_plugins_modules` codegen the file skeletons. Zircon's own module entries (`InitializeModule_Render` etc. invoked from `src/engine/main_game_dll.cpp`) go through the same macro, so kotek-module overrides apply to zircon's call sites with zero zircon changes; zircon's OWN modules join the override registry once zircon's cmake re-runs `kotek_generate_plugin_manifest` for its targets (not done — zircon modules are the game layer, overriding them is out of K21's scope). See kotek/AGENTS.md §5a "Plugin overrides" |
+| Z16 | Namespace case sweep: `Kotek::` → lowercase aliases (`kotek::`) everywhere in zircon | open | rule in §2.6: lowercase aliases are canonical (they preserve the cmake namespace-rename feature); 258 direct `Kotek::` sites measured 2026-07-24 across `src/` (kotek itself: 43, handled by its K-side macro discipline). Mechanical sweep — delegate to a dedicated agent when the build queue is quiet; verify with a full build + smoke after |
 
 ## 7. Design verdicts (2026-07-21 analysis — basis for Z3/Z6)
 
