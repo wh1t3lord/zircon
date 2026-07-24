@@ -92,6 +92,24 @@ KOTEK_IMPLEMENTATION_ENUM_FLAG_OPERATORS(eZirconResourceLoadingFlags, std::under
 #define ZIRCON_DEF_WORLD_NAME_MAX_STRING_LENGTH 16
 #define ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT 128
 
+/// @brief \~english max imgui UI elements (windows) registered per session.
+/// Measured: ~10 editor windows today (object list, top bar, prefab,
+/// component inspector, log, history command log, render stats, settings,
+/// debug input) plus game-session windows — 64 gives ~4x headroom for
+/// future windows (Z7: static-container migration)
+#define ZIRCON_DEF_EDITOR_IMGUI_ELEMENTS_MAX 64
+
+KOTEK_BEGIN_NAMESPACE_KOTEK
+KOTEK_BEGIN_NAMESPACE_CORE
+class ktkISDKUIElement;
+KOTEK_END_NAMESPACE_CORE
+KOTEK_END_NAMESPACE_KOTEK
+
+/// @brief \~english the session's registered imgui windows (Z7: was
+/// kotek::vector_t — dynamic, forbidden by the embedded discipline)
+using zircon_imgui_elements_t = kotek::static_vector_t<
+	kotek::core::ktkISDKUIElement*, ZIRCON_DEF_EDITOR_IMGUI_ELEMENTS_MAX>;
+
 using zircon_resource_json_tiny_t =
 	kotek::core::ktkResourceText<
 		ZIRCON_DEF_RESOURCE_TEXT_JSON_TINY_FILE_LENGTH,

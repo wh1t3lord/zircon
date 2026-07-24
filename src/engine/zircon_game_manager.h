@@ -160,7 +160,7 @@ private:
 	void UpdateInput(void) noexcept;
 	void UpdateCamera(void) noexcept;
 
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+	const zircon_imgui_elements_t&
 	get_ui_imgui_elements();
 
 #ifdef KOTEK_USE_TESTS_RUNTIME
@@ -185,8 +185,7 @@ private:
 	kotek::core::ktkWindowConsole* m_p_window_console;
 	zircon_interface_session* m_p_current_session;
 	renderers_t m_renderers;
-	kotek::vector_t<kotek::core::ktkISDKUIElement*>
-		empty_ui_elements;
+	zircon_imgui_elements_t empty_ui_elements;
 #ifdef KOTEK_USE_SDK
 	void* m_p_window_handle;
 	sdk::ui::zircon_RenderWindow* m_p_sdk_render_window;

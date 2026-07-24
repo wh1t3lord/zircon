@@ -214,8 +214,7 @@ zircon_world* zircon_session_game::get_world(void
 }
 
 void zircon_session_game::set_imgui_ui_elements(
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-		imgui_elements
+	const zircon_imgui_elements_t& imgui_elements
 ) noexcept
 {
 	KOTEK_ASSERT(
@@ -225,7 +224,7 @@ void zircon_session_game::set_imgui_ui_elements(
 	this->m_imgui_ui_elements = imgui_elements;
 }
 
-const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+const zircon_imgui_elements_t&
 zircon_session_game::get_imgui_ui_elements(void) const noexcept
 {
 	return this->m_imgui_ui_elements;

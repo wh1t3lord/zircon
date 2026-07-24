@@ -32,9 +32,8 @@ public:
 	zircon_world* get_world(void) const noexcept;
 
 	void set_imgui_ui_elements(
-		const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-			imgui_elements) noexcept;
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+		const zircon_imgui_elements_t& imgui_elements) noexcept;
+	const zircon_imgui_elements_t&
 	get_imgui_ui_elements(void) const noexcept;
 
 private:
@@ -54,5 +53,5 @@ private:
 	kotek::core::ktkConsole* m_p_console;
 	zircon_world* m_p_world;
 	kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH> m_name;
-	kotek::vector_t<kotek::core::ktkISDKUIElement*> m_imgui_ui_elements;
+	zircon_imgui_elements_t m_imgui_ui_elements;
 };

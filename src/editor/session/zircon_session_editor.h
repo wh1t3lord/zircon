@@ -80,10 +80,9 @@ public:
 	zircon_world* get_world(void) const noexcept;
 
 	void set_imgui_ui_elements(
-		const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-			imgui_elements
+		const zircon_imgui_elements_t& imgui_elements
 	) noexcept;
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+	const zircon_imgui_elements_t&
 	get_imgui_ui_elements(void) const noexcept;
 
 private:
@@ -106,8 +105,7 @@ private:
 	zircon_world* m_p_world;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
-	kotek::vector_t<kotek::core::ktkISDKUIElement*>
-		m_imgui_ui_elements;
+	zircon_imgui_elements_t m_imgui_ui_elements;
 	kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>
 		m_name;
 	zircon_editor_ui_state m_state;

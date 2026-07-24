@@ -248,7 +248,7 @@ private:
                 if (i > 0) helper_str += "\t\telse if (";
                 else helper_str += "\t\tif (";
                 
-                helper_str += "field.str == std::string_view{" + pair.second + "}";
+                helper_str += "field == kun_kotek templated_constexpr_string_t{" + pair.second + "}";
                 helper_str += ") { return " + pair.first + "; }\n";
             }
             

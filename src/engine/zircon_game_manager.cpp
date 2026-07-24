@@ -722,7 +722,7 @@ void zircon_game_manager::Initialize(
 						p_engine_config->GetRendererVersion()
 					);
 
-				kotek::vector_t<kotek::core::ktkISDKUIElement*>
+				zircon_imgui_elements_t
 					ui_elements = {
 						new zircon_editor_ui_window_object_list(
 							this->m_p_session_editor_manager,
@@ -877,8 +877,7 @@ void zircon_game_manager::Initialize(
 				p_engine_config->GetRendererVersion()
 			);
 
-		kotek::vector_t<kotek::core::ktkISDKUIElement*>
-			ui_elements;
+		zircon_imgui_elements_t ui_elements;
 		p_session_game->set_imgui_ui_elements(ui_elements);
 
 		switch (renderer)
@@ -4482,7 +4481,7 @@ void zircon_game_manager::UpdateInput(void) noexcept {}
 // TODO: delete this
 void zircon_game_manager::UpdateCamera(void) noexcept {}
 
-const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+const zircon_imgui_elements_t&
 zircon_game_manager::get_ui_imgui_elements()
 {
 	if (!this->m_p_current_session)

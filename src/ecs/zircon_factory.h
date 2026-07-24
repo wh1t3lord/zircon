@@ -651,14 +651,18 @@ public:
 		return this->m_registry;
 	}
 
-	kotek::vector_t<kotek::pair_t<
-		kotek::static_cstring_view_t,
-		Kotek::ktk::json::value>>
+	kotek::static_vector_t<
+		kotek::pair_t<
+			kotek::static_cstring_view_t,
+			Kotek::ktk::json::value>,
+		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 	GetAllComponentsOfEntity(entt::entity entity_id) noexcept
 	{
-		kotek::vector_t<kotek::pair_t<
-			kotek::static_cstring_view_t,
-			Kotek::ktk::json::value>>
+		kotek::static_vector_t<
+			kotek::pair_t<
+				kotek::static_cstring_view_t,
+				Kotek::ktk::json::value>,
+			zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 			result;
 
 		entt::entity id = static_cast<entt::entity>(entity_id);

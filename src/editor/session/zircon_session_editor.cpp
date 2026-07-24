@@ -369,14 +369,13 @@ zircon_world* zircon_session_editor::get_world(void) const noexcept
 }
 
 void zircon_session_editor::set_imgui_ui_elements(
-	const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
-		imgui_elements) noexcept
+	const zircon_imgui_elements_t& imgui_elements) noexcept
 {
 	KOTEK_ASSERT(this->m_imgui_ui_elements.empty(), "already initialized!");
 	this->m_imgui_ui_elements = imgui_elements;
 }
 
-const kotek::vector_t<kotek::core::ktkISDKUIElement*>&
+const zircon_imgui_elements_t&
 zircon_session_editor::get_imgui_ui_elements(void) const noexcept
 {
 	return this->m_imgui_ui_elements;
