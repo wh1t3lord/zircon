@@ -67,7 +67,9 @@ void zircon_resource_manager::initialize(
 	this->m_worker_thread = kotek::mt::thread_t(
 		&zircon_resource_manager::worker_thread, this
 	);
-	this->m_worker_thread.detach();
+	// keep the worker JOINABLE — a detached thread outlives the object and
+	// reads freed members after delete (was the Release-only segfault in
+	// the Zircon_Game resource-manager tests)
 	this->m_signaled_worker_thread = 0;
 #endif
 }
@@ -75,6 +77,16 @@ void zircon_resource_manager::initialize(
 void zircon_resource_manager::shutdown(void)
 {
 	m_was_shutdown_called = 1;
+
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+	// the worker watches m_was_shutdown_called and exits on its own, but
+	// only a join gives the happens-before edge that makes the object safe
+	// to destroy (was a use-after-free segfault in Release)
+	if (this->m_worker_thread.joinable())
+	{
+		this->m_worker_thread.join();
+	}
+#endif
 }
 
 kotek::shared_ptr_t<zircon_resource_t>
