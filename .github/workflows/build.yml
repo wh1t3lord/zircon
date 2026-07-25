@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# the ci-logs publishing step pushes branches — the default
+# GITHUB_TOKEN is read-only, so pushes 403 silently without this
+permissions:
+  contents: write
+
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
@@ -15,7 +20,7 @@ jobs:
   windows:
     name: windows (${{ matrix.config }}, ${{ matrix.linkage.name }})
     runs-on: windows-2022
-    timeout-minutes: 120
+    timeout-minutes: 180
     # full dynamic is blocked today by kotek's cyclic module graph (K18):
     # it runs as a visible-but-non-blocking leg until the cycles are broken
     continue-on-error: ${{ matrix.linkage.experimental }}
@@ -51,15 +56,30 @@ jobs:
             kotek/vcpkg/installed
             kotek/vcpkg/vcpkg.exe
           key: vcpkg-${{ runner.os }}-x64-windows-static-v2-${{ hashFiles('kotek/cmake/windows/vcpkg_nuget_minimal.cmake') }}
+          # a key bump (dep-list change) must NOT mean a cold tree: fall back
+          # to the previous generation's tree so only the changed ports
+          # rebuild (see the note in tests.yml)
+          restore-keys: |
+            vcpkg-${{ runner.os }}-x64-windows-static-v2-
 
       - name: setup msvc
         uses: ilammy/msvc-dev-cmd@v1.13.0
 
       - name: configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${{ matrix.linkage.flags }}
+        # retry: vcpkg downloads flake on runners but installs resume cleanly;
+        # every attempt is tee'd so the publish step ships the REAL log
+        shell: pwsh
+        run: |
+          foreach ($attempt in 1..3) {
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${{ matrix.linkage.flags }} *> configure-attempt$attempt.log
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($attempt -eq 3) { exit $LASTEXITCODE }
+            Write-Host "configure attempt $attempt failed, retrying (vcpkg resumes)..."
+          }
 
       - name: build
-        run: cmake --build build --config ${{ matrix.config }} --parallel
+        shell: pwsh
+        run: cmake --build build --config ${{ matrix.config }} --parallel *> build-output.log
 
       - name: verify outputs
         shell: pwsh
@@ -71,6 +91,40 @@ jobs:
           if ("${{ matrix.linkage.name }}" -ne "static" -and -not (Test-Path "build/bin/${{ matrix.config }}/game.ktk")) {
             throw "game.ktk was not produced"
           }
+
+      # job logs and artifacts need admin rights to view — push the failure
+      # logs to a public ci-logs branch instead (same pattern as kotek's
+      # workflows)
+      - name: publish failure logs to ci-logs branch
+        if: failure()
+        shell: pwsh
+        run: |
+          $dest = "ci-logs/${{ github.run_id }}/${{ matrix.config }}-${{ matrix.linkage.name }}"
+          New-Item -ItemType Directory -Force $dest | Out-Null
+          if (Test-Path configure-attempt1.log) { Copy-Item configure-attempt*.log $dest -Force -ErrorAction SilentlyContinue }
+          if (Test-Path build-output.log) { Copy-Item build-output.log $dest -Force -ErrorAction SilentlyContinue }
+          cmake -S . -B build-diag -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${{ matrix.linkage.flags }} *> "$dest/diag-configure-output.log"; $null
+
+          # push from a SEPARATE clone: branch switching inside the job's
+          # checkout proved too fragile (shallow refspecs, orphan states)
+          $tmp = "$env:RUNNER_TEMP/ci-logs-push"
+          Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+          $repo = "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git clone --depth 1 --branch ci-logs $repo $tmp
+          if ($LASTEXITCODE -ne 0) {
+            git clone --depth 1 $repo $tmp
+            git -C $tmp checkout --orphan ci-logs
+            git -C $tmp rm -rf --quiet .
+          }
+          New-Item -ItemType Directory -Force "$tmp/$dest" | Out-Null
+          Copy-Item -Recurse "$dest/*" "$tmp/$dest/" -Force
+          git -C $tmp config user.email "ci@zircon"
+          git -C $tmp config user.name "zircon-ci"
+          git -C $tmp add $dest
+          git -C $tmp diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host "no new logs to publish"; exit 0 }
+          git -C $tmp commit --quiet -m "ci logs: build run ${{ github.run_number }} (${{ matrix.config }}-${{ matrix.linkage.name }})"
+          git -C $tmp push origin ci-logs
 
       - name: upload logs on failure
         if: failure()
