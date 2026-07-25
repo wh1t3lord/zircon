@@ -30,7 +30,23 @@ void zircon_config::set_feature(
 {
 	if (this->is_feature_enabled(feature))
 	{
-		this->m_features_data_sdk[feature] = data;
+		for (auto& entry : this->m_features_data_sdk)
+		{
+			if (entry.first == feature)
+			{
+				entry.second = data;
+				return;
+			}
+		}
+
+		KOTEK_ASSERT(
+			this->m_features_data_sdk.size() <
+				ZIRCON_DEF_CONFIG_MAX_FEATURE_DATA_COUNT,
+			"zircon feature data table is full — raise "
+			"ZIRCON_DEF_CONFIG_MAX_FEATURE_DATA_COUNT"
+		);
+
+		this->m_features_data_sdk.push_back({feature, data});
 	}
 }
 
@@ -257,10 +273,18 @@ translate_zircon_sdk_features(eZirconSDKFeatures features)
 	}
 }
 
-kotek::ktk::cstring
+const char*
 translate_zircon_game_features(eZirconGameFeatures features)
 {
-	KOTEK_ASSERT(false, "not implemented");
-
-	return kotek::ktk::cstring();
+	if (KOTEK_CHECK_FLAG(
+			features,
+			eZirconGameFeatures::kGame_Feature_Unknown
+		))
+	{
+		return "unknown";
+	}
+	else
+	{
+		return "ENUM_zircon_GAME_FEATURES_UNDEFINED";
+	}
 }

@@ -2,10 +2,19 @@
 
 #include "zircon_defs.h"
 
-// TODO: replace to static_cstring_t
+/// the data-carrying SDK features are a handful by design (bool features
+/// live directly in the flag enums, see m_features_sdk/m_features_game) —
+/// lookup-table-on-vector (rule 2), never a hash map; capacities are named
+/// and bounded (rule 9)
+#define ZIRCON_DEF_CONFIG_MAX_FEATURE_DATA_COUNT 8
+/// string-valued features stay allocation-free (a static string inside the
+/// variant; 32 chars covers ids/names of future features)
+#define ZIRCON_DEF_CONFIG_FEATURE_STRING_MAX_LENGTH 32
+
+// the translate functions return const char* (string literals, zero cost)
+// — static_cstring_t would CONSTRUCT a string per call for nothing
 const char* translate_zircon_sdk_features(eZirconSDKFeatures features);
-kotek::ktk::cstring translate_zircon_game_features(
-	eZirconGameFeatures features);
+const char* translate_zircon_game_features(eZirconGameFeatures features);
 
 constexpr const char* kZirconConfig_FileName = "game_config.json";
 
@@ -21,11 +30,16 @@ public:
 	template <typename Type>
 	Type get_feature(eZirconSDKFeatures feature) const noexcept
 	{
-		if (this->m_features_data_sdk.find(feature) ==
-			this->m_features_data_sdk.end())
-			return Type{};
+		for (const auto& entry : this->m_features_data_sdk)
+		{
+			if (entry.first == feature &&
+				std::holds_alternative<Type>(entry.second))
+			{
+				return std::get<Type>(entry.second);
+			}
+		}
 
-		return std::get<Type>(this->m_features_data_sdk.at(feature));
+		return Type{};
 	}
 
 	void set_feature(eZirconGameFeatures feature, bool status) noexcept;
@@ -49,12 +63,14 @@ private:
 	eZirconGameFeatures m_features_game;
 	eZirconSDKFeatures m_features_sdk;
 
-	// todo: replace on more optimized bitset or just array of flags with O(1)
-	kotek::ktk::unordered_map<eZirconSDKFeatures,
-		kotek::ktk::variant<int, double, float, kotek::ktk::cstring>>
+	// the variant carries every non-bool feature value; the string
+	// alternative is a static_cstring_t so no value ever allocates
+	using zircon_feature_data_t =
+		kotek::ktk::variant<int, double, float,
+			kotek::static_cstring_t<ZIRCON_DEF_CONFIG_FEATURE_STRING_MAX_LENGTH>>;
+
+	kotek::static_vector_t<
+		kotek::ktk::pair<eZirconSDKFeatures, zircon_feature_data_t>,
+		ZIRCON_DEF_CONFIG_MAX_FEATURE_DATA_COUNT>
 		m_features_data_sdk;
-	// todo: replace on more optimized bitset or just array of flags with O(1)
-	kotek::ktk::unordered_map<eZirconSDKFeatures,
-		kotek::ktk::variant<int, double, float, kotek::ktk::cstring>>
-		m_features_data_game;
 };
