@@ -124,12 +124,12 @@ void zircon_editor_ui_window_object_list::Draw(
 
 			if (p_wrapper_imgui->BeginTable("", 1))
 			{
-				char table_column_name[32]{};
-				kotek::ktk::sprintf(table_column_name,
-					sizeof(table_column_name), "Entity ID [%zu]",
+				kotek::array_t<char, 32> table_column_name{};
+				kotek::ktk::sprintf(table_column_name.data(),
+					table_column_name.size(), "Entity ID [%zu]",
 					this->m_amount_of_entites);
 				p_wrapper_imgui->TableSetupColumn(
-					table_column_name, ImGuiTableColumnFlags_WidthStretch);
+					table_column_name.data(), ImGuiTableColumnFlags_WidthStretch);
 				p_wrapper_imgui->TableHeadersRow();
 
 				kotek::size_t i = 0;

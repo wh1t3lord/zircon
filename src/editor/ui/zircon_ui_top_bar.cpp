@@ -182,15 +182,15 @@ void zircon_editor_ui_window_top_bar::Draw(
 											static_cast<eZirconWindowIDs>(
 												p_element->Get_ID()));
 
-									char build_window_name[64];
+									kotek::array_t<char, 64> build_window_name{};
 
-									kotek::ktk::sprintf(build_window_name,
-										sizeof(build_window_name),
+									kotek::ktk::sprintf(build_window_name.data(),
+										build_window_name.size(),
 										"%s##ViewImGui", p_window_name);
 
 									bool is_shown = p_element->Is_Shown();
 									if (p_wrapper_imgui->MenuItem(
-											build_window_name, nullptr,
+											build_window_name.data(), nullptr,
 											is_shown))
 									{
 										if (p_element->Is_Shown() == false)

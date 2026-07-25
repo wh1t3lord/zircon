@@ -387,9 +387,10 @@ bool zircon_command_delete_component_from_entity::
 
 	this->m_component_name = component_name_buffer;
 
-	char state_buffer[zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON];
+	kotek::array_t<char, zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON>
+		state_buffer{};
 
-	status = reader.read_string(state_buffer, sizeof(state_buffer));
+	status = reader.read_string(state_buffer.data(), state_buffer.size());
 
 	if (status == false)
 		return false;
@@ -399,7 +400,7 @@ bool zircon_command_delete_component_from_entity::
 	this->m_serialized_state_of_deleted_component =
 		kotek::ktk::json::parse(
 			kotek::cstring_view_t(
-				state_buffer, strlen(state_buffer)
+				state_buffer.data(), strlen(state_buffer.data())
 			),
 			parse_error
 		);

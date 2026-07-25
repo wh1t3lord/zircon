@@ -107,6 +107,10 @@ void zircon_config::serialize(
 			)
 		);
 
+		// raw array is forced by kotek's template signature
+		// (ktkResourceText::Serialize_ToString(char (&)[N], Size&) in
+		// kotek.core.filesystem.file_text) — exempt from the no-raw-array
+		// rule, like the interface-shaped string_view sites
 		char text[1024];
 		Kotek::uint16_t text_real_length = 0;
 		bool status = config.Serialize_ToString(text, text_real_length);
@@ -150,12 +154,11 @@ void zircon_config::deserialize(
 			kotek::core::ktkResourceText<1024, 2048, false>
 				file;
 
-			unsigned char text[1024];
+			kotek::array_t<unsigned char, 1024> text{};
 
-			kotek::ktk::size_t text_size =
-				sizeof(text) / sizeof(text[0]);
+			kotek::ktk::size_t text_size = text.size();
 
-			unsigned char* p_text = text;
+			unsigned char* p_text = text.data();
 			bool status = p_filesystem->Read_File(
 				path_to_file, p_text, text_size
 			);
@@ -164,7 +167,7 @@ void zircon_config::deserialize(
 			);
 
 			status = file.Create_FromMemory(
-				text, text_size
+				text.data(), text_size
 			);
 
 			KOTEK_ASSERT(

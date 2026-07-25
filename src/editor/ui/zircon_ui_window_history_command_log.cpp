@@ -66,7 +66,7 @@ void zircon_editor_ui_window_history_command_log::Draw(
 				{
 					const auto& commands = p_history->GetCommands();
 
-					char button_name[64]{};
+					kotek::array_t<char, 64> button_name{};
 					for (int i = 0;
 						i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
 					{
@@ -74,8 +74,8 @@ void zircon_editor_ui_window_history_command_log::Draw(
 
 						if (p_command)
 						{
-							kotek::ktk::sprintf(button_name,
-								sizeof(button_name), "[%d] %s", i,
+							kotek::ktk::sprintf(button_name.data(),
+								button_name.size(), "[%d] %s", i,
 								p_command->GetName());
 
 							bool selected{};
@@ -87,7 +87,7 @@ void zircon_editor_ui_window_history_command_log::Draw(
 							if (i > current_index)
 								p_wrapper_imgui->BeginDisabled();
 
-							p_wrapper_imgui->Selectable(button_name, &selected);
+							p_wrapper_imgui->Selectable(button_name.data(), &selected);
 
 							if (i > current_index)
 								p_wrapper_imgui->EndDisabled();

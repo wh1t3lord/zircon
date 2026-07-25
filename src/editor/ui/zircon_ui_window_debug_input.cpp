@@ -39,12 +39,12 @@ void zircon_editor_ui_window_debug_input::Draw(
 		{
 			p_input->WriteKeyAsStringToBuffer_IfPressed(
 				kotek::core::eInputControllerType::kControllerKeyboard,
-				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+				this->m_state_keys_buffer.data(), this->m_state_keys_buffer.size());
 			p_input->WriteKeyAsStringToBuffer_IfPressed(
 				kotek::core::eInputControllerType::kControllerMouse,
-				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+				this->m_state_keys_buffer.data(), this->m_state_keys_buffer.size());
 
-			p_wrapper_imgui->Text("Pressed: [%s]", this->m_state_keys_buffer);
+			p_wrapper_imgui->Text("Pressed: [%s]", this->m_state_keys_buffer.data());
 
 			this->m_state_keys_buffer[0] = '\0';
 
@@ -52,13 +52,13 @@ void zircon_editor_ui_window_debug_input::Draw(
 
 			p_input->WriteKeyAsStringToBuffer_IfHolding(
 				kotek::core::eInputControllerType::kControllerKeyboard,
-				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+				this->m_state_keys_buffer.data(), this->m_state_keys_buffer.size());
 
 			p_input->WriteKeyAsStringToBuffer_IfHolding(
 				kotek::core::eInputControllerType::kControllerMouse,
-				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+				this->m_state_keys_buffer.data(), this->m_state_keys_buffer.size());
 
-			p_wrapper_imgui->Text("Holding: [%s]", this->m_state_keys_buffer);
+			p_wrapper_imgui->Text("Holding: [%s]", this->m_state_keys_buffer.data());
 
 			this->m_state_keys_buffer[0] = '\0';
 
@@ -66,12 +66,12 @@ void zircon_editor_ui_window_debug_input::Draw(
 
 			p_input->WriteKeyAsStringToBuffer_IfReleased(
 				kotek::core::eInputControllerType::kControllerKeyboard,
-				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+				this->m_state_keys_buffer.data(), this->m_state_keys_buffer.size());
 			p_input->WriteKeyAsStringToBuffer_IfReleased(
 				kotek::core::eInputControllerType::kControllerMouse,
-				this->m_state_keys_buffer, sizeof(this->m_state_keys_buffer));
+				this->m_state_keys_buffer.data(), this->m_state_keys_buffer.size());
 
-			p_wrapper_imgui->Text("Release: [%s]", this->m_state_keys_buffer);
+			p_wrapper_imgui->Text("Release: [%s]", this->m_state_keys_buffer.data());
 
 			this->m_state_keys_buffer[0] = '\0';
 

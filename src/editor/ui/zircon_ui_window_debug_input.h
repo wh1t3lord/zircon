@@ -17,5 +17,5 @@ public:
 
 private:
 	bool m_is_show_window;
-	char m_state_keys_buffer[512];
+	kotek::array_t<char, 512> m_state_keys_buffer;
 };
