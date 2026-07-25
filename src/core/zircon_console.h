@@ -60,6 +60,11 @@ enum class eZirconConsoleCommands : kotek::enum_base_t
 #undef _EZCC_GENERATE_ENUM
 };
 
+// the std::string_view here is forced by kotek's interface contract
+// (console_user_callback_enum_translation_t = std::function<int(
+// std::string_view)> in kotek.core.api) — no switchable alias can
+// substitute at an interface boundary, so this site is exempt from the
+// no-raw-std rule
 inline constexpr auto zircon_user_console_translation_callback =
 	[](std::string_view str) -> int
 {

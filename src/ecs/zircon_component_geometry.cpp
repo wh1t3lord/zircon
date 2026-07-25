@@ -149,9 +149,7 @@ void zircon_component_geometry::draw_imgui(
 
 							if (p_wrapper_imgui->Selectable(
 									translated_name,
-									std::string_view(
-										this->m_p_geometry_name
-									) == translated_name
+									translated_name == this->m_p_geometry_name
 								))
 							{
 								this->m_geometry_type =

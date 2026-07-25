@@ -95,7 +95,7 @@ private:
 	// backend plugin dll
 	kotek::core::ktkIRenderResourceManager* m_p_render_resource_manager;
 	kotek::render::bgfx::ktkRenderGraphSimplified* m_p_current_render_graph;
-	kotek::vector_t<zircon_render_graph_simplified_bgfx_info_t,
+	kotek::static_vector_t<zircon_render_graph_simplified_bgfx_info_t,
 		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>
 		m_render_graphs;
 };
