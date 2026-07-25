@@ -764,7 +764,13 @@ void zircon_session_editor::try_to_initialize_render_graph(void) noexcept
 			"console must be initialized for initializing render graph from "
 			"session!");
 
-		if (this->m_p_console)
+		// backends without render graphs (NRI phase 1, task K11/Z5) keep
+		// the invalid id — there is nothing to initialize
+		constexpr kotek::uint8_t k_invalid_render_graph_id =
+			static_cast<kotek::uint8_t>(-1);
+
+		if (this->m_p_console &&
+			this->m_render_graph_id != k_invalid_render_graph_id)
 		{
 			this->m_p_console->Push_Command(
 				static_cast<kotek::enum_base_t>(

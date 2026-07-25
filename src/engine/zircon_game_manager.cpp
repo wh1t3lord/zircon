@@ -31,6 +31,11 @@
 
 // gles3/vk backends were removed (2026-07-22); bgfx is the raster backend
 
+// NRI backend (task K11/Z5 phase 1): the DirectX feature slot maps to it
+#ifdef KOTEK_USE_RENDER_NRI
+	#include "../render/nri/zircon_renderer_nri.h"
+#endif
+
 // bgfx
 #ifdef KOTEK_USE_BGFX
 	#include "../render/bgfx/zircon_renderer.h"
@@ -927,6 +932,16 @@ void zircon_game_manager::Initialize(
 
 			break;
 		}
+		case kotek::core::eEngineSupportedRenderer::
+			kDirectX_Latest:
+		{
+			// NRI phase 1 (task K11/Z5): this backend has no render
+			// graphs yet — zircon_renderer_nri presents through the
+			// kotek.render.nri swapchain directly, so the session keeps
+			// the invalid render_graph_id; the passes split is the
+			// deferred Z5 work
+			break;
+		}
 		default:
 		{
 			KOTEK_ASSERT(false, "unsupported renderer!");
@@ -1426,6 +1441,16 @@ void zircon_game_manager::initialize_render_graph(
 
 		break;
 	}
+	case kotek::core::eEngineSupportedRenderer::kDirectX_Latest:
+	{
+		// NRI phase 1 (task K11/Z5): no render graphs on this backend
+		KOTEK_MESSAGE_WARNING(
+			"[nri] initialize_render_graph is not supported by the NRI "
+			"backend in phase 1 (render_graph_id {})",
+			render_graph_id
+		);
+		break;
+	}
 	default:
 	{
 		KOTEK_ASSERT(false, "unsupported renderer");
@@ -1485,6 +1510,13 @@ bool zircon_game_manager::is_render_graph_initialized(
 			);
 		}
 
+		break;
+	}
+	case kotek::core::eEngineSupportedRenderer::kDirectX_Latest:
+	{
+		// NRI phase 1 (task K11/Z5): no render graphs on this backend,
+		// so nothing graph-shaped is ever initialized
+		result = false;
 		break;
 	}
 	default:
@@ -1641,7 +1673,17 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 					 kEngine_Feature_Renderer_DirectX_SpecifiedByUser
 			 ))
 	{
+#ifdef KOTEK_USE_RENDER_NRI
+		// task K11/Z5 phase 1: the DirectX slot is the NRI backend
+		this->m_renderers.p_nri =
+			new zircon_renderer_nri(this->m_p_main_manager);
+
+		this->m_renderers.p_nri->Initialize();
+
+		this->m_p_current_renderer = this->m_renderers.p_nri;
+#else
 		KOTEK_ASSERT(false, "not supported");
+#endif
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 kotek::core::eEngineFeatureRenderer::
@@ -1768,7 +1810,17 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 					 kEngine_Feature_Renderer_DirectX_SpecifiedByUser
 			 ))
 	{
+#ifdef KOTEK_USE_RENDER_NRI
+		KOTEK_ASSERT(
+			this->m_renderers.p_nri,
+			"must be valid nri renderer!"
+		);
+
+		delete this->m_renderers.p_nri;
+		this->m_renderers.p_nri = nullptr;
+#else
 		KOTEK_ASSERT(false, "not implemented yet");
+#endif
 	}
 	else if (p_engine_config->IsFeatureEnabled(
 				 kotek::core::eEngineFeatureRenderer::
@@ -2426,6 +2478,14 @@ void zircon_game_manager::RegisterConsole_Commands(void
 
 				break;
 			}
+			case kotek::core::eEngineSupportedRenderer::
+				kDirectX_Latest:
+			{
+				// NRI phase 1 (task K11/Z5): no render graphs on this
+				// backend — setting the current session above is all
+				// this command has to do
+				break;
+			}
 			default:
 			{
 				KOTEK_ASSERT(false, "unsupported renderer!");
@@ -2518,6 +2578,14 @@ void zircon_game_manager::RegisterConsole_Commands(void
 					);
 				}
 
+				break;
+			}
+			case kotek::core::eEngineSupportedRenderer::
+				kDirectX_Latest:
+			{
+				// NRI phase 1 (task K11/Z5): no render graphs on this
+				// backend — setting the current session above is all
+				// this command has to do
 				break;
 			}
 			default:
@@ -2676,6 +2744,19 @@ void zircon_game_manager::RegisterConsole_Commands(void
 				);
 			}
 
+			break;
+		}
+		case kotek::core::eEngineSupportedRenderer::
+			kDirectX_Latest:
+		{
+			// NRI phase 1 (task K11/Z5): no render graphs on this
+			// backend — the command is meaningless here, degrade instead
+			// of aborting
+			KOTEK_MESSAGE_WARNING(
+				"[nri] render graphs are not supported by the NRI "
+				"backend in phase 1 (render_graph_id {})",
+				render_graph_id
+			);
 			break;
 		}
 		default:

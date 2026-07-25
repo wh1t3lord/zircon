@@ -40,6 +40,7 @@ class zircon_session_game_manager;
 class zircon_session_editor;
 class zircon_session_editor_manager;
 class zircon_renderer_bgfx;
+class zircon_renderer_nri;
 
 #ifdef KOTEK_DEBUG
 	#ifdef KOTEK_USE_TESTS_RUNTIME
@@ -57,6 +58,10 @@ class zircon_game_manager : public kotek::core::ktkIGameManager
 	{
 #ifdef KOTEK_USE_BGFX
 		zircon_renderer_bgfx* p_bgfx;
+#endif
+
+#ifdef KOTEK_USE_RENDER_NRI
+		zircon_renderer_nri* p_nri;
 #endif
 	};
 

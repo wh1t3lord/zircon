@@ -74,6 +74,14 @@ set(to_include_shared_os
 )
 ###
 
+### NRI (task K11/Z5 phase 1: minimal renderer over the kotek.render.nri
+### backend; the passes split is the deferred Z5 work)
+set(to_include_nri
+	"nri/zircon_renderer_nri.h"
+	"nri/zircon_renderer_nri.cpp"
+)
+###
+
 set(to_include_module_files
 	"zircon_render.h"
 	"main_render_dll.cpp"
@@ -92,6 +100,7 @@ kotek_add_library(${PROJECT_NAME}
 	${to_include_bgfx}
 	${to_include_module_files}
 	${to_include_shared_os}
+	${to_include_nri}
 )
 
 # TODO: add if when game.ktk builds as shared
@@ -130,6 +139,7 @@ source_group("BGFX/Passes/Editor/No Streaming" FILES ${to_include_bgfx_editor_pa
 source_group("BGFX/Passes/Editor/Interfaces" FILES ${to_include_bgfx_editor_pass_interface})
 source_group("BGFX/Shaders" FILES ${to_include_shaders_bgfx})
 source_group("BGFX/Passes/OS" FILES ${to_include_shared_os})
+source_group("NRI" FILES ${to_include_nri})
 
 source_group("Module" FILES ${to_include_module_files})
 
