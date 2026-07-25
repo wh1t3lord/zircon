@@ -9,7 +9,7 @@ zircon_component_animation::~zircon_component_animation(void) {}
 
 /*
 void zircon_component_animation::draw_imgui(
-	Kotek::Core::ktkMainManager* main_manager
+	kotek::Core::ktkMainManager* main_manager
 ) noexcept
 {
 	if (main_manager)
@@ -70,7 +70,7 @@ kotek::uint8_t
 zircon_component_animation::get_component_type(void
 ) const noexcept
 {
-	return static_cast<Kotek::uint8_t>(
+	return static_cast<kotek::uint8_t>(
 		eZirconComponentType::kzircon_component_animation
 	);
 }

@@ -39,7 +39,7 @@ zircon_resource_manager::~zircon_resource_manager(void)
 }
 
 void zircon_resource_manager::initialize(
-	Kotek::core::ktkMainManager* p_main_manager
+	kotek::core::ktkMainManager* p_main_manager
 )
 {
 	if (m_was_shutdown_called == -1)

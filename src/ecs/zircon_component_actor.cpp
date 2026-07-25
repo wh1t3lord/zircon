@@ -9,7 +9,7 @@ zircon_component_actor::~zircon_component_actor(void) {}
 
 /*
 void zircon_component_actor::draw_imgui(
-	Kotek::Core::ktkMainManager* p_main_manager
+	kotek::Core::ktkMainManager* p_main_manager
 ) noexcept
 {
 	if (p_main_manager)
@@ -55,7 +55,7 @@ kotek::json::value zircon_component_actor::serialize(
 kotek::uint8_t zircon_component_actor::get_component_type(void
 ) const noexcept
 {
-	return static_cast<Kotek::uint8_t>(
+	return static_cast<kotek::uint8_t>(
 		eZirconComponentType::kzircon_component_actor
 	);
 }

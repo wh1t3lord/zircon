@@ -26,11 +26,11 @@ public:
 	kotek::entity_t GetEntityID(void) const noexcept override;
 	void SetEntityID(kotek::entity_t id) noexcept override;
 
-	Kotek::ktk::enum_base_t GetCommandType() noexcept override;
+	kotek::ktk::enum_base_t GetCommandType() noexcept override;
 
 	/// @brief \~english deprecated file serialization from the old
 	/// streaming design, the journal uses Serialize_Delta instead
-	Kotek::ktk::size_t Serialize(
+	kotek::ktk::size_t Serialize(
 		kotek::core::ktkFileHandleType file
 	) noexcept override;
 

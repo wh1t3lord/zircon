@@ -431,12 +431,12 @@ public:
 		return this->GetComponentByName(id, component_name);
 	}
 
-	Kotek::ktk::json::value SerializeComponentByNameToJSON(
+	kotek::ktk::json::value SerializeComponentByNameToJSON(
 		entt::entity id,
 		const kotek::static_cstring_view_t& component_name
 	) noexcept
 	{
-		Kotek::ktk::json::value result;
+		kotek::ktk::json::value result;
 
 		KOTEK_ASSERT(
 			component_name.empty() == false,
@@ -462,7 +462,7 @@ public:
 		entt::entity id,
 		const char* p_component_name,
 		unsigned char* p_raw_memory,
-		Kotek::ktk::size_t raw_memory_size
+		kotek::ktk::size_t raw_memory_size
 	) noexcept
 	{
 		KOTEK_ASSERT(p_component_name, "invalid string");
@@ -576,18 +576,18 @@ public:
 	) noexcept;
 	zircon_component_interface* get_component_by_name(
 		zircon_ecs_context_t* p_context,
-		Kotek::entity_t id,
+		kotek::entity_t id,
 		const kotek::cstring_view_t& component_name
 	) noexcept;
 	zircon_component_interface* get_component_by_enum(
 		zircon_ecs_context_t* p_context,
-		Kotek::entity_t id,
+		kotek::entity_t id,
 		eZirconComponentType component_type
 	) noexcept;
 
 	void DeserializeComponent(
 		void* p_raw_data,
-		const Kotek::ktk::json::value& serialized_data
+		const kotek::ktk::json::value& serialized_data
 	) noexcept
 	{
 		KOTEK_ASSERT(
@@ -609,9 +609,9 @@ public:
 #ifdef KOTEK_USE_ECS_BACKEND_ENTT
 	void CreateAllComponents(
 		entt::entity entity_id,
-		const Kotek::ktk::vector<Kotek::ktk::pair<
-			Kotek::ktk::cstring,
-			Kotek::ktk::json::value>>& serialized_components
+		const kotek::ktk::vector<kotek::ktk::pair<
+			kotek::ktk::cstring,
+			kotek::ktk::json::value>>& serialized_components
 	) noexcept
 	{
 		if (serialized_components.empty() == false)
@@ -654,14 +654,14 @@ public:
 	kotek::static_vector_t<
 		kotek::pair_t<
 			kotek::static_cstring_view_t,
-			Kotek::ktk::json::value>,
+			kotek::ktk::json::value>,
 		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 	GetAllComponentsOfEntity(entt::entity entity_id) noexcept
 	{
 		kotek::static_vector_t<
 			kotek::pair_t<
 				kotek::static_cstring_view_t,
-				Kotek::ktk::json::value>,
+				kotek::ktk::json::value>,
 			zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
 			result;
 

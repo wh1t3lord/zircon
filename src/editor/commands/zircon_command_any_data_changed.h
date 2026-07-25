@@ -16,7 +16,7 @@ namespace zircon
 class zircon_command_history;
 
 // for language types it is not for graphics!
-class zircon_command_any_data_changed : public Kotek::Core::ktkISDKRedoUndo
+class zircon_command_any_data_changed : public kotek::Core::ktkISDKRedoUndo
 {
 public:
 	zircon_command_any_data_changed(zircon_command_history* p_history,

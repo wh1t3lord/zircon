@@ -259,7 +259,7 @@ kotek::uint8_t
 zircon_component_geometry::get_component_type(void
 ) const noexcept
 {
-	return static_cast<Kotek::uint8_t>(
+	return static_cast<kotek::uint8_t>(
 		eZirconComponentType::kzircon_component_geometry
 	);
 }

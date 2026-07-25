@@ -25,7 +25,7 @@ zircon_component_input& zircon_component_sdk_input::get_input(void) noexcept
 
 /*
 void zircon_component_sdk_input::draw_imgui(
-	Kotek::Core::ktkMainManager* p_main_manager) noexcept
+	kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
 	if (p_main_manager)
 	{

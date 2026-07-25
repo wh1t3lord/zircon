@@ -2,7 +2,7 @@
 
 class zircon_config;
 
-class zircon_editor_ui_window_settings : public Kotek::Core::ktkISDKUIElement
+class zircon_editor_ui_window_settings : public kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_editor_ui_window_settings(zircon_config* p_config);
@@ -10,7 +10,7 @@ public:
 
 	void Initialize(void) override;
 	void Shutdown(void) override;
-	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
+	void Draw(kotek::Core::ktkMainManager* main_manager) override;
 
 	int Get_ID(void) const override;
 	void Show(void) override;

@@ -26,10 +26,10 @@ public:
 	void set_enabled(bool status) noexcept;
 
 	kotek::size_t get_vertex_count(void) const noexcept;
-	void set_vertex_count(Kotek::size_t count) noexcept;
+	void set_vertex_count(kotek::size_t count) noexcept;
 
 	kotek::size_t get_index_count(void) const noexcept;
-	void set_index_count(Kotek::size_t count) noexcept;
+	void set_index_count(kotek::size_t count) noexcept;
 
 	const char* get_path(void) const noexcept;
 	void set_path(const kotek::cstring_t& path) noexcept;

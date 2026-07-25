@@ -63,7 +63,7 @@ bool zircon_config::is_feature_enabled(
 }
 
 void zircon_config::serialize(
-	Kotek::Core::ktkIFileSystem* p_filesystem
+	kotek::Core::ktkIFileSystem* p_filesystem
 ) noexcept
 {
 	KOTEK_ASSERT(
@@ -112,7 +112,7 @@ void zircon_config::serialize(
 		// kotek.core.filesystem.file_text) — exempt from the no-raw-array
 		// rule, like the interface-shaped string_view sites
 		char text[1024];
-		Kotek::uint16_t text_real_length = 0;
+		kotek::uint16_t text_real_length = 0;
 		bool status = config.Serialize_ToString(text, text_real_length);
 		KOTEK_ASSERT(status, "failed to serialize!");
 
@@ -126,7 +126,7 @@ void zircon_config::serialize(
 }
 
 void zircon_config::deserialize(
-	Kotek::Core::ktkIFileSystem* p_filesystem
+	kotek::Core::ktkIFileSystem* p_filesystem
 ) noexcept
 {
 	KOTEK_ASSERT(
@@ -257,10 +257,10 @@ translate_zircon_sdk_features(eZirconSDKFeatures features)
 	}
 }
 
-Kotek::ktk::cstring
+kotek::ktk::cstring
 translate_zircon_game_features(eZirconGameFeatures features)
 {
 	KOTEK_ASSERT(false, "not implemented");
 
-	return Kotek::ktk::cstring();
+	return kotek::ktk::cstring();
 }

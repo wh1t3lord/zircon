@@ -11,7 +11,7 @@ void zircon_editor_ui_window_log::Initialize(void) {}
 
 void zircon_editor_ui_window_log::Shutdown(void) {}
 
-void zircon_editor_ui_window_log::Draw(Kotek::Core::ktkMainManager* main_manager)
+void zircon_editor_ui_window_log::Draw(kotek::Core::ktkMainManager* main_manager)
 {
 	if (!this->m_is_show_window)
 		return;

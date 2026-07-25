@@ -1,6 +1,6 @@
 #pragma once
 
-class zircon_editor_ui_window_render_stats : public Kotek::Core::ktkISDKUIElement
+class zircon_editor_ui_window_render_stats : public kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_editor_ui_window_render_stats();
@@ -8,7 +8,7 @@ public:
 
 	void Initialize(void) override;
 	void Shutdown(void) override;
-	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
+	void Draw(kotek::Core::ktkMainManager* main_manager) override;
 
 	int Get_ID(void) const override;
 

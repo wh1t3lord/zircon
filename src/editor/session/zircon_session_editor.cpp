@@ -161,7 +161,7 @@ void zircon_session_editor::Serialize(
 	}
 	KOTEK_ASSERT(false, "todo: re-write");
 	/*
-	Kotek::Core::ktkFileText output(reinterpret_cast<const char*>(
+	kotek::Core::ktkFileText output(reinterpret_cast<const char*>(
 		full_path_to_file.filename().u8string().c_str()));*/
 
 /*
@@ -177,12 +177,12 @@ void zircon_session_editor::Serialize(
 
 void zircon_session_editor::Serialize_Settings(
 	text_t& output,
-	const Kotek::ktk::cstring& scenename) noexcept
+	const kotek::ktk::cstring& scenename) noexcept
 {
 	KOTEK_ASSERT(
 		scenename.empty() == false, "you can't pass an empty scene name!");
 
-	Kotek::ktk::json::object settings;
+	kotek::ktk::json::object settings;
 
 	settings["scene_name"] = scenename.c_str();
 
@@ -194,7 +194,7 @@ void zircon_session_editor::Deserialize_Settings(text_t& input
 {
 	if (input.Is_KeyExist("Settings"))
 	{
-		auto settings = input.Get<Kotek::ktk::json::object>("Settings");
+		auto settings = input.Get<kotek::ktk::json::object>("Settings");
 
 		if (settings.find("scene_name") != settings.end())
 		{
@@ -203,11 +203,11 @@ void zircon_session_editor::Deserialize_Settings(text_t& input
 			formatted += "]";
 
 			this->m_p_console->Execute_Command(
-				static_cast<Kotek::ktk::enum_base_t>(
-					Kotek::Core::eConsoleCommandIndex::
+				static_cast<kotek::ktk::enum_base_t>(
+					kotek::Core::eConsoleCommandIndex::
 						kConsoleCommand_App_AddTextToExistedWindowTitle),
-				{static_cast<Kotek::ktk::enum_base_t>(
-					 Kotek::Core::eWindowTitleType::kTitle_CurrentSceneName),
+				{static_cast<kotek::ktk::enum_base_t>(
+					 kotek::Core::eWindowTitleType::kTitle_CurrentSceneName),
 					formatted});
 		}
 	}
@@ -221,7 +221,7 @@ void zircon_session_editor::Serialize_Entities(text_t& output
 	auto p_factory = this->m_p_world->get_factory();
 	if (p_factory)
 	{
-		Kotek::ktk::json::array all_entities;
+		kotek::ktk::json::array all_entities;
 
 		zircon_ecs_context_t* p_context =
 			this->m_p_world->get_ecs_context();
@@ -240,7 +240,7 @@ void zircon_session_editor::Serialize_Entities(text_t& output
 		{
 			kotek::entity_t id = entities[entity_index];
 
-			Kotek::ktk::json::object entity;
+			kotek::ktk::json::object entity;
 
 			kotek::static_vector_t<
 				eZirconComponentType,
@@ -280,7 +280,7 @@ void zircon_session_editor::Deserialize_Entities(text_t& input
 {
 	if (input.Is_KeyExist("Entities"))
 	{
-		auto entities = input.Get<Kotek::ktk::json::array>("Entities");
+		auto entities = input.Get<kotek::ktk::json::array>("Entities");
 
 		if (entities.empty() == false)
 		{
@@ -288,8 +288,8 @@ void zircon_session_editor::Deserialize_Entities(text_t& input
 			{
 				auto entity = raw_data.as_object();
 
-				Kotek::ktk::vector<Kotek::ktk::pair<Kotek::ktk::cstring,
-					Kotek::ktk::json::value>>
+				kotek::ktk::vector<kotek::ktk::pair<kotek::ktk::cstring,
+					kotek::ktk::json::value>>
 					serialized_data;
 
 				for (auto pair : entity)
@@ -453,19 +453,19 @@ void zircon_session_editor::update_component_input_sdk(void) noexcept
 				if (status)
 				{
 					if (input.get_input_type() !=
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eInputType::kInputType_DisabledCursor))
+						static_cast<kotek::ktk::enum_base_t>(
+							kotek::Core::eInputType::kInputType_DisabledCursor))
 					{
-						input.set_input_type(static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eInputType::kInputType_DisabledCursor));
+						input.set_input_type(static_cast<kotek::ktk::enum_base_t>(
+							kotek::Core::eInputType::kInputType_DisabledCursor));
 
 						auto* p_console = this->m_p_console;
 
 						if (p_console)
 						{
 							p_console->Push_Command(
-								static_cast<Kotek::ktk::enum_base_t>(
-									Kotek::Core::eConsoleCommandIndex::
+								static_cast<kotek::ktk::enum_base_t>(
+									kotek::Core::eConsoleCommandIndex::
 										kConsoleCommand_Input_Type),
 								{input.get_input_type()});
 						}
@@ -474,19 +474,19 @@ void zircon_session_editor::update_component_input_sdk(void) noexcept
 				else
 				{
 					if (input.get_input_type() !=
-						static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eInputType::kInputType_Cursor))
+						static_cast<kotek::ktk::enum_base_t>(
+							kotek::Core::eInputType::kInputType_Cursor))
 					{
-						input.set_input_type(static_cast<Kotek::ktk::enum_base_t>(
-							Kotek::Core::eInputType::kInputType_Cursor));
+						input.set_input_type(static_cast<kotek::ktk::enum_base_t>(
+							kotek::Core::eInputType::kInputType_Cursor));
 
 						auto* p_console = this->m_p_console;
 
 						if (p_console)
 						{
 							p_console->Push_Command(
-								static_cast<Kotek::ktk::enum_base_t>(
-									Kotek::Core::eConsoleCommandIndex::
+								static_cast<kotek::ktk::enum_base_t>(
+									kotek::Core::eConsoleCommandIndex::
 										kConsoleCommand_Input_Type),
 								{input.get_input_type()});
 						}
@@ -505,11 +505,11 @@ void zircon_session_editor::update_editing_status(void) noexcept
 		!this->m_is_change_title_once_for_editing_status)
 	{
 		this->m_p_console->Push_Command(
-			static_cast<Kotek::ktk::enum_base_t>(
-				Kotek::Core::eConsoleCommandIndex::
+			static_cast<kotek::ktk::enum_base_t>(
+				kotek::Core::eConsoleCommandIndex::
 					kConsoleCommand_App_AddTextToExistedWindowTitle),
-			{{static_cast<Kotek::ktk::enum_base_t>(
-				 Kotek::Core::eWindowTitleType::kTitle_CurrentSceneEditStatus)},
+			{{static_cast<kotek::ktk::enum_base_t>(
+				 kotek::Core::eWindowTitleType::kTitle_CurrentSceneEditStatus)},
 				kotek::static_cstring_t<16>{"-- editing"}});
 
 		this->m_is_change_title_once_for_editing_status = true;
@@ -644,25 +644,25 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 				camera.set_pitch(pitch);
 				camera.set_yaw(yaw);
 
-				Kotek::ktk::math::vec3f_t front;
+				kotek::ktk::math::vec3f_t front;
 
-				front.x() = cos(Kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(Kotek::ktk::math::convert_to_radians(pitch));
-				front.y() = sin(Kotek::ktk::math::convert_to_radians(pitch));
-				front.z() = sin(Kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(Kotek::ktk::math::convert_to_radians(pitch));
+				front.x() = cos(kotek::ktk::math::convert_to_radians(yaw)) *
+					cos(kotek::ktk::math::convert_to_radians(pitch));
+				front.y() = sin(kotek::ktk::math::convert_to_radians(pitch));
+				front.z() = sin(kotek::ktk::math::convert_to_radians(yaw)) *
+					cos(kotek::ktk::math::convert_to_radians(pitch));
 				auto height = this->m_p_main_manager->Get_WindowManager()
 								  ->ActiveWindow_GetHeight();
 				auto width = this->m_p_main_manager->Get_WindowManager()
 								 ->ActiveWindow_GetWidth();
 
 				// TODO: projection update only when we zoom
-				camera.set_projection(Kotek::ktk::math::perspective(
-					Kotek::ktk::math::convert_to_radians(
+				camera.set_projection(kotek::ktk::math::perspective(
+					kotek::ktk::math::convert_to_radians(
 						camera.get_field_of_view()),
 					width / height, camera.get_plane_near(),
 					camera.get_plane_far()));
-				camera.set_view(Kotek::ktk::math::look_at(
+				camera.set_view(kotek::ktk::math::look_at(
 					component_transform.get_position(),
 					component_transform.get_position() + front,
 					{0.0f, 1.0f, 0.0f}));

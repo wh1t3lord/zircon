@@ -39,7 +39,7 @@ void zircon_editor_ui_window_component_inspector::Initialize(void) {}
 void zircon_editor_ui_window_component_inspector::Shutdown(void) {}
 
 void zircon_editor_ui_window_component_inspector::Draw(
-	Kotek::Core::ktkMainManager* p_main_manager)
+	kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (!this->m_is_show_window)
 		return;
@@ -81,7 +81,7 @@ void zircon_editor_ui_window_component_inspector::Draw(
 
 	auto selected_entity = p_session->get_ui_state()->get_selected_entity();
 
-	Kotek::Core::ktkIImguiWrapper* p_wrapper_imgui =
+	kotek::Core::ktkIImguiWrapper* p_wrapper_imgui =
 		p_main_manager->Get_ImguiWrapper();
 
 	if (p_wrapper_imgui)
@@ -255,8 +255,8 @@ void zircon_editor_ui_window_component_inspector::Draw(
 					if (is_valid_for_adding)
 					{
 						p_game_manager->GetConsole()->Execute_Command(
-							static_cast<Kotek::ktk::enum_base_t>(
-								Kotek::Core::eConsoleCommandIndex::
+							static_cast<kotek::ktk::enum_base_t>(
+								kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_CreateComponentForEntityByName),
 							{{this->m_p_list_selected_item_allocator},
 								{static_cast<kotek::uint32_t>(
@@ -269,8 +269,8 @@ void zircon_editor_ui_window_component_inspector::Draw(
 					if (this->m_p_list_selected_item_allocator)
 					{
 						p_game_manager->GetConsole()->Execute_Command(
-							static_cast<Kotek::ktk::enum_base_t>(
-								Kotek::Core::eConsoleCommandIndex::
+							static_cast<kotek::ktk::enum_base_t>(
+								kotek::Core::eConsoleCommandIndex::
 									kConsoleCommand_SDK_DeleteComponentFromEntityByName),
 							{{this->m_p_list_selected_item_allocator},
 								{static_cast<kotek::uint32_t>(
@@ -278,7 +278,7 @@ void zircon_editor_ui_window_component_inspector::Draw(
 					}
 				}
 
-				p_wrapper_imgui->Text(Kotek::ktk::format("Selected entity: {}",
+				p_wrapper_imgui->Text(kotek::ktk::format("Selected entity: {}",
 					static_cast<kotek::uint32_t>(selected_entity.id))
 						.c_str());
 

@@ -38,10 +38,10 @@ KOTEK_END_NAMESPACE_KOTEK
 #endif
 
 MODULE_EXTERN_C bool MODULE_EXPORT InitializeModule_Game(
-	Kotek::Core::ktkMainManager* p_main_manager);
+	kotek::Core::ktkMainManager* p_main_manager);
 MODULE_EXTERN_C bool MODULE_EXPORT ShutdownModule_Game(
-	Kotek::Core::ktkMainManager* p_main_manager);
+	kotek::Core::ktkMainManager* p_main_manager);
 MODULE_EXTERN_C void MODULE_EXPORT UpdateModule_Game(
-	Kotek::Core::ktkMainManager* p_main_manager);
+	kotek::Core::ktkMainManager* p_main_manager);
 MODULE_EXTERN_C bool MODULE_EXPORT InitializeModule_Render(
-	Kotek::Core::ktkMainManager* p_main_manager);
+	kotek::Core::ktkMainManager* p_main_manager);

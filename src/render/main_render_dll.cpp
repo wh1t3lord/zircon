@@ -6,12 +6,12 @@ namespace zircon
 	{
  
 
-		bool InitializeModule_Render(Kotek::Core::ktkMainManager* p_main_manager)
+		bool InitializeModule_Render(kotek::Core::ktkMainManager* p_main_manager)
 		{
 			return true;
 		}
 
-		bool ShutdownModule_Render(Kotek::Core::ktkMainManager* p_main_manager)
+		bool ShutdownModule_Render(kotek::Core::ktkMainManager* p_main_manager)
 		{
 			return true;
 		}

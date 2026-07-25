@@ -306,7 +306,7 @@ public:
 	zircon_resource_manager();
 	~zircon_resource_manager(void);
 
-	void initialize(Kotek::Core::ktkMainManager* p_main_manager
+	void initialize(kotek::Core::ktkMainManager* p_main_manager
 	);
 	void shutdown(void);
 

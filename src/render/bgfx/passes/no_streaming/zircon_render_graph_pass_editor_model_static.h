@@ -31,11 +31,11 @@ namespace no_streaming
 		void OnDestroyResources() override;
 		void OnUpdate(
 			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-				p_previous_pass, Kotek::ktk::uint32_t my_id_in_queue) override;
+				p_previous_pass, kotek::ktk::uint32_t my_id_in_queue) override;
 
 		void OnRender(
 			const kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
-				p_previous_pass, Kotek::ktk::uint32_t my_id_in_queue) override;
+				p_previous_pass, kotek::ktk::uint32_t my_id_in_queue) override;
 
 	private:
  

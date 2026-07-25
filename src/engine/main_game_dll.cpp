@@ -20,7 +20,7 @@ constexpr const char* kUserInfoField_RendererForLoadingVersion =
 constexpr const char* kUserInfoField_RendererFallbackVersion =
 	("RendererFallback_Version");
 
-bool SerializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
+bool SerializeModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 {
 	auto* p_casted =
 		dynamic_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
@@ -38,7 +38,7 @@ bool SerializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 // TODO: rethink, maybe you need to delete it, because we load information from
 // user settings for multiple renderers the same thing we have startup renderer.
 // So if we failed to load user settings we use what engine has
-void DeserializeRendererConfig(Kotek::Core::ktkMainManager* p_main_manager)
+void DeserializeRendererConfig(kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (p_main_manager->Get_Splash())
 	{
@@ -48,7 +48,7 @@ void DeserializeRendererConfig(Kotek::Core::ktkMainManager* p_main_manager)
 	}
 }
 
-bool DeserializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
+bool DeserializeModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (p_main_manager->Get_Splash())
 	{
@@ -73,7 +73,7 @@ bool DeserializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 	return true;
 }
 
-bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
+bool InitializeModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 {
 #if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
 	setvbuf(stderr, nullptr, _IONBF, 0);
@@ -114,7 +114,7 @@ bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 
 	if (p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor))
+				kotek::kConsoleCommandArg_Editor))
 	{
 #ifdef KOTEK_USE_SDK
 		KOTEK_MESSAGE("SDK is running...");
@@ -133,10 +133,10 @@ bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 
 	if (p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor_ImGui))
+				kotek::kConsoleCommandArg_Editor_ImGui))
 	{
 		p_main_manager->Get_EngineConfig()->SetFeatureStatus(
-			Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui, true);
+			kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui, true);
 	}
 
 #if defined(KOTEK_DEBUG) && defined(KOTEK_USE_TESTS_RUNTIME)
@@ -146,7 +146,7 @@ bool InitializeModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 	return true;
 }
 
-bool ShutdownModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
+bool ShutdownModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 {
 #if defined(KOTEK_DEBUG) && defined(KOTEK_PLATFORM_WINDOWS)
 	// kotek.core.memory.cpu enabled the CRT exit leak dump
@@ -173,7 +173,7 @@ bool ShutdownModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 
 	if (p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor))
+				kotek::kConsoleCommandArg_Editor))
 	{
 #ifdef KOTEK_USE_SDK
 		wxTheApp->OnExit();
@@ -190,11 +190,11 @@ bool ShutdownModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 	return true;
 }
 
-void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
+void UpdateModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 {
 	if (p_main_manager->Get_EngineConfig()
 			->IsContainsConsoleCommandLineArgument(
-				Kotek::kConsoleCommandArg_Editor))
+				kotek::kConsoleCommandArg_Editor))
 	{
 		// TODO: rethink about architecture duplicating code is not good....
 #ifdef KOTEK_USE_SDK
@@ -206,13 +206,13 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 	}
 	else
 	{
-		Kotek::Core::ktkIConsole* p_console =
+		kotek::Core::ktkIConsole* p_console =
 			p_main_manager->GetGameManager()->GetConsole();
 
 		auto* p_game_manager =
 			static_cast<zircon_game_manager*>(p_main_manager->GetGameManager());
 
-		Kotek::Core::ktkIWindowManager* p_window_manager =
+		kotek::Core::ktkIWindowManager* p_window_manager =
 			p_main_manager->Get_WindowManager();
 
 		auto* p_renderer = p_game_manager->GetRenderer();
@@ -233,7 +233,7 @@ void UpdateModule_Game(Kotek::Core::ktkMainManager* p_main_manager)
 			{
 				if (p_main_manager->Get_EngineConfig()
 						->IsContainsConsoleCommandLineArgument(
-							Kotek::kConsoleCommandArg_Editor_ImGui))
+							kotek::kConsoleCommandArg_Editor_ImGui))
 				{
 					is_should_close = false;
 

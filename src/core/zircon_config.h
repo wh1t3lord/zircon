@@ -4,7 +4,7 @@
 
 // TODO: replace to static_cstring_t
 const char* translate_zircon_sdk_features(eZirconSDKFeatures features);
-Kotek::ktk::cstring translate_zircon_game_features(
+kotek::ktk::cstring translate_zircon_game_features(
 	eZirconGameFeatures features);
 
 constexpr const char* kZirconConfig_FileName = "game_config.json";
@@ -33,8 +33,8 @@ public:
 	bool is_feature_enabled(eZirconSDKFeatures feature) const;
 	bool is_feature_enabled(eZirconGameFeatures feature) const;
 
-	void serialize(Kotek::Core::ktkIFileSystem* p_filesystem) noexcept;
-	void deserialize(Kotek::Core::ktkIFileSystem* p_filesystem) noexcept;
+	void serialize(kotek::Core::ktkIFileSystem* p_filesystem) noexcept;
+	void deserialize(kotek::Core::ktkIFileSystem* p_filesystem) noexcept;
 
 	bool is_current_session_editor(void) const;
 	void set_current_session(
@@ -50,11 +50,11 @@ private:
 	eZirconSDKFeatures m_features_sdk;
 
 	// todo: replace on more optimized bitset or just array of flags with O(1)
-	Kotek::ktk::unordered_map<eZirconSDKFeatures,
-		Kotek::ktk::variant<int, double, float, Kotek::ktk::cstring>>
+	kotek::ktk::unordered_map<eZirconSDKFeatures,
+		kotek::ktk::variant<int, double, float, kotek::ktk::cstring>>
 		m_features_data_sdk;
 	// todo: replace on more optimized bitset or just array of flags with O(1)
-	Kotek::ktk::unordered_map<eZirconSDKFeatures,
-		Kotek::ktk::variant<int, double, float, Kotek::ktk::cstring>>
+	kotek::ktk::unordered_map<eZirconSDKFeatures,
+		kotek::ktk::variant<int, double, float, kotek::ktk::cstring>>
 		m_features_data_game;
 };

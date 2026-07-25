@@ -323,7 +323,7 @@ zircon_command_delete_component_from_entity::GetCommandType(
 
 kotek::size_t
 zircon_command_delete_component_from_entity::Serialize(
-	Kotek::core::ktkFileHandleType file
+	kotek::core::ktkFileHandleType file
 ) noexcept
 {
 	KOTEK_MESSAGE_WARNING(

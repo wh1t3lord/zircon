@@ -185,16 +185,16 @@ void zircon_command_create_entity::SetEntityID(
 	this->m_created_entity = id;
 }
 
-Kotek::ktk::enum_base_t
+kotek::ktk::enum_base_t
 zircon_command_create_entity::GetCommandType() noexcept
 {
-	return static_cast<Kotek::ktk::enum_base_t>(
-		Kotek::Core::eConsoleCommandIndex::
+	return static_cast<kotek::ktk::enum_base_t>(
+		kotek::Core::eConsoleCommandIndex::
 			kConsoleCommand_SDK_CreateEntity
 	);
 }
 
-Kotek::ktk::size_t zircon_command_create_entity::Serialize(
+kotek::ktk::size_t zircon_command_create_entity::Serialize(
 	kotek::core::ktkFileHandleType file
 ) noexcept
 {

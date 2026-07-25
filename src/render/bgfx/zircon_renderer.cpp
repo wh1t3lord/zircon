@@ -22,7 +22,7 @@ constexpr kotek::uint8_t _kInvalidRenderGraphID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
 zircon_renderer_bgfx::zircon_renderer_bgfx(
-	Kotek::Core::ktkMainManager* p_main_manager) :
+	kotek::Core::ktkMainManager* p_main_manager) :
 	m_previous_render_graph_id{_kInvalidRenderGraphID},
 	m_p_main_manager{p_main_manager}, m_p_session_game_manager{},
 	m_p_session_editor_manager{},
@@ -83,7 +83,7 @@ void zircon_renderer_bgfx::Resize() {}
 
 const char* zircon_renderer_bgfx::Get_Name(void) const noexcept
 {
-	return Kotek::kRenderer_OpenGLES_3_Name;
+	return kotek::kRenderer_OpenGLES_3_Name;
 }
 
 bool zircon_renderer_bgfx::is_render_graph_presented(
@@ -328,7 +328,7 @@ void zircon_renderer_bgfx::Begin() noexcept {}
 
 void zircon_renderer_bgfx::End() noexcept
 {
-	Kotek::Core::ktkIRenderSwapchain* p_render_swapchain =
+	kotek::Core::ktkIRenderSwapchain* p_render_swapchain =
 		this->m_p_main_manager->getRenderSwapchainManager();
 
 	p_render_swapchain->Present(

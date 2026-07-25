@@ -12,7 +12,7 @@ namespace zircon
 {
 	namespace Game
 	{
-		void updateComponent_Camera(Kotek::Core::ktkMainManager& main_manager,
+		void updateComponent_Camera(kotek::Core::ktkMainManager& main_manager,
 			zircon_ComponentCamera* p_component_camera);
 	}
 } // namespace Kotek

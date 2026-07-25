@@ -39,20 +39,20 @@ public:
 	float get_field_of_view(void) const noexcept;
 	void set_field_of_view(float value) noexcept;
 
-	const Kotek::ktk::math::vec3f_t& get_front(void) const noexcept;
-	void set_front(const Kotek::ktk::math::vec3f_t& vector) noexcept;
+	const kotek::ktk::math::vec3f_t& get_front(void) const noexcept;
+	void set_front(const kotek::ktk::math::vec3f_t& vector) noexcept;
 
-	const Kotek::ktk::math::vec3f_t& get_up(void) const noexcept;
-	void set_up(const Kotek::ktk::math::vec3f_t& vector) noexcept;
+	const kotek::ktk::math::vec3f_t& get_up(void) const noexcept;
+	void set_up(const kotek::ktk::math::vec3f_t& vector) noexcept;
 
-	const Kotek::ktk::math::vec3f_t& get_right(void) const noexcept;
-	void set_right(const Kotek::ktk::math::vec3f_t& data) noexcept;
+	const kotek::ktk::math::vec3f_t& get_right(void) const noexcept;
+	void set_right(const kotek::ktk::math::vec3f_t& data) noexcept;
 
-	const Kotek::ktk::math::mat4x4f_t& get_view(void) const noexcept;
-	void set_view(const Kotek::ktk::math::mat4x4f_t& matrix) noexcept;
+	const kotek::ktk::math::mat4x4f_t& get_view(void) const noexcept;
+	void set_view(const kotek::ktk::math::mat4x4f_t& matrix) noexcept;
 
-	const Kotek::ktk::math::matrix4x4f& get_projection(void) const noexcept;
-	void set_projection(const Kotek::ktk::math::mat4x4f_t& matrix) noexcept;
+	const kotek::ktk::math::matrix4x4f& get_projection(void) const noexcept;
+	void set_projection(const kotek::ktk::math::mat4x4f_t& matrix) noexcept;
 
 private:
 	bool m_is_enabled;
@@ -61,16 +61,16 @@ private:
 	float m_fov;
 	float m_yaw;
 	float m_pitch;
-	Kotek::ktk::math::vec3f_t m_front;
-	Kotek::ktk::math::vec3f_t m_right;
-	Kotek::ktk::math::vec3f_t m_up;
-	Kotek::ktk::math::mat4x4f_t m_view;
-	Kotek::ktk::math::mat4x4f_t m_projection;
+	kotek::ktk::math::vec3f_t m_front;
+	kotek::ktk::math::vec3f_t m_right;
+	kotek::ktk::math::vec3f_t m_up;
+	kotek::ktk::math::mat4x4f_t m_view;
+	kotek::ktk::math::mat4x4f_t m_projection;
 };
 
 #ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to, const zircon_component_camera& data)
+inline void tag_invoke(const kotek::ktk::json::value_from_tag&,
+	kotek::ktk::json::value& write_to, const zircon_component_camera& data)
 {
 	#ifdef KOTEK_DEBUG
 	unsigned char p_storage_memory[2048];
@@ -79,7 +79,7 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	#endif
 
 	kotek::ktk::json::static_resource storage(p_storage_memory);
-	Kotek::ktk::json::object camera(&storage);
+	kotek::ktk::json::object camera(&storage);
 
 	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
@@ -92,16 +92,16 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_YAW] = data.get_yaw();
 	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PITCH] = data.get_pitch();
 	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT] =
-		Kotek::ktk::json::value_from(data.get_front());
+		kotek::ktk::json::value_from(data.get_front());
 	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP] =
-		Kotek::ktk::json::value_from(data.get_up());
+		kotek::ktk::json::value_from(data.get_up());
 
 	write_to = camera;
 }
 
 inline zircon_component_camera tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_camera>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::ktk::json::value_to_tag<zircon_component_camera>&,
+	const kotek::ktk::json::value& read_from)
 {
 	auto camera = read_from.as_object();
 
@@ -123,9 +123,9 @@ inline zircon_component_camera tag_invoke(
 			.to_number<float>());
 	result.set_pitch(camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_PITCH)
 			.to_number<float>());
-	result.set_front(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
+	result.set_front(kotek::ktk::json::value_to<kotek::ktk::math::vec3f_t>(
 		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT)));
-	result.set_up(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
+	result.set_up(kotek::ktk::json::value_to<kotek::ktk::math::vec3f_t>(
 		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP)));
 
 	return result;

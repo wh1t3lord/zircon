@@ -18,7 +18,7 @@ void zircon_editor_ui_window_settings::Initialize(void) {}
 void zircon_editor_ui_window_settings::Shutdown(void) {}
 
 void zircon_editor_ui_window_settings::Draw(
-	Kotek::Core::ktkMainManager* p_main_manager
+	kotek::Core::ktkMainManager* p_main_manager
 )
 {
 	if (!this->m_is_window_show)

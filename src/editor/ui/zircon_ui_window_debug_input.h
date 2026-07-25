@@ -8,7 +8,7 @@ public:
 
 	void Initialize(void) override;
 	void Shutdown(void) override;
-	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
+	void Draw(kotek::Core::ktkMainManager* main_manager) override;
 	int Get_ID(void) const override;
 
 	void Show(void) override;

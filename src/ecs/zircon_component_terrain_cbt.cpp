@@ -9,7 +9,7 @@ zircon_component_terrain_cbt::~zircon_component_terrain_cbt() {}
 
 /*
 void zircon_component_terrain_cbt::draw_imgui(
-    Kotek::Core::ktkMainManager* p_main_manager
+    kotek::Core::ktkMainManager* p_main_manager
 ) noexcept
 {
     if (p_main_manager)

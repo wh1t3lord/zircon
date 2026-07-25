@@ -8,7 +8,7 @@ class zircon_session_editor_manager;
 class zircon_factory;
 
 class zircon_command_delete_component_from_entity
-	: public Kotek::Core::ktkISDKRedoUndo,
+	: public kotek::Core::ktkISDKRedoUndo,
 	  public zircon_interface_command_delta
 {
 public:
@@ -38,7 +38,7 @@ public:
 
 	/// @brief \~english deprecated file serialization from the old
 	/// streaming design, the journal uses Serialize_Delta instead
-	kotek::size_t Serialize(Kotek::core::ktkFileHandleType file) noexcept override;
+	kotek::size_t Serialize(kotek::core::ktkFileHandleType file) noexcept override;
 
 	/// @brief \~english delta = entity id + component name +
 	/// component state before the deletion

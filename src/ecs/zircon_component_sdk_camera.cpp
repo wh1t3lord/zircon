@@ -28,7 +28,7 @@ void zircon_component_sdk_camera::set_camera(
 
 /*
 void zircon_component_sdk_camera::draw_imgui(
-	Kotek::Core::ktkMainManager* p_main_manager
+	kotek::Core::ktkMainManager* p_main_manager
 ) noexcept
 {
 	if (p_main_manager)

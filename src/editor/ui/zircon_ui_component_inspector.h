@@ -19,7 +19,7 @@ public:
 
 	void Initialize(void) override;
 	void Shutdown(void) override;
-	void Draw(Kotek::Core::ktkMainManager* p_main_manager
+	void Draw(kotek::Core::ktkMainManager* p_main_manager
 	) override;
 
 	int Get_ID(void) const override;

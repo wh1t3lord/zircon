@@ -68,66 +68,66 @@ void zircon_component_camera::set_field_of_view(float value
 	this->m_fov = value;
 }
 
-const Kotek::ktk::math::vec3f_t&
+const kotek::ktk::math::vec3f_t&
 zircon_component_camera::get_front(void) const noexcept
 {
 	return this->m_front;
 }
 
 void zircon_component_camera::set_front(
-	const Kotek::ktk::math::vec3f_t& vector
+	const kotek::ktk::math::vec3f_t& vector
 ) noexcept
 {
 	this->m_front = vector;
 }
 
-const Kotek::ktk::math::vec3f_t&
+const kotek::ktk::math::vec3f_t&
 zircon_component_camera::get_up(void) const noexcept
 {
 	return this->m_up;
 }
 
 void zircon_component_camera::set_up(
-	const Kotek::ktk::math::vec3f_t& vector
+	const kotek::ktk::math::vec3f_t& vector
 ) noexcept
 {
 	this->m_up = vector;
 }
 
-const Kotek::ktk::math::vec3f_t&
+const kotek::ktk::math::vec3f_t&
 zircon_component_camera::get_right(void) const noexcept
 {
 	return this->m_right;
 }
 
 void zircon_component_camera::set_right(
-	const Kotek::ktk::math::vec3f_t& data
+	const kotek::ktk::math::vec3f_t& data
 ) noexcept
 {
 	this->m_right = data;
 }
 
-const Kotek::ktk::math::mat4x4f_t&
+const kotek::ktk::math::mat4x4f_t&
 zircon_component_camera::get_view(void) const noexcept
 {
 	return this->m_view;
 }
 
 void zircon_component_camera::set_view(
-	const Kotek::ktk::math::mat4x4f_t& matrix
+	const kotek::ktk::math::mat4x4f_t& matrix
 ) noexcept
 {
 	this->m_view = matrix;
 }
 
-const Kotek::ktk::math::matrix4x4f&
+const kotek::ktk::math::matrix4x4f&
 zircon_component_camera::get_projection(void) const noexcept
 {
 	return this->m_projection;
 }
 
 void zircon_component_camera::set_projection(
-	const Kotek::ktk::math::mat4x4f_t& matrix
+	const kotek::ktk::math::mat4x4f_t& matrix
 ) noexcept
 {
 	this->m_projection = matrix;
@@ -135,7 +135,7 @@ void zircon_component_camera::set_projection(
 
 /*
 void zircon_component_camera::draw_imgui(
-	Kotek::Core::ktkMainManager* p_main_manager
+	kotek::Core::ktkMainManager* p_main_manager
 ) noexcept
 {
 	if (p_main_manager)

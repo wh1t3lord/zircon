@@ -231,7 +231,7 @@ private:
 	bool m_is_changed;
 	bool m_is_scratch_in_use;
 	zircon_session_editor_manager* m_p_manager_session_editor;
-	Kotek::Core::ktkIFileSystem* m_p_filesystem;
+	kotek::Core::ktkIFileSystem* m_p_filesystem;
 
 	kotek::uint32_t m_cursor_node_id;
 	kotek::uint32_t m_snapshot_interval;

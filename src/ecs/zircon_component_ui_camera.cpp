@@ -9,7 +9,7 @@ zircon_component_ui_camera::~zircon_component_ui_camera() {}
 
 /*
 void zircon_component_ui_camera::draw_imgui(
-    Kotek::Core::ktkMainManager* p_main_manager
+    kotek::Core::ktkMainManager* p_main_manager
 ) noexcept
 {
     if (p_main_manager)
@@ -55,7 +55,7 @@ void zircon_component_ui_camera::draw_imgui(
                 else
                 {
                     p_wrapper_imgui->Text(
-                        Kotek::ktk::format(
+                        kotek::ktk::format(
                             "current page: {}",
                             this->m_current_page
                         )
@@ -103,7 +103,7 @@ void zircon_component_ui_camera::set_enabled(bool status
 	this->m_is_enabled = status;
 }
 
-const Kotek::ktk::cstring&
+const kotek::ktk::cstring&
 zircon_component_ui_camera::get_current_page(void
 ) const noexcept
 {
@@ -111,7 +111,7 @@ zircon_component_ui_camera::get_current_page(void
 }
 
 void zircon_component_ui_camera::set_current_page(
-	const Kotek::ktk::cstring& page_name
+	const kotek::ktk::cstring& page_name
 ) noexcept
 {
 	KOTEK_ASSERT(
@@ -128,7 +128,7 @@ void zircon_component_ui_camera::clear_current_page(void
 	this->m_current_page.clear();
 }
 
-const Kotek::ktk::unordered_set<Kotek::ktk::cstring>&
+const kotek::ktk::unordered_set<kotek::ktk::cstring>&
 zircon_component_ui_camera::get_predefined_pages(void
 ) const noexcept
 {
@@ -136,7 +136,7 @@ zircon_component_ui_camera::get_predefined_pages(void
 }
 
 void zircon_component_ui_camera::add_page(
-	const Kotek::ktk::cstring& page_name
+	const kotek::ktk::cstring& page_name
 ) noexcept
 {
 	KOTEK_ASSERT(

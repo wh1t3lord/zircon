@@ -168,7 +168,7 @@ void zircon_editor_ui_window_object_list::Draw(
 					}
 					else
 					{
-						converted_id = Kotek::ktk::static_format<128>(
+						converted_id = kotek::ktk::static_format<128>(
 							"{}", static_cast<kotek::uint32_t>(id.id));
 					}
 

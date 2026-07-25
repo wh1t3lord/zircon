@@ -4,7 +4,7 @@ class zircon_editor_command_history;
 class zircon_session_editor_manager;
 
 class zircon_editor_ui_window_history_command_log
-	: public Kotek::Core::ktkISDKUIElement
+	: public kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_editor_ui_window_history_command_log(
@@ -13,7 +13,7 @@ public:
 
 	void Initialize(void) override;
 	void Shutdown(void) override;
-	void Draw(Kotek::Core::ktkMainManager* main_manager) override;
+	void Draw(kotek::Core::ktkMainManager* main_manager) override;
 	int Get_ID(void) const override;
 
 		void Show(void) override;

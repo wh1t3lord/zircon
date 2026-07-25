@@ -37,8 +37,8 @@ zircon_component_bounding_sphere zircon_calculate_bounding_sphere(
 	int precision);
 
 #ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to,
+inline void tag_invoke(const kotek::ktk::json::value_from_tag&,
+	kotek::ktk::json::value& write_to,
 	const zircon_component_bounding_sphere& data)
 {
 	#ifdef KOTEK_DEBUG
@@ -55,14 +55,14 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 	sphere[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_RADIUS] =
 		data.get_radius();
 	sphere[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_CENTER] =
-		Kotek::ktk::json::value_from(data.get_center());
+		kotek::ktk::json::value_from(data.get_center());
 
 	write_to = sphere;
 }
 
 inline zircon_component_bounding_sphere tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_bounding_sphere>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::ktk::json::value_to_tag<zircon_component_bounding_sphere>&,
+	const kotek::ktk::json::value& read_from)
 {
 	auto sphere = read_from.as_object();
 
@@ -71,7 +71,7 @@ inline zircon_component_bounding_sphere tag_invoke(
 	result.set_enabled(sphere
 			.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_IS_ENABLED)
 			.as_bool());
-	result.set_center(Kotek::ktk::json::value_to<Kotek::ktk::math::vec3f_t>(
+	result.set_center(kotek::ktk::json::value_to<kotek::ktk::math::vec3f_t>(
 		sphere.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_CENTER)));
 	result.set_radius(
 		sphere.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_BOUNDING_SPHERE_FIELD_M_RADIUS)

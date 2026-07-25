@@ -56,7 +56,7 @@ public:
 	) noexcept;
 
 	void Serialize_Settings(
-		text_t& output, const Kotek::ktk::cstring& scenename
+		text_t& output, const kotek::ktk::cstring& scenename
 	) noexcept;
 	void Deserialize_Settings(text_t& input) noexcept;
 

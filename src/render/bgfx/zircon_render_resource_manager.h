@@ -7,7 +7,7 @@ namespace zircon
 	{
 		namespace gl
 		{
-			class zircon_RenderResourceManager : public Kotek::Core::ktkIRenderResourceManager
+			class zircon_RenderResourceManager : public kotek::Core::ktkIRenderResourceManager
 			{
 			public:
 				zircon_RenderResourceManager(void);

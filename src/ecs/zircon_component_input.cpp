@@ -6,8 +6,8 @@ zircon_component_input::zircon_component_input(void) :
 	m_is_invert_mouse_axis_y{},
 	m_sensetivity{ZIRCON_DEF_COMPONENT_INPUT_DEFAULT_SENSETIVITY
     },
-	m_input_type{static_cast<Kotek::ktk::enum_base_t>(
-		Kotek::Core::eInputType::kInputType_DisabledCursor
+	m_input_type{static_cast<kotek::ktk::enum_base_t>(
+		kotek::Core::eInputType::kInputType_DisabledCursor
 	)},
 	m_input_type_previous{m_input_type}, m_p_input_manager{}
 {
@@ -18,8 +18,8 @@ zircon_component_input::zircon_component_input(
 ) :
 	m_is_enabled{true}, m_is_invert_mouse_axis_x{},
 	m_is_invert_mouse_axis_y{}, m_sensetivity{},
-	m_input_type{static_cast<Kotek::ktk::enum_base_t>(
-		Kotek::Core::eInputType::kInputType_DisabledCursor
+	m_input_type{static_cast<kotek::ktk::enum_base_t>(
+		kotek::Core::eInputType::kInputType_DisabledCursor
 	)},
 	m_input_type_previous{m_input_type},
 	m_p_input_manager{p_manager}
@@ -31,7 +31,7 @@ zircon_component_input::~zircon_component_input(void) {}
 kotek::uint8_t zircon_component_input::get_component_type(void
 ) const noexcept
 {
-	return static_cast<Kotek::uint8_t>(
+	return static_cast<kotek::uint8_t>(
 		eZirconComponentType::kzircon_component_input
 	);
 }
@@ -47,7 +47,7 @@ void zircon_component_input::set_enabled(bool status) noexcept
 }
 /*
 void zircon_component_input::draw_imgui(
-    Kotek::Core::ktkMainManager* p_main_manager) noexcept
+    kotek::Core::ktkMainManager* p_main_manager) noexcept
 {
     if (p_main_manager)
     {
@@ -62,8 +62,8 @@ p_main_manager->Get_ImguiWrapper();
                 if (p_wrapper_imgui->BeginTabItem("info"))
                 {
                     p_wrapper_imgui->Text("Input type: %s",
-                        Kotek::Core::helper::Translate_InputType(
-                            static_cast<Kotek::Core::eInputType>(
+                        kotek::Core::helper::Translate_InputType(
+                            static_cast<kotek::Core::eInputType>(
                                 this->m_input_type))
                             .c_str());
 
@@ -146,7 +146,7 @@ information if (this->m_p_input_manager)
 }*/
 
 void zircon_component_input::set_input_type(
-	Kotek::ktk::enum_base_t type
+	kotek::ktk::enum_base_t type
 ) noexcept
 {
 	if (type != this->m_input_type)
@@ -155,13 +155,13 @@ void zircon_component_input::set_input_type(
 	this->m_input_type = type;
 }
 
-Kotek::ktk::enum_base_t
+kotek::ktk::enum_base_t
 zircon_component_input::get_input_type(void) const noexcept
 {
 	return this->m_input_type;
 }
 
-Kotek::ktk::enum_base_t
+kotek::ktk::enum_base_t
 zircon_component_input::get_input_type_previous(void
 ) const noexcept
 {

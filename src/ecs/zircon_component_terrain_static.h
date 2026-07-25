@@ -23,11 +23,11 @@ private:
 };
 
 #ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
-inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
-	Kotek::ktk::json::value& write_to,
+inline void tag_invoke(const kotek::ktk::json::value_from_tag&,
+	kotek::ktk::json::value& write_to,
 	const zircon_component_terrain_static& data)
 {
-	Kotek::ktk::json::object info;
+	kotek::ktk::json::object info;
 
 	info[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_TERRAIN_STATIC_FIELD_M_IS_ENABLED] =
 		data.is_enabled();
@@ -36,8 +36,8 @@ inline void tag_invoke(const Kotek::ktk::json::value_from_tag&,
 }
 
 inline zircon_component_terrain_static tag_invoke(
-	const Kotek::ktk::json::value_to_tag<zircon_component_terrain_static>&,
-	const Kotek::ktk::json::value& read_from)
+	const kotek::ktk::json::value_to_tag<zircon_component_terrain_static>&,
+	const kotek::ktk::json::value& read_from)
 {
 	auto data = read_from.as_object();
 

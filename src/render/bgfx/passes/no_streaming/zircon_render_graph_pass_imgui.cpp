@@ -15,15 +15,15 @@ namespace no_streaming
 		bool is_imgui_enabled = false;
 		bool is_sdk_enabled = false;
 
-		Kotek::Core::ktkIFrameworkConfig* p_config =
+		kotek::Core::ktkIFrameworkConfig* p_config =
 			this->m_p_manager_main->Get_EngineConfig();
 
 		if (p_config)
 		{
 			is_imgui_enabled = p_config->IsFeatureEnabled(
-				Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
+				kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
 			is_sdk_enabled = p_config->IsFeatureEnabled(
-				Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
+				kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
 		}
 
 		if (is_imgui_enabled)
@@ -48,7 +48,7 @@ namespace no_streaming
 			}
 		}
 
-		p_config->SetFeatureStatus(Kotek::Core::eEngineFeatureSDK::
+		p_config->SetFeatureStatus(kotek::Core::eEngineFeatureSDK::
 									   kEngine_Feature_SDK_ImGui_Initialized,
 			false);
 	}
@@ -63,18 +63,18 @@ namespace no_streaming
 		bool is_imgui_enabled = false;
 		bool is_sdk_enabled = false;
 
-		Kotek::Core::ktkIFrameworkConfig* p_config =
+		kotek::Core::ktkIFrameworkConfig* p_config =
 			this->m_p_manager_main->Get_EngineConfig();
 
 		if (p_config)
 		{
 			is_imgui_enabled =
 				this->m_p_manager_main->Get_EngineConfig()->IsFeatureEnabled(
-					Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
+					kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
 
 			is_sdk_enabled =
 				this->m_p_manager_main->Get_EngineConfig()->IsFeatureEnabled(
-					Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
+					kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK);
 		}
 
 		if (is_imgui_enabled)
@@ -136,7 +136,7 @@ namespace no_streaming
 			}
 
 			this->m_p_manager_main->Get_EngineConfig()->SetFeatureStatus(
-				Kotek::Core::eEngineFeatureSDK::
+				kotek::Core::eEngineFeatureSDK::
 					kEngine_Feature_SDK_ImGui_Initialized,
 				true);
 		}
@@ -147,7 +147,7 @@ namespace no_streaming
 			p_previous_pass,
 		kotek::ktk::uint32_t my_id_in_queue)
 	{
-		Kotek::Core::ktkIFrameworkConfig* p_config =
+		kotek::Core::ktkIFrameworkConfig* p_config =
 			this->m_p_manager_main->Get_EngineConfig();
 
 		bool is_imgui_enabled = false;
@@ -155,7 +155,7 @@ namespace no_streaming
 		if (p_config)
 		{
 			is_imgui_enabled = p_config->IsFeatureEnabled(
-				Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
+				kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
 		}
 
 		if (is_imgui_enabled)
@@ -198,7 +198,7 @@ namespace no_streaming
 			p_previous_pass,
 		kotek::ktk::uint32_t my_id_in_queue)
 	{
-		Kotek::Core::ktkIFrameworkConfig* p_config =
+		kotek::Core::ktkIFrameworkConfig* p_config =
 			this->m_p_manager_main->Get_EngineConfig();
 
 		bool is_imgui_enabled = false;
@@ -206,7 +206,7 @@ namespace no_streaming
 		if (p_config)
 		{
 			is_imgui_enabled = p_config->IsFeatureEnabled(
-				Kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
+				kotek::Core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui);
 		}
 
 		if (is_imgui_enabled)

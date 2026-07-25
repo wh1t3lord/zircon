@@ -18,7 +18,7 @@ zircon_component_bounding_sphere::
 
 /*
 void zircon_component_bounding_sphere::draw_imgui(
-	Kotek::Core::ktkMainManager* p_main_manager
+	kotek::Core::ktkMainManager* p_main_manager
 ) noexcept
 {
 	if (p_main_manager)
@@ -56,7 +56,7 @@ kotek::uint8_t
 zircon_component_bounding_sphere::get_component_type(void
 ) const noexcept
 {
-	return static_cast<Kotek::uint8_t>(
+	return static_cast<kotek::uint8_t>(
 		eZirconComponentType::kzircon_component_bounding_sphere
 	);
 }
@@ -73,7 +73,7 @@ void zircon_component_bounding_sphere::set_enabled(bool status
 	this->m_is_enabled = status;
 }
 
-Kotek::ktk::float_t
+kotek::ktk::float_t
 zircon_component_bounding_sphere::get_radius(void
 ) const noexcept
 {
@@ -81,13 +81,13 @@ zircon_component_bounding_sphere::get_radius(void
 }
 
 void zircon_component_bounding_sphere::set_radius(
-	Kotek::ktk::float_t value
+	kotek::ktk::float_t value
 ) noexcept
 {
 	this->m_radius = value;
 }
 
-const Kotek::ktk::math::vec3f_t&
+const kotek::ktk::math::vec3f_t&
 zircon_component_bounding_sphere::get_center(void
 ) const noexcept
 {
@@ -95,7 +95,7 @@ zircon_component_bounding_sphere::get_center(void
 }
 
 void zircon_component_bounding_sphere::set_center(
-	const Kotek::ktk::math::vec3f_t& point
+	const kotek::ktk::math::vec3f_t& point
 ) noexcept
 {
 	this->m_center = point;

@@ -258,7 +258,7 @@ bool zircon_factory::HasRequiredComponentsForCreation(
 zircon_component_interface*
 zircon_factory::get_component_by_enum(
 	zircon_ecs_context_t* p_context,
-	Kotek::entity_t id,
+	kotek::entity_t id,
 	eZirconComponentType component_type
 ) noexcept
 {
@@ -745,7 +745,7 @@ eZirconComponentType zircon_factory::get_component_enum_by_name(
 
 zircon_component_interface* zircon_factory::get_component_by_name(
 	zircon_ecs_context_t* p_context,
-	Kotek::entity_t id,
+	kotek::entity_t id,
 	const kotek::cstring_view_t& component_name
 ) noexcept
 {
