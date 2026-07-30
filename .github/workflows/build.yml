@@ -82,6 +82,7 @@ jobs:
         run: cmake --build build --config ${{ matrix.config }} --parallel *> build-output.log
 
       - name: verify outputs
+        id: verify
         shell: pwsh
         run: |
           if (-not (Test-Path "build/bin/${{ matrix.config }}/kotek.exe")) {
@@ -91,6 +92,28 @@ jobs:
           if ("${{ matrix.linkage.name }}" -ne "static" -and -not (Test-Path "build/bin/${{ matrix.config }}/game.ktk")) {
             throw "game.ktk was not produced"
           }
+
+      # per-leg badge (shields endpoint json), driven by the real outcome of
+      # the leg — $LASTEXITCODE does NOT survive across steps
+      - name: emit badge
+        if: always()
+        shell: pwsh
+        run: |
+          $ok = "${{ steps.verify.outcome }}" -eq "success"
+          @{
+            schemaVersion = 1
+            label = "build ${{ matrix.config }}-${{ matrix.linkage.name }}"
+            message = ($ok ? "passing" : "failing")
+            color = ($ok ? "brightgreen" : "red")
+          } | ConvertTo-Json -Compress | Out-File -FilePath "build-${{ matrix.config }}-${{ matrix.linkage.name }}.json" -Encoding utf8
+
+      - name: upload badge
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: badge-${{ matrix.config }}-${{ matrix.linkage.name }}
+          path: build-${{ matrix.config }}-${{ matrix.linkage.name }}.json
+          retention-days: 1
 
       # job logs and artifacts need admin rights to view — push the failure
       # logs to a public ci-logs branch instead (same pattern as kotek's
@@ -133,3 +156,38 @@ jobs:
           name: build-logs-${{ matrix.config }}-${{ matrix.linkage.name }}
           path: build/**/*.log
           retention-days: 7
+
+  badges:
+    name: publish badges
+    runs-on: windows-2022
+    needs: [windows]
+    if: always() && github.event_name != 'pull_request'
+    steps:
+      - name: collect badges
+        uses: actions/download-artifact@v4
+        with:
+          pattern: badge-*
+          path: .
+
+      # the badges branch may not exist yet (first push) — clone it if it
+      # exists, create it as an orphan otherwise, then push the badges
+      - name: publish to badges branch
+        shell: pwsh
+        run: |
+          $tmp = "$env:RUNNER_TEMP/badges-push"
+          Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+          $repo = "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git clone --depth 1 --branch badges $repo $tmp
+          if ($LASTEXITCODE -ne 0) {
+            git clone --depth 1 --no-checkout $repo $tmp
+            git -C $tmp checkout --orphan badges
+            git -C $tmp rm -rf --quiet . 2>$null
+          }
+          Copy-Item *.json "$tmp/" -Force
+          git -C $tmp config user.name "zircon-ci"
+          git -C $tmp config user.email "ci@zircon.local"
+          git -C $tmp add *.json
+          git -C $tmp diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host "badges unchanged"; exit 0 }
+          git -C $tmp commit -m "badges: ${{ github.sha }}"
+          git -C $tmp push origin badges
