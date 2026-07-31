@@ -292,7 +292,7 @@ void WindowCallback_Mouse(
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_CursorPosCallback(
+		p_wrapper_imgui->ImGui_CursorPosCallback(
 			p_window, xpos, ypos
 		);
 	}
@@ -344,7 +344,7 @@ void WindowCallback_Key(
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_KeyCallback(
+		p_wrapper_imgui->ImGui_KeyCallback(
 			p_window, glfw_key, scancode, glfw_action, glfw_mods
 		);
 	}
@@ -389,7 +389,7 @@ void WindowCallback_Char(
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_CharCallback(
+		p_wrapper_imgui->ImGui_CharCallback(
 			p_window, codepoint
 		);
 	}
@@ -427,7 +427,7 @@ void WindowCallback_CursorEnter(
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_CursorEnterCallback(
+		p_wrapper_imgui->ImGui_CursorEnterCallback(
 			p_window, entered
 		);
 	}
@@ -478,7 +478,7 @@ void WindowCallback_MouseButton(
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_MouseButtonCallback(
+		p_wrapper_imgui->ImGui_MouseButtonCallback(
 			p_window, button, action, mods
 		);
 	}
@@ -516,7 +516,7 @@ void WindowCallback_Scroll(
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_ScrollCallback(
+		p_wrapper_imgui->ImGui_ScrollCallback(
 			p_window, xoffset, yoffset
 		);
 	}
@@ -564,7 +564,7 @@ void WindowCallback_Monitor(GLFWmonitor* p_monitor, int event)
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_MonitorCallback(
+		p_wrapper_imgui->ImGui_MonitorCallback(
 			p_monitor, event
 		);
 	}
@@ -590,7 +590,7 @@ void WindowCallback_WindowFocus(
 	{
 		auto* p_wrapper_imgui = p_manager->Get_ImguiWrapper();
 
-		p_wrapper_imgui->ImGui_ImplGlfw_WindowFocusCallback(
+		p_wrapper_imgui->ImGui_WindowFocusCallback(
 			p_window, focused
 		);
 	}

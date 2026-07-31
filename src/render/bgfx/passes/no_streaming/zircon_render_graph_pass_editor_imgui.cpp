@@ -101,11 +101,11 @@ namespace no_streaming
 					bgfx::destroy(m_program);
 
 #ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
-					this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
+					this->m_p_imgui_wrapper->ImGui_ShutdownPlatform();
 #elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
 					// the wrapper maps the glfw-named calls onto the win32
 					// backend in this configuration (task K17)
-					this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
+					this->m_p_imgui_wrapper->ImGui_ShutdownPlatform();
 #else
 	#error not implemented
 #endif
@@ -284,9 +284,9 @@ namespace no_streaming
 						p_main_manager->GetGameManager()->GetWindowHandle());
 
 					KOTEK_ASSERT(
-						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOther(
+						this->m_p_imgui_wrapper->ImGui_InitForOther(
 							p_handle, false),
-						"failed to ImGui_ImplGlfw_InitForOther");
+						"failed to ImGui_InitForOther");
 #elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
 					// the own Win32 window backend (task K17): the wrapper
 					// maps the init onto ImGui_ImplWin32_Init — the handle
@@ -295,8 +295,8 @@ namespace no_streaming
 						p_main_manager->GetGameManager()->GetWindowHandle();
 
 					KOTEK_ASSERT(
-						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOther(
-							static_cast<GLFWwindow*>(p_handle), false),
+						this->m_p_imgui_wrapper->ImGui_InitForOther(
+							p_handle, false),
 						"failed to ImGui_ImplWin32_Init (via the wrapper)");
 
 					// task K17 phase 2: imgui's official win32 handler
@@ -347,7 +347,7 @@ namespace no_streaming
 			{
 				// this->m_p_imgui_wrapper->ImGui_ImplOpenGL3_NewFrame();
 
-				this->m_p_imgui_wrapper->ImGui_ImplGlfw_NewFrame();
+				this->m_p_imgui_wrapper->ImGui_NewFramePlatform();
 
 				if (this->m_p_imgui_wrapper->GetIO().DeltaTime <= 0.0f)
 					this->m_p_imgui_wrapper->GetIO().DeltaTime = 0.00001f;

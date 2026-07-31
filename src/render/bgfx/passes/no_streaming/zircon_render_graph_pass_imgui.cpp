@@ -52,11 +52,11 @@ namespace no_streaming
 				else
 				{
 #ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
-					this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
+					this->m_p_imgui_wrapper->ImGui_ShutdownPlatform();
 #elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
 					// the wrapper maps the glfw-named calls onto the win32
 					// backend in this configuration (task K17)
-					this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
+					this->m_p_imgui_wrapper->ImGui_ShutdownPlatform();
 #else
 	#error not implemented
 #endif
@@ -142,9 +142,9 @@ namespace no_streaming
 							->GetWindowHandle());
 
 					KOTEK_ASSERT(
-						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOpenGL(
+						this->m_p_imgui_wrapper->ImGui_InitForOpenGL(
 							p_handle, false),
-						"failed to ImGui_ImplGlfw_InitForOpenGL");
+						"failed to ImGui_InitForOpenGL");
 
 					KOTEK_ASSERT(
 						this->m_p_imgui_wrapper->ImGui_ImplOpenGL3_Init(),
@@ -157,8 +157,8 @@ namespace no_streaming
 										 ->GetWindowHandle();
 
 					KOTEK_ASSERT(
-						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOpenGL(
-							static_cast<GLFWwindow*>(p_handle), false),
+						this->m_p_imgui_wrapper->ImGui_InitForOpenGL(
+							p_handle, false),
 						"failed to ImGui_ImplWin32_Init (via the wrapper)");
 
 					KOTEK_ASSERT(
@@ -213,7 +213,7 @@ namespace no_streaming
 			if (this->m_p_imgui_wrapper)
 			{
 				this->m_p_imgui_wrapper->ImGui_ImplOpenGL3_NewFrame();
-				this->m_p_imgui_wrapper->ImGui_ImplGlfw_NewFrame();
+				this->m_p_imgui_wrapper->ImGui_NewFramePlatform();
 
 				if (this->m_p_imgui_wrapper->GetIO().DeltaTime <= 0.0f)
 					this->m_p_imgui_wrapper->GetIO().DeltaTime = 0.00001f;
