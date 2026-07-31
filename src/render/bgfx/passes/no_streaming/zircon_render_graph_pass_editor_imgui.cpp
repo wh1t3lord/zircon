@@ -1,4 +1,18 @@
 #include "zircon_render_graph_pass_editor_imgui.h"
+
+#ifdef KOTEK_USE_WINDOW_LIBRARY_WIN32
+	// task K17 phase 2: the imgui WndProc chain hook on the concrete
+	// window class (the interface stays frozen)
+	#include <kotek.core.window.win32/include/kotek_std_window_win32.h>
+	#include <kotek.ui.imgui/include/imgui_impl_win32.h>
+
+	// the official imgui win32 handler: dear imgui intentionally keeps
+	// this declaration in a #if 0 block and tells consumers to
+	// forward-declare it themselves (so the helper header stays
+	// windows.h-free); the definition lives in imgui_impl_win32.cpp
+	extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
+		HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif
 #include "../../../../editor/session/zircon_session_editor.h"
 #include "../../../../editor/session/zircon_session_editor_manager.h"
 
@@ -284,6 +298,22 @@ namespace no_streaming
 						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOther(
 							static_cast<GLFWwindow*>(p_handle), false),
 						"failed to ImGui_ImplWin32_Init (via the wrapper)");
+
+					// task K17 phase 2: imgui's official win32 handler
+					// rides the window's proc chain — without it imgui
+					// sees no mouse/keyboard at all on this backend
+					if (auto* p_active_window = p_main_manager
+							->Get_WindowManager()->Get_ActiveWindow())
+					{
+						auto* p_win32_window =
+							dynamic_cast<kotek::core::ktkWindowWin32*>(
+								p_active_window);
+						if (p_win32_window)
+						{
+							p_win32_window->Set_WndProcChain(
+								&ImGui_ImplWin32_WndProcHandler);
+						}
+					}
 #endif
 				}
 			}
