@@ -214,6 +214,23 @@ non-existent target name in some configs — verify when touching root CMake (ta
   test's own file write+load of `rsltrnc.json` — load path bug, not data
   env). Z6 replay hits `ecs_is_entity_ready` (pico id lifecycle on undo —
   see Z6).
+- **Journal corruption robustness (fixed 2026-07-31)**: a corrupt/truncated
+  `history.zjrnl` turned into an unbounded error storm (tens of millions of
+  identical line pairs, multi-GB logs) through two compounding defects:
+  (1) `std::fstream` keeps a sticky failbit — one failed block read made
+  EVERY later read fail at any offset, because no path called `clear()`;
+  all four journal failure paths (scan, block write, block header read,
+  block payload read) now reset the stream state before returning;
+  (2) `zircon_editor_command_history::Undo()` returned early on an
+  unobtainable command WITHOUT moving the cursor, so undo-to-origin
+  drivers (`while (cursor != root) Undo();`) spun on the same node
+  forever — `Undo()` now skips the unreadable node
+  (`m_cursor_node_id = node.m_parent_node_id`), i.e. corruption degrades
+  to skipped nodes + a loud state-mismatch test failure instead of a
+  hang. Process rule that came out of the same incident: **never run
+  smoke boots with unbounded output redirects** — cap every capture
+  (`timeout` + `head -c`); two multi-GB capture files were written before
+  this was enforced.
 - **PICO factory filled-in during Z1 (owner review wanted)**:
   `zircon_factory::register_components` (per-type switch over
   `eZirconComponentType` — must be kept in sync manually, candidate for CMake

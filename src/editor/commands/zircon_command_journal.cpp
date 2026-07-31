@@ -670,6 +670,10 @@ bool zircon_command_journal::scan_existing_file(void) noexcept
 
 		if (this->m_journal_stream.good() == false)
 		{
+			// reset the stream state so the caller can keep using the
+			// journal (a sticky failbit turns one bad read into every
+			// later read failing at any offset)
+			this->m_journal_stream.clear();
 			KOTEK_MESSAGE_ERROR(
 				"failed to scan a journal block at offset {}", offset
 			);
@@ -763,6 +767,7 @@ bool zircon_command_journal::flush_block(void) noexcept
 
 	if (this->m_journal_stream.good() == false)
 	{
+		this->m_journal_stream.clear();
 		KOTEK_MESSAGE_ERROR("failed to write a journal block");
 		return false;
 	}
@@ -840,6 +845,9 @@ bool zircon_command_journal::load_block(
 
 	if (this->m_journal_stream.good() == false)
 	{
+		// reset the stream state so one bad read does not poison every
+		// later read (a sticky failbit fails all of them at any offset)
+		this->m_journal_stream.clear();
 		KOTEK_MESSAGE_ERROR(
 			"failed to read a journal block header at offset {}",
 			file_offset
@@ -862,6 +870,7 @@ bool zircon_command_journal::load_block(
 
 	if (this->m_journal_stream.good() == false)
 	{
+		this->m_journal_stream.clear();
 		KOTEK_MESSAGE_ERROR(
 			"failed to read a journal block payload at offset {}",
 			file_offset

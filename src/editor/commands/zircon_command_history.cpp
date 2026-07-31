@@ -452,6 +452,14 @@ void zircon_editor_command_history::Undo()
 			"[history]: failed to obtain a command for node {}",
 			this->m_cursor_node_id
 		);
+
+		// the node exists in the tree but its journal payload is
+		// unreadable — skipping it keeps the cursor moving so
+		// undo-to-origin drivers terminate on a corrupt journal
+		// instead of spinning on the same node forever
+		this->m_cursor_node_id = node.m_parent_node_id;
+
+		this->set_changed(true);
 		return;
 	}
 
