@@ -65,3 +65,6 @@ build*.log
 m[0-9]*.log
 *-conf.log
 reconf*.logasan*.log
+
+# build/run logs at the repo root (data_user/ already covered)
+*.log
