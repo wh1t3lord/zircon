@@ -599,6 +599,11 @@ void WindowCallback_WindowFocus(
 
 #elif defined(KOTEK_USE_WINDOW_LIBRARY_SDL)
 
+#elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
+// the own Win32 window backend (task K17): window/input callbacks are
+// wired in phase 2 through the win32 input backend + the window's WndProc
+// — phase 1 is window lifecycle + presentation only
+
 #endif
 
 zircon_game_manager::zircon_game_manager(void) :
@@ -2031,6 +2036,10 @@ void zircon_game_manager::initialize_input(void) noexcept
 		glfwSetWindowFocusCallback(
 			p_handle_window, &WindowCallback_WindowFocus
 		);
+#elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
+	// the own Win32 window backend (task K17) wires these callbacks in
+	// phase 2 through the window's WndProc + the win32 input backend —
+	// phase 1 has no window-input path by design
 #elif defined(KOTEK_USE_WINDOW_LIBRARY_SDL)
 	#error not implemented
 #else

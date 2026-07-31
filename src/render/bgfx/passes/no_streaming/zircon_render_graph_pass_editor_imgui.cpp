@@ -88,6 +88,10 @@ namespace no_streaming
 
 #ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
 					this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
+#elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
+					// the wrapper maps the glfw-named calls onto the win32
+					// backend in this configuration (task K17)
+					this->m_p_imgui_wrapper->ImGui_ImplGlfw_Shutdown();
 #else
 	#error not implemented
 #endif
@@ -269,6 +273,17 @@ namespace no_streaming
 						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOther(
 							p_handle, false),
 						"failed to ImGui_ImplGlfw_InitForOther");
+#elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
+					// the own Win32 window backend (task K17): the wrapper
+					// maps the init onto ImGui_ImplWin32_Init — the handle
+					// is the HWND from GetWindowHandle
+					auto* p_handle =
+						p_main_manager->GetGameManager()->GetWindowHandle();
+
+					KOTEK_ASSERT(
+						this->m_p_imgui_wrapper->ImGui_ImplGlfw_InitForOther(
+							static_cast<GLFWwindow*>(p_handle), false),
+						"failed to ImGui_ImplWin32_Init (via the wrapper)");
 #endif
 				}
 			}
@@ -545,6 +560,10 @@ namespace no_streaming
 					this->m_p_imgui_wrapper->UpdatePlatformWindows();
 					this->m_p_imgui_wrapper->RenderPlatformWindowsDefault();
 					glfwMakeContextCurrent(p_current_context);
+	#elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
+					// docking viewports need the platform-windows wiring of
+					// the window backend — phase 2 (task K17); the win32
+					// backend still renders the main viewport
 	#else
 		#error not implemented
 	#endif
