@@ -5,9 +5,14 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # full matrix nightly (push legs stay slim — zircon is a PRIVATE repo
+    # and every minute burns the free 2,000/month quota; one full push
+    # cycle of the old 6-leg matrix cost ~300 minutes)
+    - cron: "37 2 * * *"
   workflow_dispatch:
 
-# the ci-logs publishing step pushes branches — the default
+# the ci-logs/badges publishing steps push branches — the default
 # GITHUB_TOKEN is read-only, so pushes 403 silently without this
 permissions:
   contents: write
@@ -17,29 +22,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # push/PR legs: the essential compile coverage only (Debug x
+  # {default, static}). The full matrix runs nightly in windows_full.
   windows:
     name: windows (${{ matrix.config }}, ${{ matrix.linkage.name }})
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: windows-2022
     timeout-minutes: 180
-    # full dynamic is blocked today by kotek's cyclic module graph (K18):
-    # it runs as a visible-but-non-blocking leg until the cycles are broken
+    # full dynamic is blocked today by the cyclic module graph (K18):
+    # visible-but-non-blocking leg until the cycles are broken
     continue-on-error: ${{ matrix.linkage.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        config: [Debug, Release]
+        config: [Debug]
         linkage:
-          # owner requirement (2026-07-23): CI compiles all three output
-          # configurations of the engine
           - name: default
             flags: ""
             experimental: false
           - name: static
             flags: "-DKOTEK_LINKAGE=STATIC -DKOTEK_DEVELOPMENT_TYPE=STATIC"
             experimental: false
-          - name: dynamic
-            flags: "-DKOTEK_LINKAGE=SHARED -DKOTEK_DEVELOPMENT_TYPE=SHARED"
-            experimental: true
 
     steps:
       - uses: actions/checkout@v4
@@ -157,10 +160,133 @@ jobs:
           path: build/**/*.log
           retention-days: 7
 
+  # the full matrix: Debug/Release x {default, static, dynamic} — nightly +
+  # manual only (quota, see the header note)
+  windows_full:
+    name: windows-full (${{ matrix.config }}, ${{ matrix.linkage.name }})
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-2022
+    timeout-minutes: 180
+    continue-on-error: ${{ matrix.linkage.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Debug, Release]
+        linkage:
+          - name: default
+            flags: ""
+            experimental: false
+          - name: static
+            flags: "-DKOTEK_LINKAGE=STATIC -DKOTEK_DEVELOPMENT_TYPE=STATIC"
+            experimental: false
+          - name: dynamic
+            flags: "-DKOTEK_LINKAGE=SHARED -DKOTEK_DEVELOPMENT_TYPE=SHARED"
+            experimental: true
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            kotek/vcpkg/installed
+            kotek/vcpkg/vcpkg.exe
+          key: vcpkg-${{ runner.os }}-x64-windows-static-v2-${{ hashFiles('kotek/cmake/windows/vcpkg_nuget_minimal.cmake') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-x64-windows-static-v2-
+
+      - name: setup msvc
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+
+      - name: configure
+        shell: pwsh
+        run: |
+          foreach ($attempt in 1..3) {
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${{ matrix.linkage.flags }} *> configure-attempt$attempt.log
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($attempt -eq 3) { exit $LASTEXITCODE }
+            Write-Host "configure attempt $attempt failed, retrying (vcpkg resumes)..."
+          }
+
+      - name: build
+        shell: pwsh
+        run: cmake --build build --config ${{ matrix.config }} --parallel *> build-output.log
+
+      - name: verify outputs
+        id: verify
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "build/bin/${{ matrix.config }}/kotek.exe")) {
+            throw "kotek.exe was not produced"
+          }
+          if ("${{ matrix.linkage.name }}" -ne "static" -and -not (Test-Path "build/bin/${{ matrix.config }}/game.ktk")) {
+            throw "game.ktk was not produced"
+          }
+
+      - name: emit badge
+        if: always()
+        shell: pwsh
+        run: |
+          $ok = "${{ steps.verify.outcome }}" -eq "success"
+          @{
+            schemaVersion = 1
+            label = "build ${{ matrix.config }}-${{ matrix.linkage.name }}"
+            message = ($ok ? "passing" : "failing")
+            color = ($ok ? "brightgreen" : "red")
+          } | ConvertTo-Json -Compress | Out-File -FilePath "build-${{ matrix.config }}-${{ matrix.linkage.name }}.json" -Encoding utf8
+
+      - name: upload badge
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: badge-${{ matrix.config }}-${{ matrix.linkage.name }}
+          path: build-${{ matrix.config }}-${{ matrix.linkage.name }}.json
+          retention-days: 1
+
+      - name: publish failure logs to ci-logs branch
+        if: failure()
+        shell: pwsh
+        run: |
+          $dest = "ci-logs/${{ github.run_id }}/${{ matrix.config }}-${{ matrix.linkage.name }}"
+          New-Item -ItemType Directory -Force $dest | Out-Null
+          if (Test-Path configure-attempt1.log) { Copy-Item configure-attempt*.log $dest -Force -ErrorAction SilentlyContinue }
+          if (Test-Path build-output.log) { Copy-Item build-output.log $dest -Force -ErrorAction SilentlyContinue }
+          cmake -S . -B build-diag -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${{ matrix.linkage.flags }} *> "$dest/diag-configure-output.log"; $null
+
+          $tmp = "$env:RUNNER_TEMP/ci-logs-push"
+          Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+          $repo = "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git clone --depth 1 --branch ci-logs $repo $tmp
+          if ($LASTEXITCODE -ne 0) {
+            git clone --depth 1 $repo $tmp
+            git -C $tmp checkout --orphan ci-logs
+            git -C $tmp rm -rf --quiet .
+          }
+          New-Item -ItemType Directory -Force "$tmp/$dest" | Out-Null
+          Copy-Item -Recurse "$dest/*" "$tmp/$dest/" -Force
+          git -C $tmp config user.email "ci@zircon"
+          git -C $tmp config user.name "zircon-ci"
+          git -C $tmp add $dest
+          git -C $tmp diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host "no new logs to publish"; exit 0 }
+          git -C $tmp commit --quiet -m "ci logs: build run ${{ github.run_number }} (${{ matrix.config }}-${{ matrix.linkage.name }})"
+          git -C $tmp push origin ci-logs
+
+      - name: upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.config }}-${{ matrix.linkage.name }}
+          path: build/**/*.log
+          retention-days: 7
+
   badges:
     name: publish badges
     runs-on: windows-2022
-    needs: [windows]
+    needs: [windows, windows_full]
     if: always() && github.event_name != 'pull_request'
     steps:
       - name: collect badges
