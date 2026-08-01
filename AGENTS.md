@@ -46,6 +46,18 @@
 5. **Naming**: files/classes `zircon_snake_case`, constants `zircon_DEF_*` /
    `ZIRCON_DEF_*`; CMake targets `zircon.<module>` (STATIC libs today; `src/engine`
    builds `${KOTEK_DEVELOPMENT_TYPE}` → `game.ktk`).
+5a. **Shaders are Slang ONLY (owner directive 2026-08-01)** — one shading
+   language for users across bgfx AND NRI: sources live in
+   `data_game/shaders/slang/*.vs.slang|*.fs.slang` (bare-parameter IO,
+   `[[vk::binding]]`+`register` pairs, `[shader("...")]` named entries).
+   Pipeline: `slangc -target spirv` → `zircon_shaderpack` (own tool, writes
+   bgfx's container) → `shader_cache/bgfx/vulkan/*.bin`;
+   `slangc -target dxil` → `shader_cache/nri/dx12/*.dxil` directly. shaderc's
+   macro dialect was evaluated and rejected on evidence (2026-08-01 spike:
+   it only parses `$input/$output`+`void main` dialect, modern explicit IO
+   would need a fragile transpiler). The vendored imgui embedded `.bin.h`
+   blobs are the temporary exception (editor-internal reference shaders) —
+   they migrate to Slang when the editor shaders join the pipeline.
 6. **Namespace form**: the real namespace is `Kotek` (capital, renamable via
    `KOTEK_BEGIN_NAMESPACE_KOTEK`); `kotek.core/include/kotek_core.h` defines the
    lowercase aliases (`namespace kotek/core/render = Kotek::Core/...`).

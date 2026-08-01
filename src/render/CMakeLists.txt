@@ -191,3 +191,16 @@ kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC zirc
 kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC zircon.game)
 kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC kotek.render)
 kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC kotek.render.shared.bgfx)
+
+### Slang shaders (the only user shading language; serves bgfx-vulkan via
+### SPIR-V + zircon_shaderpack, and NRI-dx12 via DXIL). Defines the
+### zircon_shaders target and makes game.ktk (target `zircon`) depend on it.
+include("${CMAKE_SOURCE_DIR}/cmake/zircon_slang_shaders.cmake")
+
+# IDE visibility for the Slang sources (compilation is the zircon_shaders
+# target's job, driven by the registry in cmake/zircon_slang_shaders.cmake)
+file(GLOB to_include_shaders_slang
+	"../../data_game/shaders/slang/*.slang"
+)
+source_group("Slang/Shaders" FILES ${to_include_shaders_slang})
+target_sources(${PROJECT_NAME} PRIVATE ${to_include_shaders_slang})

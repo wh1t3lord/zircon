@@ -35,7 +35,8 @@ constexpr const char* kZirconConfig_DefaultRenderPassesEditor =
 	"no_streaming::zircon_render_graph_pass_editor_present_bgfx,"
 	"no_streaming::zircon_render_graph_pass_editor_imgui_bgfx";
 constexpr const char* kZirconConfig_DefaultRenderPassesGame =
-	"no_streaming::zircon_render_graph_pass_present_bgfx";
+	"no_streaming::zircon_render_graph_pass_present_bgfx,"
+	"no_streaming::zircon_render_graph_pass_model_static_bgfx";
 
 class zircon_config
 {

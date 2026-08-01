@@ -55,6 +55,7 @@ else()
 		"zircon_unit_tests_game.cpp"
 		"zircon_unit_tests_editor.cpp"
 		"tests/zircon_unit_tests_command_history.cpp"
+		"tests/zircon_unit_tests_render_passes.cpp"
 	)
 endif()
 
