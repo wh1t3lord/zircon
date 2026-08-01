@@ -79,6 +79,13 @@ public:
 	const char* get_render_passes_editor(void) const noexcept;
 	const char* get_render_passes_game(void) const noexcept;
 
+	/// overwrite the in-memory lists (the Render Passes window's Save
+	/// path, task Z3 P2a); the value must fit
+	/// ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH — the caller checks
+	/// the joined length before calling (a loud assert fires otherwise)
+	void set_render_passes_editor(const char* p_comma_separated_names) noexcept;
+	void set_render_passes_game(const char* p_comma_separated_names) noexcept;
+
 private:
 	void initialize_default() noexcept;
 

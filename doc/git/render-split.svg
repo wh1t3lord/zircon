@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arr5" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="1100" height="620" fill="#ffffff"/>
+  <text x="550" y="40" text-anchor="middle" font-size="24" font-weight="600" fill="#0f172a">render: executor and passes, separated</text>
+  <text x="550" y="64" text-anchor="middle" font-size="13" fill="#64748b">statically linked by default — a hot-swappable library in graphics-development mode</text>
+
+  <!-- executor -->
+  <rect x="60" y="96" width="470" height="300" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="86" y="126" font-size="16" font-weight="700" fill="#1d4ed8">executor — zircon.render</text>
+
+  <rect x="86" y="142" width="418" height="58" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="102" y="166" font-size="12.5" font-weight="600" fill="#1e40af">renderer (bgfx today — NRI mirrored)</text>
+  <text x="102" y="186" font-size="11" fill="#3b82f6">owns the frame: update → passes → present</text>
+
+  <rect x="86" y="212" width="200" height="76" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="102" y="234" font-size="12" font-weight="600" fill="#1e40af">render graph — editor</text>
+  <text x="102" y="252" font-size="10.5" fill="#3b82f6">ordered pass list (≤32 slots)</text>
+  <text x="102" y="268" font-size="10.5" fill="#3b82f6">present → grid → gizmo → imgui</text>
+  <rect x="304" y="212" width="200" height="76" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="320" y="234" font-size="12" font-weight="600" fill="#1e40af">render graph — game</text>
+  <text x="320" y="252" font-size="10.5" fill="#3b82f6">ordered pass list (≤32 slots)</text>
+  <text x="320" y="268" font-size="10.5" fill="#3b82f6">present → static models → …</text>
+
+  <rect x="86" y="300" width="418" height="76" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="102" y="322" font-size="12" font-weight="600" fill="#1e40af">GPU resource managers (texture • shader • geometry)</text>
+  <text x="102" y="342" font-size="10.5" fill="#3b82f6">resources stay executor-side; passes reference them by handle —</text>
+  <text x="102" y="358" font-size="10.5" fill="#3b82f6">a pass never owns what a reload would orphan</text>
+
+  <!-- passes lib -->
+  <rect x="600" y="96" width="440" height="300" rx="14" fill="#fefce8" stroke="#ca8a04" stroke-width="2.5"/>
+  <text x="626" y="126" font-size="16" font-weight="700" fill="#854d0e">passes — zircon.render.passes.bgfx</text>
+  <text x="626" y="148" font-size="11.5" fill="#713f12">STATIC .lib in the default config (zero overhead)  •  DLL under graphics-development</text>
+
+  <rect x="626" y="164" width="388" height="52" rx="8" fill="#ffffff" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="642" y="185" font-size="12" font-weight="600" fill="#854d0e">a narrow C-ABI surface, stable by construction</text>
+  <text x="642" y="204" font-size="11" fill="#713f12">get_count / get_name / create(name) / destroy(pass)</text>
+
+  <rect x="626" y="228" width="388" height="68" rx="8" fill="#ffffff" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="642" y="249" font-size="12" font-weight="600" fill="#854d0e">passes are plain objects over a tiny contract</text>
+  <text x="642" y="267" font-size="11" fill="#713f12">OnCreateResources / OnUpdate / OnRender / OnDestroyResources</text>
+  <text x="642" y="284" font-size="11" fill="#713f12">POD + handles only — no shared ownership with the host</text>
+
+  <rect x="626" y="308" width="388" height="68" rx="8" fill="#ffffff" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="642" y="329" font-size="12" font-weight="600" fill="#854d0e">created and destroyed inside the library</text>
+  <text x="642" y="347" font-size="11" fill="#713f12">factory in, paired destroy out — objects never cross</text>
+  <text x="642" y="364" font-size="11" fill="#713f12">a module boundary unowned</text>
+
+  <!-- arrows between -->
+  <line x1="530" y1="220" x2="596" y2="220" stroke="#475569" stroke-width="2" marker-end="url(#arr5)"/>
+  <text x="563" y="208" text-anchor="middle" font-size="10.5" fill="#64748b">factory</text>
+  <line x1="596" y1="260" x2="530" y2="260" stroke="#475569" stroke-width="2" marker-end="url(#arr5)"/>
+  <text x="563" y="278" text-anchor="middle" font-size="10.5" fill="#64748b">pass objects</text>
+
+  <!-- reload loop -->
+  <rect x="60" y="424" width="980" height="160" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="86" y="454" font-size="15" font-weight="700" fill="#334155">graphics-development mode — the reload loop (frame-boundary, no locks)</text>
+  <g font-size="11.5">
+    <rect x="86" y="472" width="150" height="66" rx="8" fill="#ffffff" stroke="#64748b"/>
+    <text x="161" y="496" text-anchor="middle" font-size="11.5" font-weight="600" fill="#334155">1 · watcher</text>
+    <text x="161" y="514" text-anchor="middle" font-size="10.5" fill="#64748b">polls the DLL, stable</text>
+    <text x="161" y="528" text-anchor="middle" font-size="10.5" fill="#64748b">size+mtime twice</text>
+    <rect x="262" y="472" width="150" height="66" rx="8" fill="#ffffff" stroke="#64748b"/>
+    <text x="337" y="496" text-anchor="middle" font-size="11.5" font-weight="600" fill="#334155">2 · flag set</text>
+    <text x="337" y="514" text-anchor="middle" font-size="10.5" fill="#64748b">an atomic flag only;</text>
+    <text x="337" y="528" text-anchor="middle" font-size="10.5" fill="#64748b">console cmd overrides</text>
+    <rect x="438" y="472" width="170" height="66" rx="8" fill="#ffffff" stroke="#64748b"/>
+    <text x="523" y="496" text-anchor="middle" font-size="11.5" font-weight="600" fill="#334155">3 · frame boundary</text>
+    <text x="523" y="514" text-anchor="middle" font-size="10.5" fill="#64748b">GPU idle; destroy passes</text>
+    <text x="523" y="528" text-anchor="middle" font-size="10.5" fill="#64748b">BEFORE unloading code</text>
+    <rect x="634" y="472" width="170" height="66" rx="8" fill="#ffffff" stroke="#64748b"/>
+    <text x="719" y="496" text-anchor="middle" font-size="11.5" font-weight="600" fill="#334155">4 · swap</text>
+    <text x="719" y="514" text-anchor="middle" font-size="10.5" fill="#64748b">unload → load the new</text>
+    <text x="719" y="528" text-anchor="middle" font-size="10.5" fill="#64748b">library (keep old on failure)</text>
+    <rect x="830" y="472" width="184" height="66" rx="8" fill="#ffffff" stroke="#64748b"/>
+    <text x="922" y="496" text-anchor="middle" font-size="11.5" font-weight="600" fill="#334155">5 · recreate</text>
+    <text x="922" y="514" text-anchor="middle" font-size="10.5" fill="#64748b">factory rebuilds each session's</text>
+    <text x="922" y="528" text-anchor="middle" font-size="10.5" fill="#64748b">pass set; graph re-initializes</text>
+  </g>
+  <line x1="236" y1="505" x2="258" y2="505" stroke="#475569" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="412" y1="505" x2="434" y2="505" stroke="#475569" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="608" y1="505" x2="630" y2="505" stroke="#475569" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="804" y1="505" x2="826" y2="505" stroke="#475569" stroke-width="2" marker-end="url(#arr5)"/>
+  <text x="550" y="566" text-anchor="middle" font-size="11.5" fill="#64748b">edit pass code → rebuild one library → the running editor swaps it in — no restart, no lost state</text>
+</svg>

@@ -16,6 +16,10 @@ in practice.
 
 ## What zircon demonstrates
 
+<p align="center">
+  <img src="doc/git/engine-overview.svg" alt="zircon engine overview — game manager, sessions, ECS, undo/redo journal, render split, resource manager" width="880"/>
+</p>
+
 - **Embedded discipline enforced at compile time.** The engine builds only
   against kotek's embedded configuration — static containers, no hidden
   reallocation — and a hard compile-time guard rejects any other configuration.
@@ -33,9 +37,18 @@ in practice.
   hot-swappable: edit a render pass, rebuild one library, and the editor
   reloads it without restarting. bgfx drives rasterization; NVIDIA NRI
   (DirectX 12, phase one operational) is the Vulkan/ray-tracing path.
+
+<p align="center">
+  <img src="doc/git/render-split.svg" alt="render architecture — executor and hot-swappable passes library with the reload loop" width="880"/>
+</p>
+
 - **The engine as a replaceable module.** zircon itself builds as a single
   loadable module (`game.ktk`) of kotek's launcher — the framework's plugin
   philosophy applied to the engine itself.
+
+<p align="center">
+  <img src="doc/git/undo-journal.svg" alt="full-retention undo/redo — append-only journal with snapshots, proven by a 100k-command stress test" width="880"/>
+</p>
 
 ## Who this repository is for
 

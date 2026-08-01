@@ -737,7 +737,29 @@ void generateFactoryHeader(const std::string& folderPath,
     }
     file << "            default: return \"\";\n";
     file << "        }\n";
-    file << "    }\n";
+    file << "    }\n\n";
+
+    // Registry name tables (task Z3 P2a): the editor's Render Passes
+    // window enumerates the registered passes per session kind WITHOUT
+    // instantiating them (the tables are plain string literals, so a
+    // consumer does not need the concrete pass headers). P3 hot-reload
+    // re-generates these from the reloaded pass library and the window
+    // picks the new table up through its refresh_registry().
+    file << "    inline constexpr const char* const zircon_render_game_passes_registry[] = {\n";
+    for (const auto& pass : gamePasses) {
+        file << "        \"" << pass << "\",\n";
+    }
+    file << "    };\n";
+    file << "    inline constexpr unsigned zircon_render_game_passes_registry_count = "
+         << gamePasses.size() << ";\n\n";
+
+    file << "    inline constexpr const char* const zircon_render_editor_passes_registry[] = {\n";
+    for (const auto& pass : editorPasses) {
+        file << "        \"" << pass << "\",\n";
+    }
+    file << "    };\n";
+    file << "    inline constexpr unsigned zircon_render_editor_passes_registry_count = "
+         << editorPasses.size() << ";\n";
 
     file << "class zircon_render_pass_factory {\n";
     file << "public:\n";

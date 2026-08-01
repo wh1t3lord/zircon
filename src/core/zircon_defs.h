@@ -21,6 +21,10 @@ enum class eZirconSDKFeatures : kotek::ktk::uint16_t
 {
 	kSDK_Feature_AddRequiredComponents_Automatically = 1 << 1,
 	kSDK_Feature_SphereBoundingBox_Quality = 1 << 2,
+	/// @brief \~english auto-open the Render Passes window on editor
+	/// start (task Z3 P2a); persisted in game_config.json as
+	/// "show_pass_manager_on_start", default TRUE
+	kSDK_Feature_ShowPassManagerOnStart = 1 << 3,
 
 	kSDK_Feature_Unknown = 0
 };

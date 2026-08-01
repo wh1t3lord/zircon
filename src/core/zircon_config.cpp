@@ -49,7 +49,11 @@ zircon_config::zircon_config(void) :
 	m_is_session_editor{},
 	m_current_session_id{kotek::uint8_t(-1)},
 	m_features_game{eZirconGameFeatures::kGame_Feature_Unknown},
-	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_Unknown},
+	// default-TRUE flags live in the ctor (not only in
+	// initialize_default) so an existing config file that predates the
+	// key keeps the default — deserialize only overwrites when the key
+	// is actually present
+	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart},
 	m_render_passes_editor{kZirconConfig_DefaultRenderPassesEditor},
 	m_render_passes_game{kZirconConfig_DefaultRenderPassesGame}
 {
@@ -171,6 +175,15 @@ void zircon_config::serialize(
 		);
 
 		config.Write(
+			translate_zircon_sdk_features(
+				eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart
+			),
+			this->is_feature_enabled(
+				eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart
+			)
+		);
+
+		config.Write(
 			kZirconConfig_KeyRenderPassesEditor,
 			this->m_render_passes_editor.c_str()
 		);
@@ -284,6 +297,38 @@ void zircon_config::deserialize(
 				kZirconConfig_KeyRenderPassesGame,
 				this->m_render_passes_game
 			);
+
+			// default-TRUE flag (Z3 P2a): read only when the key is
+			// actually persisted — an absent key (a config written
+			// before this flag existed) must keep the ctor default
+			// instead of silently flipping to false
+			{
+				const auto& object = file.Get_Object();
+
+				auto it = object.find(translate_zircon_sdk_features(
+					eZirconSDKFeatures::
+						kSDK_Feature_ShowPassManagerOnStart
+				));
+
+				if (it != object.end())
+				{
+					if (it->value().is_bool())
+					{
+						this->set_feature(
+							eZirconSDKFeatures::
+								kSDK_Feature_ShowPassManagerOnStart,
+							it->value().as_bool()
+						);
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"config key 'show_pass_manager_on_start' "
+							"must be a bool, ignoring"
+						);
+					}
+				}
+			}
 		}
 	}
 }
@@ -311,12 +356,62 @@ const char* zircon_config::get_render_passes_game(void) const noexcept
 	return this->m_render_passes_game.c_str();
 }
 
+void zircon_config::set_render_passes_editor(
+	const char* p_comma_separated_names
+) noexcept
+{
+	KOTEK_ASSERT(
+		p_comma_separated_names,
+		"pass a valid comma-separated pass-name list (empty string to "
+		"clear, never nullptr)"
+	);
+
+	if (p_comma_separated_names)
+	{
+		KOTEK_ASSERT(
+			std::strlen(p_comma_separated_names) <=
+				ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH,
+			"render pass list is too long, raise "
+			"ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH"
+		);
+
+		this->m_render_passes_editor.assign(p_comma_separated_names);
+	}
+}
+
+void zircon_config::set_render_passes_game(
+	const char* p_comma_separated_names
+) noexcept
+{
+	KOTEK_ASSERT(
+		p_comma_separated_names,
+		"pass a valid comma-separated pass-name list (empty string to "
+		"clear, never nullptr)"
+	);
+
+	if (p_comma_separated_names)
+	{
+		KOTEK_ASSERT(
+			std::strlen(p_comma_separated_names) <=
+				ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH,
+			"render pass list is too long, raise "
+			"ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH"
+		);
+
+		this->m_render_passes_game.assign(p_comma_separated_names);
+	}
+}
+
 void zircon_config::initialize_default() noexcept
 {
 	this->set_feature(
 		eZirconSDKFeatures::
 			kSDK_Feature_AddRequiredComponents_Automatically,
 		true
+	);
+
+	this->set_feature(
+		eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart, true
 	);
 }
 
@@ -338,6 +433,13 @@ translate_zircon_sdk_features(eZirconSDKFeatures features)
 			 ))
 	{
 		return "sphere_bounding_box_quality";
+	}
+	else if (KOTEK_CHECK_FLAG(
+				 features,
+				 eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart
+			 ))
+	{
+		return "show_pass_manager_on_start";
 	}
 	else if (KOTEK_CHECK_FLAG(
 				 features,

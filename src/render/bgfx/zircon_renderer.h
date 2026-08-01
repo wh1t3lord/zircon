@@ -20,17 +20,57 @@ class zircon_session_game_manager;
 
 #define ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT 2
 
+/// one pass class name inside a graph slot's name list; measured: the
+/// longest registered name today is
+/// "no_streaming::zircon_render_graph_pass_editor_model_static_bgfx"
+/// (63 chars), 96 gives ~1.5x headroom (rule 9) — raise when a
+/// legitimately longer pass name registers
+#define ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH 96
+
 struct zircon_render_graph_simplified_bgfx_info_t
 {
 	bool in_use{};
 	bool is_game_session{};
 	kotek::uint8_t session_id{};
 	kotek::render::bgfx::ktkRenderGraphSimplified graph;
+
+	/// set by the structural-edit requests below (the Render Passes
+	/// window, task Z3 P2a); the rebuild runs at the top of the next
+	/// draw() — never mid-pass from inside the imgui Draw call
+	bool rebuild_pending{};
+
+	/// the session's pass class-name list in execution order, aligned
+	/// with pass_enabled and with graph.Get_Passes(); the names live
+	/// here (not in the pass objects) so the editor window reads them
+	/// without touching passes — a pass library unload (P3 hot-reload)
+	/// can never dangle them
+	kotek::static_vector_t<
+		kotek::static_cstring_t<
+			ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
+		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+		pass_names;
+
+	/// per-pass skip flags aligned with pass_names (and the graph's
+	/// pass order): false = draw() skips that pass's OnUpdate/OnRender.
+	/// The window's enable checkbox flips these — instant, no
+	/// destroy/create. Default: every pass enabled
+	kotek::static_vector_t<bool,
+		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+		pass_enabled;
 };
 
 class zircon_renderer_bgfx : public kotek::core::ktkIRenderer
 {
 public:
+	/// creates a pass instance by its registered class name; injected by
+	/// zircon_game_manager (the generated pass factory lives next to the
+	/// concrete passes — the executor must stay free of concrete pass
+	/// types, and P3 points this at the hot-swappable pass library's
+	/// export instead)
+	using zircon_render_pass_create_pfn_t =
+		kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass* (*
+		)(const char* p_pass_name);
+
 	zircon_renderer_bgfx(kotek::core::ktkMainManager* p_main_manager);
 	~zircon_renderer_bgfx(void);
 
@@ -53,12 +93,20 @@ public:
 		kotek::uint8_t render_graph_id) const;
 	bool is_render_graph_for_session_game(kotek::uint8_t render_graph_id) const;
 
+	/// pass_names must align with passes (one created pass per name,
+	/// same order) — the slot stores them so the Render Passes window
+	/// reads/rebuilds the set without touching pass objects (Z3 P2a)
 	kotek::uint8_t create_render_graph(kotek::uint8_t session_id,
 		bool is_game_session,
 		kotek::static_vector_t<
 			kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
 			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>&
-			passes);
+			passes,
+		const kotek::static_vector_t<
+			kotek::static_cstring_t<
+				ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>&
+			pass_names);
 
 	void initialize_render_graph(kotek::uint8_t render_graph_id,
 		kotek::core::ktkMainManager* p_main_manager,
@@ -68,6 +116,35 @@ public:
 
 	void set_current_render_graph(kotek::uint8_t render_graph_id);
 
+	void set_render_pass_create_callback(
+		zircon_render_pass_create_pfn_t pfn_create) noexcept;
+
+	/// Render Passes window reads (Z3 P2a): slot count + read-only slot
+	/// state + the slot id of a session kind (returns
+	/// kotek::uint8_t(-1) when no such slot exists — compare against
+	/// get_render_graph_count())
+	kotek::uint8_t get_render_graph_count(void) const noexcept;
+	const zircon_render_graph_simplified_bgfx_info_t&
+	get_render_graph_info(kotek::uint8_t render_graph_id) const noexcept;
+	kotek::uint8_t get_render_graph_id_for_session_kind(
+		bool is_game_session) const noexcept;
+
+	/// instant enable/disable: flips the slot's skip flag, applied from
+	/// the next frame — no pass destroy/create
+	void set_render_pass_enabled(kotek::uint8_t render_graph_id,
+		kotek::uint8_t pass_index, bool enabled) noexcept;
+
+	/// structural edits: mutate the slot's name list and queue a
+	/// frame-boundary rebuild of that graph (processed at the top of
+	/// the next draw() — the window calls these from inside the imgui
+	/// pass's Draw, where graph surgery would delete the running pass)
+	void request_render_pass_add(kotek::uint8_t render_graph_id,
+		const char* p_pass_name) noexcept;
+	void request_render_pass_remove(kotek::uint8_t render_graph_id,
+		kotek::uint8_t pass_index) noexcept;
+	void request_render_pass_move(kotek::uint8_t render_graph_id,
+		kotek::uint8_t pass_index, bool move_up) noexcept;
+
 private:
 	void initialize_extensions(kotek::core::ktkConsole* p_console);
 
@@ -75,6 +152,9 @@ private:
 	void End() noexcept;
 
 	void destroy_render_graphs(void) noexcept;
+
+	void process_pending_render_graph_rebuilds(void) noexcept;
+	void rebuild_render_graph(kotek::uint8_t render_graph_id) noexcept;
 
 private:
 	kotek::uint8_t m_previous_render_graph_id;
@@ -86,6 +166,7 @@ private:
 	// backend plugin dll
 	kotek::core::ktkIRenderResourceManager* m_p_render_resource_manager;
 	kotek::render::bgfx::ktkRenderGraphSimplified* m_p_current_render_graph;
+	zircon_render_pass_create_pfn_t m_pfn_create_render_pass{};
 	kotek::static_vector_t<zircon_render_graph_simplified_bgfx_info_t,
 		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>
 		m_render_graphs;
