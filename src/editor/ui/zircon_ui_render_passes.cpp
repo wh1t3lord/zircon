@@ -137,14 +137,19 @@ zircon_editor_ui_window_render_passes::
 		const char* const* p_registry_editor_pass_names,
 		kotek::uint8_t registry_editor_pass_count,
 		const char* const* p_registry_game_pass_names,
-		kotek::uint8_t registry_game_pass_count) :
+		kotek::uint8_t registry_game_pass_count,
+		kotek::static_cstring_t<
+			ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+			p_render_passes_game_resolved_baseline) :
 	m_is_window_show(false), m_dont_show_on_start(false),
 	m_need_initial_focus(false), m_p_config{p_config},
 	m_p_renderer_bgfx{p_renderer_bgfx},
 	m_p_registry_editor_pass_names{p_registry_editor_pass_names},
 	m_registry_editor_pass_count{registry_editor_pass_count},
 	m_p_registry_game_pass_names{p_registry_game_pass_names},
-	m_registry_game_pass_count{registry_game_pass_count}
+	m_registry_game_pass_count{registry_game_pass_count},
+	m_p_render_passes_game_resolved_baseline{
+		p_render_passes_game_resolved_baseline}
 {
 	KOTEK_ASSERT(p_config, "you must pass a valid zircon_config instance!");
 
@@ -584,10 +589,27 @@ bool zircon_editor_ui_window_render_passes::is_session_dirty(
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 		saved_names;
 
-	zircon_split_render_pass_list(
+	// comparison source (task Z3 P2h): the editor session compares
+	// against the config's editor set (levels never override it); the
+	// GAME session compares against the RESOLVED set this boot loaded
+	// with — the scene file's render_passes when the level overrides
+	// the config default — so a level override does not read as
+	// "modified" on a fresh boot (the user changed nothing); the
+	// baseline falls back to the config value when no game graph was
+	// created this boot (e.g. the NRI backend)
+	const char* p_saved_list =
 		is_game_session ? this->m_p_config->get_render_passes_game()
-		                : this->m_p_config->get_render_passes_editor(),
-		saved_names);
+		                : this->m_p_config->get_render_passes_editor();
+
+	if (is_game_session &&
+		this->m_p_render_passes_game_resolved_baseline &&
+		!this->m_p_render_passes_game_resolved_baseline->empty())
+	{
+		p_saved_list =
+			this->m_p_render_passes_game_resolved_baseline->c_str();
+	}
+
+	zircon_split_render_pass_list(p_saved_list, saved_names);
 
 	if (saved_names.size() != info.pass_names.size())
 	{
@@ -680,6 +702,17 @@ void zircon_editor_ui_window_render_passes::save(
 			if (is_game_session)
 			{
 				this->m_p_config->set_render_passes_game(joined.c_str());
+
+				// task Z3 P2h: the just-saved live set is also the new
+				// dirty-check baseline — the next boot restores exactly
+				// it (the shutdown scene.json write persists the active
+				// set into the level, and it is the new config
+				// default), so the marker must clear after Save
+				if (this->m_p_render_passes_game_resolved_baseline)
+				{
+					this->m_p_render_passes_game_resolved_baseline
+						->assign(joined.c_str());
+				}
 			}
 			else
 			{

@@ -162,6 +162,13 @@ public:
 	kotek::uint64_t get_journal_raw_entry_bytes(void) const noexcept;
 	kotek::uint64_t get_total_snapshot_count(void) const noexcept;
 
+	/// @brief \~english the absolute path of this scene's streaming
+	/// folder (data_user/sdk/scenes/<name>/): the journal pair and the
+	/// scene.json level-metadata sibling (task Z3 P2h) live there.
+	/// Empty before initialize; the game boot's pass-set resolution
+	/// reads scene.json through this path
+	const char* get_streaming_folder_path(void) const noexcept;
+
 private:
 	/// @brief \~english the command object for a node: live pool
 	/// hit or reconstruction from the journal into the scratch slot

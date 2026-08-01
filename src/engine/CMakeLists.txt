@@ -36,6 +36,7 @@ set(to_include_game_resource_management_files
 set(to_include_game_files
 	"zircon_serialization.h"
 	"zircon_deserialization.h"
+	"zircon_render_pass_set_resolver.h"
 	"zircon_game_manager.h"
 	"zircon_game_manager.cpp"
 )

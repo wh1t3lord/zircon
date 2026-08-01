@@ -54,6 +54,10 @@
 #include "../core/zircon_console.h"
 #include "../world/zircon_world.h"
 
+// task Z3 P2h: the game pass set resolution chain (scene.json ->
+// config -> built-in) + the scene metadata file IO
+#include "zircon_render_pass_set_resolver.h"
+
 #ifdef KOTEK_USE_BGFX
 namespace
 {
@@ -896,7 +900,12 @@ void zircon_game_manager::Initialize(
 						zircon_render_game_passes_registry,
 						static_cast<kotek::uint8_t>(
 							zircon_render_game_passes_registry_count
-						)
+						),
+						// task Z3 P2h: filled at game-session creation
+						// (after this window is constructed) — the
+						// window reads it lazily per Draw
+						this
+							->get_render_passes_game_resolved_baseline()
 					);
 
 				// the ImGuizmo gizmo variant's host (task Z3 P2f): an
@@ -1137,8 +1146,22 @@ void zircon_game_manager::Initialize(
 					KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 					pass_names;
 
-				zircon_create_render_passes_from_config(
+				// task Z3 P2h: the game pass set resolves as — the
+				// loaded scene's scene.json render_passes -> the
+				// config's render_passes_game -> the built-in default;
+				// the winner is also the Render Passes window's
+				// dirty-check baseline
+				zircon_resolve_game_render_pass_set(
+					this->m_p_main_manager->GetFileSystem(),
+					this->get_active_scene_streaming_folder_path(),
 					this->m_p_config->get_render_passes_game(),
+					zircon_render_game_passes_registry,
+					static_cast<kotek::uint8_t>(
+						zircon_render_game_passes_registry_count),
+					this->m_render_passes_game_resolved_baseline);
+
+				zircon_create_render_passes_from_config(
+					this->m_render_passes_game_resolved_baseline.c_str(),
 					kZirconConfig_DefaultRenderPassesGame,
 					passes,
 					pass_names
@@ -1577,6 +1600,162 @@ void zircon_game_manager::Serialize(void) noexcept
 	this->m_p_config->serialize(
 		this->m_p_main_manager->GetFileSystem()
 	);
+
+	// task Z3 P2h: the module's save point (shutdown — the renderer
+	// and the sessions are still alive here, ShutdownModule_Render and
+	// Shutdown run after SerializeModule_Game). The loaded scene
+	// auto-persists its world state continuously through the Z6
+	// journal; its metadata sibling scene.json follows the same model
+	// and carries the ACTIVE game pass set
+	this->write_active_game_render_pass_set_to_scene();
+}
+
+const char* zircon_game_manager::get_active_scene_streaming_folder_path(
+	void) const noexcept
+{
+#ifdef KOTEK_USE_SDK_IMGUI
+	if (!this->m_p_session_editor_manager)
+	{
+		return nullptr;
+	}
+
+	zircon_session_editor* p_session =
+		this->m_p_session_editor_manager->get_session(
+			this->m_p_session_editor_manager
+				->get_current_session_id()
+		);
+
+	if (!p_session)
+	{
+		return nullptr;
+	}
+
+	const zircon_editor_command_history* p_history =
+		p_session->get_command_history();
+
+	if (!p_history)
+	{
+		return nullptr;
+	}
+
+	const char* p_path = p_history->get_streaming_folder_path();
+
+	return (p_path && p_path[0] != '\0') ? p_path : nullptr;
+#else
+	// no editor session without the SDK — no scene is ever loaded,
+	// the resolution chain starts at the config
+	return nullptr;
+#endif
+}
+
+void zircon_game_manager::write_active_game_render_pass_set_to_scene(
+	void) noexcept
+{
+	const char* p_scene_folder_path =
+		this->get_active_scene_streaming_folder_path();
+
+	if (!p_scene_folder_path)
+	{
+		// no scene loaded (a non-SDK boot) — nothing to persist into
+		return;
+	}
+
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
+		active_set;
+
+	bool is_from_live_graph = false;
+
+#ifdef KOTEK_USE_BGFX
+	if (this->m_renderers.p_bgfx)
+	{
+		const kotek::uint8_t render_graph_id =
+			this->m_renderers.p_bgfx->get_render_graph_id_for_session_kind(
+				true
+			);
+
+		if (render_graph_id <
+			this->m_renderers.p_bgfx->get_render_graph_count())
+		{
+			const zircon_render_graph_simplified_bgfx_info_t& info =
+				this->m_renderers.p_bgfx->get_render_graph_info(
+					render_graph_id
+				);
+
+			// measure first: etl::string asserts on overflow, fail
+			// loudly but gracefully instead (same discipline as the
+			// Render Passes window's Save)
+			kotek::ktk::size_t joined_length = 0;
+
+			for (const auto& name : info.pass_names)
+			{
+				joined_length += name.size() + 1; // +1 for ','/NUL
+			}
+
+			if (joined_length >
+				ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH)
+			{
+				KOTEK_MESSAGE_ERROR(
+					"the live game render pass set doesn't fit the "
+					"scene metadata value capacity ({}) — not saved; "
+					"raise ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_"
+					"LENGTH",
+					joined_length
+				);
+			}
+			else if (info.pass_names.empty() == false)
+			{
+				bool is_first = true;
+
+				for (const auto& name : info.pass_names)
+				{
+					if (!is_first)
+					{
+						active_set += ',';
+					}
+
+					active_set += name.c_str();
+					is_first = false;
+				}
+
+				is_from_live_graph = true;
+			}
+		}
+	}
+#endif
+
+	if (!is_from_live_graph)
+	{
+		// no game render graph exists (never created, or the NRI
+		// backend which has no graphs in phase 1) — the config value
+		// is the active set by definition of the resolution chain
+		active_set.assign(this->m_p_config->get_render_passes_game());
+	}
+
+	const bool status = zircon_scene_metadata::save_render_passes(
+		this->m_p_main_manager->GetFileSystem(),
+		p_scene_folder_path,
+		active_set.c_str()
+	);
+
+	if (status)
+	{
+		KOTEK_MESSAGE(
+			"[scene]: wrote the active game render pass set to "
+			"{}/{} (source: {}): {}",
+			p_scene_folder_path,
+			kZirconSceneMetadata_FileName,
+			is_from_live_graph ? "live game render graph"
+							   : "config default",
+			active_set.c_str()
+		);
+	}
+}
+
+kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+zircon_game_manager::get_render_passes_game_resolved_baseline(
+	void) noexcept
+{
+	return &this->m_render_passes_game_resolved_baseline;
 }
 
 void zircon_game_manager::Deserialize(void) noexcept

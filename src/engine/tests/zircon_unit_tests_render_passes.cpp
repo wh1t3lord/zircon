@@ -18,6 +18,12 @@
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
 
+		// task Z3 P2h: the resolution chain under test + the generated
+		// pass registry it validates against (the same table the boot
+		// hands to zircon_resolve_game_render_pass_set)
+		#include "../zircon_render_pass_set_resolver.h"
+		#include "../../render/bgfx/passes/no_streaming/zircon_render_pass_factory.h"
+
 		#ifndef ZIRCON_DEF_UNIT_TEST_RENDER_PASSES
 			#define ZIRCON_DEF_UNIT_TEST_RENDER_PASSES 1
 		#endif
@@ -1243,6 +1249,308 @@ TEST(Zircon_Editor, GizmoImguizmoTrsMatrixRoundTrip)
 		EXPECT_FALSE(zircon_window_gizmo_imguizmo::decompose_trs_matrix(
 			matrix, out_position, out_scale, out_rotation));
 	}
+}
+
+namespace
+{
+	/// task Z3 P2h test fixtures: scene-folder handling against the
+	/// real data_user/sdk/scenes tree (the same layout the command
+	/// history streams into), so the metadata file lands exactly where
+	/// production reads it
+	void zircon_test_compose_scene_folder(
+		kotek::core::ktkIFileSystem* p_filesystem,
+		const char* p_folder_name,
+		ktk_filesystem_path& out_path)
+	{
+		p_filesystem->Make_Path(out_path,
+			kotek::core::eFolderIndex::kFolderIndex_DataUser_SDK_Scenes);
+		out_path /= p_folder_name;
+	}
+
+	void zircon_test_reset_scene_folder(
+		kotek::core::ktkIFileSystem* p_filesystem,
+		const char* p_folder_name)
+	{
+		ktk_filesystem_path path;
+
+		zircon_test_compose_scene_folder(
+			p_filesystem, p_folder_name, path);
+
+		if (p_filesystem->Is_Exists(path))
+		{
+			std::filesystem::remove_all(std::filesystem::path(
+				reinterpret_cast<const char*>(
+					path.u8string().data())));
+		}
+
+		p_filesystem->Create_Directory(
+			path, kotek::core::eFolderVisibilityType::kVisible);
+	}
+} // namespace
+
+// functional proof for task Z3 P2h's scene.json IO: the level metadata
+// sibling round-trips the game pass set byte-identically through the
+// real scene-folder layout, rewrites cleanly, and every soft-corrupt
+// shape (absent file, absent key, empty value, wrong value type) reads
+// as "no override" so the resolution chain falls through
+TEST(Zircon_Game, RenderPassSetSceneMetadataRoundTrip)
+{
+	constexpr const char* _k_test_folder = "z3_p2h_scene_pass_set_test";
+
+	constexpr const char* _k_pass_set =
+		"no_streaming::zircon_render_graph_pass_model_static_bgfx,"
+		"no_streaming::zircon_render_graph_pass_present_bgfx";
+
+	kotek::core::ktkFrameworkConfig framework_config;
+	kotek::core::ktkFileSystem filesystem;
+
+	filesystem.Initialize(&framework_config);
+
+	zircon_test_reset_scene_folder(&filesystem, _k_test_folder);
+
+	ktk_filesystem_path folder_path;
+	zircon_test_compose_scene_folder(
+		&filesystem, _k_test_folder, folder_path);
+
+	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
+		folder_path_string;
+	{
+		auto u8_string = folder_path.u8string();
+		folder_path_string.assign(
+			reinterpret_cast<const char*>(u8_string.data()),
+			u8_string.size());
+	}
+
+	// absent file -> no override
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
+		loaded;
+
+	EXPECT_FALSE(zircon_scene_metadata::load_render_passes(
+		&filesystem, folder_path_string.c_str(), loaded));
+
+	// write -> read back byte-identical
+	ASSERT_TRUE(zircon_scene_metadata::save_render_passes(&filesystem,
+		folder_path_string.c_str(), _k_pass_set));
+
+	ktk_filesystem_path scene_file_path = folder_path;
+	scene_file_path /= kZirconSceneMetadata_FileName;
+
+	ASSERT_TRUE(filesystem.Is_Exists(scene_file_path));
+
+	ASSERT_TRUE(zircon_scene_metadata::load_render_passes(
+		&filesystem, folder_path_string.c_str(), loaded));
+	EXPECT_STREQ(loaded.c_str(), _k_pass_set);
+
+	// a rewrite replaces the value (no duplication, no stale tail)
+	ASSERT_TRUE(zircon_scene_metadata::save_render_passes(&filesystem,
+		folder_path_string.c_str(),
+		kZirconConfig_DefaultRenderPassesGame));
+
+	loaded.clear();
+
+	ASSERT_TRUE(zircon_scene_metadata::load_render_passes(
+		&filesystem, folder_path_string.c_str(), loaded));
+	EXPECT_STREQ(loaded.c_str(), kZirconConfig_DefaultRenderPassesGame);
+
+	// a nonexistent folder -> no override (never a crash)
+	EXPECT_FALSE(zircon_scene_metadata::load_render_passes(&filesystem,
+		"Z:/definitely/not/a/scene/folder", loaded));
+
+	// an empty value reads as "no override" (hand-written: the save
+	// path rightfully refuses to produce such a file, but a
+	// hand-edited one can exist)
+	{
+		const char* p_empty_value_json = "{\"render_passes\": \"\"}";
+
+		ASSERT_TRUE(filesystem.Write_File(scene_file_path,
+			p_empty_value_json,
+			std::strlen(p_empty_value_json)));
+
+		EXPECT_FALSE(zircon_scene_metadata::load_render_passes(
+			&filesystem, folder_path_string.c_str(), loaded));
+	}
+
+	// a wrong-typed value reads as "no override" (loud error log, no
+	// crash)
+	{
+		const char* p_typed_value_json = "{\"render_passes\": 42}";
+
+		ASSERT_TRUE(filesystem.Write_File(scene_file_path,
+			p_typed_value_json,
+			std::strlen(p_typed_value_json)));
+
+		EXPECT_FALSE(zircon_scene_metadata::load_render_passes(
+			&filesystem, folder_path_string.c_str(), loaded));
+	}
+
+	// cleanup: the fixture folder must not leak into later runs
+	{
+		ktk_filesystem_path path;
+		zircon_test_compose_scene_folder(
+			&filesystem, _k_test_folder, path);
+
+		std::filesystem::remove_all(std::filesystem::path(
+			reinterpret_cast<const char*>(
+				path.u8string().data())));
+	}
+
+	filesystem.Shutdown();
+}
+
+// functional proof for task Z3 P2h's resolution order: the game pass
+// set resolves as — the scene file's render_passes (present AND valid
+// against the generated registry) -> the config's render_passes_game
+// -> the built-in default; every invalid leg drops loudly and the
+// chain falls through
+TEST(Zircon_Game, RenderPassSetResolutionOrder)
+{
+	constexpr const char* _k_test_folder = "z3_p2h_resolution_test";
+
+	// a valid config value deliberately distinct from the built-in
+	// default (one pass, not two) so the source of a resolution is
+	// identifiable from the resolved string alone
+	constexpr const char* _k_config_set =
+		"no_streaming::zircon_render_graph_pass_present_bgfx";
+
+	// a valid scene override: the built-in default in reverse order
+	constexpr const char* _k_scene_set =
+		"no_streaming::zircon_render_graph_pass_model_static_bgfx,"
+		"no_streaming::zircon_render_graph_pass_present_bgfx";
+
+	const char* const* p_registry = zircon_render_game_passes_registry;
+
+	const kotek::uint8_t registry_count = static_cast<kotek::uint8_t>(
+		zircon_render_game_passes_registry_count);
+
+	// the validator's own contract first — the chain's fallback
+	// decisions are exactly as trustworthy as it is
+	EXPECT_TRUE(zircon_validate_render_pass_list(
+		kZirconConfig_DefaultRenderPassesGame, p_registry,
+		registry_count, "test"));
+	EXPECT_TRUE(zircon_validate_render_pass_list(
+		_k_scene_set, p_registry, registry_count, "test"));
+	EXPECT_TRUE(zircon_validate_render_pass_list(
+		"  no_streaming::zircon_render_graph_pass_present_bgfx ,",
+		p_registry, registry_count, "test"));
+	EXPECT_FALSE(zircon_validate_render_pass_list(
+		"", p_registry, registry_count, "test"));
+	EXPECT_FALSE(zircon_validate_render_pass_list(
+		nullptr, p_registry, registry_count, "test"));
+	EXPECT_FALSE(zircon_validate_render_pass_list(
+		"foo::bar", p_registry, registry_count, "test"));
+	EXPECT_FALSE(zircon_validate_render_pass_list(
+		"no_streaming::zircon_render_graph_pass_present_bgfx,foo::bar",
+		p_registry, registry_count, "test"));
+	// an editor pass is not a game pass — the registries are separate
+	EXPECT_FALSE(zircon_validate_render_pass_list(
+		"no_streaming::zircon_render_graph_pass_editor_grid_bgfx",
+		p_registry, registry_count, "test"));
+
+	kotek::core::ktkFrameworkConfig framework_config;
+	kotek::core::ktkFileSystem filesystem;
+
+	filesystem.Initialize(&framework_config);
+
+	ktk_filesystem_path folder_path;
+	zircon_test_compose_scene_folder(
+		&filesystem, _k_test_folder, folder_path);
+
+	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
+		folder_path_string;
+	{
+		auto u8_string = folder_path.u8string();
+		folder_path_string.assign(
+			reinterpret_cast<const char*>(u8_string.data()),
+			u8_string.size());
+	}
+
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
+		resolved;
+
+	// --- no scene loaded (nullptr folder path, the non-SDK boot
+	// shape): config -> built-in
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem, nullptr,
+				  _k_config_set, p_registry, registry_count, resolved),
+		eZirconRenderPassSetSource::kConfig);
+	EXPECT_STREQ(resolved.c_str(), _k_config_set);
+
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem, nullptr,
+				  "", p_registry, registry_count, resolved),
+		eZirconRenderPassSetSource::kBuiltin);
+	EXPECT_STREQ(resolved.c_str(), kZirconConfig_DefaultRenderPassesGame);
+
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem, nullptr,
+				  "foo::bar", p_registry, registry_count, resolved),
+		eZirconRenderPassSetSource::kBuiltin);
+	EXPECT_STREQ(resolved.c_str(), kZirconConfig_DefaultRenderPassesGame);
+
+	// --- scene folder without scene.json (a fresh/legacy scene):
+	// config wins
+	zircon_test_reset_scene_folder(&filesystem, _k_test_folder);
+
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem,
+				  folder_path_string.c_str(), _k_config_set, p_registry,
+				  registry_count, resolved),
+		eZirconRenderPassSetSource::kConfig);
+	EXPECT_STREQ(resolved.c_str(), _k_config_set);
+
+	// --- the scene override wins over a valid config...
+	ASSERT_TRUE(zircon_scene_metadata::save_render_passes(&filesystem,
+		folder_path_string.c_str(), _k_scene_set));
+
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem,
+				  folder_path_string.c_str(), _k_config_set, p_registry,
+				  registry_count, resolved),
+		eZirconRenderPassSetSource::kScene);
+	EXPECT_STREQ(resolved.c_str(), _k_scene_set);
+
+	// --- ...and over an empty/invalid config too (the scene leg is
+	// checked first)
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem,
+				  folder_path_string.c_str(), "", p_registry,
+				  registry_count, resolved),
+		eZirconRenderPassSetSource::kScene);
+	EXPECT_STREQ(resolved.c_str(), _k_scene_set);
+
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem,
+				  folder_path_string.c_str(), "foo::bar", p_registry,
+				  registry_count, resolved),
+		eZirconRenderPassSetSource::kScene);
+	EXPECT_STREQ(resolved.c_str(), _k_scene_set);
+
+	// --- a scene override with one unknown name drops LOUDLY to the
+	// config leg
+	ASSERT_TRUE(zircon_scene_metadata::save_render_passes(&filesystem,
+		folder_path_string.c_str(),
+		"no_streaming::zircon_render_graph_pass_present_bgfx,"
+		"no_streaming::zircon_render_graph_pass_typo_bgfx"));
+
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem,
+				  folder_path_string.c_str(), _k_config_set, p_registry,
+				  registry_count, resolved),
+		eZirconRenderPassSetSource::kConfig);
+	EXPECT_STREQ(resolved.c_str(), _k_config_set);
+
+	// --- ...and to the built-in default when the config is invalid
+	// too
+	EXPECT_EQ(zircon_resolve_game_render_pass_set(&filesystem,
+				  folder_path_string.c_str(), "foo::bar", p_registry,
+				  registry_count, resolved),
+		eZirconRenderPassSetSource::kBuiltin);
+	EXPECT_STREQ(resolved.c_str(), kZirconConfig_DefaultRenderPassesGame);
+
+	// cleanup
+	{
+		ktk_filesystem_path path;
+		zircon_test_compose_scene_folder(
+			&filesystem, _k_test_folder, path);
+
+		std::filesystem::remove_all(std::filesystem::path(
+			reinterpret_cast<const char*>(
+				path.u8string().data())));
+	}
+
+	filesystem.Shutdown();
 }
 
 		#endif

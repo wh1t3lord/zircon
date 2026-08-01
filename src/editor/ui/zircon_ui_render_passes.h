@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../core/zircon_config.h"
+
 class zircon_config;
 class zircon_renderer_bgfx;
 struct zircon_render_graph_simplified_bgfx_info_t;
@@ -12,8 +14,10 @@ struct zircon_render_graph_simplified_bgfx_info_t;
 /// reorder and add/remove (structural edits queue a frame-boundary
 /// rebuild of that session's graph), a status marker per row
 /// (active / missing-from-library), a "modified" dirty marker against
-/// the saved config sets and a Save button that persists both lists
-/// plus the "don't show on start again" choice through
+/// the saved sets (the game session compares against the RESOLVED set
+/// this boot loaded with — a level's render_passes override must not
+/// read as user-modified, task Z3 P2h) and a Save button that persists
+/// both lists plus the "don't show on start again" choice through
 /// zircon_config::serialize into game_config.json.
 ///
 /// First run: zircon_game_manager auto-opens the window while the
@@ -36,7 +40,17 @@ public:
 		const char* const* p_registry_editor_pass_names,
 		kotek::uint8_t registry_editor_pass_count,
 		const char* const* p_registry_game_pass_names,
-		kotek::uint8_t registry_game_pass_count);
+		kotek::uint8_t registry_game_pass_count,
+		/// task Z3 P2h: the game session's dirty-check comparison
+		/// source — the RESOLVED pass set the running game session was
+		/// created with (scene file -> config -> built-in), owned by
+		/// zircon_game_manager; filled after this window is constructed
+		/// (game-session creation happens later in boot), read lazily
+		/// per Draw, refreshed by Save. Nullable: an empty/absent
+		/// baseline keeps the legacy compare-against-config behavior
+		kotek::static_cstring_t<
+			ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+			p_render_passes_game_resolved_baseline = nullptr);
 	~zircon_editor_ui_window_render_passes(void);
 
 	void Initialize(void) override;
@@ -107,4 +121,11 @@ private:
 	kotek::uint8_t m_registry_editor_pass_count;
 	const char* const* m_p_registry_game_pass_names;
 	kotek::uint8_t m_registry_game_pass_count;
+
+	/// the game session's dirty-check baseline (task Z3 P2h): the
+	/// resolved pass set the game session was created with — owned by
+	/// zircon_game_manager, never freed here; nullptr/empty = compare
+	/// against the config default (legacy behavior)
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+		m_p_render_passes_game_resolved_baseline;
 };

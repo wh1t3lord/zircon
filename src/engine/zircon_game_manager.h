@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/zircon_defs.h"
+#include "../core/zircon_config.h"
 
 #ifdef KOTEK_USE_SDK
 namespace zircon
@@ -129,6 +130,19 @@ public:
 
 	zircon_config* get_config() const noexcept;
 
+	/// @brief \~english task Z3 P2h: the game pass set this boot
+	/// RESOLVED (the loaded scene's scene.json render_passes -> config
+	/// render_passes_game -> built-in default) and created the game
+	/// render graph with; empty until the game session's graph exists.
+	/// The Render Passes window compares its "modified" marker against
+	/// this (not the raw config default — a level override must not
+	/// read as user-modified) and refreshes it on Save; mutable
+	/// precisely for that refresh. The pointed-to member never moves
+	/// (the game manager is a stable global), so the pointer stays
+	/// valid for the whole UI lifetime
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+	get_render_passes_game_resolved_baseline(void) noexcept;
+
 	void initialize_render_graph(
 		kotek::uint8_t render_graph_id,
 		kotek::core::ktkMainManager* p_main_manager,
@@ -170,6 +184,22 @@ private:
 	const zircon_imgui_elements_t&
 	get_ui_imgui_elements();
 
+	/// @brief \~english task Z3 P2h: the streaming folder of the
+	/// currently loaded scene (the current editor session's command
+	/// history path, data_user/sdk/scenes/<name>/); nullptr when no
+	/// scene is loaded (no editor session — a non-SDK boot)
+	const char* get_active_scene_streaming_folder_path(void
+	) const noexcept;
+
+	/// @brief \~english task Z3 P2h: persists the ACTIVE game pass set
+	/// (the game render graph slot's live name list; the config value
+	/// when no game graph exists — or when the live set is degenerate:
+	/// empty, i.e. every pass removed, which can never be a meaningful
+	/// level override) into the loaded scene's scene.json — called
+	/// from Serialize (module save at shutdown, when the renderer and
+	/// the sessions are still alive). A no-op when no scene is loaded
+	void write_active_game_render_pass_set_to_scene(void) noexcept;
+
 #ifdef KOTEK_USE_TESTS_RUNTIME
 	#ifdef KOTEK_DEBUG
 	void run_unit_tests();
@@ -205,6 +235,12 @@ private:
 	zircon_config* m_p_config;
 	zircon_session_game_manager* m_p_session_game_manager;
 	zircon_factory* m_p_factory;
+	/// @brief \~english the game pass set the running game session was
+	/// created with (the resolved scene->config->built-in winner, task
+	/// Z3 P2h) — the Render Passes window's dirty-check baseline; empty
+	/// until the game render graph is created
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
+		m_render_passes_game_resolved_baseline;
 #ifdef KOTEK_USE_SDK_IMGUI
 	zircon_session_editor_manager* m_p_session_editor_manager;
 #endif

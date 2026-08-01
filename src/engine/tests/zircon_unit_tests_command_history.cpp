@@ -17,6 +17,7 @@
 		#include "../../editor/commands/zircon_gizmo_edit_commit.h"
 		#include "../../editor/session/zircon_session_editor.h"
 		#include "../../editor/session/zircon_session_editor_manager.h"
+		#include "../../editor/session/zircon_scene_metadata.h"
 		#include "../../ecs/zircon_factory.h"
 		#include "../../ecs/zircon_component_transform.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
@@ -1861,6 +1862,141 @@ TEST(Zircon_Editor, CommandHistory_GizmoImguizmoDragEndEditCommand)
 
 	env.shutdown();
 	delete &env;
+}
+
+// functional proof for task Z3 P2h's exclusion rule: persisting the
+// active game render pass set writes the scene.json metadata SIBLING
+// only — the undo/redo journal gains no entries and its file does not
+// grow (pass-set changes are config/editor state, not world state);
+// the metadata itself survives a journal reopen alongside the history
+TEST(Zircon_Editor, CommandHistory_PassSetExcludedFromJournal)
+{
+	constexpr const char* _k_test_folder =
+		"z3_p2h_journal_exclusion_test";
+
+	// a custom set (the default game's reversed order) so the
+	// roundtrip can not pass on a stale/default value
+	constexpr const char* _k_pass_set =
+		"no_streaming::zircon_render_graph_pass_model_static_bgfx,"
+		"no_streaming::zircon_render_graph_pass_present_bgfx";
+
+	// fresh journal per run
+	{
+		auto* p_config = new kotek::core::ktkFrameworkConfig();
+		auto* p_filesystem = new kotek::core::ktkFileSystem();
+
+		p_filesystem->Initialize(p_config);
+
+		zircon_test_remove_streaming_folder(
+			p_filesystem, _k_test_folder
+		);
+
+		p_filesystem->Shutdown();
+
+		delete p_filesystem;
+		delete p_config;
+	}
+
+	// heap allocated like every history fixture (the console alone is
+	// ~1 MB of stack)
+	zircon_test_history_env& env = *new zircon_test_history_env();
+	env.initialize(_k_test_folder);
+
+	zircon_editor_command_history* p_history = env.history();
+
+	ASSERT_NE(p_history, nullptr);
+	ASSERT_EQ(p_history->get_total_recorded_commands(), 0);
+
+	// one real journaled command, so the journal holds content the
+	// metadata write could pollute (the gizmo drag-end commit — the
+	// simplest single-command flow this suite already drives)
+	kotek::entity_t entity =
+		env.factory.create_entity(env.ecs_context());
+
+	env.factory.create_component(env.ecs_context(), entity,
+		eZirconComponentType::kzircon_component_transform);
+
+	zircon_component_transform* p_transform =
+		static_cast<zircon_component_transform*>(
+			env.factory.get_component_by_enum(env.ecs_context(), entity,
+				eZirconComponentType::kzircon_component_transform));
+
+	ASSERT_NE(p_transform, nullptr);
+
+	p_transform->set_position(kotek::math::vec3f_t(1.0f, 2.0f, 3.0f));
+	p_transform->set_scale(kotek::math::vec3f_t(1.0f, 1.0f, 1.0f));
+	p_transform->set_rotation(
+		kotek::math::quatf_t(0.0f, 0.0f, 0.0f, 1.0f));
+
+	const float start_position[3] = {1.0f, 2.0f, 3.0f};
+	const float start_scale[3] = {1.0f, 1.0f, 1.0f};
+	const float start_rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+	p_transform->set_position(kotek::math::vec3f_t(4.0f, 2.0f, 3.0f));
+
+	ASSERT_TRUE(zircon_gizmo_commit_transform_drag_edit(
+		&env.session_manager, &env.factory, p_history,
+		env.ecs_context(), entity, start_position, start_scale,
+		start_rotation));
+
+	ASSERT_EQ(p_history->get_total_recorded_commands(), 1);
+
+	const kotek::uint64_t journal_size_before =
+		p_history->get_journal_file_size();
+
+	// the P2h persistence moment: the active game pass set lands in
+	// the scene folder as scene.json
+	ASSERT_TRUE(zircon_scene_metadata::save_render_passes(
+		&env.filesystem, p_history->get_streaming_folder_path(),
+		_k_pass_set));
+
+	// the exclusion rule: nothing entered the journal — not an entry,
+	// not a byte
+	EXPECT_EQ(p_history->get_total_recorded_commands(), 1);
+	EXPECT_EQ(
+		p_history->get_journal_file_size(), journal_size_before);
+
+	// scene.json exists as a SIBLING of the journal pair
+	ktk_filesystem_path scene_metadata_path(
+		p_history->get_streaming_folder_path());
+	scene_metadata_path /= kZirconSceneMetadata_FileName;
+
+	EXPECT_TRUE(env.filesystem.Is_Exists(scene_metadata_path));
+
+	// roundtrip through the real scene folder
+	kotek::static_cstring_t<
+		ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
+		loaded;
+
+	ASSERT_TRUE(zircon_scene_metadata::load_render_passes(
+		&env.filesystem, p_history->get_streaming_folder_path(),
+		loaded));
+	EXPECT_STREQ(loaded.c_str(), _k_pass_set);
+
+	env.shutdown();
+	delete &env;
+
+	// a journal reopen (the scene "load" path) sees exactly the one
+	// journaled command — the metadata write added nothing — and the
+	// pass set is still there
+	zircon_test_history_env& env_reopened =
+		*new zircon_test_history_env();
+	env_reopened.initialize(_k_test_folder);
+
+	p_history = env_reopened.history();
+
+	ASSERT_NE(p_history, nullptr);
+	EXPECT_EQ(p_history->get_total_recorded_commands(), 1);
+
+	loaded.clear();
+
+	ASSERT_TRUE(zircon_scene_metadata::load_render_passes(
+		&env_reopened.filesystem,
+		p_history->get_streaming_folder_path(), loaded));
+	EXPECT_STREQ(loaded.c_str(), _k_pass_set);
+
+	env_reopened.shutdown();
+	delete &env_reopened;
 }
 
 		#endif

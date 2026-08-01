@@ -942,6 +942,14 @@ zircon_editor_command_history::get_snapshot_file_size(
 	return this->m_journal.get_snapshot_file_size();
 }
 
+const char*
+zircon_editor_command_history::get_streaming_folder_path(
+	void
+) const noexcept
+{
+	return this->m_path_to_streaming_folder.c_str();
+}
+
 kotek::uint64_t
 zircon_editor_command_history::get_journal_raw_entry_bytes(
 	void
