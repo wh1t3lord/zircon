@@ -201,6 +201,12 @@ non-existent target name in some configs — verify when touching root CMake (ta
   unused until then) and sets `io.IniFilename` at context creation. Settings
   must never land at the repo root (imgui's default ini is cwd-relative — that
   is exactly the trap).
+- **Configuration documentation (owner directive 2026-08-01)**:
+  `doc/git/en/configuration.md` carries the tables of CMake options (via
+  kotek), runtime arguments, and `game_config.json` keys, referenced from the
+  root README — any change that adds or alters an option, an argument, or a
+  config key updates this file in the same commit (same drift rule as kotek's
+  options registry).
 - **Linkage scenarios (2026-07-22)**: kotek implements the three output modes
   (`KOTEK_LINKAGE=STATIC|SHARED|PLUGIN` — see kotek/AGENTS.md §5a). Zircon
   modules participate via `kotek_add_library`; the cyclic editor cluster

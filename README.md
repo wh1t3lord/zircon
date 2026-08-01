@@ -80,6 +80,10 @@ build/bin/Debug/kotek.exe --editor_imgui                     # editor with ImGui
 build/bin/Debug/kotek.exe --render_nri_dx12                  # NRI (DirectX 12) renderer
 ```
 
+The full configuration reference — CMake options, runtime arguments, and the
+`game_config.json` keys — lives in
+[doc/git/en/configuration.md](doc/git/en/configuration.md).
+
 ## Status and verification
 
 CI builds the engine on every push in the default and full-static
