@@ -254,6 +254,120 @@ TEST(Zircon_Game, RenderPassModelStaticCollectDrawItems)
 	delete &env;
 }
 
+// functional proof for task Z3 P2g (forward Phong): evaluate_phong is the
+// C++ mirror of model_static.fs.slang's lighting (keep the two in sync) —
+// pinned against the classic cases: full diffuse facing the light,
+// ambient-only on backfacing and perpendicular normals, the specular peak
+// at the reflected view direction, and the ambient floor under everything
+TEST(Zircon_Game, RenderPassModelStaticPhongLighting)
+{
+	constexpr float _kShininess = 32.0f;
+
+	float lighting[3] = {};
+
+	// facing the light with the view perpendicular to the reflection:
+	// full diffuse, no specular
+	{
+		const float normal[3] = {0.0f, 1.0f, 0.0f};
+		const float light_dir_from[3] = {0.0f, -1.0f, 0.0f};
+		const float view_dir[3] = {1.0f, 0.0f, 0.0f};
+		const float light_color[3] = {0.8f, 0.8f, 0.8f};
+		const float ambient[3] = {0.15f, 0.15f, 0.15f};
+
+		zircon_pass_model_static::evaluate_phong(normal, light_dir_from,
+			view_dir, light_color, ambient, _kShininess, lighting);
+
+		// 0.15 + 0.8 * (1 + 0)
+		for (float channel : lighting)
+			EXPECT_NEAR(channel, 0.95f, 0.0001f);
+	}
+
+	// backfacing: ambient only — the view sits exactly ON the reflection
+	// direction here, so the ndotl>0 guard is what keeps the dark side
+	// free of specular
+	{
+		const float normal[3] = {0.0f, -1.0f, 0.0f};
+		const float light_dir_from[3] = {0.0f, -1.0f, 0.0f};
+		const float view_dir[3] = {0.0f, 1.0f, 0.0f};
+		const float light_color[3] = {0.8f, 0.8f, 0.8f};
+		const float ambient[3] = {0.15f, 0.15f, 0.15f};
+
+		zircon_pass_model_static::evaluate_phong(normal, light_dir_from,
+			view_dir, light_color, ambient, _kShininess, lighting);
+
+		for (int component = 0; component < 3; ++component)
+			EXPECT_FLOAT_EQ(lighting[component], ambient[component]);
+	}
+
+	// perpendicular to the light: ambient only (Lambert clamps at 0)
+	{
+		const float normal[3] = {1.0f, 0.0f, 0.0f};
+		const float light_dir_from[3] = {0.0f, -1.0f, 0.0f};
+		const float view_dir[3] = {0.0f, 1.0f, 0.0f};
+		const float light_color[3] = {0.8f, 0.8f, 0.8f};
+		const float ambient[3] = {0.15f, 0.15f, 0.15f};
+
+		zircon_pass_model_static::evaluate_phong(normal, light_dir_from,
+			view_dir, light_color, ambient, _kShininess, lighting);
+
+		for (int component = 0; component < 3; ++component)
+			EXPECT_FLOAT_EQ(lighting[component], ambient[component]);
+	}
+
+	// the specular peak at the reflected view direction: light arriving
+	// at 45 degrees reflects at 45 degrees; looking down the reflection
+	// adds the full specular, looking straight up (45 degrees off) leaves
+	// ~nothing of it at shininess 32
+	{
+		constexpr float _kHalfSqrt2 = 0.70710678f;
+
+		const float normal[3] = {0.0f, 1.0f, 0.0f};
+		const float light_dir_from[3] = {_kHalfSqrt2, -_kHalfSqrt2, 0.0f};
+		const float view_at_reflection[3] = {_kHalfSqrt2, _kHalfSqrt2, 0.0f};
+		const float view_off_reflection[3] = {0.0f, 1.0f, 0.0f};
+		const float light_color[3] = {0.4f, 0.4f, 0.4f};
+		const float ambient[3] = {0.1f, 0.1f, 0.1f};
+
+		float lighting_peak[3] = {};
+
+		zircon_pass_model_static::evaluate_phong(normal, light_dir_from,
+			view_at_reflection, light_color, ambient, _kShininess,
+			lighting_peak);
+
+		// 0.1 + 0.4 * (sqrt(2)/2 + 1) — diffuse plus the full specular
+		for (float channel : lighting_peak)
+			EXPECT_NEAR(channel, 0.782843f, 0.0001f);
+
+		zircon_pass_model_static::evaluate_phong(normal, light_dir_from,
+			view_off_reflection, light_color, ambient, _kShininess,
+			lighting);
+
+		// diffuse only: 0.1 + 0.4 * sqrt(2)/2 (the specular is ~6e-6)
+		for (float channel : lighting)
+			EXPECT_NEAR(channel, 0.382843f, 0.0001f);
+
+		for (int component = 0; component < 3; ++component)
+			EXPECT_LT(lighting[component], lighting_peak[component]);
+	}
+
+	// the ambient floor and the clamp: a full-white light on a facing
+	// normal saturates the sum, a dark side never drops below ambient
+	{
+		const float normal[3] = {0.0f, 1.0f, 0.0f};
+		const float light_dir_from[3] = {0.0f, -1.0f, 0.0f};
+		const float view_dir[3] = {0.0f, 1.0f, 0.0f};
+		const float light_color[3] = {1.0f, 1.0f, 1.0f};
+		const float ambient[3] = {0.15f, 0.15f, 0.15f};
+
+		zircon_pass_model_static::evaluate_phong(normal, light_dir_from,
+			view_dir, light_color, ambient, _kShininess, lighting);
+
+		// 0.15 + 1 * (1 + 1) clamps to 1
+		for (float channel : lighting)
+			EXPECT_FLOAT_EQ(channel, 1.0f);
+	}
+}
+
 using zircon_pass_editor_grid =
 	no_streaming::zircon_render_graph_pass_editor_grid_bgfx;
 

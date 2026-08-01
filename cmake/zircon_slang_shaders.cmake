@@ -248,13 +248,20 @@ function(zircon_add_slang_shader name)
 endfunction()
 
 # registry: one call per shader (metadata mirrors the .slang sources)
+# model_static: forward-Phong lit static geometry (task Z3 P2g) — the FS
+# LightParams cbuffer holds the four pass-written light uniforms
 zircon_add_slang_shader(model_static
-	VS_IN "a_position,a_color0"
-	VS_OUT "v_color0"
+	VS_IN "a_position,a_normal,a_color0"
+	VS_OUT "v_worldPos,v_normal,v_color0"
 	VS_UNIFORMS
 		"u_model:mat4:0:4"
 		"u_viewProj:mat4:64:4"
-	FS_IN "v_color0"
+	FS_IN "v_worldPos,v_normal,v_color0"
+	FS_UNIFORMS
+		"u_lightDir:vec4:0:1"
+		"u_lightColor:vec4:16:1"
+		"u_ambient:vec4:32:1"
+		"u_cameraPos:vec4:48:1"
 )
 
 # editor infinite grid (task Z3 P2d): vertex-id fullscreen triangle (no

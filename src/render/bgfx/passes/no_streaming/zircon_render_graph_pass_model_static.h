@@ -12,8 +12,8 @@ struct zircon_ecs_context_t;
 // memory-budget rule; a level's static draws stay far below this
 #define zircon_DEF_RENDER_PASS_MODEL_STATIC_MAX_DRAW_COUNT 128
 // upper bound of one compiled shader blob read through the kotek
-// filesystem (the unlit pair is <1 KB today; headroom for the Phong
-// follow-up)
+// filesystem (the forward-Phong pair is a few KB today; generous
+// headroom for the later textured/material techniques)
 #define zircon_DEF_RENDER_PASS_MODEL_STATIC_SHADER_BIN_MAX_SIZE 65536
 // the glTF mesh cache (P2c): one slot per distinct mesh name drawn in a
 // level; the load is one-shot per name (hot reload is task P3)
@@ -24,10 +24,27 @@ struct zircon_ecs_context_t;
 // decoded into the mesh scratch before the upload needs it)
 #define zircon_DEF_RENDER_PASS_MODEL_STATIC_MESH_FILE_MAX_SIZE 1048576
 
+// the fixed scene light of the forward-Phong shading (P2g): ONE
+// directional light + ambient, uploaded to the FS cbuffer (LightParams)
+// every frame from these defines until light components land (a later
+// task — the pass is the only consumer, so the swap is local). The
+// direction points FROM the light (the way the light travels; the pass
+// normalizes it on upload), the color is a warm white, the ambient a
+// 0.15 neutral floor so backfaces stay readable
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_DIR_FROM_X 0.5f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_DIR_FROM_Y -0.8f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_DIR_FROM_Z 0.35f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_COLOR_R 1.0f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_COLOR_G 0.95f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_COLOR_B 0.85f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_AMBIENT_R 0.15f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_AMBIENT_G 0.15f
+#define zircon_DEF_RENDER_PASS_MODEL_STATIC_AMBIENT_B 0.15f
+
 // interleaved vertex of the pass's meshes (position + normal + packed
 // ABGR color, matches the vertex layout created in OnCreateResources and
-// the varying.def.sc of the cooked shaders); the normal feeds the Phong
-// follow-up (P2g), the color keeps the unlit fallback readable
+// the attribute list of the cooked shaders); the normal feeds the
+// forward-Phong shading (P2g), the color modulates the lit result
 struct zircon_model_static_vertex_t
 {
 	float m_position[3];
@@ -119,6 +136,22 @@ namespace no_streaming
 			zircon_render_pass_model_static_draw_item_t* p_out_items,
 			kotek::uint32_t out_items_capacity) noexcept;
 
+		// the fragment stage's forward-Phong lighting (P2g), mirrored
+		// one-to-one in model_static.fs.slang (the unit tests pin them —
+		// keep the two in sync): one directional light + ambient floor +
+		// Phong specular, clamped; the shader multiplies the result by the
+		// interpolated vertex color afterwards. All directions are
+		// normalized on entry (the shader normalizes the interpolated
+		// normal and the view vector, the pass uploads a normalized light
+		// direction). p_light_dir_from points the way the light travels
+		// (FROM the light). p_out_lighting_rgb =
+		// saturate(ambient + light_color * (ndotl + specular)) with the
+		// specular killed on backfacing normals
+		static void evaluate_phong(const float* p_normal,
+			const float* p_light_dir_from, const float* p_view_dir,
+			const float* p_light_color_rgb, const float* p_ambient_rgb,
+			float shininess, float* p_out_lighting_rgb) noexcept;
+
 	private:
 		// reads one compiled shader blob from
 		// data_user/shader_cache/<backend>/<name> through the kotek
@@ -141,11 +174,27 @@ namespace no_streaming
 		static void multiply_model_matrices(const float* p_a,
 			const float* p_b, float* p_out) noexcept;
 
+		// camera world position of a rigid view matrix: the translation
+		// of the inverse view, -(R^T * t) in the bx column-major layout
+		// (translation lives at [12..14]) — mirrors the editor grid
+		// pass's compute_camera_position; feeds u_cameraPos (the
+		// specular view vector)
+		static void compute_camera_position(const float* p_view,
+			float* p_out_position) noexcept;
+
 	private:
 		bgfx::VertexLayout m_layout;
 		bgfx::VertexBufferHandle m_vertex_buffer;
 		bgfx::IndexBufferHandle m_index_buffer;
 		bgfx::ProgramHandle m_program;
+		// the LightParams cbuffer members of the fragment stage (P2g):
+		// the fixed scene light + ambient and the per-frame camera
+		// position, created in OnCreateResources and filled every frame
+		// the pass draws
+		bgfx::UniformHandle m_uniform_light_dir;
+		bgfx::UniformHandle m_uniform_light_color;
+		bgfx::UniformHandle m_uniform_ambient;
+		bgfx::UniformHandle m_uniform_camera_pos;
 		// the pass is inert (renders nothing) until its compiled program
 		// exists (e.g. the shader pipeline has not produced the blobs
 		// yet) — tracks the one-time warning so the log is not spammed

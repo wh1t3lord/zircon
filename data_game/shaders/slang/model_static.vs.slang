@@ -1,5 +1,5 @@
-// model_static.vs.slang — unlit static geometry, vertex stage.
-// Conventions: see zircon_core.slang.
+// model_static.vs.slang — forward-Phong static geometry, vertex stage
+// (task Z3 P2g). Conventions: see zircon_core.slang.
 
 import zircon_core;
 
@@ -21,6 +21,12 @@ ZirconVsToFs_model_static vs_main(ZirconVsInput_model_static input)
 	ZirconVsToFs_model_static output;
 	float4 world = mul(u_model, float4(input.a_position, 1.0));
 	output.position = mul(u_viewProj, world);
+	output.v_worldPos = world.xyz;
+	// the model matrix's linear part (rotation with the scale folded in —
+	// the pass composes it that way); the fragment stage normalizes, so
+	// uniform scale stays exact and non-uniform scale is the documented
+	// forward-Phong approximation (no inverse-transpose yet)
+	output.v_normal = mul((float3x3)u_model, input.a_normal);
 	output.v_color0 = input.a_color0;
 	return output;
 }

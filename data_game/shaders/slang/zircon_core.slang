@@ -30,19 +30,25 @@
 //   (std140/HLSL packing: float4x4 = 64 bytes); u_model at 0, u_viewProj
 //   at 64 in ModelParams below.
 
-// model_static: unlit static geometry, per-vertex color (game pass
-// "model_static", task Z3 P2b — Slang port of data_game/shaders/bgfx/
-// model_static, with explicit u_model/u_viewProj instead of bgfx's
-// predefined u_modelViewProj)
+// model_static: forward-Phong static geometry, per-vertex normal + color
+// (game pass "model_static", task Z3 P2b unlit -> P2g lit — Slang port of
+// data_game/shaders/bgfx/model_static, with explicit u_model/u_viewProj
+// instead of bgfx's predefined u_modelViewProj). The varyings carry the
+// world position and the world-space normal (the model matrix's linear
+// part, normalized in the fragment stage) for the lighting, the color
+// modulates the lit result.
 struct ZirconVsInput_model_static
 {
 	float3 a_position : POSITION;
+	float3 a_normal : NORMAL;
 	float4 a_color0 : COLOR0;
 };
 
 struct ZirconVsToFs_model_static
 {
 	float4 position : SV_Position;
+	float3 v_worldPos : TEXCOORD0;
+	float3 v_normal : NORMAL;
 	float4 v_color0 : COLOR0;
 };
 

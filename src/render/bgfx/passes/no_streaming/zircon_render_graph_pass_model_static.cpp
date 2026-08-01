@@ -7,6 +7,7 @@
 #include "../../../../game/session/zircon_session_game_manager.h"
 #include "../../../../world/zircon_world.h"
 
+#include <cmath>
 #include <cstring>
 
 namespace
@@ -73,6 +74,10 @@ namespace no_streaming
 		m_vertex_buffer{BGFX_INVALID_HANDLE},
 		m_index_buffer{BGFX_INVALID_HANDLE},
 		m_program{BGFX_INVALID_HANDLE},
+		m_uniform_light_dir{BGFX_INVALID_HANDLE},
+		m_uniform_light_color{BGFX_INVALID_HANDLE},
+		m_uniform_ambient{BGFX_INVALID_HANDLE},
+		m_uniform_camera_pos{BGFX_INVALID_HANDLE},
 		m_is_warned_about_missing_program{false},
 		m_is_warned_about_mesh_cache_full{false},
 		m_last_submitted_draw_count{0xffffffffu}
@@ -120,6 +125,24 @@ namespace no_streaming
 		KOTEK_ASSERT(bgfx::isValid(this->m_index_buffer),
 			"failed to create the fallback cube index buffer!");
 
+		// the LightParams cbuffer members of the fragment stage (the
+		// names mirror the shader's cbuffer and the cmake uniform table);
+		// all four are pass-written — none is a bgfx predefined uniform
+		this->m_uniform_light_dir =
+			bgfx::createUniform("u_lightDir", bgfx::UniformType::Vec4);
+		this->m_uniform_light_color =
+			bgfx::createUniform("u_lightColor", bgfx::UniformType::Vec4);
+		this->m_uniform_ambient =
+			bgfx::createUniform("u_ambient", bgfx::UniformType::Vec4);
+		this->m_uniform_camera_pos =
+			bgfx::createUniform("u_cameraPos", bgfx::UniformType::Vec4);
+
+		KOTEK_ASSERT(bgfx::isValid(this->m_uniform_light_dir) &&
+				bgfx::isValid(this->m_uniform_light_color) &&
+				bgfx::isValid(this->m_uniform_ambient) &&
+				bgfx::isValid(this->m_uniform_camera_pos),
+			"failed to create the model_static light uniforms!");
+
 		// the blob names the shader pipeline (Slang, see AGENTS.md §5a)
 		// produces from data_game/shaders/slang/model_static.<stage>.slang;
 		// until they exist the pass stays inert (one-time warning)
@@ -162,6 +185,19 @@ namespace no_streaming
 		{
 			bgfx::destroy(this->m_program);
 			this->m_program = BGFX_INVALID_HANDLE;
+		}
+
+		bgfx::UniformHandle* p_uniforms[] = {&this->m_uniform_light_dir,
+			&this->m_uniform_light_color, &this->m_uniform_ambient,
+			&this->m_uniform_camera_pos};
+
+		for (bgfx::UniformHandle* p_uniform : p_uniforms)
+		{
+			if (bgfx::isValid(*p_uniform))
+			{
+				bgfx::destroy(*p_uniform);
+				*p_uniform = BGFX_INVALID_HANDLE;
+			}
 		}
 
 		if (bgfx::isValid(this->m_index_buffer))
@@ -365,6 +401,58 @@ namespace no_streaming
 
 						bgfx::setViewTransform(pass_id, view, projection);
 
+						// the fixed scene light (P2g — defines until
+						// light components land, a later task) + the
+						// per-frame camera position for the specular
+						// view vector; uniforms are bgfx frame state
+						// captured at submit, so one fill covers every
+						// draw below
+						float light_dir[4] = {
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_DIR_FROM_X,
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_DIR_FROM_Y,
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_DIR_FROM_Z,
+							0.0f};
+
+						const float light_dir_length = std::sqrt(
+							light_dir[0] * light_dir[0] +
+							light_dir[1] * light_dir[1] +
+							light_dir[2] * light_dir[2]);
+
+						KOTEK_ASSERT(light_dir_length > 0.0f,
+							"the model_static light direction degenerated");
+
+						if (light_dir_length > 0.0f)
+						{
+							light_dir[0] /= light_dir_length;
+							light_dir[1] /= light_dir_length;
+							light_dir[2] /= light_dir_length;
+						}
+
+						const float light_color[4] = {
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_COLOR_R,
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_COLOR_G,
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_LIGHT_COLOR_B,
+							1.0f};
+						const float ambient[4] = {
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_AMBIENT_R,
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_AMBIENT_G,
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_AMBIENT_B,
+							1.0f};
+
+						float camera_position[3];
+						compute_camera_position(view, camera_position);
+
+						const float camera_pos[4] = {camera_position[0],
+							camera_position[1], camera_position[2], 1.0f};
+
+						bgfx::setUniform(
+							this->m_uniform_light_dir, light_dir);
+						bgfx::setUniform(
+							this->m_uniform_light_color, light_color);
+						bgfx::setUniform(this->m_uniform_ambient, ambient);
+						bgfx::setUniform(
+							this->m_uniform_camera_pos, camera_pos);
+
 						for (kotek::uint32_t draw_index = 0;
 							 draw_index < draw_item_count; ++draw_index)
 						{
@@ -372,7 +460,7 @@ namespace no_streaming
 								item = this->m_draw_items[draw_index];
 
 							// no culling: the fallback cube reads
-							// double-sided, the unlit pass does not care
+							// double-sided, the pass does not care
 							// about winding yet
 							constexpr kotek::uint64_t _kState =
 								BGFX_STATE_WRITE_RGB |
@@ -748,7 +836,8 @@ namespace no_streaming
 			target.m_normal[0] = source.m_normal[0];
 			target.m_normal[1] = source.m_normal[1];
 			target.m_normal[2] = source.m_normal[2];
-			// opaque white until materials drive the color (P2g)
+			// opaque white until materials drive the color (a later
+			// material task — P2g lights, it does not recolor)
 			target.m_color_abgr = 0xffffffffu;
 		}
 
@@ -838,6 +927,96 @@ namespace no_streaming
 		}
 
 		std::memcpy(p_out, result, sizeof(result));
+	}
+
+	void zircon_render_graph_pass_model_static_bgfx::evaluate_phong(
+		const float* p_normal, const float* p_light_dir_from,
+		const float* p_view_dir, const float* p_light_color_rgb,
+		const float* p_ambient_rgb, float shininess,
+		float* p_out_lighting_rgb) noexcept
+	{
+		KOTEK_ASSERT(p_normal, "must be valid");
+		KOTEK_ASSERT(p_light_dir_from, "must be valid");
+		KOTEK_ASSERT(p_view_dir, "must be valid");
+		KOTEK_ASSERT(p_light_color_rgb, "must be valid");
+		KOTEK_ASSERT(p_ambient_rgb, "must be valid");
+		KOTEK_ASSERT(p_out_lighting_rgb, "must be valid storage");
+		KOTEK_ASSERT(shininess > 0.0f, "must be positive");
+
+		if (p_normal == nullptr || p_light_dir_from == nullptr ||
+			p_view_dir == nullptr || p_light_color_rgb == nullptr ||
+			p_ambient_rgb == nullptr || p_out_lighting_rgb == nullptr ||
+			shininess <= 0.0f)
+		{
+			return;
+		}
+
+		// the shader's formula one to one (model_static.fs.slang — keep
+		// the two in sync): Lambert against the direction TO the light
+		const float ndotl_raw = -(p_normal[0] * p_light_dir_from[0] +
+			p_normal[1] * p_light_dir_from[1] +
+			p_normal[2] * p_light_dir_from[2]);
+		const float ndotl =
+			ndotl_raw < 0.0f ? 0.0f : (ndotl_raw > 1.0f ? 1.0f : ndotl_raw);
+
+		// Phong specular, killed on backfacing normals (reflect() would
+		// still peak there); reflect(I, N) = I - 2*dot(N, I)*N
+		float specular = 0.0f;
+
+		if (ndotl > 0.0f)
+		{
+			const float dot_ni = p_normal[0] * p_light_dir_from[0] +
+				p_normal[1] * p_light_dir_from[1] +
+				p_normal[2] * p_light_dir_from[2];
+
+			float rdotv_raw = 0.0f;
+
+			for (int component = 0; component < 3; ++component)
+			{
+				const float reflected = p_light_dir_from[component] -
+					2.0f * dot_ni * p_normal[component];
+
+				rdotv_raw += reflected * p_view_dir[component];
+			}
+
+			const float rdotv = rdotv_raw < 0.0f
+				? 0.0f
+				: (rdotv_raw > 1.0f ? 1.0f : rdotv_raw);
+
+			specular = std::pow(rdotv, shininess);
+		}
+
+		for (int component = 0; component < 3; ++component)
+		{
+			const float lighting = p_ambient_rgb[component] +
+				p_light_color_rgb[component] * (ndotl + specular);
+
+			p_out_lighting_rgb[component] =
+				lighting < 0.0f ? 0.0f : (lighting > 1.0f ? 1.0f : lighting);
+		}
+	}
+
+	void zircon_render_graph_pass_model_static_bgfx::compute_camera_position(
+		const float* p_view, float* p_out_position) noexcept
+	{
+		KOTEK_ASSERT(p_view, "must be valid");
+		KOTEK_ASSERT(p_out_position, "must be valid storage");
+
+		if (p_view == nullptr || p_out_position == nullptr)
+			return;
+
+		// column-major layout: column j row i sits at [j*4+i]; a rigid
+		// view inverts to rotation R^T with translation -(R^T * t), and
+		// R^T's rows are R's columns
+		p_out_position[0] =
+			-(p_view[0] * p_view[12] + p_view[1] * p_view[13] +
+				p_view[2] * p_view[14]);
+		p_out_position[1] =
+			-(p_view[4] * p_view[12] + p_view[5] * p_view[13] +
+				p_view[6] * p_view[14]);
+		p_out_position[2] =
+			-(p_view[8] * p_view[12] + p_view[9] * p_view[13] +
+				p_view[10] * p_view[14]);
 	}
 
 	bgfx::ShaderHandle
