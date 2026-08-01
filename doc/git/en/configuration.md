@@ -7,10 +7,14 @@ an argument, or a config key updates this file in the same commit.
 
 ## CMake
 
-zircon deliberately adds **no CMake options of its own**. The engine is
-configured entirely through kotek's options — see
+zircon adds one option of its own; everything else is configured through
+kotek's options — see
 [kotek's configuration reference](https://github.com/wh1t3lord/kotek/blob/main/doc/git/en/configuration.md)
 (`cmake -DKOTEK_HELP=ON` prints the same registry from the build).
+
+| Option | Default | Meaning |
+|---|---|---|
+| `ZIRCON_GRAPHICS_DEVELOPMENT` | `OFF` | graphics-development mode (task Z3 P3a): the bgfx render passes build as the hot-swappable `passes/zircon.render.passes.bgfx.dll` (next to `data_game`/`data_user`) with a static fallback twin linked into `game.ktk`; `game.ktk` re-exports its whole static closure (`/WHOLEARCHIVE` + a PRE_LINK-generated `.def`) so the DLL resolves every engine/bgfx/imgui symbol from the single loaded copy. `OFF` keeps the passes statically linked — zero behavior change. Whether passes actually come from the DLL at runtime is the `graphics_development` config key / `--graphics_development` CLI override (default ON in these builds) |
 
 Two hard requirements are enforced by zircon itself
 (`src/core/include/zircon_config_guard.h`, force-included into every zircon
@@ -38,6 +42,7 @@ applies. The arguments zircon itself consumes:
 |---|---|
 | `--editor_imgui` | run the ImGui editor session (editor + game render graphs, tool windows, command history) |
 | `--editor` | run the wxWidgets SDK path (only in `KOTEK_USE_SDK` builds) |
+| `--graphics_development` | force the `graphics_development` feature on for this run (session-scoped): render passes are created through `passes/zircon.render.passes.bgfx.dll` instead of the statically-linked passlib — only in `ZIRCON_GRAPHICS_DEVELOPMENT=ON` builds; other builds warn and keep the static passes |
 
 Useful combinations:
 
@@ -64,3 +69,4 @@ kotek.exe --render_nri_dx12                 # boot on the NRI (DirectX 12) rende
 | `render_passes_game` | string (comma list) | `present,model_static` | the game session's render pass set, in execution order |
 | `add_required_components_automatically` | bool | `true` | entity creation auto-attaches the required components |
 | `sphere_bounding_box_quality` | int | `8` | tessellation quality of generated bounding spheres |
+| `graphics_development` | bool | `true` in `ZIRCON_GRAPHICS_DEVELOPMENT=ON` builds, `false` otherwise | render passes come from the hot-swappable `passes/zircon.render.passes.bgfx.dll` instead of the statically-linked passlib (task Z3 P3a); inert in builds without the option (a warning and the static passes) |

@@ -2,6 +2,13 @@
 
 #include <kotek.render.shared.bgfx/include/kotek_render_graph_simplified.h>
 
+// the pass-library seam (task Z3 P3a): owns the hot-swappable passes DLL
+// in the graphics-development configuration and installs the create/
+// destroy callbacks below; also the home of the
+// zircon_render_pass_create_pfn_t / zircon_render_pass_destroy_pfn_t
+// aliases
+#include "zircon_render_pass_library_manager.h"
+
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
 class ktkMainManager;
@@ -62,15 +69,6 @@ struct zircon_render_graph_simplified_bgfx_info_t
 class zircon_renderer_bgfx : public kotek::core::ktkIRenderer
 {
 public:
-	/// creates a pass instance by its registered class name; injected by
-	/// zircon_game_manager (the generated pass factory lives next to the
-	/// concrete passes — the executor must stay free of concrete pass
-	/// types, and P3 points this at the hot-swappable pass library's
-	/// export instead)
-	using zircon_render_pass_create_pfn_t =
-		kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass* (*
-		)(const char* p_pass_name);
-
 	zircon_renderer_bgfx(kotek::core::ktkMainManager* p_main_manager);
 	~zircon_renderer_bgfx(void);
 
@@ -119,6 +117,28 @@ public:
 	void set_render_pass_create_callback(
 		zircon_render_pass_create_pfn_t pfn_create) noexcept;
 
+	/// the destroy side of the pass-library seam (task Z3 P3a): when
+	/// installed, graph teardown detaches the passes and destroys each
+	/// through this callback (the creating library's own code) instead of
+	/// ktkRenderGraphSimplified::Shutdown's plain delete
+	void set_render_pass_destroy_callback(
+		zircon_render_pass_destroy_pfn_t pfn_destroy) noexcept;
+
+	/// one call wiring of the pass-library seam (task Z3 P3a): the
+	/// manager decides DLL vs static from the build configuration and the
+	/// runtime flag and installs the callbacks above; p_static_create /
+	/// p_static_destroy are the statically-linked zircon_passlib_*
+	/// functions
+	void initialize_pass_library(bool prefer_shared_library,
+		zircon_render_pass_create_pfn_t p_static_create,
+		zircon_render_pass_destroy_pfn_t p_static_destroy) noexcept;
+
+	/// creates a pass through the installed create callback (the unified
+	/// seam every graph creation flows through); nullptr when no callback
+	/// is installed or the name is not registered
+	kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
+	create_render_pass(const char* p_pass_name) noexcept;
+
 	/// Render Passes window reads (Z3 P2a): slot count + read-only slot
 	/// state + the slot id of a session kind (returns
 	/// kotek::uint8_t(-1) when no such slot exists — compare against
@@ -153,6 +173,13 @@ private:
 
 	void destroy_render_graphs(void) noexcept;
 
+	/// one graph's pass teardown: Detach_Passes + the installed destroy
+	/// callback when the pass library seam provides one (dev
+	/// configuration — the library destroys its own objects), the plain
+	/// graph Shutdown() otherwise (default configuration, unchanged)
+	void shutdown_render_graph_passes(
+		zircon_render_graph_simplified_bgfx_info_t& info) noexcept;
+
 	void process_pending_render_graph_rebuilds(void) noexcept;
 	void rebuild_render_graph(kotek::uint8_t render_graph_id) noexcept;
 
@@ -167,6 +194,8 @@ private:
 	kotek::core::ktkIRenderResourceManager* m_p_render_resource_manager;
 	kotek::render::bgfx::ktkRenderGraphSimplified* m_p_current_render_graph;
 	zircon_render_pass_create_pfn_t m_pfn_create_render_pass{};
+	zircon_render_pass_destroy_pfn_t m_pfn_destroy_render_pass{};
+	zircon_render_pass_library_manager m_pass_library_manager;
 	kotek::static_vector_t<zircon_render_graph_simplified_bgfx_info_t,
 		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>
 		m_render_graphs;

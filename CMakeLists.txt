@@ -91,6 +91,24 @@ if ("${KOTEK_ASSERT_STDERR_ROUTING}" STREQUAL "ON")
 	add_compile_definitions(KOTEK_USE_ASSERT_STDERR_ROUTING)
 endif()
 
+# graphics-development mode (task Z3 P3a): the bgfx render passes build as a
+# hot-swappable DLL (passes/zircon.render.passes.bgfx.dll next to
+# data_game/data_user, LoadLibrary'd by the renderer at init) with a static
+# twin as the in-build fallback, and game.ktk re-exports its whole static
+# closure so the DLL resolves every engine/bgfx/imgui symbol from the one
+# loaded copy. OFF = the passes stay statically linked (zero behavior
+# change). The runtime side is the graphics_development config key /
+# --graphics_development CLI override.
+option(ZIRCON_GRAPHICS_DEVELOPMENT
+	"build the bgfx render passes as a hot-swappable DLL loaded from passes/ (task Z3 P3)"
+	OFF)
+
+if ("${ZIRCON_GRAPHICS_DEVELOPMENT}" STREQUAL "ON")
+	add_compile_definitions(ZIRCON_USE_GRAPHICS_DEVELOPMENT)
+endif()
+
+message("[${PROJECT_NAME}]: ZIRCON_GRAPHICS_DEVELOPMENT=${ZIRCON_GRAPHICS_DEVELOPMENT}")
+
 message("[${PROJECT_NAME}]: KOTEK_UNICODE=${KOTEK_UNICODE}")
 message("[${PROJECT_NAME}]: KOTEK_TESTS_RUNTIME=${KOTEK_TESTS_RUNTIME}")
 message("[${PROJECT_NAME}]: KOTEK_TESTS=${KOTEK_TESTS}")

@@ -25,6 +25,14 @@ enum class eZirconSDKFeatures : kotek::ktk::uint16_t
 	/// start (task Z3 P2a); persisted in game_config.json as
 	/// "show_pass_manager_on_start", default TRUE
 	kSDK_Feature_ShowPassManagerOnStart = 1 << 3,
+	/// @brief \~english create render passes through the hot-swappable
+	/// passes/zircon.render.passes.bgfx.dll instead of the
+	/// statically-linked passlib (task Z3 P3a); persisted in
+	/// game_config.json as "graphics_development". Default TRUE in
+	/// ZIRCON_GRAPHICS_DEVELOPMENT builds (that build exists for the
+	/// DLL), FALSE otherwise (where the flag is inert — a warning and
+	/// the static passes)
+	kSDK_Feature_GraphicsDevelopment = 1 << 4,
 
 	kSDK_Feature_Unknown = 0
 };

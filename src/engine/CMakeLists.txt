@@ -81,9 +81,17 @@ kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CX
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render)
-# concrete render passes: the game manager instantiates them through the
-# generated zircon_render_pass_factory (config-driven pass lists)
-kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render.passes.bgfx)
+# concrete render passes: the game manager creates them through the
+# pass-library seam (zircon_passlib_create/destroy + the generated pass
+# factory's registry tables). Default configuration: the static passes
+# library; graphics-development configuration (task Z3 P3a): the static
+# twin (the hot-swappable DLL itself is LoadLibrary'd at runtime and is
+# NEVER linked — an implicit link would pin it and defeat the swap)
+if (ZIRCON_GRAPHICS_DEVELOPMENT)
+	kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render.passes.bgfx.static)
+else()
+	kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render.passes.bgfx)
+endif()
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.ui)
 
@@ -93,6 +101,17 @@ set_target_properties(
         OUTPUT_NAME "game"
         SUFFIX ".ktk"
 )
+
+# task Z3 P3a (graphics-development configuration): game.ktk re-exports
+# its whole static closure (/WHOLEARCHIVE + a PRE_LINK-generated .def) so
+# the hot-swappable passes DLL resolves every engine/bgfx/imgui symbol
+# from the single copy inside game.ktk. Called here — the target's own
+# directory — because add_custom_command(TARGET) refuses cross-directory
+# targets; the dump itself runs at PRE_LINK time and sees every library.
+if (ZIRCON_GRAPHICS_DEVELOPMENT)
+	include("${CMAKE_SOURCE_DIR}/cmake/zircon_game_ktk_exports.cmake")
+	zircon_setup_game_ktk_exports(${PROJECT_NAME})
+endif()
 
 if ("${KOTEK_DEPS_FOLDER}" STREQUAL "vcpkg")
 else()

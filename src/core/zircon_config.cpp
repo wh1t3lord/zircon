@@ -57,8 +57,15 @@ zircon_config::zircon_config(void) :
 	// default-TRUE flags live in the ctor (not only in
 	// initialize_default) so an existing config file that predates the
 	// key keeps the default — deserialize only overwrites when the key
-	// is actually present
-	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart},
+	// is actually present. kSDK_Feature_GraphicsDevelopment (task Z3
+	// P3a) defaults TRUE only in ZIRCON_GRAPHICS_DEVELOPMENT builds —
+	// that build exists to run passes from the DLL; every other build
+	// keeps the static passes
+	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+			| eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
+#endif
+	},
 	m_render_passes_editor{kZirconConfig_DefaultRenderPassesEditor},
 	m_render_passes_game{kZirconConfig_DefaultRenderPassesGame}
 {
@@ -185,6 +192,15 @@ void zircon_config::serialize(
 			),
 			this->is_feature_enabled(
 				eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart
+			)
+		);
+
+		config.Write(
+			translate_zircon_sdk_features(
+				eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
+			),
+			this->is_feature_enabled(
+				eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
 			)
 		);
 
@@ -337,6 +353,36 @@ void zircon_config::deserialize(
 					}
 				}
 			}
+
+			// same absent-key-keeps-default rule (Z3 P3a): the ctor
+			// default differs per build (TRUE in
+			// ZIRCON_GRAPHICS_DEVELOPMENT builds, FALSE otherwise)
+			{
+				const auto& object = file.Get_Object();
+
+				auto it = object.find(translate_zircon_sdk_features(
+					eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
+				));
+
+				if (it != object.end())
+				{
+					if ((*it).value().is_bool())
+					{
+						this->set_feature(
+							eZirconSDKFeatures::
+								kSDK_Feature_GraphicsDevelopment,
+							(*it).value().as_bool()
+						);
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"config key 'graphics_development' must be "
+							"a bool, ignoring"
+						);
+					}
+				}
+			}
 		}
 	}
 }
@@ -448,6 +494,13 @@ translate_zircon_sdk_features(eZirconSDKFeatures features)
 			 ))
 	{
 		return "show_pass_manager_on_start";
+	}
+	else if (KOTEK_CHECK_FLAG(
+				 features,
+				 eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
+			 ))
+	{
+		return "graphics_development";
 	}
 	else if (KOTEK_CHECK_FLAG(
 				 features,

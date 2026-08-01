@@ -53,6 +53,10 @@ void zircon_renderer_bgfx::Initialize(kotek::core::ktkWindowConsole* p_console,
 void zircon_renderer_bgfx::Shutdown(void)
 {
 	this->destroy_render_graphs();
+
+	// every pass is destroyed by now (through the library's own destroy
+	// in the dev configuration) — the pass library itself can unload
+	this->m_pass_library_manager.Shutdown();
 }
 
 void zircon_renderer_bgfx::draw()
@@ -384,6 +388,40 @@ void zircon_renderer_bgfx::set_render_pass_create_callback(
 	this->m_pfn_create_render_pass = pfn_create;
 }
 
+void zircon_renderer_bgfx::set_render_pass_destroy_callback(
+	zircon_render_pass_destroy_pfn_t pfn_destroy) noexcept
+{
+	KOTEK_ASSERT(pfn_destroy,
+		"pass a valid pass-destruction callback (the pass library's own "
+		"destroy entry)");
+
+	this->m_pfn_destroy_render_pass = pfn_destroy;
+}
+
+void zircon_renderer_bgfx::initialize_pass_library(
+	bool prefer_shared_library,
+	zircon_render_pass_create_pfn_t p_static_create,
+	zircon_render_pass_destroy_pfn_t p_static_destroy) noexcept
+{
+	this->m_pass_library_manager.Initialize(this, prefer_shared_library,
+		p_static_create, p_static_destroy);
+}
+
+kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
+zircon_renderer_bgfx::create_render_pass(const char* p_pass_name) noexcept
+{
+	KOTEK_ASSERT(this->m_pfn_create_render_pass,
+		"the pass library must be initialized (initialize_pass_library) "
+		"before any pass creation");
+
+	if (!this->m_pfn_create_render_pass)
+	{
+		return nullptr;
+	}
+
+	return this->m_pfn_create_render_pass(p_pass_name);
+}
+
 kotek::uint8_t zircon_renderer_bgfx::get_render_graph_count(
 	void) const noexcept
 {
@@ -656,10 +694,43 @@ void zircon_renderer_bgfx::destroy_render_graphs(void) noexcept
 {
 	for (auto& info : this->m_render_graphs)
 	{
-		info.graph.Shutdown();
+		this->shutdown_render_graph_passes(info);
 	}
 
 	this->m_render_graphs.clear();
+}
+
+void zircon_renderer_bgfx::shutdown_render_graph_passes(
+	zircon_render_graph_simplified_bgfx_info_t& info) noexcept
+{
+	if (this->m_pfn_destroy_render_pass)
+	{
+		// dev configuration (task Z3 P3a): the passes belong to the pass
+		// library — detach them WITHOUT deleting (the kotek graph's
+		// Shutdown would delete through the base pointer from this
+		// module) and let the library destroy its own objects
+		kotek::static_vector_t<
+			kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+			detached_passes;
+
+		info.graph.Detach_Passes(detached_passes);
+
+		for (kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
+				 p_pass : detached_passes)
+		{
+			if (p_pass)
+			{
+				this->m_pfn_destroy_render_pass(p_pass);
+			}
+		}
+	}
+	else
+	{
+		// the default configuration: the graph deletes the passes
+		// itself, exactly as before the split
+		info.graph.Shutdown();
+	}
 }
 
 void zircon_renderer_bgfx::process_pending_render_graph_rebuilds(
@@ -707,11 +778,13 @@ void zircon_renderer_bgfx::rebuild_render_graph(
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 		enabled_to_restore = info.pass_enabled;
 
-	// deletes every pass of this graph (the passes hold POD/handles
+	// destroys every pass of this graph (the passes hold POD/handles
 	// only, all GPU resources stay on the executor side) — the same
-	// destroy-before-recreate order P3's hot-reload of the pass
-	// library requires
-	info.graph.Shutdown();
+	// destroy-before-recreate order P3's hot-reload of the pass library
+	// requires; in the dev configuration this detaches and routes the
+	// destruction through the pass library's own destroy (cross-CRT +
+	// unload-safety)
+	this->shutdown_render_graph_passes(info);
 
 	info.pass_names.clear();
 	info.pass_enabled.clear();

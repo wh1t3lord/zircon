@@ -56,6 +56,13 @@ constexpr const char* kZirconConfig_RenderPassEditorGizmoOwnName =
 constexpr const char* kZirconConfig_RenderPassEditorGizmoImguizmoName =
 	"no_streaming::zircon_render_graph_pass_editor_gizmo_imguizmo_bgfx";
 
+// graphics-development mode (task Z3 P3a): the CLI override
+// (--graphics_development, folded into the config feature at boot) — the
+// persisted side is the kSDK_Feature_GraphicsDevelopment flag, written
+// through translate_zircon_sdk_features as "graphics_development"
+constexpr const char* kZirconConfig_ConsoleArg_GraphicsDevelopment =
+	"--graphics_development";
+
 class zircon_config
 {
 public:
