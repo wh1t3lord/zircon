@@ -67,17 +67,16 @@
 // clear of kotek's enum range)
 #define zircon_DEF_COMMAND_TYPE_EDIT_COMPONENT_STATE 0x80000001
 
-#ifdef KOTEK_DEBUG
-	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME \
-		"entity_id"
-	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME \
-		"command"
-	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME \
-		"component_type_id"
-	#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME \
-		"component_type_ids"
-#else
-// TODO: at some point of time provide binary implementation of history command
-// streaming
-	#error provide optimized variant for release
-#endif
+// serialization attribute names (the JSON representation). These compile
+// in every config — JSON is the debug representation per the Z6 design but
+// it is fully functional in release.
+// TODO(zircon): provide the binary implementation of history command
+// streaming — the release-optimized variant the old #error was guarding
+#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_ENTITY_ID_NAME \
+	"entity_id"
+#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMMAND_NAME \
+	"command"
+#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_ID_NAME \
+	"component_type_id"
+#define ZIRCON_DEF_COMMAND_HISTORY_SERIALIZE_ATTRIBUTE_COMPONENT_IDS_NAME \
+	"component_type_ids"

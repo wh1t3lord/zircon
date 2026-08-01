@@ -41,11 +41,7 @@ inline void tag_invoke(const kotek::ktk::json::value_from_tag&,
 	kotek::ktk::json::value& write_to,
 	const zircon_component_bounding_sphere& data)
 {
-	#ifdef KOTEK_DEBUG
 	unsigned char p_storage_memory[1024];
-	#else
-	KOTEK_ASSERT(false, "provide optimized buffer for release");
-	#endif
 
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::ktk::json::object sphere(&storage);

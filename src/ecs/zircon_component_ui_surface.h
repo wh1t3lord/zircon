@@ -30,11 +30,7 @@ inline void tag_invoke(
 	const zircon_component_ui_surface& data
 )
 {
-	#ifdef KOTEK_DEBUG
 	unsigned char p_storage_memory[1024];
-	#else
-	KOTEK_ASSERT(false, "");
-	#endif
 
 	kotek::json::static_resource storage(p_storage_memory);
 	kotek::json::object ui_surface(&storage);
