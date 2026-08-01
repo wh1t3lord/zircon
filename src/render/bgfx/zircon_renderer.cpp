@@ -1,5 +1,7 @@
 #include "zircon_renderer.h"
 
+#include <cstring>
+
 // pass bases (complete types for the dynamic_casts in
 // initialize_render_graph); concrete passes live in the
 // zircon.render.passes.bgfx project and reach the graphs through

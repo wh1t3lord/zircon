@@ -1,5 +1,7 @@
 #include "zircon_config.h"
 
+#include <cstring>
+
 namespace
 {
 	/// reads a comma-separated render-pass list key into a static string

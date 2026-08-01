@@ -20,6 +20,7 @@
 	#include "../editor/ui/zircon_ui_window_log.h"
 	#include "../editor/ui/zircon_ui_window_render_stats.h"
 	#include "../editor/ui/zircon_ui_window_settings.h"
+	#include "../editor/ui/zircon_ui_render_passes.h"
 	#include "../editor/ui/zircon_ui_window_debug_input.h"
 	#include "../editor/ui/zircon_editor_ui_state.h"
 	#include "../editor/commands/zircon_command_history.h"
@@ -58,13 +59,21 @@ namespace
 	/// (zircon_config keys render_passes_editor/render_passes_game)
 	/// through the generated pass factory; an empty list falls back to the
 	/// config's documented default and unknown names are skipped loudly
-	/// (a nullptr never reaches the render graph)
+	/// (a nullptr never reaches the render graph). out_pass_names
+	/// collects the name of every successfully created pass (aligned
+	/// with passes) — the renderer slot stores it for the Render Passes
+	/// window (Z3 P2a)
 	static void zircon_create_render_passes_from_config(
 		const char* p_comma_separated_names, const char* p_default_names,
 		kotek::static_vector_t<
 			kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
 			KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>&
-			passes)
+			passes,
+		kotek::static_vector_t<
+			kotek::static_cstring_t<
+				ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
+			KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>&
+			out_pass_names)
 	{
 		if (!p_comma_separated_names || (*p_comma_separated_names == '\0'))
 		{
@@ -125,6 +134,19 @@ namespace
 						"KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_"
 						"PASS_COUNT");
 					passes.push_back(p_pass);
+
+					KOTEK_ASSERT(
+						name.size() <=
+							ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH,
+						"render pass name '{}' is too long, raise "
+						"ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH",
+						name.c_str());
+
+					kotek::static_cstring_t<
+						ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>
+						slot_name;
+					slot_name.assign(name.c_str());
+					out_pass_names.push_back(slot_name);
 				}
 				else
 				{
@@ -138,6 +160,18 @@ namespace
 				++p_cursor;
 			}
 		}
+	}
+
+	/// the pass-creation callback injected into zircon_renderer_bgfx
+	/// (set_render_pass_create_callback): the executor recreates passes
+	/// through this on the frame-boundary rebuilds the Render Passes
+	/// window requests (Z3 P2a), without the executor knowing the
+	/// concrete pass types; P3 swaps the target for the hot-swappable
+	/// pass library's export
+	static kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
+	zircon_create_render_pass_by_name(const char* p_pass_name)
+	{
+		return zircon_render_pass_factory::create(p_pass_name);
 	}
 } // namespace
 #endif
@@ -826,6 +860,55 @@ void zircon_game_manager::Initialize(
 						p_engine_config->GetRendererVersion()
 					);
 
+#ifdef KOTEK_USE_BGFX
+				// the Render Passes window (task Z3 P2a) talks to the
+				// bgfx executor directly; the renderers union must not
+				// be read through the bgfx member when another backend
+				// is active — the window then gets nullptr and only
+				// shows an explanatory line
+				zircon_renderer_bgfx* p_renderer_bgfx_for_ui = nullptr;
+
+				bool is_bgfx_renderer_active =
+					(renderer == kotek::core::eEngineSupportedRenderer::
+							kOpenGLES_3_0 ||
+					 renderer == kotek::core::eEngineSupportedRenderer::
+							kOpenGLES_3_1 ||
+					 renderer == kotek::core::eEngineSupportedRenderer::
+							kOpenGLES_3_2) &&
+					p_engine_config->IsFeatureEnabled(
+						kotek::core::eEngineFeatureRendererVendor::kBGFX
+					);
+
+				if (is_bgfx_renderer_active)
+				{
+					p_renderer_bgfx_for_ui = this->m_renderers.p_bgfx;
+				}
+
+				auto* p_window_render_passes =
+					new zircon_editor_ui_window_render_passes(
+						this->m_p_config, p_renderer_bgfx_for_ui,
+						zircon_render_editor_passes_registry,
+						static_cast<kotek::uint8_t>(
+							zircon_render_editor_passes_registry_count
+						),
+						zircon_render_game_passes_registry,
+						static_cast<kotek::uint8_t>(
+							zircon_render_game_passes_registry_count
+						)
+					);
+
+				// the first-run presentation of the "wizard": auto-open
+				// on editor start until the user saves the "don't show
+				// on start again" escape from the window itself
+				if (this->m_p_config->is_feature_enabled(
+						eZirconSDKFeatures::
+							kSDK_Feature_ShowPassManagerOnStart
+					))
+				{
+					p_window_render_passes->Show();
+				}
+#endif
+
 				zircon_imgui_elements_t
 					ui_elements = {
 						new zircon_editor_ui_window_object_list(
@@ -852,6 +935,9 @@ void zircon_game_manager::Initialize(
 						new zircon_editor_ui_window_settings(
 							this->m_p_config
 						),
+#ifdef KOTEK_USE_BGFX
+						p_window_render_passes,
+#endif
 						new zircon_editor_ui_window_debug_input(
 						)
 					};
@@ -889,11 +975,21 @@ void zircon_game_manager::Initialize(
 								KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 								passes;
 
+							// aligned with passes (Z3 P2a): the renderer
+							// slot stores the names for the Render
+							// Passes window
+							kotek::static_vector_t<
+								kotek::static_cstring_t<
+									ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
+								KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+								pass_names;
+
 							zircon_create_render_passes_from_config(
 								this->m_p_config
 									->get_render_passes_editor(),
 								kZirconConfig_DefaultRenderPassesEditor,
-								passes
+								passes,
+								pass_names
 							);
 
 							render_graph_id =
@@ -901,7 +997,8 @@ void zircon_game_manager::Initialize(
 									->create_render_graph(
 										session_editor_id,
 										false,
-										passes
+										passes,
+										pass_names
 									);
 						}
 					}
@@ -1005,10 +1102,19 @@ void zircon_game_manager::Initialize(
 					KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 					passes;
 
+				// aligned with passes (Z3 P2a): the renderer slot
+				// stores the names for the Render Passes window
+				kotek::static_vector_t<
+					kotek::static_cstring_t<
+						ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
+					KOTEK_DEF_RENDER_BGFX_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+					pass_names;
+
 				zircon_create_render_passes_from_config(
 					this->m_p_config->get_render_passes_game(),
 					kZirconConfig_DefaultRenderPassesGame,
-					passes
+					passes,
+					pass_names
 				);
 
 				KOTEK_ASSERT(
@@ -1020,7 +1126,7 @@ void zircon_game_manager::Initialize(
 				render_graph_id =
 					this->m_renderers.p_bgfx
 						->create_render_graph(
-							session_game_id, true, passes
+							session_game_id, true, passes, pass_names
 						);
 			}
 			else
@@ -1822,6 +1928,14 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 					this->m_p_session_game_manager,
 					this->m_p_session_editor_manager
 				);
+
+				// the executor recreates passes through this on the
+				// frame-boundary rebuilds requested by the Render
+				// Passes window (Z3 P2a)
+				this->m_renderers.p_bgfx
+					->set_render_pass_create_callback(
+						&zircon_create_render_pass_by_name
+					);
 
 				this->m_p_current_renderer =
 					this->m_renderers.p_bgfx;

@@ -34,6 +34,8 @@ set(to_include_windows_files
 	"zircon_ui_window_render_stats.cpp"
 	"zircon_ui_window_settings.h"
 	"zircon_ui_window_settings.cpp"
+	"zircon_ui_render_passes.h"
+	"zircon_ui_render_passes.cpp"
 	"zircon_ui_window_debug_input.h"
 	"zircon_ui_window_debug_input.cpp"
 )
@@ -63,3 +65,7 @@ kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CX
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
+# the Render Passes window (Z3 P2a) reads zircon_renderer_bgfx's slot
+# info — that header pulls the simplified-graph glue from this static
+# leaf (linked directly even in PLUGIN mode, same as zircon.render)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render.shared.bgfx)
