@@ -28,7 +28,9 @@ constexpr const char* kZirconConfig_FileName = "game_config.json";
 // zircon_render_pass_factory; absent/empty key = the defaults below, which
 // reproduce the pre-config hardcoded sets exactly. The editor set keeps
 // imgui LAST (it draws the UI over everything); the grid (task Z3 P2d)
-// sits between the present clear and imgui, under the scene geometry
+// sits between the present clear and the gizmo, under the scene geometry;
+// the gizmo (task Z3 P2e) is a depth-test-off overlay between the grid and
+// imgui so the handles always read over the scene
 constexpr const char* kZirconConfig_KeyRenderPassesEditor =
 	"render_passes_editor";
 constexpr const char* kZirconConfig_KeyRenderPassesGame =
@@ -36,6 +38,7 @@ constexpr const char* kZirconConfig_KeyRenderPassesGame =
 constexpr const char* kZirconConfig_DefaultRenderPassesEditor =
 	"no_streaming::zircon_render_graph_pass_editor_present_bgfx,"
 	"no_streaming::zircon_render_graph_pass_editor_grid_bgfx,"
+	"no_streaming::zircon_render_graph_pass_editor_gizmo_own_bgfx,"
 	"no_streaming::zircon_render_graph_pass_editor_imgui_bgfx";
 constexpr const char* kZirconConfig_DefaultRenderPassesGame =
 	"no_streaming::zircon_render_graph_pass_present_bgfx,"

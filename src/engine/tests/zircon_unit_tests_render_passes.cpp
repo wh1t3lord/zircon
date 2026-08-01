@@ -14,6 +14,7 @@
 		#include "../../core/zircon_config.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_model_static.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
+		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
 
 		#ifndef ZIRCON_DEF_UNIT_TEST_RENDER_PASSES
 			#define ZIRCON_DEF_UNIT_TEST_RENDER_PASSES 1
@@ -361,6 +362,549 @@ TEST(Zircon_Editor, RenderPassEditorGridRayMath)
 	EXPECT_NEAR(hit[0], 1.0f, 0.0001f);
 	EXPECT_NEAR(hit[1], 0.0f, 0.0001f);
 	EXPECT_NEAR(hit[2], 1.0f, 0.0001f);
+}
+
+using zircon_pass_editor_gizmo_own =
+	no_streaming::zircon_render_graph_pass_editor_gizmo_own_bgfx;
+
+// functional proofs for task Z3 P2e (editor own-gizmo pass). The pass's
+// picking and drag math is pure statics on float arrays (the analytic
+// R7 design — no GPU picking), so the whole interaction model is pinned
+// headless here: handle picking with its center > plane > axis priority,
+// the drag-delta application per mode with snapping on/off, and the
+// click-select sphere pick against a test world. The drag-END command
+// issuance through the real history lives in
+// zircon_unit_tests_command_history.cpp
+// (CommandHistory_GizmoDragEndEditCommand).
+
+TEST(Zircon_Editor, RenderPassEditorGizmoOwnSnapAndScreenSize)
+{
+	// snap_value rounds to the nearest step multiple; a non-positive
+	// step passes the value through
+	EXPECT_FLOAT_EQ(
+		zircon_pass_editor_gizmo_own::snap_value(0.3f, 0.25f), 0.25f);
+	EXPECT_FLOAT_EQ(
+		zircon_pass_editor_gizmo_own::snap_value(2.0f, 0.25f), 2.0f);
+	EXPECT_FLOAT_EQ(
+		zircon_pass_editor_gizmo_own::snap_value(-0.3f, 0.25f), -0.25f);
+	EXPECT_FLOAT_EQ(
+		zircon_pass_editor_gizmo_own::snap_value(0.3f, 0.0f), 0.3f);
+	EXPECT_FLOAT_EQ(zircon_pass_editor_gizmo_own::snap_value(20.0f, 15.0f),
+		15.0f);
+
+	// the constant-screen-size factor: the gizmo at twice the distance
+	// must scale exactly twice (the on-screen pixel extent is invariant)
+	const float camera_near[3] = {4.0f, 3.0f, 4.0f};
+	const float camera_far[3] = {8.0f, 6.0f, 8.0f};
+	const float origin[3] = {0.0f, 0.0f, 0.0f};
+
+	// 60-degree fov: projection[5] = 1/tan(30 deg)
+	constexpr float _kProj60 = 1.7320508f;
+
+	const float scale_near =
+		zircon_pass_editor_gizmo_own::compute_gizmo_scale(
+			camera_near, origin, _kProj60, 1080.0f);
+	const float scale_far =
+		zircon_pass_editor_gizmo_own::compute_gizmo_scale(
+			camera_far, origin, _kProj60, 1080.0f);
+
+	EXPECT_GT(scale_near, 0.0f);
+	EXPECT_NEAR(scale_far / scale_near, 2.0f, 0.0001f);
+
+	// degenerate inputs stay finite (the window can be minimized)
+	const float scale_guarded =
+		zircon_pass_editor_gizmo_own::compute_gizmo_scale(
+			camera_near, origin, 0.0f, 0.0f);
+
+	EXPECT_TRUE(std::isfinite(scale_guarded));
+	EXPECT_GT(scale_guarded, 0.0f);
+}
+
+TEST(Zircon_Editor, RenderPassEditorGizmoOwnPickHandles)
+{
+	const float gizmo_origin[3] = {0.0f, 0.0f, 0.0f};
+	constexpr float _kScale = 1.0f;
+
+	// straight at the X arrow's shaft from below
+	{
+		const float ray_origin[3] = {0.5f, -3.0f, 0.0f};
+		const float ray_direction[3] = {0.0f, 1.0f, 0.0f};
+
+		float ray_length = 0.0f;
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(ray_origin,
+					  ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kTranslate,
+					  gizmo_origin, _kScale, &ray_length),
+			0);
+		EXPECT_NEAR(ray_length, 3.0f, 0.0001f);
+	}
+
+	// past the arrow tip: nothing under the ray
+	{
+		const float ray_origin[3] = {2.0f, -3.0f, 0.0f};
+		const float ray_direction[3] = {0.0f, 1.0f, 0.0f};
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(ray_origin,
+					  ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kTranslate,
+					  gizmo_origin, _kScale),
+			-1);
+	}
+
+	// the center handle beats the axis handle even when the axis's
+	// intersection is nearer... the class priority is absolute
+	// (center > plane > axis): a ray down the X axis at a small offset
+	// clips BOTH the shaft and the center sphere — the center (handle 6
+	// of the translate set) must win
+	{
+		const float ray_origin[3] = {-3.0f, 0.05f, 0.0f};
+		const float ray_direction[3] = {1.0f, 0.0f, 0.0f};
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(ray_origin,
+					  ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kTranslate,
+					  gizmo_origin, _kScale),
+			6);
+	}
+
+	// the XY plane quad from straight above (handle 3)
+	{
+		const float ray_origin[3] = {0.5f, 0.5f, 5.0f};
+		const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(ray_origin,
+					  ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kTranslate,
+					  gizmo_origin, _kScale),
+			3);
+	}
+
+	// the quad's hole (inside the quad's minimum) hits nothing in
+	// translate mode... the ray misses the axes too (it is parallel to
+	// the Z shaft and too far from X/Y)
+	{
+		const float ray_origin[3] = {0.2f, 0.2f, 5.0f};
+		const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(ray_origin,
+					  ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kTranslate,
+					  gizmo_origin, _kScale),
+			-1);
+	}
+
+	// rotate mode: the X ring is the YZ-plane band — a ray meeting the
+	// plane at unit distance from the origin hits handle 7, one meeting
+	// it inside the ring's hole hits nothing
+	{
+		const float ray_origin_hit[3] = {3.0f, 1.0f, 0.0f};
+		const float ray_origin_miss[3] = {3.0f, 0.5f, 0.0f};
+		const float ray_direction[3] = {-1.0f, 0.0f, 0.0f};
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(ray_origin_hit,
+					  ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kRotate,
+					  gizmo_origin, _kScale),
+			7);
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(ray_origin_miss,
+					  ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kRotate,
+					  gizmo_origin, _kScale),
+			-1);
+	}
+
+	// scale mode: the center cube (handle 13) and an axis shaft+cube
+	// (handle 10 for X)
+	{
+		const float ray_origin_center[3] = {0.0f, 0.0f, 5.0f};
+		const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(
+					  ray_origin_center, ray_direction,
+					  no_streaming::eZirconRenderPassGizmoMode::kScale,
+					  gizmo_origin, _kScale),
+			13);
+
+		const float ray_origin_axis[3] = {0.5f, -3.0f, 0.0f};
+		const float ray_direction_axis[3] = {0.0f, 1.0f, 0.0f};
+
+		EXPECT_EQ(zircon_pass_editor_gizmo_own::pick_handle(
+					  ray_origin_axis, ray_direction_axis,
+					  no_streaming::eZirconRenderPassGizmoMode::kScale,
+					  gizmo_origin, _kScale),
+			10);
+	}
+
+	// the mouse-ray mapping itself: the screen-center pixel of the
+	// default orbit must produce the same origin-pointing ray the grid
+	// test pins through compute_world_ray
+	{
+		float view[16];
+		float projection[16];
+
+		zircon_pass_editor_grid::build_default_orbit_view_projection(
+			view, projection, 4.0f / 3.0f, false);
+
+		float inverse_view_projection[16];
+
+		zircon_pass_editor_grid::compose_inverse_view_projection(
+			view, projection, inverse_view_projection);
+
+		float ray_origin[3];
+		float ray_direction[3];
+
+		ASSERT_TRUE(zircon_pass_editor_gizmo_own::compute_mouse_ray(
+			inverse_view_projection, 400.0f, 300.0f, 800.0f, 600.0f,
+			ray_origin, ray_direction));
+
+		// (-4,-3,-4) normalized from the orbit eye
+		constexpr float _kSqrt41 = 6.40312423743284869f;
+
+		EXPECT_NEAR(ray_direction[0], -4.0f / _kSqrt41, 0.0001f);
+		EXPECT_NEAR(ray_direction[1], -3.0f / _kSqrt41, 0.0001f);
+		EXPECT_NEAR(ray_direction[2], -4.0f / _kSqrt41, 0.0001f);
+	}
+}
+
+TEST(Zircon_Editor, RenderPassEditorGizmoOwnDragTranslate)
+{
+	const float gizmo_origin[3] = {0.0f, 0.0f, 0.0f};
+	const float camera_position[3] = {4.0f, 3.0f, 4.0f};
+	const float start_position[3] = {10.0f, 20.0f, 30.0f};
+	const float start_scale[3] = {1.0f, 1.0f, 1.0f};
+	const float start_rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+	// axis drag (handle 0 = X arrow): the mouse ray slides its closest
+	// point along the axis; +2 on the axis must move ONLY x
+	{
+		no_streaming::zircon_render_pass_gizmo_drag_context_t context{};
+
+		const float ray_start_origin[3] = {0.5f, -3.0f, 0.0f};
+		const float ray_direction[3] = {0.0f, 1.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::begin_drag(context,
+			&zircon_pass_editor_gizmo_own::get_handles()[0],
+			ray_start_origin, ray_direction, camera_position,
+			gizmo_origin, 1.0f, start_position, start_scale,
+			start_rotation);
+
+		const float ray_now_origin[3] = {2.5f, -3.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_now_origin, ray_direction, false);
+
+		EXPECT_NEAR(context.m_result_position[0], 12.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_position[1], 20.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_position[2], 30.0f, 0.0001f);
+		EXPECT_NEAR(context.m_delta[0], 2.0f, 0.0001f);
+		EXPECT_NEAR(context.m_delta[1], 0.0f, 0.0001f);
+		EXPECT_NEAR(context.m_delta[2], 0.0f, 0.0001f);
+
+		// the scale/rotation results pass the start state through
+		// untouched
+		EXPECT_NEAR(context.m_result_scale[0], 1.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[3], 1.0f, 0.0001f);
+
+		// snapping on: a 2.3 drag lands on the 0.25 grid
+		const float ray_snap_origin[3] = {2.8f, -3.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_snap_origin, ray_direction, true);
+
+		EXPECT_NEAR(context.m_result_position[0], 12.25f, 0.0001f);
+		EXPECT_NEAR(context.m_delta[0], 2.25f, 0.0001f);
+	}
+
+	// plane drag (handle 3 = XY quad): both spanned components move, the
+	// normal component stays
+	{
+		no_streaming::zircon_render_pass_gizmo_drag_context_t context{};
+
+		const float ray_start_origin[3] = {0.5f, 0.5f, 5.0f};
+		const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+
+		zircon_pass_editor_gizmo_own::begin_drag(context,
+			&zircon_pass_editor_gizmo_own::get_handles()[3],
+			ray_start_origin, ray_direction, camera_position,
+			gizmo_origin, 1.0f, start_position, start_scale,
+			start_rotation);
+
+		const float ray_now_origin[3] = {1.6f, 0.8f, 5.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_now_origin, ray_direction, false);
+
+		EXPECT_NEAR(context.m_result_position[0], 11.1f, 0.0001f);
+		EXPECT_NEAR(context.m_result_position[1], 20.3f, 0.0001f);
+		EXPECT_NEAR(context.m_result_position[2], 30.0f, 0.0001f);
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_now_origin, ray_direction, true);
+
+		EXPECT_NEAR(context.m_result_position[0], 11.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_position[1], 20.25f, 0.0001f);
+		EXPECT_NEAR(context.m_result_position[2], 30.0f, 0.0001f);
+	}
+}
+
+TEST(Zircon_Editor, RenderPassEditorGizmoOwnDragRotate)
+{
+	const float gizmo_origin[3] = {0.0f, 0.0f, 0.0f};
+	const float camera_position[3] = {4.0f, 3.0f, 4.0f};
+	const float start_position[3] = {0.0f, 0.0f, 0.0f};
+	const float start_scale[3] = {1.0f, 1.0f, 1.0f};
+
+	// ring Z (handle 9): grabbing the ring at +X and moving the grab
+	// point to +Y is a +90-degree rotation about +Z (right-hand rule)
+	{
+		no_streaming::zircon_render_pass_gizmo_drag_context_t context{};
+
+		const float ray_start_origin[3] = {1.0f, 0.0f, 5.0f};
+		const float ray_now_origin[3] = {0.0f, 1.0f, 5.0f};
+		const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+		const float start_rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+		zircon_pass_editor_gizmo_own::begin_drag(context,
+			&zircon_pass_editor_gizmo_own::get_handles()[9],
+			ray_start_origin, ray_direction, camera_position,
+			gizmo_origin, 1.0f, start_position, start_scale,
+			start_rotation);
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_now_origin, ray_direction, false);
+
+		constexpr float _kHalfSqrt2 = 0.70710678f;
+
+		EXPECT_NEAR(context.m_result_rotation[0], 0.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[1], 0.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[2], _kHalfSqrt2, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[3], _kHalfSqrt2, 0.0001f);
+		EXPECT_NEAR(context.m_delta[2], 90.0f, 0.001f);
+
+		// 20 degrees snaps down to 15 on the 15-degree grid
+		const float ray_snap_origin[3] = {0.9396926f, 0.3420201f, 5.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_snap_origin, ray_direction, true);
+
+		EXPECT_NEAR(context.m_delta[2], 15.0f, 0.001f);
+		EXPECT_NEAR(context.m_result_rotation[2], 0.13052619f, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[3], 0.99144486f, 0.0001f);
+	}
+
+	// composition order: a +90-degree Z drag on a start rotation of +90
+	// about X must give the Hamilton product qd * start = (0.5, 0.5,
+	// 0.5, 0.5) — the drag applies AFTER the start orientation
+	{
+		no_streaming::zircon_render_pass_gizmo_drag_context_t context{};
+
+		const float ray_start_origin[3] = {1.0f, 0.0f, 5.0f};
+		const float ray_now_origin[3] = {0.0f, 1.0f, 5.0f};
+		const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+		const float start_rotation[4] = {0.70710678f, 0.0f, 0.0f,
+			0.70710678f};
+
+		zircon_pass_editor_gizmo_own::begin_drag(context,
+			&zircon_pass_editor_gizmo_own::get_handles()[9],
+			ray_start_origin, ray_direction, camera_position,
+			gizmo_origin, 1.0f, start_position, start_scale,
+			start_rotation);
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_now_origin, ray_direction, false);
+
+		EXPECT_NEAR(context.m_result_rotation[0], 0.5f, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[1], 0.5f, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[2], 0.5f, 0.0001f);
+		EXPECT_NEAR(context.m_result_rotation[3], 0.5f, 0.0001f);
+	}
+}
+
+TEST(Zircon_Editor, RenderPassEditorGizmoOwnDragScale)
+{
+	const float gizmo_origin[3] = {0.0f, 0.0f, 0.0f};
+	const float camera_position[3] = {4.0f, 3.0f, 4.0f};
+	const float start_position[3] = {0.0f, 0.0f, 0.0f};
+	const float start_scale[3] = {1.0f, 1.0f, 1.0f};
+	const float start_rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+	// axis scale (handle 10 = X shaft+cube): only the dragged axis's
+	// scale component moves; the minimum clamp holds
+	{
+		no_streaming::zircon_render_pass_gizmo_drag_context_t context{};
+
+		const float ray_start_origin[3] = {1.0f, -3.0f, 0.0f};
+		const float ray_direction[3] = {0.0f, 1.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::begin_drag(context,
+			&zircon_pass_editor_gizmo_own::get_handles()[10],
+			ray_start_origin, ray_direction, camera_position,
+			gizmo_origin, 1.0f, start_position, start_scale,
+			start_rotation);
+
+		const float ray_now_origin[3] = {1.6f, -3.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_now_origin, ray_direction, false);
+
+		EXPECT_NEAR(context.m_result_scale[0], 1.6f, 0.0001f);
+		EXPECT_NEAR(context.m_result_scale[1], 1.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_scale[2], 1.0f, 0.0001f);
+
+		// snapping on the 0.1 grid: 0.64 -> 0.6
+		const float ray_snap_origin[3] = {1.64f, -3.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_snap_origin, ray_direction, true);
+
+		EXPECT_NEAR(context.m_result_scale[0], 1.6f, 0.0001f);
+
+		// dragging past zero clamps at the minimum scale
+		const float ray_clamp_origin[3] = {-2.0f, -3.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_clamp_origin, ray_direction, false);
+
+		EXPECT_NEAR(context.m_result_scale[0],
+			zircon_DEF_RENDER_PASS_GIZMO_SCALE_MIN, 0.0001f);
+	}
+
+	// center scale (handle 13): the ray-to-gizmo distance ratio scales
+	// every component uniformly
+	{
+		no_streaming::zircon_render_pass_gizmo_drag_context_t context{};
+
+		const float ray_start_origin[3] = {0.0f, 3.0f, 0.0f};
+		const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+
+		zircon_pass_editor_gizmo_own::begin_drag(context,
+			&zircon_pass_editor_gizmo_own::get_handles()[13],
+			ray_start_origin, ray_direction, camera_position,
+			gizmo_origin, 1.0f, start_position, start_scale,
+			start_rotation);
+
+		const float ray_now_origin[3] = {0.0f, 6.0f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_now_origin, ray_direction, false);
+
+		EXPECT_NEAR(context.m_result_scale[0], 2.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_scale[1], 2.0f, 0.0001f);
+		EXPECT_NEAR(context.m_result_scale[2], 2.0f, 0.0001f);
+
+		// snapping: a 0.5333... delta rounds to 0.5 on the 0.1 grid
+		const float ray_snap_origin[3] = {0.0f, 4.6f, 0.0f};
+
+		zircon_pass_editor_gizmo_own::apply_drag(
+			context, ray_snap_origin, ray_direction, true);
+
+		EXPECT_NEAR(context.m_result_scale[0], 1.5f, 0.0001f);
+		EXPECT_NEAR(context.m_result_scale[1], 1.5f, 0.0001f);
+		EXPECT_NEAR(context.m_result_scale[2], 1.5f, 0.0001f);
+	}
+}
+
+TEST(Zircon_Editor, RenderPassEditorGizmoOwnClickSelect)
+{
+	// same heap-allocated headless world the collect-draw-items test
+	// uses (the console alone is ~1 MB of stack)
+	zircon_test_model_static_env& env = *new zircon_test_model_static_env();
+
+	env.factory.Initialize(&env.engine_config, &env.console, &env.input);
+
+	env.world.initialize("zircon_p2e_test_world", &env.engine_config,
+		&env.console, &env.input, &env.factory,
+		ZIRCON_DEF_WORLD_DEFAULT_ENTITY_COUNT);
+
+	zircon_ecs_context_t* p_context = env.world.get_ecs_context();
+
+	// entity A: bare transform at (10,0,0) — the fixed 0.5 m fallback
+	// sphere
+	kotek::entity_t entity_a = env.factory.create_entity(p_context);
+
+	env.factory.create_component(p_context, entity_a,
+		eZirconComponentType::kzircon_component_transform);
+
+	zircon_component_transform* p_transform_a =
+		static_cast<zircon_component_transform*>(
+			env.factory.get_component_by_enum(p_context, entity_a,
+				eZirconComponentType::kzircon_component_transform));
+
+	ASSERT_NE(p_transform_a, nullptr);
+
+	p_transform_a->set_position(kotek::math::vec3f_t(10.0f, 0.0f, 0.0f));
+
+	// entity B: transform at (10,5,0) with a bounding sphere of radius
+	// 1 — the component's sphere replaces the fallback
+	kotek::entity_t entity_b = env.factory.create_entity(p_context);
+
+	env.factory.create_component(p_context, entity_b,
+		eZirconComponentType::kzircon_component_transform);
+	env.factory.create_component(p_context, entity_b,
+		eZirconComponentType::kzircon_component_bounding_sphere);
+
+	zircon_component_transform* p_transform_b =
+		static_cast<zircon_component_transform*>(
+			env.factory.get_component_by_enum(p_context, entity_b,
+				eZirconComponentType::kzircon_component_transform));
+
+	zircon_component_bounding_sphere* p_sphere_b =
+		static_cast<zircon_component_bounding_sphere*>(
+			env.factory.get_component_by_enum(p_context, entity_b,
+				eZirconComponentType::kzircon_component_bounding_sphere));
+
+	ASSERT_NE(p_transform_b, nullptr);
+	ASSERT_NE(p_sphere_b, nullptr);
+
+	p_transform_b->set_position(kotek::math::vec3f_t(10.0f, 5.0f, 0.0f));
+	p_sphere_b->set_radius(1.0f);
+	p_sphere_b->set_enabled(true);
+
+	kotek::entity_t picked{kotek::ktk::kInvalidECSEntity};
+	const float ray_direction[3] = {0.0f, 0.0f, -1.0f};
+
+	// a ray straight at A picks A (and not B further along the ray —
+	// nearest wins... here B is beside the ray, out of reach)
+	{
+		const float ray_origin[3] = {10.0f, 0.0f, 10.0f};
+
+		ASSERT_TRUE(zircon_pass_editor_gizmo_own::pick_entity(&env.factory,
+			p_context, env.world.get_entity_count_max_limit(), ray_origin,
+			ray_direction, &picked));
+
+		EXPECT_EQ(picked.id, entity_a.id);
+	}
+
+	// a ray 0.8 m off B's center misses A entirely and picks B through
+	// its bounding sphere (the fallback 0.5 would be too small... the
+	// radius comes from the component)
+	{
+		const float ray_origin[3] = {10.0f, 4.2f, 10.0f};
+
+		ASSERT_TRUE(zircon_pass_editor_gizmo_own::pick_entity(&env.factory,
+			p_context, env.world.get_entity_count_max_limit(), ray_origin,
+			ray_direction, &picked));
+
+		EXPECT_EQ(picked.id, entity_b.id);
+	}
+
+	// 0.6 m off A's center: outside the fallback 0.5 m sphere, outside
+	// B's — a clean miss (the caller deselects)
+	{
+		const float ray_origin[3] = {10.0f, 0.6f, 10.0f};
+
+		EXPECT_FALSE(zircon_pass_editor_gizmo_own::pick_entity(
+			&env.factory, p_context,
+			env.world.get_entity_count_max_limit(), ray_origin,
+			ray_direction, &picked));
+	}
+
+	env.world.shutdown(&env.factory);
+	env.factory.Shutdown();
+
+	delete &env;
 }
 
 		#endif

@@ -38,6 +38,8 @@ set(to_include_windows_files
 	"zircon_ui_render_passes.cpp"
 	"zircon_ui_window_debug_input.h"
 	"zircon_ui_window_debug_input.cpp"
+	"zircon_ui_gizmo_overlay.h"
+	"zircon_ui_gizmo_overlay.cpp"
 )
 
 set(to_include_manager_files

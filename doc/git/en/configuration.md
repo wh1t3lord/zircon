@@ -60,7 +60,7 @@ kotek.exe --render_nri_dx12                 # boot on the NRI (DirectX 12) rende
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `render_passes_editor` | string (comma list) | `present,grid,imgui` | the editor session's render pass set, in execution order; names come from the pass factory registry; imgui must stay last (it draws the UI over everything) |
+| `render_passes_editor` | string (comma list) | `present,grid,gizmo_own,imgui` | the editor session's render pass set, in execution order; names come from the pass factory registry; imgui must stay last (it draws the UI over everything) |
 | `render_passes_game` | string (comma list) | `present,model_static` | the game session's render pass set, in execution order |
 | `add_required_components_automatically` | bool | `true` | entity creation auto-attaches the required components |
 | `sphere_bounding_box_quality` | int | `8` | tessellation quality of generated bounding spheres |

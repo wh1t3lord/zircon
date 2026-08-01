@@ -22,6 +22,7 @@
 	#include "../editor/ui/zircon_ui_window_settings.h"
 	#include "../editor/ui/zircon_ui_render_passes.h"
 	#include "../editor/ui/zircon_ui_window_debug_input.h"
+	#include "../editor/ui/zircon_ui_gizmo_overlay.h"
 	#include "../editor/ui/zircon_editor_ui_state.h"
 	#include "../editor/commands/zircon_command_history.h"
 	#include "../editor/commands/zircon_command_create_entity.h"
@@ -939,6 +940,12 @@ void zircon_game_manager::Initialize(
 						p_window_render_passes,
 #endif
 						new zircon_editor_ui_window_debug_input(
+						),
+						// the gizmo overlay draws last (over every
+						// window); it self-hides while the gizmo pass
+						// reports no active selection (task Z3 P2e)
+						new zircon_editor_ui_window_gizmo_overlay(
+							this->m_p_session_editor_manager
 						)
 					};
 				p_session->set_imgui_ui_elements(ui_elements);

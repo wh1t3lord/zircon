@@ -270,6 +270,20 @@ zircon_add_slang_shader(grid
 		"u_cameraPos:vec4:64:1"
 )
 
+# editor own-gizmo overlay (task Z3 P2e): position-only handle meshes,
+# u_modelViewProj is a bgfx predefined uniform (auto-filled from
+# setTransform * the view transform), u_color is the pass's per-draw
+# solid color
+zircon_add_slang_shader(gizmo
+	VS_IN "a_position"
+	VS_OUT ""
+	VS_UNIFORMS
+		"u_modelViewProj:mat4:0:4"
+	FS_IN ""
+	FS_UNIFORMS
+		"u_color:vec4:0:1"
+)
+
 add_custom_target(zircon_shaders DEPENDS ${ZIRCON_SHADER_OUTPUTS})
 set_target_properties(zircon_shaders PROPERTIES FOLDER "engine/render/shaders")
 

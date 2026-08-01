@@ -4,7 +4,8 @@
 
 zircon_editor_ui_state::zircon_editor_ui_state() :
 	m_is_imgui_show_modal_save_scene{},
-	m_selected_entity{kotek::ktk::kInvalidECSEntity}
+	m_selected_entity{kotek::ktk::kInvalidECSEntity},
+	m_gizmo_overlay_state{}
 {
 }
 
@@ -82,4 +83,16 @@ bool zircon_editor_ui_state::is_imgui_show_modal_save_scene(void
 ) const
 {
 	return this->m_is_imgui_show_modal_save_scene;
+}
+
+zircon_gizmo_overlay_state_t&
+zircon_editor_ui_state::get_gizmo_overlay_state(void) noexcept
+{
+	return this->m_gizmo_overlay_state;
+}
+
+const zircon_gizmo_overlay_state_t&
+zircon_editor_ui_state::get_gizmo_overlay_state(void) const noexcept
+{
+	return this->m_gizmo_overlay_state;
 }

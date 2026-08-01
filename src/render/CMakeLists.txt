@@ -129,6 +129,8 @@ set(to_include_bgfx_editor_passes_no_streaming_files
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.cpp"
 )
 
 # embedded shader/font blobs consumed by the editor imgui pass

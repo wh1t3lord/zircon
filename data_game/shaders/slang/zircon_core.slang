@@ -58,3 +58,8 @@ struct ZirconVsToFs_grid
 	float4 position : SV_Position;
 	float2 v_ndc : TEXCOORD0;
 };
+
+// gizmo: editor own-gizmo overlay (editor pass "editor_gizmo_own", task
+// Z3 P2e). No shared IO structs: the vertex stage takes a bare
+// a_position and returns SV_Position (no varyings), the fragment stage
+// takes no inputs and outputs the per-draw u_color.
