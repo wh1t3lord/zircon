@@ -12,6 +12,8 @@
 		#include "../../ecs/zircon_component_transform.h"
 		#include "../../world/zircon_world.h"
 		#include "../../core/zircon_config.h"
+		#include "../../editor/ui/zircon_ui_render_passes.h"
+		#include "../../editor/ui/zircon_ui_gizmo_imguizmo.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_model_static.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
@@ -905,6 +907,228 @@ TEST(Zircon_Editor, RenderPassEditorGizmoOwnClickSelect)
 	env.factory.Shutdown();
 
 	delete &env;
+}
+
+// functional proof for task Z3 P2f's gizmo mutual exclusion (the Render
+// Passes window rule): the two gizmo variants are mutually exclusive
+// members of a pass set — enabling one must name the other for
+// disabling; anything else (a non-gizmo pass, a missing sibling, null
+// input) excludes nothing. Both gizmos unchecked (no gizmo at all) is
+// legal and needs no code path: the rule only fires on an enable
+TEST(Zircon_Editor, RenderPassesWindowGizmoMutualExclusion)
+{
+	const char* const names_with_pair[5] = {
+		"no_streaming::zircon_render_graph_pass_editor_present_bgfx",
+		"no_streaming::zircon_render_graph_pass_editor_grid_bgfx",
+		kZirconConfig_RenderPassEditorGizmoOwnName,
+		kZirconConfig_RenderPassEditorGizmoImguizmoName,
+		"no_streaming::zircon_render_graph_pass_editor_imgui_bgfx"};
+
+	// enabling one gizmo names the sibling's index for disabling
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			kZirconConfig_RenderPassEditorGizmoOwnName, names_with_pair,
+			5),
+		3);
+
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			kZirconConfig_RenderPassEditorGizmoImguizmoName,
+			names_with_pair, 5),
+		2);
+
+	// a non-gizmo pass excludes nothing
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			"no_streaming::zircon_render_graph_pass_editor_grid_bgfx",
+			names_with_pair, 5),
+		-1);
+
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			"no_streaming::zircon_render_graph_pass_editor_present_bgfx",
+			names_with_pair, 5),
+		-1);
+
+	// an unknown name (a pass that is no gizmo variant) excludes nothing
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			"no_streaming::zircon_render_graph_pass_editor_model_static_"
+			"bgfx",
+			names_with_pair, 5),
+		-1);
+
+	// the sibling absent from the set: nothing to disable (enabling the
+	// own gizmo in a set without the imguizmo variant is a no-op)
+	const char* const names_without_imguizmo[4] = {
+		"no_streaming::zircon_render_graph_pass_editor_present_bgfx",
+		"no_streaming::zircon_render_graph_pass_editor_grid_bgfx",
+		kZirconConfig_RenderPassEditorGizmoOwnName,
+		"no_streaming::zircon_render_graph_pass_editor_imgui_bgfx"};
+
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			kZirconConfig_RenderPassEditorGizmoOwnName,
+			names_without_imguizmo, 4),
+		-1);
+
+	// null/trivial input safety
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			nullptr, names_with_pair, 5),
+		-1);
+
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			kZirconConfig_RenderPassEditorGizmoOwnName, nullptr, 5),
+		-1);
+
+	EXPECT_EQ(
+		zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+			kZirconConfig_RenderPassEditorGizmoOwnName, names_with_pair,
+			0),
+		-1);
+}
+
+// functional proof for the ImGuizmo variant's matrix surface (task Z3
+// P2f): the window composes the selected entity's TRS into the float[16]
+// ImGuizmo::Manipulate mutates and decomposes the result back into TRS
+// for the live preview/commit. The composition must be byte-identical to
+// the model matrix the renderer draws (bx::mtxFromQuaternion's layout —
+// the gizmo overlays the RENDERED model); ImGuizmo itself reads/writes
+// the same storage convention, so no conversion exists anywhere on the
+// path. The Manipulate call itself needs a live imgui frame (no headless
+// run — the boot suite covers it), but the whole matrix contract around
+// it is pinned here: compose matches bx byte-for-byte, compose ->
+// decompose round-trips (the quaternion up to its sign ambiguity), a
+// degenerate scale is a loud failure
+TEST(Zircon_Editor, GizmoImguizmoTrsMatrixRoundTrip)
+{
+	using zircon_window_gizmo_imguizmo =
+		zircon_editor_ui_window_gizmo_imguizmo;
+
+	// identity composes to the identity matrix
+	{
+		const float position[3] = {0.0f, 0.0f, 0.0f};
+		const float rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+		const float scale[3] = {1.0f, 1.0f, 1.0f};
+
+		float matrix[16];
+
+		zircon_window_gizmo_imguizmo::compose_trs_matrix(
+			position, rotation, scale, matrix);
+
+		for (int column = 0; column < 4; ++column)
+		{
+			for (int row = 0; row < 4; ++row)
+			{
+				EXPECT_FLOAT_EQ(matrix[column * 4 + row],
+					column == row ? 1.0f : 0.0f);
+			}
+		}
+	}
+
+	// compose matches bx::mtxFromQuaternion byte-for-byte (plus the
+	// translation slot) — THE contract with the renderer
+	{
+		const float half_sqrt2 = 0.70710678118654752f;
+
+		const float position[3] = {1.0f, 2.0f, 3.0f};
+		const float rotation[4] = {0.0f, half_sqrt2, 0.0f, half_sqrt2};
+		const float scale[3] = {1.0f, 1.0f, 1.0f};
+
+		float matrix[16];
+
+		zircon_window_gizmo_imguizmo::compose_trs_matrix(
+			position, rotation, scale, matrix);
+
+		float reference[16];
+
+		bx::mtxFromQuaternion(reference,
+			bx::Quaternion(rotation[0], rotation[1], rotation[2],
+				rotation[3]));
+
+		for (int element = 0; element < 12; ++element)
+			EXPECT_FLOAT_EQ(matrix[element], reference[element]);
+
+		EXPECT_FLOAT_EQ(matrix[12], position[0]);
+		EXPECT_FLOAT_EQ(matrix[13], position[1]);
+		EXPECT_FLOAT_EQ(matrix[14], position[2]);
+		EXPECT_FLOAT_EQ(matrix[15], 1.0f);
+	}
+
+	// a full TRS: translation (1,2,3), 90 degrees about Y, non-uniform
+	// scale (1,2,0.5) — the bx-convention elements are spot-checked (bx
+	// rotates the opposite sense vs. glm: a 90-degree-Y quaternion maps
+	// +X to +Z, so column 0 is (0,0,+1)*sx and column 2 is (-1,0,0)*sz)
+	{
+		const float half_sqrt2 = 0.70710678118654752f;
+
+		const float position[3] = {1.0f, 2.0f, 3.0f};
+		const float rotation[4] = {0.0f, half_sqrt2, 0.0f, half_sqrt2};
+		const float scale[3] = {1.0f, 2.0f, 0.5f};
+
+		float matrix[16];
+
+		zircon_window_gizmo_imguizmo::compose_trs_matrix(
+			position, rotation, scale, matrix);
+
+		EXPECT_NEAR(matrix[0], 0.0f, 0.0001f);
+		EXPECT_NEAR(matrix[1], 0.0f, 0.0001f);
+		EXPECT_NEAR(matrix[2], 1.0f, 0.0001f);
+		EXPECT_NEAR(matrix[5], 2.0f, 0.0001f);
+		EXPECT_NEAR(matrix[8], -0.5f, 0.0001f);
+		EXPECT_NEAR(matrix[9], 0.0f, 0.0001f);
+		EXPECT_NEAR(matrix[10], 0.0f, 0.0001f);
+		EXPECT_NEAR(matrix[12], 1.0f, 0.0001f);
+		EXPECT_NEAR(matrix[13], 2.0f, 0.0001f);
+		EXPECT_NEAR(matrix[14], 3.0f, 0.0001f);
+		EXPECT_NEAR(matrix[15], 1.0f, 0.0001f);
+
+		float out_position[3];
+		float out_scale[3];
+		float out_rotation[4];
+
+		ASSERT_TRUE(zircon_window_gizmo_imguizmo::decompose_trs_matrix(
+			matrix, out_position, out_scale, out_rotation));
+
+		EXPECT_NEAR(out_position[0], 1.0f, 0.0001f);
+		EXPECT_NEAR(out_position[1], 2.0f, 0.0001f);
+		EXPECT_NEAR(out_position[2], 3.0f, 0.0001f);
+
+		EXPECT_NEAR(out_scale[0], 1.0f, 0.0001f);
+		EXPECT_NEAR(out_scale[1], 2.0f, 0.0001f);
+		EXPECT_NEAR(out_scale[2], 0.5f, 0.0001f);
+
+		// the quaternion round-trips up to its sign ambiguity (q and -q
+		// are the same rotation): |dot| of the unit quaternions is 1
+		float dot = 0.0f;
+
+		for (int component = 0; component < 4; ++component)
+			dot += out_rotation[component] * rotation[component];
+
+		EXPECT_NEAR(std::fabs(dot), 1.0f, 0.0001f);
+	}
+
+	// a degenerate scale column carries no rotation — a loud failure,
+	// not a NaN quaternion
+	{
+		const float position[3] = {0.0f, 0.0f, 0.0f};
+		const float rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+		const float scale[3] = {1.0f, 0.0f, 1.0f};
+
+		float matrix[16];
+
+		zircon_window_gizmo_imguizmo::compose_trs_matrix(
+			position, rotation, scale, matrix);
+
+		float out_position[3];
+		float out_scale[3];
+		float out_rotation[4];
+
+		EXPECT_FALSE(zircon_window_gizmo_imguizmo::decompose_trs_matrix(
+			matrix, out_position, out_scale, out_rotation));
+	}
 }
 
 		#endif

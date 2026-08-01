@@ -40,6 +40,8 @@ set(to_include_windows_files
 	"zircon_ui_window_debug_input.cpp"
 	"zircon_ui_gizmo_overlay.h"
 	"zircon_ui_gizmo_overlay.cpp"
+	"zircon_ui_gizmo_imguizmo.h"
+	"zircon_ui_gizmo_imguizmo.cpp"
 )
 
 set(to_include_manager_files
@@ -71,3 +73,9 @@ kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
 # info — that header pulls the simplified-graph glue from this static
 # leaf (linked directly even in PLUGIN mode, same as zircon.render)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.render.shared.bgfx)
+
+# the ImGuizmo gizmo host window (Z3 P2f) includes the vendored
+# ImGuizmo.h, whose quoted "imgui.h" include predates kotek's
+# virtual-path layout — the raw module include dir for this target only
+target_include_directories(${PROJECT_NAME} PRIVATE
+	"${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src/kotek.ui.imgui/include")

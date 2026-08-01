@@ -314,6 +314,16 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 			// living (no destroy/create)
 			this->m_p_renderer_bgfx->set_render_pass_enabled(
 				render_graph_id, i, is_enabled);
+
+			// the gizmo pair (gizmo_own vs gizmo_imguizmo, P2e/P2f) is
+			// mutually exclusive: checking one unchecks the other (both
+			// unchecked = no gizmo, which is legal — the rule only fires
+			// on an enable)
+			if (is_enabled)
+			{
+				this->apply_gizmo_exclusion(render_graph_id, info,
+					info.pass_names[i].c_str());
+			}
 		}
 
 		p_wrapper_imgui->SameLine();
@@ -334,10 +344,6 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 			// drops it loudly
 			p_wrapper_imgui->TextDisabled("[missing from library]");
 		}
-
-		// TODO(zircon): the gizmo pair (gizmo_own vs gizmo_imguizmo)
-		// must be mutually exclusive — enforce it here once those
-		// passes exist (P2e/P2f): checking one unchecks the other
 
 		if (i > 0)
 		{
@@ -435,6 +441,13 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 			this->m_p_renderer_bgfx->request_render_pass_add(
 				render_graph_id, p_pass_name);
 
+			// a freshly added pass starts enabled at the rebuild — the
+			// gizmo mutual exclusion (P2f) applies to it too: adding one
+			// gizmo while the sibling is in the set disables the sibling
+			// now (its skip flag is instant, no rebuild needed)
+			this->apply_gizmo_exclusion(
+				render_graph_id, info, p_pass_name);
+
 			p_wrapper_imgui->PopID();
 
 			// the live set changed — stop the row pass (same reason as
@@ -448,6 +461,77 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 	if (this->is_session_dirty(is_game_session))
 	{
 		p_wrapper_imgui->TextDisabled("modified (unsaved)");
+	}
+}
+
+int zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
+	const char* p_just_enabled_pass_name, const char* const* p_pass_names,
+	kotek::uint8_t pass_count) noexcept
+{
+	if (p_just_enabled_pass_name == nullptr || p_pass_names == nullptr)
+		return -1;
+
+	const char* p_sibling_name = nullptr;
+
+	if (std::strcmp(p_just_enabled_pass_name,
+			kZirconConfig_RenderPassEditorGizmoOwnName) == 0)
+	{
+		p_sibling_name = kZirconConfig_RenderPassEditorGizmoImguizmoName;
+	}
+	else if (std::strcmp(p_just_enabled_pass_name,
+				   kZirconConfig_RenderPassEditorGizmoImguizmoName) == 0)
+	{
+		p_sibling_name = kZirconConfig_RenderPassEditorGizmoOwnName;
+	}
+	else
+	{
+		return -1;
+	}
+
+	// lookup-table-on-vector (rule 2): a handful of names, linear scan
+	for (kotek::uint8_t i = 0; i < pass_count; ++i)
+	{
+		if (p_pass_names[i] &&
+			std::strcmp(p_pass_names[i], p_sibling_name) == 0)
+		{
+			return static_cast<int>(i);
+		}
+	}
+
+	return -1;
+}
+
+void zircon_editor_ui_window_render_passes::apply_gizmo_exclusion(
+	kotek::uint8_t render_graph_id,
+	const zircon_render_graph_simplified_bgfx_info_t& graph_info,
+	const char* p_just_enabled_pass_name) noexcept
+{
+	if (this->m_p_renderer_bgfx == nullptr)
+		return;
+
+	const char* p_names
+		[KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT]{};
+
+	kotek::uint8_t name_count = static_cast<kotek::uint8_t>(
+		graph_info.pass_names.size());
+
+	if (name_count >
+		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT)
+	{
+		name_count =
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT;
+	}
+
+	for (kotek::uint8_t i = 0; i < name_count; ++i)
+		p_names[i] = graph_info.pass_names[i].c_str();
+
+	const int sibling_index = compute_gizmo_exclusion(
+		p_just_enabled_pass_name, p_names, name_count);
+
+	if (sibling_index >= 0)
+	{
+		this->m_p_renderer_bgfx->set_render_pass_enabled(render_graph_id,
+			static_cast<kotek::uint8_t>(sibling_index), false);
 	}
 }
 

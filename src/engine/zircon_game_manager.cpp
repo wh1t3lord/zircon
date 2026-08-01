@@ -23,6 +23,7 @@
 	#include "../editor/ui/zircon_ui_render_passes.h"
 	#include "../editor/ui/zircon_ui_window_debug_input.h"
 	#include "../editor/ui/zircon_ui_gizmo_overlay.h"
+	#include "../editor/ui/zircon_ui_gizmo_imguizmo.h"
 	#include "../editor/ui/zircon_editor_ui_state.h"
 	#include "../editor/commands/zircon_command_history.h"
 	#include "../editor/commands/zircon_command_create_entity.h"
@@ -898,6 +899,16 @@ void zircon_game_manager::Initialize(
 						)
 					);
 
+				// the ImGuizmo gizmo variant's host (task Z3 P2f): an
+				// always-shown ui_element whose Draw runs inside the
+				// imgui pass's frame and only Manipulates while the
+				// imguizmo pass token is in the editor set and enabled
+				auto* p_window_gizmo_imguizmo =
+					new zircon_editor_ui_window_gizmo_imguizmo(
+						this->m_p_session_editor_manager,
+						p_renderer_bgfx_for_ui
+					);
+
 				// the first-run presentation of the "wizard": auto-open
 				// on editor start until the user saves the "don't show
 				// on start again" escape from the window itself
@@ -912,6 +923,15 @@ void zircon_game_manager::Initialize(
 
 				zircon_imgui_elements_t
 					ui_elements = {
+#ifdef KOTEK_USE_BGFX
+						// the ImGuizmo gizmo host draws FIRST so its
+						// full-viewport transparent window sits under the
+						// docked panels (the own gizmo, a render pass,
+						// draws under all of imgui — this is the closest
+						// layering imgui allows); it self-inactivates
+						// while the variant is not in the editor pass set
+						p_window_gizmo_imguizmo,
+#endif
 						new zircon_editor_ui_window_object_list(
 							this->m_p_session_editor_manager,
 							this->m_p_console,

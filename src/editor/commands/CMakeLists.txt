@@ -23,6 +23,11 @@ set(to_include_manager_files
 	"zircon_command_journal.cpp"
 	"zircon_command_registry.h"
 	"zircon_command_registry.cpp"
+	# the gizmo drag-end commit shared by both editor gizmo variants
+	# (task Z3 P2e own gizmo + P2f ImGuizmo) — journaled edit glue, not a
+	# command class itself
+	"zircon_gizmo_edit_commit.h"
+	"zircon_gizmo_edit_commit.cpp"
 )
 
 set(to_include_commands_files

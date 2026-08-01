@@ -320,7 +320,10 @@ namespace no_streaming
 		// placement-new one zircon_command_edit_component_state into the
 		// history pool and ExecuteCommand it. False when any link of the
 		// chain is missing (the preview was already restored by the
-		// caller's drag teardown in that case)
+		// caller's drag teardown in that case). Since task Z3 P2f this
+		// forwards to the shared zircon_gizmo_commit_transform_drag_edit
+		// (editor.commands) — the ImGuizmo variant's hosting window
+		// issues the identical commit through the same helper
 		static bool commit_drag_edit(
 			zircon_session_editor_manager* p_manager_session_editor,
 			zircon_factory* p_factory,

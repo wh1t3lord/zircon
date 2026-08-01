@@ -131,7 +131,30 @@ set(to_include_bgfx_editor_passes_no_streaming_files
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.cpp"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_imguizmo.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_imguizmo.cpp"
 )
+
+# vendored third-party (task Z3 P2f, owner-sanctioned exception to the
+# no-third-party-in-engine rule — passes-project-local, never engine code):
+# ImGuizmo v1.92.5 WIP, upstream master pinned at commit 5ab7676402ace03cdf
+# 930b2d972f59c7d03c6fa8 (2026-07-29), MIT license (header intact in
+# ImGuizmo.h + LICENSE alongside). vcpkg DOES carry an imguizmo port (1.10,
+# stale vs. upstream) — vendoring chosen per the approved plan. Kept
+# byte-pristine; compiles against kotek's vendored imgui (1.91.4) through
+# the PRIVATE include dir below (its quoted "imgui.h"/"imgui_internal.h"
+# includes predate kotek's virtual-path layout)
+set(to_include_bgfx_passes_imguizmo_files
+	"bgfx/passes/imguizmo/ImGuizmo.h"
+	"bgfx/passes/imguizmo/ImGuizmo.cpp"
+	"bgfx/passes/imguizmo/LICENSE"
+)
+
+# ImGuizmo.cpp includes imgui_internal.h, which demands the math operators
+# macro before imgui.h. The macro must be TARGET-WIDE: the target PCH
+# force-includes kotek.ui (which already pulls imgui.h), so a per-TU define
+# would arrive after the PCH processed imgui.h without it (the vendored file
+# stays byte-pristine)
 
 # embedded shader/font blobs consumed by the editor imgui pass
 set(to_include_bgfx_passes_embedded_files
@@ -152,6 +175,7 @@ kotek_add_library(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}
 	${to_include_bgfx_game_passes_no_streaming_files}
 	${to_include_bgfx_editor_passes_no_streaming_files}
 	${to_include_bgfx_passes_embedded_files}
+	${to_include_bgfx_passes_imguizmo_files}
 )
 
 set_target_properties(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PROPERTIES FOLDER "engine/render/passes")
@@ -182,6 +206,19 @@ add_custom_command(
 source_group("BGFX/Passes/Game/No Streaming" FILES ${to_include_bgfx_game_passes_no_streaming_files})
 source_group("BGFX/Passes/Editor/No Streaming" FILES ${to_include_bgfx_editor_passes_no_streaming_files})
 source_group("BGFX/Passes/Embedded" FILES ${to_include_bgfx_passes_embedded_files})
+source_group("BGFX/Passes/ImGuizmo (vendored)" FILES ${to_include_bgfx_passes_imguizmo_files})
+
+# the vendored ImGuizmo.cpp includes "imgui.h"/"imgui_internal.h" quoted
+# (upstream layout); kotek's imgui lives behind the virtual-path root
+# (kotek/src) — add the module's raw include dir for this target only
+# (absolute: KOTEK_ENGINE_ROOT_FOLDER_NAME is a NAME, not a path)
+target_include_directories(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PRIVATE
+	"${CMAKE_SOURCE_DIR}/${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src/kotek.ui.imgui/include")
+
+# see the note above: the math-operators macro must be target-wide so the
+# target's PCH also processes imgui.h with it
+target_compile_definitions(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PRIVATE
+	IMGUI_DEFINE_MATH_OPERATORS)
 
 kotek_target_precompile_headers(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 

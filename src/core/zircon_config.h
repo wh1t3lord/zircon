@@ -44,6 +44,18 @@ constexpr const char* kZirconConfig_DefaultRenderPassesGame =
 	"no_streaming::zircon_render_graph_pass_present_bgfx,"
 	"no_streaming::zircon_render_graph_pass_model_static_bgfx";
 
+// the gizmo pair (tasks Z3 P2e/P2f): the two editor gizmo variants are
+// MUTUALLY EXCLUSIVE members of the editor pass set — the Render Passes
+// window enforces it (enabling one disables the other; both disabled = no
+// gizmo, which is legal). The own gizmo is the house default (it is in the
+// default editor set above); the ImGuizmo variant is opt-in through the
+// window/config. These single-source names keep the window, the
+// imguizmo-hosting ui window and the tests spelling the same string
+constexpr const char* kZirconConfig_RenderPassEditorGizmoOwnName =
+	"no_streaming::zircon_render_graph_pass_editor_gizmo_own_bgfx";
+constexpr const char* kZirconConfig_RenderPassEditorGizmoImguizmoName =
+	"no_streaming::zircon_render_graph_pass_editor_gizmo_imguizmo_bgfx";
+
 class zircon_config
 {
 public:

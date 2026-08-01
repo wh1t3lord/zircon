@@ -2,6 +2,7 @@
 
 class zircon_config;
 class zircon_renderer_bgfx;
+struct zircon_render_graph_simplified_bgfx_info_t;
 
 /// @brief \~english Render Passes window (task Z3 P2a — the "wizard"
 /// delivered as a normal dockable editor window whose first-run
@@ -47,6 +48,19 @@ public:
 	void Hide(void) override;
 	bool Is_Shown(void) const override;
 
+	/// the gizmo pair (P2e own / P2f ImGuizmo — the
+	/// kZirconConfig_RenderPassEditorGizmo*Name constants) is mutually
+	/// exclusive in a pass set: enabling one must disable the other (both
+	/// disabled = no gizmo, which is legal — unchecking never triggers
+	/// this). Pure lookup, the unit tests pin it: returns the index of
+	/// the sibling gizmo pass inside p_pass_names when
+	/// p_just_enabled_pass_name is one of the pair and the sibling is
+	/// present, -1 otherwise (a non-gizmo pass, or the sibling absent)
+	static int compute_gizmo_exclusion(
+		const char* p_just_enabled_pass_name,
+		const char* const* p_pass_names,
+		kotek::uint8_t pass_count) noexcept;
+
 private:
 	/// re-reads the registered-pass name tables; called from Show() so
 	/// an open always reflects the current library. P3 (hot-reload)
@@ -61,6 +75,15 @@ private:
 	bool is_registered(
 		bool is_game_session, const char* p_pass_name) const noexcept;
 	bool is_session_dirty(bool is_game_session) noexcept;
+
+	/// the P2f gizmo mutual exclusion applied to the live slot: when the
+	/// just-enabled pass is one of the gizmo pair, the sibling (if
+	/// present in the slot) is disabled through the executor's instant
+	/// skip flag. Called from the enable-checkbox path and from the add
+	/// path (a freshly added pass starts enabled at the rebuild)
+	void apply_gizmo_exclusion(kotek::uint8_t render_graph_id,
+		const zircon_render_graph_simplified_bgfx_info_t& graph_info,
+		const char* p_just_enabled_pass_name) noexcept;
 
 	/// writes both live sets into the config members + the
 	/// don't-show-on-start choice into its feature flag, then persists

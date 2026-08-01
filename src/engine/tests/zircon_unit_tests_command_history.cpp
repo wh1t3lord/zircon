@@ -14,6 +14,7 @@
 		#include "../../editor/commands/zircon_command_add_component_to_entity.h"
 		#include "../../editor/commands/zircon_command_delete_component_from_entity.h"
 		#include "../../editor/commands/zircon_command_edit_component_state.h"
+		#include "../../editor/commands/zircon_gizmo_edit_commit.h"
 		#include "../../editor/session/zircon_session_editor.h"
 		#include "../../editor/session/zircon_session_editor_manager.h"
 		#include "../../ecs/zircon_factory.h"
@@ -1726,6 +1727,137 @@ TEST(Zircon_Editor, CommandHistory_GizmoDragEndEditCommand)
 	EXPECT_FLOAT_EQ(p_transform->get_position().x(), 4.0f);
 	EXPECT_FLOAT_EQ(p_transform->get_position().y(), 2.0f);
 	EXPECT_FLOAT_EQ(p_transform->get_position().z(), 3.0f);
+
+	env.shutdown();
+	delete &env;
+}
+
+// functional proof for task Z3 P2f's drag-END contract on the ImGuizmo
+// path: the variant's hosting window writes Manipulate's matrix into the
+// component as the live preview and on the mouse-release edge commits
+// through the SHARED zircon_gizmo_commit_transform_drag_edit (the own
+// gizmo pass's commit_drag_edit forwards to the same helper — the P2e
+// test above pins that side). This test drives the helper exactly the
+// way the window does: preview first, then one journaled command whose
+// before-state is the drag-START state — undo restores the pre-drag
+// transform, redo replays the drag's result
+TEST(Zircon_Editor, CommandHistory_GizmoImguizmoDragEndEditCommand)
+{
+	constexpr const char* _k_test_folder = "z6_gizmo_imguizmo_drag_end_test";
+
+	// fresh journal per run
+	{
+		auto* p_config = new kotek::core::ktkFrameworkConfig();
+		auto* p_filesystem = new kotek::core::ktkFileSystem();
+
+		p_filesystem->Initialize(p_config);
+
+		zircon_test_remove_streaming_folder(
+			p_filesystem, _k_test_folder
+		);
+
+		p_filesystem->Shutdown();
+
+		delete p_filesystem;
+		delete p_config;
+	}
+
+	// heap allocated like every history fixture (the console alone is
+	// ~1 MB of stack)
+	zircon_test_history_env& env = *new zircon_test_history_env();
+	env.initialize(_k_test_folder);
+
+	zircon_editor_command_history* p_history = env.history();
+
+	ASSERT_NE(p_history, nullptr);
+	ASSERT_EQ(p_history->get_total_recorded_commands(), 0);
+
+	// unjournaled scene setup: one entity with a transform
+	kotek::entity_t entity =
+		env.factory.create_entity(env.ecs_context());
+
+	env.factory.create_component(env.ecs_context(), entity,
+		eZirconComponentType::kzircon_component_transform);
+
+	zircon_component_transform* p_transform =
+		static_cast<zircon_component_transform*>(
+			env.factory.get_component_by_enum(env.ecs_context(), entity,
+				eZirconComponentType::kzircon_component_transform));
+
+	ASSERT_NE(p_transform, nullptr);
+
+	const float half_sqrt2 = 0.70710678118654752f;
+
+	p_transform->set_position(kotek::math::vec3f_t(1.0f, 2.0f, 3.0f));
+	p_transform->set_scale(kotek::math::vec3f_t(1.0f, 1.0f, 1.0f));
+	p_transform->set_rotation(
+		kotek::math::quatf_t(0.0f, 0.0f, 0.0f, 1.0f));
+
+	// the window's drag flow: the start state is the pre-Manipulate
+	// capture of the drag's first frame (position xyz, scale xyz, the
+	// rotation quaternion x,y,z,w)...
+	const float start_position[3] = {1.0f, 2.0f, 3.0f};
+	const float start_scale[3] = {1.0f, 1.0f, 1.0f};
+	const float start_rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+	// ...the live preview decomposes Manipulate's matrix straight into
+	// the component (here: a translate AND a 90-degree-Y rotate, the
+	// mixed edit a universal drag produces)...
+	p_transform->set_position(kotek::math::vec3f_t(4.0f, 2.0f, 3.0f));
+	p_transform->set_rotation(
+		kotek::math::quatf_t(0.0f, half_sqrt2, 0.0f, half_sqrt2));
+
+	// ...and the release edge commits through the shared helper — the
+	// exact call the imguizmo window makes from its Draw
+	ASSERT_TRUE(zircon_gizmo_commit_transform_drag_edit(
+		&env.session_manager, &env.factory, p_history,
+		env.ecs_context(), entity, start_position, start_scale,
+		start_rotation));
+
+	// one journaled command; the world holds the dragged state
+	EXPECT_EQ(p_history->get_total_recorded_commands(), 1);
+
+	p_transform = static_cast<zircon_component_transform*>(
+		env.factory.get_component_by_enum(env.ecs_context(), entity,
+			eZirconComponentType::kzircon_component_transform));
+
+	ASSERT_NE(p_transform, nullptr);
+
+	EXPECT_FLOAT_EQ(p_transform->get_position().x(), 4.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_position().y(), 2.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_position().z(), 3.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_rotation().y(), half_sqrt2);
+	EXPECT_FLOAT_EQ(p_transform->get_rotation().w(), half_sqrt2);
+
+	// undo restores the drag-START state (position AND rotation — the
+	// command's before is not the preview that sat in the component at
+	// commit time)
+	p_history->Undo();
+
+	p_transform = static_cast<zircon_component_transform*>(
+		env.factory.get_component_by_enum(env.ecs_context(), entity,
+			eZirconComponentType::kzircon_component_transform));
+
+	ASSERT_NE(p_transform, nullptr);
+
+	EXPECT_FLOAT_EQ(p_transform->get_position().x(), 1.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_position().y(), 2.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_position().z(), 3.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_rotation().y(), 0.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_rotation().w(), 1.0f);
+
+	// redo replays the drag's result
+	p_history->Redo();
+
+	p_transform = static_cast<zircon_component_transform*>(
+		env.factory.get_component_by_enum(env.ecs_context(), entity,
+			eZirconComponentType::kzircon_component_transform));
+
+	ASSERT_NE(p_transform, nullptr);
+
+	EXPECT_FLOAT_EQ(p_transform->get_position().x(), 4.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_rotation().y(), half_sqrt2);
+	EXPECT_FLOAT_EQ(p_transform->get_rotation().w(), half_sqrt2);
 
 	env.shutdown();
 	delete &env;
