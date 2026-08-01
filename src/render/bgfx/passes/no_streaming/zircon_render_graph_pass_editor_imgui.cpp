@@ -168,6 +168,19 @@ namespace no_streaming
 					->AdoptDefaultContext(
 						this->m_p_imgui_wrapper->GetCurrentContext());
 
+				// user UI state belongs under data_user, never the repo
+				// root (owner directive 2026-08-01): imgui.ini ->
+				// data_user/sdk/settings — the default "imgui.ini" is
+				// cwd-relative; the folder itself is created by the
+				// filesystem's Validate_Folders at boot
+				this->m_p_manager_main->GetFileSystem()->Make_Path(
+					this->m_imgui_ini_path,
+					kotek::core::eFolderIndex::
+						kFolderIndex_DataUser_SDK_Settings);
+				this->m_imgui_ini_path += "/imgui.ini";
+				this->m_p_imgui_wrapper->GetIO().IniFilename =
+					this->m_imgui_ini_path.c_str();
+
 				this->m_p_imgui_wrapper->GetIO().ConfigFlags |=
 					ImGuiConfigFlags_NavEnableKeyboard;
 

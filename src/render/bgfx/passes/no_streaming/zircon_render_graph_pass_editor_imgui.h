@@ -35,5 +35,9 @@ namespace no_streaming
 		ImFont* m_font[2];
 		int64_t m_last;
 		int32_t m_lastScroll;
+		// resolved imgui.ini location (data_user/sdk/settings) — persistent
+		// storage for io.IniFilename, which imgui reads at load/save time
+		kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
+			m_imgui_ini_path;
 	};
 }

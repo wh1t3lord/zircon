@@ -193,6 +193,14 @@ non-existent target name in some configs — verify when touching root CMake (ta
   config-driven (`render_passes_editor`/`render_passes_game` in game_config.json).
   REMAINING render debt: game `model_static` is an empty-namespace placeholder
   (P2 fills it); the shared-linkage pass-lib duality is P3.
+- **User-settings data layout (owner directive 2026-08-01)**: every editor/game
+  user-settings file lives under `data_user` (`game_config.json`, the Render
+  Passes window's flags, future prefs); imgui's UI state (`imgui.ini`) is
+  redirected to `data_user/sdk/settings/` — the editor imgui pass resolves it
+  through `eFolderIndex::kFolderIndex_DataUser_SDK_Settings` (the enum existed
+  unused until then) and sets `io.IniFilename` at context creation. Settings
+  must never land at the repo root (imgui's default ini is cwd-relative — that
+  is exactly the trap).
 - **Linkage scenarios (2026-07-22)**: kotek implements the three output modes
   (`KOTEK_LINKAGE=STATIC|SHARED|PLUGIN` — see kotek/AGENTS.md §5a). Zircon
   modules participate via `kotek_add_library`; the cyclic editor cluster
