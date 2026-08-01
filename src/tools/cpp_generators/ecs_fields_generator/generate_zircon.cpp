@@ -590,6 +590,25 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
     CXCursorKind kind = clang_getCursorKind(cursor);
     
     if (kind == CXCursor_ClassDecl || kind == CXCursor_StructDecl) {
+        // only classes DEFINED in the parsed header itself: declarations
+        // pulled in from included headers (e.g. the pass base classes)
+        // belong to their own files, otherwise the emitted factory
+        // references classes that live outside the scanned folder
+        if (!clang_Location_isFromMainFile(clang_getCursorLocation(cursor))) {
+            return CXChildVisit_Continue;
+        }
+
+        // forward declarations have no body to instantiate
+        if (!clang_isCursorDefinition(cursor)) {
+            return CXChildVisit_Continue;
+        }
+
+        // the factory does `new <pass>()`; abstract classes cannot be
+        // instantiated
+        if (clang_CXXRecord_isAbstract(cursor)) {
+            return CXChildVisit_Continue;
+        }
+
         std::string className = getCursorSpelling(cursor);
         std::string qualifiedName = getFullyQualifiedName(cursor);
         
@@ -673,7 +692,8 @@ void generateEnumFile(const std::string& filePath, const std::string& enumName, 
 void generateFactoryHeader(const std::string& folderPath, 
                           const std::set<std::string>& gamePasses, 
                           const std::set<std::string>& editorPasses,
-                          const std::string& backend) {
+                          const std::string& backend,
+                          const std::set<std::string>& passHeaders) {
     std::string factoryPath = folderPath + "/zircon_render_pass_factory.h";
     std::ofstream file(factoryPath);
     
@@ -683,13 +703,21 @@ void generateFactoryHeader(const std::string& folderPath,
     }
     
     std::string guard = "ZIRCON_RENDER_PASS_FACTORY_H";
-    std::string returnType = "kun_kotek kun_render kun_" + backend + " ktkRenderGraphSimplifiedRenderPass*";
+    // namespace segments compose as kun_kotek + kun_render +
+    // kun_render_<backend> (each macro carries its own trailing ::,
+    // e.g. Kotek::Render::Bgfx::)
+    std::string returnType = "kun_kotek kun_render kun_render_" + backend + " ktkRenderGraphSimplifiedRenderPass*";
     
     file << "#ifndef " << guard << "\n";
     file << "#define " << guard << "\n\n";
     
     file << "#include \"zircon_render_game_passes_enum.h\"\n";
     file << "#include \"zircon_render_editor_passes_enum.h\"\n";
+    // the concrete passes this factory instantiates — included here so a
+    // consumer only needs this one header
+    for (const auto& header : passHeaders) {
+        file << "#include \"" << header << "\"\n";
+    }
     file << "#include <cstring>\n\n";
     
     // Constexpr function to get class name from enum
@@ -718,7 +746,7 @@ void generateFactoryHeader(const std::string& folderPath,
     file << "    static " << returnType << " create(eZirconRenderGamePasses pass) {\n";
     file << "        switch (pass) {\n";
     for (const auto& pass : gamePasses) {
-        file << "            case " << toEnumValue(pass) << ": return new " << pass << "();\n";
+        file << "            case eZirconRenderGamePasses::" << toEnumValue(pass) << ": return new " << pass << "();\n";
     }
     file << "            default: return nullptr;\n";
     file << "        }\n";
@@ -728,7 +756,7 @@ void generateFactoryHeader(const std::string& folderPath,
     file << "    static " << returnType << " create(eZirconRenderEditorPasses pass) {\n";
     file << "        switch (pass) {\n";
     for (const auto& pass : editorPasses) {
-        file << "            case " << toEnumValue(pass) << ": return new " << pass << "();\n";
+        file << "            case eZirconRenderEditorPasses::" << toEnumValue(pass) << ": return new " << pass << "();\n";
     }
     file << "            default: return nullptr;\n";
     file << "        }\n";
@@ -758,6 +786,9 @@ void generateFactoryHeader(const std::string& folderPath,
 void generateRenderPassEnums(const std::string& folderPath) {
     std::set<std::string> gamePasses;
     std::set<std::string> editorPasses;
+    // headers that contributed at least one pass class — the factory
+    // includes them so it stays self-contained for any consumer
+    std::set<std::string> passHeaders;
     
     for (const auto& entry : fs::recursive_directory_iterator(folderPath)) {
         if (entry.is_regular_file() && entry.path().extension() == ".h") {
@@ -771,6 +802,10 @@ void generateRenderPassEnums(const std::string& folderPath) {
                     gamePasses.insert(className);
                 }
             }
+
+            if (!classNames.empty()) {
+                passHeaders.insert(entry.path().filename().string());
+            }
         }
     }
     
@@ -778,7 +813,7 @@ void generateRenderPassEnums(const std::string& folderPath) {
     generateEnumFile(folderPath + "/zircon_render_editor_passes_enum.h", "eZirconRenderEditorPasses", editorPasses);
     
     std::string backend = extractBackendFromPath(folderPath);
-    generateFactoryHeader(folderPath, gamePasses, editorPasses, backend);
+    generateFactoryHeader(folderPath, gamePasses, editorPasses, backend, passHeaders);
 }
 
 int main(int argc, char* argv[])

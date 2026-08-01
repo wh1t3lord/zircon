@@ -108,8 +108,13 @@ src/
   instances (one per session: game/editor). Passes derive from
   `zircon_render_graph_pass[_editor]_bgfx` → kotek `ktkRenderGraphSimplifiedRenderPass`
   (`OnCreateResources/OnDestroyResources/OnUpdate/OnRender`). Passes live in
-  `render/bgfx/passes/no_streaming/`. `gles3/` is currently a file-for-file copy of
-  `bgfx/` (to be deleted, task Z3). `vk/` is excluded from build (to be deleted).
+  `render/bgfx/passes/no_streaming/` and build as their OWN target
+  `zircon.render.passes.bgfx` (STATIC by default, hot-swappable DLL under the
+  planned graphics-development config) — `zircon.render` is the executor
+  (renderer + graph slots + pass bases); pass creation goes through the
+  codegen'd `zircon_render_pass_factory` driven by the config keys
+  `render_passes_editor`/`render_passes_game` (comma-separated name lists,
+  defaults = present+imgui / present). gles3/vk deleted (Z10).
 - **Entry**: kotek's `kotek.exe` (`main`) → `Engine::Initialize/Execute/ShutdownEngine`
   → loads `game.ktk` (SHARED dev type) or direct calls (STATIC) → zircon's
   `InitializeModule_Game / InitializeModule_Render / UpdateModule_Game /
@@ -175,10 +180,19 @@ non-existent target name in some configs — verify when touching root CMake (ta
   guard in `zircon_factory.h:874/879` (migrate with the ENTT backend
   task, which also owes "delete outdated methods signatures" at
   `zircon_factory.h:102`), raw `char[]` in some commands (audit).
-- Render: game pass `zircon_render_graph_pass_model_static.*` are empty stubs;
-  `bgfx|gles3/zircon_render_resource_manager.h` marked `todo: delete`;
-  `zircon_renderer_bgfx::Get_Name` returns the GLES3 name; `Add_PassesEditor/Game`
-  commented out; CMake has stale `gl3_3` lists.
+- Render (P1 of Z3 done 2026-08-01): the dead-weight purge landed — GL-era orphan
+  passes (debug/editor_debug/editor_grid/editor_camera/terrain + the never-registered
+  game imgui pass) and `zircon_render_resource_manager.*` (`todo: delete`) removed;
+  `Add_PassesEditor/Game` commented bodies + dead `create_render_graph` overload
+  excised; `Get_Name` returns the real bgfx name (new kotek constant
+  `kRenderer_BGFX_Name`); `zircon.render` split into executor +
+  `zircon.render.passes.bgfx` (static by default); the pass factory generator had
+  THREE latent bugs (abstract/base classes leaking in via includes, nonexistent
+  `kun_bgfx` namespace macro, unqualified `enum class` case labels) — fixed in the
+  generator (`generate_zircon.cpp`), never edit its output by hand. Pass sets are
+  config-driven (`render_passes_editor`/`render_passes_game` in game_config.json).
+  REMAINING render debt: game `model_static` is an empty-namespace placeholder
+  (P2 fills it); the shared-linkage pass-lib duality is P3.
 - **Linkage scenarios (2026-07-22)**: kotek implements the three output modes
   (`KOTEK_LINKAGE=STATIC|SHARED|PLUGIN` — see kotek/AGENTS.md §5a). Zircon
   modules participate via `kotek_add_library`; the cyclic editor cluster
@@ -303,7 +317,7 @@ non-existent target name in some configs — verify when touching root CMake (ta
 |----|------|--------|-------|
 | Z1 | Fix compilation issues (whole solution, default config) | done (2026-07-21) | full Debug build green; see §5 CRT/imgui notes + PICO factory gaps below |
 | Z2 | Formulate style & philosophy | done (2026-07-21) | §2 of this file; refine as owner corrects |
-| Z3 | Render restructure: split `render/bgfx` into TWO projects — (a) passes (dynamic/hot-swappable), (b) render graph + resource manager executor; validate hot-reload of pass library (see §7 verdict) | open | vk/gles3 deletion part DONE (see Z10); split + hot-reload pending; passes lib must be reload-safe: destroy passes BEFORE unload, recreate after |
+| Z3 | Render restructure: split `render/bgfx` into TWO projects — (a) passes (dynamic/hot-swappable), (b) render graph + resource manager executor; validate hot-reload of pass library (see §7 verdict) | in-progress (2026-08-01 P1 done) | vk/gles3 deletion DONE (Z10). P1 DONE (2026-08-01): dead-code purge + `zircon.render` executor / `zircon.render.passes.bgfx` target split + generator-repaired pass factory + config-driven pass sets (`render_passes_editor`/`render_passes_game`); verified 0-error build, both boot variants exit 0, 227+14 suite, game_config.json roundtrip byte-identical. APPROVED PLANS (session plans dir): split+reload mechanics (auto watcher + manual console override, C-ABI create/destroy export surface, kotek `Detach_Passes` additive API, game.ktk re-exports bgfx in the dev config only) and the techniques set — P2a Render Passes editor window (left-docked, first-run auto-show + "don't show again", instant enable/disable skip flags, rebuild only on add/remove/reorder, Save→game_config.json, level files carry the game pass set) → P2b/c game model_static unlit + own glTF-lite loader (on kotek's own streaming JSON, zero new deps) → P2d grid → P2e/f dual gizmo (own + ImGuizmo, switchable) → P2g forward Phong → P2h level pass-set resolution → P3 graphics-dev hot reload → P4 NRI passes. Passes lib reload-safety rules: destroy passes BEFORE unload (graph Shutdown deletes!), recreate after; passes hold POD/handles only (etl-terminator + cross-CRT rules) |
 | Z4 | Document codebase style (preprocessors, memory allocation patterns) | done (2026-07-21) | §2/§3; keep in sync with reality |
 | Z10 | gles3/vk backend removal (owner directive) | done (2026-07-22) | `src/render/{gles3,vk}` deleted; `src/render/CMakeLists.txt` rewritten bgfx-only; `zircon_renderer_bgfx` is the only renderer (union member `p_gles3` + all vk/gles3 branches excised from `zircon_game_manager`); `validate_extensions` (dead GL-era) removed; os console pass retargeted to the bgfx pass base (OnUpdate/OnRender signature updated with `my_id_in_queue`) |
 | Z11 | Runtime boot chain (kotek.exe runs from repo root) | done (2026-07-23) | FIXED earlier: STD-mode `ktkJson::Get` stub (kotek bug, config never parsed in STD); `dll::shared_library` move semantics; `program_location`; stray `KOTEK_ASSERT(false)` in `Initialize_ResourceManager`; window-console stub assert → warning; world init with factory; `--kotek_frames=N`; splash busy-wait bounded. FIXED 2026-07-23 evening: console `Register_Command` segfault = **etl intrusive-list terminator is a module-local static** — a container built by one module (exe) terminates buckets with an address the other module (game.ktk) never matches, any cross-module insert walks off the end (null+8). Fix: game manager constructs its OWN console and restores the engine's at shutdown (`m_p_console_exe_owned`), ownership stays in the constructing module — THE rule for every object whose inline/template methods touch etl containers. Render shutdown dispatch: stray `if (is_gl)` swallowed the whole else-if chain (bgfx shutdown never ran → `status=false` assert). `zircon_config`: serialize wrote 1024B fixed buffer (garbage tail → json "extra data"), now writes `text_real_length`; deserialize parsed `sizeof(text)` instead of the Read_File-returned size. `matrix2x2_f::e/c`: 6 inverted range asserts (fired on VALID indices). VERIFIED: boot → 14/14 + 163/163 tests → 30 frames → full shutdown → **exit 0**. OPEN: splash thread can hang main-window init (create windows on main thread only); 6 residual CRT-startup heap asserts (pre-flag blocks, tolerated until K9) |

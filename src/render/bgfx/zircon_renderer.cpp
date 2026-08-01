@@ -1,18 +1,11 @@
 #include "zircon_renderer.h"
 
-// Game Passes
-#include "passes/no_streaming/zircon_render_graph_pass_imgui.h"
-#include "passes/no_streaming/zircon_render_graph_pass_present.h"
-#include "passes/no_streaming/zircon_render_graph_pass_model_static.h"
-
-// Editor Passes
-#include "passes/no_streaming/zircon_render_graph_pass_editor_imgui.h"
-#include "passes/no_streaming/zircon_render_graph_pass_editor_present.h"
-#include "passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
-#include "passes/no_streaming/zircon_render_graph_pass_editor_debug.h"
-
-// OS Passes
-#include "../os/zircon_render_graph_pass_console.h"
+// pass bases (complete types for the dynamic_casts in
+// initialize_render_graph); concrete passes live in the
+// zircon.render.passes.bgfx project and reach the graphs through
+// zircon_game_manager + the generated pass factory
+#include "zircon_render_graph_pass.h"
+#include "zircon_render_graph_pass_editor.h"
 
 #include <kotek.render.bgfx/include/kotek_render_device.h>
 #include <kotek.render.bgfx/include/kotek_render_resource_manager.h>
@@ -83,7 +76,7 @@ void zircon_renderer_bgfx::Resize() {}
 
 const char* zircon_renderer_bgfx::Get_Name(void) const noexcept
 {
-	return kotek::kRenderer_OpenGLES_3_Name;
+	return kotek::kRenderer_BGFX_Name;
 }
 
 bool zircon_renderer_bgfx::is_render_graph_presented(
@@ -343,61 +336,4 @@ void zircon_renderer_bgfx::destroy_render_graphs(void) noexcept
 	}
 
 	this->m_render_graphs.clear();
-}
-
-void zircon_renderer_bgfx::create_render_graph(
-	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>& imgui_elements,
-	kotek::core::ktkWindowConsole* p_console) noexcept
-{
-	KOTEK_ASSERT(
-		this->m_p_main_manager, "you must initialize main manager first");
-
-	this->Add_PassesEditor(imgui_elements);
-	this->Add_PassesGame(p_console);
-}
-
-void zircon_renderer_bgfx::Add_PassesEditor(
-	const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
-		imgui_elements) noexcept
-{
-#ifdef KOTEK_USE_SDK_IMGUI
-	if (this->m_p_main_manager)
-	{
-		if (this->m_p_main_manager->Get_EngineConfig())
-		{
-			if (this->m_p_main_manager->Get_EngineConfig()->IsFeatureEnabled(
-					kotek::core::eEngineFeatureSDK::kEngine_Feature_SDK_ImGui))
-			{
-				/*
-				this->m_render_graph_simplified.Add_Pass(
-				    new zircon_render_graph_pass_editor_present_gles3(
-				        u8"render_editor_pass_gles3_present"));
-
-				this->m_render_graph_simplified.Add_Pass(
-				    new zircon_render_graph_pass_editor_model_static_gles3(
-				        u8"render_editor_pass_gles3_static_geometry"));
-
-				this->m_render_graph_simplified.Add_Pass(
-				    new zircon_render_graph_pass_editor_imgui_gles3(
-				        u8"render_editor_pass_gles3_imgui",
-				        this->m_p_main_manager, imgui_elements));
-				*/
-			}
-		}
-	}
-#endif
-}
-
-void zircon_renderer_bgfx::Add_PassesGame(
-	kotek::core::ktkWindowConsole* p_console) noexcept
-{
-	// todo: implement that when you implement simulation button in editor and
-	// you can test the game as standalone
-	KOTEK_MESSAGE_WARNING(
-		"you didn't register game render passes for renderer!");
-	/*
-	this->m_render_graph_simplified.Add_Pass(
-	    new zircon_render_graph_pass_console(
-	        this->m_p_main_manager, p_console));
-	        */
 }

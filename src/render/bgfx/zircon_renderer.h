@@ -75,15 +75,6 @@ private:
 	void End() noexcept;
 
 	void destroy_render_graphs(void) noexcept;
-	void create_render_graph(
-		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
-			imgui_elements,
-		kotek ::core::ktkWindowConsole* p_console) noexcept;
-
-	void Add_PassesEditor(
-		const kotek::ktk::vector<kotek::core::ktkISDKUIElement*>&
-			imgui_elements) noexcept;
-	void Add_PassesGame(kotek::core::ktkWindowConsole* p_console) noexcept;
 
 private:
 	kotek::uint8_t m_previous_render_graph_id;

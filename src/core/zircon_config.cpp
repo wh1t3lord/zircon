@@ -1,10 +1,57 @@
 #include "zircon_config.h"
 
+namespace
+{
+	/// reads a comma-separated render-pass list key into a static string
+	/// without materializing a std::string; an absent key or an empty
+	/// value leaves the current (default) content untouched
+	template <kotek::ktk::uint32_t _ParserBufferSize,
+		kotek::ktk::uint32_t _JsonMemorySize, bool _Realloc,
+		kotek::ktk::size_t _Size>
+	void read_render_pass_list(
+		const kotek::core::ktkResourceText<_ParserBufferSize, _JsonMemorySize,
+			_Realloc>& file,
+		const char* p_key,
+		kotek::static_cstring_t<_Size>& out_list) noexcept
+	{
+		const auto& object = file.Get_Object();
+		auto it = object.find(p_key);
+
+		if (it == object.end())
+		{
+			return;
+		}
+
+		if (!it->value().is_string())
+		{
+			KOTEK_MESSAGE_WARNING(
+				"config key '{}' must be a string, ignoring", p_key);
+			return;
+		}
+
+		const auto& value = it->value().as_string();
+
+		if (value.empty())
+		{
+			return;
+		}
+
+		KOTEK_ASSERT(value.size() <= _Size,
+			"render pass list of key '{}' is too long ({} > {}), raise "
+			"ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH",
+			p_key, value.size(), _Size);
+
+		out_list.assign(value.data(), value.size());
+	}
+} // namespace
+
 zircon_config::zircon_config(void) :
 	m_is_session_editor{},
 	m_current_session_id{kotek::uint8_t(-1)},
 	m_features_game{eZirconGameFeatures::kGame_Feature_Unknown},
-	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_Unknown}
+	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_Unknown},
+	m_render_passes_editor{kZirconConfig_DefaultRenderPassesEditor},
+	m_render_passes_game{kZirconConfig_DefaultRenderPassesGame}
 {
 }
 
@@ -123,6 +170,16 @@ void zircon_config::serialize(
 			)
 		);
 
+		config.Write(
+			kZirconConfig_KeyRenderPassesEditor,
+			this->m_render_passes_editor.c_str()
+		);
+
+		config.Write(
+			kZirconConfig_KeyRenderPassesGame,
+			this->m_render_passes_game.c_str()
+		);
+
 		// raw array is forced by kotek's template signature
 		// (ktkResourceText::Serialize_ToString(char (&)[N], Size&) in
 		// kotek.core.filesystem.file_text) — exempt from the no-raw-array
@@ -215,6 +272,18 @@ void zircon_config::deserialize(
 					kSDK_Feature_SphereBoundingBox_Quality,
 				quality
 			);
+
+			read_render_pass_list(
+				file,
+				kZirconConfig_KeyRenderPassesEditor,
+				this->m_render_passes_editor
+			);
+
+			read_render_pass_list(
+				file,
+				kZirconConfig_KeyRenderPassesGame,
+				this->m_render_passes_game
+			);
 		}
 	}
 }
@@ -230,6 +299,16 @@ void zircon_config::set_current_session(
 {
 	this->m_current_session_id = session_id;
 	this->m_is_session_editor = is_editor;
+}
+
+const char* zircon_config::get_render_passes_editor(void) const noexcept
+{
+	return this->m_render_passes_editor.c_str();
+}
+
+const char* zircon_config::get_render_passes_game(void) const noexcept
+{
+	return this->m_render_passes_game.c_str();
 }
 
 void zircon_config::initialize_default() noexcept

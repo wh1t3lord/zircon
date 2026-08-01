@@ -78,6 +78,9 @@ kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CX
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.game)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render)
+# concrete render passes: the game manager instantiates them through the
+# generated zircon_render_pass_factory (config-driven pass lists)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render.passes.bgfx)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.ui)
 
