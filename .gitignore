@@ -68,3 +68,7 @@ reconf*.logasan*.log
 
 # build/run logs at the repo root (data_user/ already covered)
 *.log
+
+# Z3 graphics-development outputs + K21 plugin drop-ins are build/user artifacts
+passes/
+plugins/
