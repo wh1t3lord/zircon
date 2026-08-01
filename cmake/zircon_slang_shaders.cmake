@@ -161,10 +161,23 @@ function(zircon_add_slang_shader name)
 
 		if ("${stage}" STREQUAL "vs")
 			set(pack_type v)
-			set(pack_names --in-names "${ZS_VS_IN}" --out-names "${ZS_VS_OUT}")
+			# empty name lists must not emit the flag at all: a quoted ""
+			# list element is dropped on expansion, which would make the
+			# packer swallow the NEXT flag as this one's value (the grid
+			# vertex stage has no vertex inputs)
+			set(pack_names "")
+			if (NOT "${ZS_VS_IN}" STREQUAL "")
+				list(APPEND pack_names --in-names "${ZS_VS_IN}")
+			endif()
+			if (NOT "${ZS_VS_OUT}" STREQUAL "")
+				list(APPEND pack_names --out-names "${ZS_VS_OUT}")
+			endif()
 		else()
 			set(pack_type f)
-			set(pack_names --in-names "${ZS_FS_IN}")
+			set(pack_names "")
+			if (NOT "${ZS_FS_IN}" STREQUAL "")
+				list(APPEND pack_names --in-names "${ZS_FS_IN}")
+			endif()
 		endif()
 
 		set(pack_uniforms "")
@@ -242,6 +255,19 @@ zircon_add_slang_shader(model_static
 		"u_model:mat4:0:4"
 		"u_viewProj:mat4:64:4"
 	FS_IN "v_color0"
+)
+
+# editor infinite grid (task Z3 P2d): vertex-id fullscreen triangle (no
+# vertex inputs), analytic XZ grid in the fragment stage; u_invViewProj is
+# a bgfx predefined uniform (auto-filled from the view transform), only
+# u_cameraPos is set by the pass
+zircon_add_slang_shader(grid
+	VS_IN ""
+	VS_OUT "v_ndc"
+	FS_IN "v_ndc"
+	FS_UNIFORMS
+		"u_invViewProj:mat4:0:4"
+		"u_cameraPos:vec4:64:1"
 )
 
 add_custom_target(zircon_shaders DEPENDS ${ZIRCON_SHADER_OUTPUTS})

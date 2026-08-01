@@ -45,3 +45,16 @@ struct ZirconVsToFs_model_static
 	float4 position : SV_Position;
 	float4 v_color0 : COLOR0;
 };
+
+// grid: editor procedural infinite grid (editor pass "editor_grid", task
+// Z3 P2d). No vertex INPUTS at all: the vertex stage expands a fullscreen
+// triangle from SV_VertexID (bgfx::setVertexCount(3)) and forwards the NDC
+// corner; the fragment stage unprojects it through u_invViewProj and draws
+// the grid analytically. The ray/plane math is mirrored in C++
+// (zircon_render_graph_pass_editor_grid.h statics) for the unit tests —
+// keep the two in sync.
+struct ZirconVsToFs_grid
+{
+	float4 position : SV_Position;
+	float2 v_ndc : TEXCOORD0;
+};

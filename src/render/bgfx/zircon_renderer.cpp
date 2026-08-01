@@ -261,6 +261,19 @@ kotek::uint8_t zircon_renderer_bgfx::create_render_graph(
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE("created render graph for session_{}#{}", session_id,
 		is_game_session ? "game" : "editor");
+
+	// the ordered pass set: the creation order IS the execution order
+	// (the queue id) — traced so a boot log proves what a session
+	// renders and in which sequence
+	kotek::uint8_t pass_index = 0;
+
+	for (const auto& pass_name : info.pass_names)
+	{
+		KOTEK_MESSAGE("render graph #{} pass[{}]: {}", render_graph_id,
+			pass_index, pass_name.c_str());
+
+		++pass_index;
+	}
 #endif
 
 	return render_graph_id;
