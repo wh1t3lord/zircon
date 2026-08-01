@@ -24,14 +24,17 @@ namespace
 			return;
 		}
 
-		if (!it->value().is_string())
+		// (*it).value(): the own json backend's const iterator has no
+		// operator-> (boost's does) — this spelling compiles against
+		// both
+		if (!(*it).value().is_string())
 		{
 			KOTEK_MESSAGE_WARNING(
 				"config key '{}' must be a string, ignoring", p_key);
 			return;
 		}
 
-		const auto& value = it->value().as_string();
+		const auto& value = (*it).value().as_string();
 
 		if (value.empty())
 		{
@@ -314,12 +317,15 @@ void zircon_config::deserialize(
 
 				if (it != object.end())
 				{
-					if (it->value().is_bool())
+					// (*it).value(): the own json backend's const
+					// iterator has no operator-> (boost's does) —
+					// this spelling compiles against both
+					if ((*it).value().is_bool())
 					{
 						this->set_feature(
 							eZirconSDKFeatures::
 								kSDK_Feature_ShowPassManagerOnStart,
-							it->value().as_bool()
+							(*it).value().as_bool()
 						);
 					}
 					else

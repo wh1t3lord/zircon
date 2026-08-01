@@ -12,6 +12,11 @@ class ktkMainManager;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
+// capacity of the glTF mesh source name (task Z3 P2c): a file name
+// resolved under data_game/models/ — empty means the primitive
+// (procedural box) path, set means the glTF-lite loader's output
+#define zircon_DEF_COMPONENT_GEOMETRY_MESH_NAME_MAX_LENGTH 64
+
 class zircon_component_geometry
 	: public zircon_component_interface
 {
@@ -60,6 +65,13 @@ public:
 	void set_geometry_type(kotek::core::eStaticGeometryType type
 	) noexcept;
 
+	// the glTF mesh source (P2c): empty = the primitive path
+	// (get_geometry_type() decides the procedural shape), set = a
+	// model file name resolved under data_game/models/ and decoded by
+	// the glTF-lite loader (zircon.core)
+	const char* get_mesh_name(void) const noexcept;
+	void set_mesh_name(const char* p_mesh_name) noexcept;
+
 private:
 	bool m_is_enabled;
 	bool m_is_use_model;
@@ -71,6 +83,9 @@ private:
 	const char* m_p_geometry_name;
 	kotek::size_t m_render_internal_vertex_buffer_offset;
 	kotek::size_t m_render_internal_index_buffer_offset;
+	kotek::static_cstring_t<
+		zircon_DEF_COMPONENT_GEOMETRY_MESH_NAME_MAX_LENGTH>
+		m_mesh_name;
 
 	// making for release much much tight for memory
 	// release means without editor
@@ -104,6 +119,9 @@ inline void tag_invoke(
 			static_cast<kotek::enum_base_t>(
 				data.get_geometry_type()
 			);
+	geometry
+		[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_MESH_NAME] =
+			data.get_mesh_name();
 
 	#ifdef KOTEK_USE_SDK_IMGUI
 	geometry
@@ -148,6 +166,13 @@ inline zircon_component_geometry tag_invoke(
 	        )
 			.to_number<kotek::enum_base_t>()
 	));
+	result.set_mesh_name(
+		geometry
+			.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_GEOMETRY_FIELD_M_MESH_NAME
+	        )
+			.as_string()
+			.c_str()
+	);
 
 	#ifdef KOTEK_USE_SDK_IMGUI
 	result.set_vertex_count(

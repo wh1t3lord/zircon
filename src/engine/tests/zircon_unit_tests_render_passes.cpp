@@ -73,6 +73,23 @@ TEST(Zircon_Game, RenderPassModelStaticCubeMeshFixture)
 			0xff000000u);
 	}
 
+	// every vertex carries its face's unit axis normal (face f of 6,
+	// 4 vertices each; the pass fixture order is +X,-X,+Y,-Y,+Z,-Z)
+	for (kotek::uint8_t vertex_index = 0;
+		 vertex_index < zircon_pass_model_static::kCubeVertexCount;
+		 ++vertex_index)
+	{
+		const int axis = (vertex_index / 4) / 2;
+		const float sign = ((vertex_index / 4) % 2 == 0) ? 1.0f : -1.0f;
+
+		for (int component = 0; component < 3; ++component)
+		{
+			EXPECT_FLOAT_EQ(
+				vertices[vertex_index].m_normal[component],
+				component == axis ? sign : 0.0f);
+		}
+	}
+
 	for (int axis = 0; axis < 3; ++axis)
 	{
 		EXPECT_FLOAT_EQ(aabb_min[axis], -1.0f);

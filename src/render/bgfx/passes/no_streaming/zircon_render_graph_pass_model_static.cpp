@@ -7,46 +7,62 @@
 #include "../../../../game/session/zircon_session_game_manager.h"
 #include "../../../../world/zircon_world.h"
 
+#include <cstring>
+
 namespace
 {
 	// the fallback cube fixture data: 6 faces x 4 vertices, unit cube
-	// centered at the origin (AABB [-1,-1,-1] .. [1,1,1]), per-face ABGR
-	// color so faces read apart in the unlit pass
+	// centered at the origin (AABB [-1,-1,-1] .. [1,1,1]), per-face
+	// normal + ABGR color so faces read apart in the unlit pass
 	constexpr zircon_model_static_vertex_t
 		_kCubeVertices
 			[no_streaming::zircon_render_graph_pass_model_static_bgfx::
 					kCubeVertexCount] = {
 				// +X (red)
-				{{1.0f, -1.0f, -1.0f}, 0xff0000ff},
-				{{1.0f, 1.0f, -1.0f}, 0xff0000ff},
-				{{1.0f, 1.0f, 1.0f}, 0xff0000ff},
-				{{1.0f, -1.0f, 1.0f}, 0xff0000ff},
+				{{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, 0xff0000ff},
+				{{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, 0xff0000ff},
+				{{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0xff0000ff},
+				{{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, 0xff0000ff},
 				// -X (dark red)
-				{{-1.0f, -1.0f, 1.0f}, 0xff0000aa},
-				{{-1.0f, 1.0f, 1.0f}, 0xff0000aa},
-				{{-1.0f, 1.0f, -1.0f}, 0xff0000aa},
-				{{-1.0f, -1.0f, -1.0f}, 0xff0000aa},
+				{{-1.0f, -1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, 0xff0000aa},
+				{{-1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, 0xff0000aa},
+				{{-1.0f, 1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, 0xff0000aa},
+				{{-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, 0xff0000aa},
 				// +Y (green)
-				{{-1.0f, 1.0f, -1.0f}, 0xff00ff00},
-				{{-1.0f, 1.0f, 1.0f}, 0xff00ff00},
-				{{1.0f, 1.0f, 1.0f}, 0xff00ff00},
-				{{1.0f, 1.0f, -1.0f}, 0xff00ff00},
+				{{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, 0xff00ff00},
+				{{-1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, 0xff00ff00},
+				{{1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, 0xff00ff00},
+				{{1.0f, 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, 0xff00ff00},
 				// -Y (dark green)
-				{{-1.0f, -1.0f, 1.0f}, 0xff00aa00},
-				{{-1.0f, -1.0f, -1.0f}, 0xff00aa00},
-				{{1.0f, -1.0f, -1.0f}, 0xff00aa00},
-				{{1.0f, -1.0f, 1.0f}, 0xff00aa00},
+				{{-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, 0xff00aa00},
+				{{-1.0f, -1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, 0xff00aa00},
+				{{1.0f, -1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, 0xff00aa00},
+				{{1.0f, -1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, 0xff00aa00},
 				// +Z (blue)
-				{{-1.0f, -1.0f, 1.0f}, 0xffff0000},
-				{{1.0f, -1.0f, 1.0f}, 0xffff0000},
-				{{1.0f, 1.0f, 1.0f}, 0xffff0000},
-				{{-1.0f, 1.0f, 1.0f}, 0xffff0000},
+				{{-1.0f, -1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, 0xffff0000},
+				{{1.0f, -1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, 0xffff0000},
+				{{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, 0xffff0000},
+				{{-1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, 0xffff0000},
 				// -Z (dark blue)
-				{{1.0f, -1.0f, -1.0f}, 0xffaa0000},
-				{{-1.0f, -1.0f, -1.0f}, 0xffaa0000},
-				{{-1.0f, 1.0f, -1.0f}, 0xffaa0000},
-				{{1.0f, 1.0f, -1.0f}, 0xffaa0000},
+				{{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, 0xffaa0000},
+				{{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, 0xffaa0000},
+				{{-1.0f, 1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, 0xffaa0000},
+				{{1.0f, 1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, 0xffaa0000},
 		};
+
+	// the upload staging (the file scratch buffer) holds the converted
+	// vertex array followed by the 16-bit index array — prove it fits
+	// for the loader's maximum output
+	static_assert(
+		zircon_DEF_GLTF_MAX_VERTEX_COUNT *
+					sizeof(zircon_model_static_vertex_t) +
+				zircon_DEF_GLTF_MAX_INDEX_COUNT *
+					sizeof(kotek::uint16_t) <=
+			zircon_DEF_RENDER_PASS_MODEL_STATIC_MESH_FILE_MAX_SIZE,
+		"the mesh file scratch must hold the converted upload staging");
+	// the index upload is 16-bit, so the vertex cap must fit it
+	static_assert(zircon_DEF_GLTF_MAX_VERTEX_COUNT <= 65536,
+		"16-bit indices can't address more vertices");
 } // namespace
 
 namespace no_streaming
@@ -58,8 +74,15 @@ namespace no_streaming
 		m_index_buffer{BGFX_INVALID_HANDLE},
 		m_program{BGFX_INVALID_HANDLE},
 		m_is_warned_about_missing_program{false},
+		m_is_warned_about_mesh_cache_full{false},
 		m_last_submitted_draw_count{0xffffffffu}
 	{
+		for (auto& slot : this->m_mesh_slots)
+		{
+			slot.m_vertex_buffer = BGFX_INVALID_HANDLE;
+			slot.m_index_buffer = BGFX_INVALID_HANDLE;
+			slot.m_is_failed = false;
+		}
 	}
 
 	zircon_render_graph_pass_model_static_bgfx::
@@ -78,6 +101,7 @@ namespace no_streaming
 
 		this->m_layout.begin()
 			.add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+			.add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
 			.add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
 			.end();
 
@@ -152,6 +176,25 @@ namespace no_streaming
 			this->m_vertex_buffer = BGFX_INVALID_HANDLE;
 		}
 
+		for (auto& slot : this->m_mesh_slots)
+		{
+			if (bgfx::isValid(slot.m_index_buffer))
+			{
+				bgfx::destroy(slot.m_index_buffer);
+				slot.m_index_buffer = BGFX_INVALID_HANDLE;
+			}
+
+			if (bgfx::isValid(slot.m_vertex_buffer))
+			{
+				bgfx::destroy(slot.m_vertex_buffer);
+				slot.m_vertex_buffer = BGFX_INVALID_HANDLE;
+			}
+
+			slot.m_name.clear();
+			slot.m_submeshes.clear();
+			slot.m_is_failed = false;
+		}
+
 		this->m_last_submitted_draw_count = 0xffffffffu;
 	}
 
@@ -206,13 +249,13 @@ namespace no_streaming
 
 				if (p_factory && p_context)
 				{
-					submitted_draw_count = collect_draw_items(
-						p_factory, p_context,
-						p_world->get_entity_count_max_limit(),
-						this->m_draw_items,
-						zircon_DEF_RENDER_PASS_MODEL_STATIC_MAX_DRAW_COUNT);
+					const kotek::uint32_t draw_item_count =
+						collect_draw_items(p_factory, p_context,
+							p_world->get_entity_count_max_limit(),
+							this->m_draw_items,
+							zircon_DEF_RENDER_PASS_MODEL_STATIC_MAX_DRAW_COUNT);
 
-					if (submitted_draw_count)
+					if (draw_item_count)
 					{
 						bgfx::ViewId pass_id =
 							static_cast<bgfx::ViewId>(my_id_in_queue);
@@ -323,25 +366,73 @@ namespace no_streaming
 						bgfx::setViewTransform(pass_id, view, projection);
 
 						for (kotek::uint32_t draw_index = 0;
-							 draw_index < submitted_draw_count;
-							 ++draw_index)
+							 draw_index < draw_item_count; ++draw_index)
 						{
-							bgfx::setTransform(
-								this->m_draw_items[draw_index]
-									.m_model_matrix);
-
-							bgfx::setVertexBuffer(
-								0, this->m_vertex_buffer);
-							bgfx::setIndexBuffer(this->m_index_buffer);
+							const zircon_render_pass_model_static_draw_item_t&
+								item = this->m_draw_items[draw_index];
 
 							// no culling: the fallback cube reads
 							// double-sided, the unlit pass does not care
 							// about winding yet
-							bgfx::setState(BGFX_STATE_WRITE_RGB |
+							constexpr kotek::uint64_t _kState =
+								BGFX_STATE_WRITE_RGB |
 								BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z |
-								BGFX_STATE_DEPTH_TEST_LESS);
+								BGFX_STATE_DEPTH_TEST_LESS;
 
-							bgfx::submit(pass_id, this->m_program);
+							if (item.m_mesh_name.empty())
+							{
+								bgfx::setTransform(item.m_model_matrix);
+
+								bgfx::setVertexBuffer(
+									0, this->m_vertex_buffer);
+								bgfx::setIndexBuffer(this->m_index_buffer);
+
+								bgfx::setState(_kState);
+
+								bgfx::submit(pass_id, this->m_program);
+								++submitted_draw_count;
+							}
+							else
+							{
+								const zircon_render_pass_model_static_mesh_slot_t*
+									p_slot = this->resolve_mesh(
+										item.m_mesh_name.c_str());
+
+								if (p_slot == nullptr ||
+									bgfx::isValid(
+										p_slot->m_vertex_buffer) == false)
+								{
+									continue;
+								}
+
+								for (const auto& submesh :
+									p_slot->m_submeshes)
+								{
+									// the node's flattened world
+									// transform applies first, then the
+									// entity's model matrix
+									float composed_model[16];
+
+									multiply_model_matrices(
+										submesh.m_world_matrix,
+										item.m_model_matrix,
+										composed_model);
+
+									bgfx::setTransform(composed_model);
+
+									bgfx::setVertexBuffer(
+										0, p_slot->m_vertex_buffer);
+									bgfx::setIndexBuffer(
+										p_slot->m_index_buffer,
+										submesh.m_index_offset,
+										submesh.m_index_count);
+
+									bgfx::setState(_kState);
+
+									bgfx::submit(pass_id, this->m_program);
+									++submitted_draw_count;
+								}
+							}
 						}
 					}
 				}
@@ -458,11 +549,16 @@ namespace no_streaming
 				continue;
 			}
 
-			// the fallback cube is the only mesh source until the
-			// glTF-lite loader lands (P2c) — entities pointing at model
-			// files or other geometry kinds are skipped silently
-			if (p_geometry->get_geometry_type() !=
-				kotek::core::eStaticGeometryType::kBox)
+			// the mesh source: a mesh name routes the entity through
+			// the pass's glTF cache (the file resolves at draw time);
+			// without one the kBox primitive is the fallback cube and
+			// every other geometry kind is skipped silently
+			const bool has_mesh_name =
+				p_geometry->get_mesh_name()[0] != '\0';
+
+			if (has_mesh_name == false &&
+				p_geometry->get_geometry_type() !=
+					kotek::core::eStaticGeometryType::kBox)
 			{
 				continue;
 			}
@@ -509,10 +605,239 @@ namespace no_streaming
 			p_model[13] = position.y();
 			p_model[14] = position.z();
 
+			p_out_items[written_count].m_mesh_name.assign(
+				p_geometry->get_mesh_name());
+
 			++written_count;
 		}
 
 		return written_count;
+	}
+
+	const zircon_render_pass_model_static_mesh_slot_t*
+	zircon_render_graph_pass_model_static_bgfx::resolve_mesh(
+		const char* p_mesh_name) noexcept
+	{
+		KOTEK_ASSERT(p_mesh_name, "must be valid");
+
+		if (p_mesh_name == nullptr || p_mesh_name[0] == '\0')
+			return nullptr;
+
+		// cache hit (failed loads stay recorded so they don't retry per
+		// frame)
+		for (const auto& slot : this->m_mesh_slots)
+		{
+			if (slot.m_name.empty())
+				break;
+
+			if (slot.m_name == p_mesh_name)
+				return slot.m_is_failed ? nullptr : &slot;
+		}
+
+		zircon_render_pass_model_static_mesh_slot_t* p_free_slot =
+			nullptr;
+
+		for (auto& slot : this->m_mesh_slots)
+		{
+			if (slot.m_name.empty())
+			{
+				p_free_slot = &slot;
+				break;
+			}
+		}
+
+		if (p_free_slot == nullptr)
+		{
+			if (this->m_is_warned_about_mesh_cache_full == false)
+			{
+				KOTEK_MESSAGE_WARNING(
+					"[model_static] the mesh cache is full ({} slots, "
+					"'{}' not loaded) — raise "
+					"zircon_DEF_RENDER_PASS_MODEL_STATIC_MESH_CACHE_COUNT",
+					zircon_DEF_RENDER_PASS_MODEL_STATIC_MESH_CACHE_COUNT,
+					p_mesh_name);
+
+				this->m_is_warned_about_mesh_cache_full = true;
+			}
+
+			return nullptr;
+		}
+
+		p_free_slot->m_name.assign(p_mesh_name);
+
+		kotek::core::ktkIFileSystem* p_filesystem =
+			this->m_p_manager_main
+				? this->m_p_manager_main->GetFileSystem()
+				: nullptr;
+
+		if (p_filesystem == nullptr)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"[model_static] no filesystem — mesh '{}' not loaded",
+				p_mesh_name);
+
+			p_free_slot->m_is_failed = true;
+			return nullptr;
+		}
+
+		kotek::static_path_t mesh_path;
+
+		p_filesystem->Make_Path(mesh_path,
+			kotek::core::eFolderIndex::kFolderIndex_DataGame_Models);
+
+		mesh_path /= p_mesh_name;
+
+		zircon_gltf_error_t load_error;
+
+		eZirconGltfLoadStatus load_status = zircon_gltf_load_from_file(
+			p_filesystem, mesh_path, this->m_mesh_file_buffer,
+			sizeof(this->m_mesh_file_buffer), this->m_mesh_scratch,
+			load_error);
+
+		if (load_status != eZirconGltfLoadStatus::kSuccess)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"[model_static] mesh '{}' failed to load (status {}): "
+				"{}",
+				p_mesh_name, static_cast<int>(load_status),
+				load_error.c_str());
+
+			p_free_slot->m_is_failed = true;
+			return nullptr;
+		}
+
+		// an empty (but valid) model draws nothing and needs no buffers
+		if (this->m_mesh_scratch.m_vertices.empty() ||
+			this->m_mesh_scratch.m_indices.empty() ||
+			this->m_mesh_scratch.m_submeshes.empty())
+		{
+			KOTEK_MESSAGE_WARNING(
+				"[model_static] mesh '{}' holds no drawable geometry",
+				p_mesh_name);
+
+			return p_free_slot;
+		}
+
+		// upload staging: the decoded mesh is repacked into the pass's
+		// vertex format (the loader's texcoords are dropped until a
+		// textured technique exists) inside the file scratch — its
+		// content was fully decoded, so overwriting it is safe; the
+		// 16-bit index array follows the vertex array (the static_assert
+		// at the top proves the pair always fits)
+		zircon_model_static_vertex_t* p_staging_vertices =
+			reinterpret_cast<zircon_model_static_vertex_t*>(
+				this->m_mesh_file_buffer);
+
+		const kotek::uint32_t vertex_count = static_cast<
+			kotek::uint32_t>(this->m_mesh_scratch.m_vertices.size());
+		const kotek::uint32_t index_count = static_cast<
+			kotek::uint32_t>(this->m_mesh_scratch.m_indices.size());
+
+		for (kotek::uint32_t vertex_index = 0;
+			 vertex_index < vertex_count; ++vertex_index)
+		{
+			const zircon_gltf_vertex_t& source =
+				this->m_mesh_scratch.m_vertices[vertex_index];
+
+			zircon_model_static_vertex_t& target =
+				p_staging_vertices[vertex_index];
+
+			target.m_position[0] = source.m_position[0];
+			target.m_position[1] = source.m_position[1];
+			target.m_position[2] = source.m_position[2];
+			target.m_normal[0] = source.m_normal[0];
+			target.m_normal[1] = source.m_normal[1];
+			target.m_normal[2] = source.m_normal[2];
+			// opaque white until materials drive the color (P2g)
+			target.m_color_abgr = 0xffffffffu;
+		}
+
+		kotek::uint16_t* p_staging_indices =
+			reinterpret_cast<kotek::uint16_t*>(
+				this->m_mesh_file_buffer +
+				vertex_count * sizeof(zircon_model_static_vertex_t));
+
+		for (kotek::uint32_t index_index = 0; index_index < index_count;
+			 ++index_index)
+		{
+			// the loader caps vertices below 65536, so the narrowing
+			// can't truncate
+			p_staging_indices[index_index] = static_cast<
+				kotek::uint16_t>(
+				this->m_mesh_scratch.m_indices[index_index]);
+		}
+
+		p_free_slot->m_vertex_buffer = bgfx::createVertexBuffer(
+			bgfx::copy(p_staging_vertices,
+				vertex_count * sizeof(zircon_model_static_vertex_t)),
+			this->m_layout);
+
+		p_free_slot->m_index_buffer = bgfx::createIndexBuffer(
+			bgfx::copy(p_staging_indices,
+				index_count * sizeof(kotek::uint16_t)));
+
+		if (bgfx::isValid(p_free_slot->m_vertex_buffer) == false ||
+			bgfx::isValid(p_free_slot->m_index_buffer) == false)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"[model_static] mesh '{}' failed to upload its buffers",
+				p_mesh_name);
+
+			if (bgfx::isValid(p_free_slot->m_vertex_buffer))
+			{
+				bgfx::destroy(p_free_slot->m_vertex_buffer);
+				p_free_slot->m_vertex_buffer = BGFX_INVALID_HANDLE;
+			}
+
+			if (bgfx::isValid(p_free_slot->m_index_buffer))
+			{
+				bgfx::destroy(p_free_slot->m_index_buffer);
+				p_free_slot->m_index_buffer = BGFX_INVALID_HANDLE;
+			}
+
+			p_free_slot->m_is_failed = true;
+			return nullptr;
+		}
+
+		for (const auto& submesh : this->m_mesh_scratch.m_submeshes)
+		{
+			zircon_render_pass_model_static_mesh_slot_t::submesh_t
+				target{};
+
+			std::memcpy(target.m_world_matrix, submesh.m_world_matrix,
+				sizeof(target.m_world_matrix));
+
+			target.m_index_offset = submesh.m_index_offset;
+			target.m_index_count = submesh.m_index_count;
+
+			p_free_slot->m_submeshes.push_back(target);
+		}
+
+		return p_free_slot;
+	}
+
+	void zircon_render_graph_pass_model_static_bgfx::
+		multiply_model_matrices(const float* p_a, const float* p_b,
+			float* p_out) noexcept
+	{
+		float result[16];
+
+		for (int row = 0; row < 4; ++row)
+		{
+			for (int column = 0; column < 4; ++column)
+			{
+				float sum = 0.0f;
+
+				for (int step = 0; step < 4; ++step)
+				{
+					sum += p_a[row * 4 + step] * p_b[step * 4 + column];
+				}
+
+				result[row * 4 + column] = sum;
+			}
+		}
+
+		std::memcpy(p_out, result, sizeof(result));
 	}
 
 	bgfx::ShaderHandle

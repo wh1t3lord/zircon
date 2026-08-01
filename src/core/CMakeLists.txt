@@ -21,6 +21,8 @@ kotek_add_library(${PROJECT_NAME}
 	"zircon_asset_manager_interface.h"
 	"zircon_console.h"
 	"zircon_defs.h"
+	"zircon_gltf_loader.h"
+	"zircon_gltf_loader.cpp"
 )
 
 add_custom_command(

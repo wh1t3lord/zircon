@@ -4,6 +4,8 @@
 #include "../editor/session/zircon_session_editor_manager.h"
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
+#include <cstring>
+
 zircon_component_geometry::zircon_component_geometry(void) :
 	m_is_enabled{true},
 	m_is_use_model{true}, m_is_visible{true},
@@ -286,4 +288,38 @@ void zircon_component_geometry::set_geometry_type(
 ) noexcept
 {
 	this->m_geometry_type = type;
+}
+
+const char* zircon_component_geometry::get_mesh_name(void
+) const noexcept
+{
+	return this->m_mesh_name.c_str();
+}
+
+void zircon_component_geometry::set_mesh_name(
+	const char* p_mesh_name
+) noexcept
+{
+	this->m_mesh_name.clear();
+
+	if (p_mesh_name == nullptr)
+		return;
+
+	const kotek::size_t length = std::strlen(p_mesh_name);
+
+	// etl strings assert on an overflowing assign — truncate with a
+	// loud assert instead (a file name this long is a content bug)
+	KOTEK_ASSERT(
+		length <= zircon_DEF_COMPONENT_GEOMETRY_MESH_NAME_MAX_LENGTH,
+		"mesh name '{}' exceeds "
+		"zircon_DEF_COMPONENT_GEOMETRY_MESH_NAME_MAX_LENGTH",
+		p_mesh_name
+	);
+
+	this->m_mesh_name.assign(
+		p_mesh_name,
+		length > zircon_DEF_COMPONENT_GEOMETRY_MESH_NAME_MAX_LENGTH
+			? zircon_DEF_COMPONENT_GEOMETRY_MESH_NAME_MAX_LENGTH
+			: length
+	);
 }
