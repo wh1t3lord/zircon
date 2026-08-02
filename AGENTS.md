@@ -125,8 +125,13 @@ src/
 ├── engine/   zircon (= game.ktk) module entry (main_game_dll.cpp) + zircon_game_manager (god object)
 │                                + zircon_resource_manager (MT) + tests
 ├── game/     game-side asset manager, game session
-├── render/   zircon.render      backends: bgfx/ gles3/ vk/ os/ (console pass)
+├── render/   zircon.render      executor: zircon_renderer_bgfx + zircon_renderer_nri
+│                                + pass bases; os/ console pass (gles3/vk deleted Z10)
+│             .passes.bgfx       bgfx passes — STATIC by default; hot-swappable DLL in
+│                                graphics-development mode (live reload, Z3 P3b)
+│             .passes.nri        NRI passes — STATIC; hand-written zircon_nri_passlib
 ├── tools/    zircon_generator   ecs_fields_generator (libclang; std:: allowed here)
+│             zircon_shaderpack  bgfx shader container packer (the Slang pipeline, §2.5a)
 └── world/    zircon.world       world + world manager (owns zircon_ecs_context_t)
 ```
 
@@ -136,12 +141,23 @@ src/
   `zircon_render_graph_pass[_editor]_bgfx` → kotek `ktkRenderGraphSimplifiedRenderPass`
   (`OnCreateResources/OnDestroyResources/OnUpdate/OnRender`). Passes live in
   `render/bgfx/passes/no_streaming/` and build as their OWN target
-  `zircon.render.passes.bgfx` (STATIC by default, hot-swappable DLL under the
-  planned graphics-development config) — `zircon.render` is the executor
+  `zircon.render.passes.bgfx` (STATIC by default; **hot-swappable DLL with live
+  reload in graphics-development mode** — shadow-copy loading, polling watcher,
+  frame-boundary swap, `reload_render_passes()` console override; Z3 P3b, and
+  §7's verdict is now implemented there). `zircon.render` is the executor
   (renderer + graph slots + pass bases); pass creation goes through the
   codegen'd `zircon_render_pass_factory` driven by the config keys
   `render_passes_editor`/`render_passes_game` (comma-separated name lists,
-  defaults = present+imgui / present). gles3/vk deleted (Z10).
+  defaults = present+grid+gizmo_own+imgui / present+model_static), with the
+  Render Passes editor window (P2a) and level-file pass sets (P2h) on top.
+  **Render (NRI)**: `zircon_renderer_nri` drives a pass list through kotek's
+  additive `ktkIRenderFramePass`/`ktkIRenderFramePassContext` surface
+  (`Present_With_Passes`; no NRI types in zircon — Z5 P4); NRI passes live in
+  `render/nri/passes/` (`zircon.render.passes.nri`, STATIC; hot-reload mirror
+  is phase 3). **Shaders**: Slang ONLY (§2.5a) —
+  `slangc → spirv → zircon_shaderpack → shader_cache/bgfx/vulkan`,
+  `slangc → hlsl → fxc → pack → shader_cache/bgfx/dx11`,
+  `slangc → dxil → shader_cache/nri/dx12`; runtime picks by active renderer.
 - **Entry**: kotek's `kotek.exe` (`main`) → `Engine::Initialize/Execute/ShutdownEngine`
   → loads `game.ktk` (SHARED dev type) or direct calls (STATIC) → zircon's
   `InitializeModule_Game / InitializeModule_Render / UpdateModule_Game /
@@ -377,13 +393,24 @@ non-existent target name in some configs — verify when touching root CMake (ta
 
 ## 7. Design verdicts (2026-07-21 analysis — basis for Z3/Z6)
 
-**Hot-reloadable pass library (Z3 idea, 'graphics development' flag):** feasible with
-strict discipline: objects created inside a DLL do NOT survive its unload. Flow must be:
-GPU idle → destroy all passes → `FreeLibrary` → load new DLL → create passes →
-re-register into render graph. So: passes cannot "continue working" across reload;
-they are recreated. Editor picks pass sets per session (editor vs game) from config.
-Keep pass DLL free of persistent global state; all GPU resources owned by the
-executor/resource-manager side, passes reference them by handle.
+**Hot-reloadable pass library (Z3, 'graphics development' flag):** ~~feasible~~
+**IMPLEMENTED (P3a+P3b, 2026-08-02)** with two refinements over the original
+verdict. The protocol holds: passes cannot "continue working" across reload —
+they are destroyed (by the library that created them, before that library
+unloads) and recreated from the slots' stored name sets. Refinement 1
+(**shadow-copy loading**): the engine never maps the real DLL — it loads
+`passes/.shadow_<pid>_<n>.dll`, so (a) the real DLL is never write-locked and
+mid-run rebuilds always link, (b) a corrupt/mid-write candidate is rejected
+before the working library is touched (never pass-less). Refinement 2
+(**no-locks threading**): the polling watcher (500 ms, 2 stable reads) only
+sets an atomic flag; the swap runs at the top of `draw()` (GPU idle point).
+Manual override: `reload_render_passes()` console command. Persistent state in
+the pass DLL is forbidden (owner-carrying fnptr+void* seams, §2.1a); GPU
+resources stay executor-side, passes reference by handle. The reload-unsafe
+originals (create in one module, `delete` in another — the graph's
+`Shutdown()`) are gone: creation/destruction both run inside the library
+(extern "C" `zircon_passlib_create/destroy`). NRI mirrors the split in
+phase 3 (its passlib is already C-ABI-shaped).
 
 **Full-retention undo/redo (Z6):** replace "ring of 10 + truncate-on-new-action" with
 **append-only journal + periodic snapshots**: every command appends (JSON now, binary

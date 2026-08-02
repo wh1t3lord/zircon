@@ -58,6 +58,7 @@ else()
 		"tests/zircon_unit_tests_command_history.cpp"
 		"tests/zircon_unit_tests_render_passes.cpp"
 		"tests/zircon_unit_tests_gltf_loader.cpp"
+		"tests/zircon_unit_tests_passlib.cpp"
 	)
 endif()
 

@@ -43,6 +43,20 @@ jobs:
           - name: static
             flags: "-DKOTEK_LINKAGE=STATIC -DKOTEK_DEVELOPMENT_TYPE=STATIC"
             experimental: false
+          # graphics-development configuration (task Z3 P3/P5): the
+          # passes project builds as the hot-swappable
+          # passes/zircon.render.passes.bgfx.dll and game.ktk re-exports
+          # bgfx via whole-archive + export-all — a third compile axis
+          # neither default nor static covers. Build + artifact-verify
+          # ONLY, exactly like the other push legs (the boot with tests
+          # lives in tests.yml on the default config); the dev boot must
+          # not run here anyway — it double-runs the kotek suite through
+          # the re-export link edges and aborts at CRT teardown (the
+          # documented cross-CRT residual class, cured by kotek K9), so
+          # it would flake
+          - name: gfxdev
+            flags: "-DZIRCON_GRAPHICS_DEVELOPMENT=ON -DKOTEK_ASSERT_STDERR_ROUTING=ON"
+            experimental: false
 
     steps:
       - uses: actions/checkout@v4
@@ -94,6 +108,12 @@ jobs:
           # full-static links the game module into the exe (no game.ktk)
           if ("${{ matrix.linkage.name }}" -ne "static" -and -not (Test-Path "build/bin/${{ matrix.config }}/game.ktk")) {
             throw "game.ktk was not produced"
+          }
+          # gfxdev: the hot-swappable passes library is the leg's whole
+          # point (it outputs to <repo root>/passes/, see the
+          # RUNTIME_OUTPUT_DIRECTORY_* block in src/render/CMakeLists.txt)
+          if ("${{ matrix.linkage.name }}" -eq "gfxdev" -and -not (Test-Path "passes/zircon.render.passes.bgfx.dll")) {
+            throw "passes/zircon.render.passes.bgfx.dll was not produced"
           }
 
       # per-leg badge (shields endpoint json), driven by the real outcome of
