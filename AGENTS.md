@@ -27,6 +27,21 @@
    that config). Raw `std::vector/std::string/raw char[]` or anything that
    reallocates behind your back in `src/` (outside `src/tools`) is a defect.
    Memory budget rules: allocations are rare and bounded; prefer smaller
+1a. **NO static storage duration (owner directive 2026-08-02, applies to
+   zircon AND kotek).** `static` variables of every kind — file-scope
+   globals, function-local `static`, static class members — are forbidden:
+   they are hidden module-local singletons and the root of this stack's
+   worst defect classes (the etl intrusive-list terminator AV (Z11),
+   cross-CRT frees, init-order hazards, never-unload lock states, the
+   double-run suite collision of 2026-08-01). **Distinction**: etl
+   `static_cstring`/`static_vector` TYPES are unaffected — they name
+   capacity, not storage duration. Replacements, in preference order:
+   (a) members of the owning class; (b) explicit instances owned by a
+   manager/context (the ktkMainManager/session pattern); (c) singletons as
+   registered services behind interfaces (the ktkI* locator). Existing
+   statics are being swept (tasks Z18/K24 — incl. `_pLoggerMain`-style
+   module globals and `g_main_manager`); new static storage in a PR is a
+   defect on sight.
    arithmetic types (`short`/`char` over `int`) wherever the value range
    provably allows it; prefer **streaming** (append-only journal, chunked
    IO) over materializing whole blobs in RAM. The undo/redo journal is the
@@ -357,6 +372,8 @@ non-existent target name in some configs — verify when touching root CMake (ta
 | Z14 | Unit tests for every class and public function (both repos, kotek K22) | open | owner directive 2026-07-23: functional proofs, not per-method formalities — behavior + edge cases + stress where the contract promises it (the 100k-command history stress is the reference). Rule 8 (tests are living code) governs maintenance |
 | Z15 | Plugin override system exists at kotek level (kotek K21) — informational | done at kotek level (2026-07-23) | `KOTEK_INVOKE_MODULE` is override-first in EVERY linkage mode: drop `plugins/<module-folder-name>.dll` (or map it in `plugins/plugins.json`, json wins) next to the data dirs and the user's dll replaces that kotek module's `InitializeModule_*/ShutdownModule_*/Serialize/Deserialize` entries; `--kotek_plugins_template` / `--kotek_plugins_modules` codegen the file skeletons. Zircon's own module entries (`InitializeModule_Render` etc. invoked from `src/engine/main_game_dll.cpp`) go through the same macro, so kotek-module overrides apply to zircon's call sites with zero zircon changes; zircon's OWN modules join the override registry once zircon's cmake re-runs `kotek_generate_plugin_manifest` for its targets (not done — zircon modules are the game layer, overriding them is out of K21's scope). See kotek/AGENTS.md §5a "Plugin overrides" |
 | Z16 | Namespace case sweep: `Kotek::` → lowercase aliases (`kotek::`) everywhere in zircon | done (2026-07-25) | rule in §2.6: lowercase aliases are canonical (they preserve the cmake namespace-rename feature). All 258 sites across 58 files swept (literal token replace — audited first: zero compound identifiers, zero string literals, zero rule-doc comments containing the token); `src/` now has 0 direct `Kotek::` sites (kotek itself: 43, handled by its K-side `KUN_*`/`kun_*` macro discipline). VERIFIED: full Debug build green on the first pass (the alias header reaches every TU via the force-included kotek PCH), boot `--no_splash --kotek_frames=30` exit 0, 14/14 + 189/189 tests |
+| Z17 | UI-press test harness for the imgui editor | design done (2026-07-31), slot pending owner | DESIGN (owner-reviewed): inject events at the `ImGuiIO` seam (`io.AddMousePosEvent/AddMouseButtonEvent/AddKeyEvent`) into the REAL context via the K13/K17 wrapper — no Win32 synthesis, backend-agnostic; assert on ENGINE CONTRACTS (click "Delete Entity" → world count −1, journal +1 node, cursor moved), not pixels; tests are static step tables in `static_vector_t` (capacities as `zircon_DEF_UI_TEST_*`), registry = lookup-table-on-static_vector, zero runtime allocation, Debug/dev-only; deterministic frame stepping via `--kotek_frames=N` + a new `--ui_test=<name|all>` CLI; window layouts pinned per test; two-backend shape: own harness = no-dep floor, `imgui_test_engine` optional later for screenshot/fuzz. Slotting options delivered to owner: after Z12 (done) or parallel with the render split — awaiting his call |
+| Z18 | Purge static storage duration from zircon (+ kotek K24) | open | owner directive 2026-08-02, rule §2.1a: NO file-scope globals, function-local `static`, or static class members (etl `static_*` TYPES unaffected — they name capacity). Replacement patterns in preference order: owning-class members → manager/context-owned instances → registered services behind ktkI* interfaces. INVENTORY first (grep audit, counts + classification per site), then replace by hazard class: (a) module-global service pointers (`_pLoggerMain`-style) → the manager-owned service pattern; (b) function-local counters/flags → members or timestamps; (c) load-bearing singletons (`g_main_manager`) → explicit instance + registration. Known first site (done 2026-08-02): `s_invocation` static in kotek's plugin-override test replaced with pid+timestamp path uniqueness |
 
 ## 7. Design verdicts (2026-07-21 analysis — basis for Z3/Z6)
 
