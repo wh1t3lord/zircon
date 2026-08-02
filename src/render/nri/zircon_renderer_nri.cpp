@@ -20,7 +20,12 @@ void zircon_renderer_nri::Initialize(void)
 		"is created (kotek.render.nri initializes it)");
 }
 
-void zircon_renderer_nri::Shutdown(void) {}
+void zircon_renderer_nri::Shutdown(void)
+{
+	// the passes are not ours (the game manager owns them through the
+	// passlib seam) — just drop the non-owning view
+	this->m_frame_passes.clear();
+}
 
 void zircon_renderer_nri::draw()
 {
@@ -40,9 +45,16 @@ void zircon_renderer_nri::draw()
 
 	if (p_swapchain && p_device)
 	{
-		// the clear-color present lives inside kotek.render.nri (acquire
-		// -> barrier -> clear -> barrier -> submit -> present)
-		p_swapchain->Present(this->m_p_main_manager, p_device);
+		// task Z5 phase 2 (P4): the frame goes through the pass surface
+		// — the swapchain runs its discipline (acquire -> barrier ->
+		// record -> barrier -> submit -> present inside
+		// kotek.render.nri) and the installed passes record between the
+		// barriers; an empty list keeps the built-in clear frame
+		// (Present_With_Passes falls back to Present)
+		p_swapchain->Present_With_Passes(this->m_p_main_manager, p_device,
+			this->m_frame_passes.empty() ? nullptr
+										 : this->m_frame_passes.data(),
+			static_cast<kotek::uint32_t>(this->m_frame_passes.size()));
 	}
 }
 
@@ -51,4 +63,32 @@ void zircon_renderer_nri::Resize() {}
 const char* zircon_renderer_nri::Get_Name(void) const noexcept
 {
 	return "NRI (D3D12)";
+}
+
+void zircon_renderer_nri::Set_Frame_Passes(
+	kotek::core::ktkIRenderFramePass* const* pp_passes,
+	kotek::uint8_t pass_count)
+{
+	this->m_frame_passes.clear();
+
+	if ((pp_passes == nullptr) || (pass_count == 0))
+		return;
+
+	KOTEK_ASSERT(pass_count <= ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT,
+		"too many NRI frame passes installed ({}), raise "
+		"ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT",
+		pass_count);
+
+	for (kotek::uint8_t pass_index = 0; pass_index < pass_count;
+		 ++pass_index)
+	{
+		KOTEK_ASSERT(pp_passes[pass_index],
+			"a null NRI frame pass must never be installed (index {})",
+			pass_index);
+
+		if (this->m_frame_passes.size() < this->m_frame_passes.capacity())
+		{
+			this->m_frame_passes.push_back(pp_passes[pass_index]);
+		}
+	}
 }

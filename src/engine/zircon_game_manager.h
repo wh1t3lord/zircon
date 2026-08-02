@@ -3,6 +3,13 @@
 #include "../core/zircon_defs.h"
 #include "../core/zircon_config.h"
 
+// task Z5 phase 2 (P4): the NRI frame-pass capacity define
+// (ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT) the m_frame_passes_nri
+// member below is sized with; the class itself stays forward-declared
+#ifdef KOTEK_USE_RENDER_NRI
+	#include "../render/nri/zircon_renderer_nri.h"
+#endif
+
 #ifdef KOTEK_USE_SDK
 namespace zircon
 {
@@ -241,6 +248,16 @@ private:
 	/// until the game render graph is created
 	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
 		m_render_passes_game_resolved_baseline;
+#ifdef KOTEK_USE_RENDER_NRI
+	/// @brief \~english the NRI frame passes (task Z5 phase 2 / P4):
+	/// created through the NRI passlib seam at renderer init and OWNED
+	/// here — the renderer holds non-owning pointers, so these are
+	/// destroyed via zircon_nri_passlib_destroy only after the NRI
+	/// renderer is deleted
+	kotek::static_vector_t<kotek::core::ktkIRenderFramePass*,
+		ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT>
+		m_frame_passes_nri;
+#endif
 #ifdef KOTEK_USE_SDK_IMGUI
 	zircon_session_editor_manager* m_p_session_editor_manager;
 #endif

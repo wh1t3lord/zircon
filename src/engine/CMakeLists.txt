@@ -92,6 +92,12 @@ if (ZIRCON_GRAPHICS_DEVELOPMENT)
 else()
 	kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render.passes.bgfx)
 endif()
+# the NRI frame passes (task Z5 phase 2 / P4): the game manager creates
+# them through the hand-written passlib registry seam. STATIC in every
+# configuration today (the NRI hot-reload duality is deferred), linked
+# unconditionally like the bgfx passes — the sources carry no NRI types,
+# so they build even without the NRI backend selected
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.render.passes.nri)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC kotek.ui)
 

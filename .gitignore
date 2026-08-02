@@ -70,5 +70,6 @@ reconf*.logasan*.log
 *.log
 
 # Z3 graphics-development outputs + K21 plugin drop-ins are build/user artifacts
-passes/
+# (anchored to the repo root: source dirs named passes/ exist under src/render/)
+/passes/
 plugins/

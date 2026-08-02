@@ -371,6 +371,44 @@ source_group("BGFX/Passes/Embedded" FILES ${to_include_bgfx_passes_embedded_file
 source_group("BGFX/Passes/ImGuizmo (vendored)" FILES ${to_include_bgfx_passes_imguizmo_files})
 source_group("BGFX/Passes/Library" FILES ${to_include_bgfx_passes_library_files})
 
+### NRI passes (task Z5 phase 2 / P4): the concrete NRI frame passes     ###
+### (present/clear today) + the hand-written registry (zircon_nri_passlib).###
+### STATIC only — the hot-swappable DLL duality of the bgfx passes arrives ###
+### with the NRI graphics-development split (deferred); the C-ABI-shaped   ###
+### seam already matches it so the split adds only the export macro. No    ###
+### NRI types inside (the module-boundary rule): passes talk only to the   ###
+### narrow ktkIRenderFramePassContext surface.                             ###
+set(to_include_nri_passes_no_streaming_files
+	"nri/passes/no_streaming/zircon_render_graph_pass_present_nri.h"
+	"nri/passes/no_streaming/zircon_render_graph_pass_present_nri.cpp"
+)
+
+set(to_include_nri_passes_library_files
+	"nri/passes/zircon_nri_passlib.h"
+	"nri/passes/zircon_nri_passlib.cpp"
+)
+
+kotek_add_library(zircon.render.passes.nri
+	${to_include_nri_passes_no_streaming_files}
+	${to_include_nri_passes_library_files}
+)
+
+set_target_properties(zircon.render.passes.nri PROPERTIES FOLDER "engine/render/passes")
+
+if (UNIX)
+    set_property(TARGET zircon.render.passes.nri PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
+
+kotek_target_precompile_headers(zircon.render.passes.nri PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
+
+# the passes use only kotek.core.api types (the frame-pass interface) and
+# ktk aliases — all arrive through the PCH; zircon.core propagates the
+# include paths (the final link happens in game.ktk)
+kotek_target_link_libraries(zircon.render.passes.nri PUBLIC zircon.core)
+
+source_group("NRI/Passes/No Streaming" FILES ${to_include_nri_passes_no_streaming_files})
+source_group("NRI/Passes/Library" FILES ${to_include_nri_passes_library_files})
+
 ### Slang shaders (the only user shading language; serves bgfx-vulkan via
 ### SPIR-V + zircon_shaderpack, and NRI-dx12 via DXIL). Defines the
 ### zircon_shaders target and makes game.ktk (target `zircon`) depend on it.

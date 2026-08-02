@@ -145,14 +145,23 @@ inline bool zircon_validate_render_pass_list(
 /// @brief \~english resolves the game render pass set for a scene
 /// load / game-session creation: scene.json's render_passes (present
 /// + valid) -> config render_passes_game (non-empty + valid) ->
-/// built-in default. out_resolved_list always receives the winning
-/// list (never empty); the return value says which leg won
-inline eZirconRenderPassSetSource zircon_resolve_game_render_pass_set(
+/// the given built-in default. out_resolved_list always receives the
+/// winning list (never empty); the return value says which leg won.
+/// This is the backend-neutral form (task Z5 phase 2 / P4): the bgfx
+/// game set resolves through zircon_resolve_game_render_pass_set below
+/// with kZirconConfig_DefaultRenderPassesGame; the NRI frame passes
+/// resolve through this one with the NRI registry + the NRI built-in
+/// default (the config/scene keys are shared — a name the backend's
+/// registry does not know is dropped loudly and the chain falls
+/// through, per source)
+inline eZirconRenderPassSetSource
+	zircon_resolve_game_render_pass_set_with_default(
 	kotek::core::ktkIFileSystem* p_filesystem,
 	const char* p_scene_folder_path,
 	const char* p_config_render_passes_game,
 	const char* const* p_registry_game_pass_names,
 	kotek::uint8_t registry_game_pass_count,
+	const char* p_builtin_default,
 	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>&
 		out_resolved_list) noexcept
 {
@@ -210,7 +219,7 @@ inline eZirconRenderPassSetSource zircon_resolve_game_render_pass_set(
 			"to the built-in default");
 	}
 
-	out_resolved_list.assign(kZirconConfig_DefaultRenderPassesGame);
+	out_resolved_list.assign(p_builtin_default);
 
 	KOTEK_MESSAGE(
 		"[render]: game render pass set resolved from the built-in "
@@ -218,4 +227,24 @@ inline eZirconRenderPassSetSource zircon_resolve_game_render_pass_set(
 		out_resolved_list.c_str());
 
 	return eZirconRenderPassSetSource::kBuiltin;
+}
+
+/// @brief \~english the bgfx game pass set chain (task Z3 P2h): the
+/// backend-neutral resolution above with the bgfx registry + the bgfx
+/// built-in default (kZirconConfig_DefaultRenderPassesGame). Kept as
+/// the named entry of the bgfx path so callers and tests read the same
+/// as before the NRI generalization (task Z5 phase 2 / P4)
+inline eZirconRenderPassSetSource zircon_resolve_game_render_pass_set(
+	kotek::core::ktkIFileSystem* p_filesystem,
+	const char* p_scene_folder_path,
+	const char* p_config_render_passes_game,
+	const char* const* p_registry_game_pass_names,
+	kotek::uint8_t registry_game_pass_count,
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>&
+		out_resolved_list) noexcept
+{
+	return zircon_resolve_game_render_pass_set_with_default(p_filesystem,
+		p_scene_folder_path, p_config_render_passes_game,
+		p_registry_game_pass_names, registry_game_pass_count,
+		kZirconConfig_DefaultRenderPassesGame, out_resolved_list);
 }

@@ -37,6 +37,12 @@
 // NRI backend (task K11/Z5 phase 1): the DirectX feature slot maps to it
 #ifdef KOTEK_USE_RENDER_NRI
 	#include "../render/nri/zircon_renderer_nri.h"
+
+	// the NRI frame-pass registry (task Z5 phase 2 / P4): the game
+	// manager resolves the pass set and creates/destroys the passes
+	// through this seam — the executor stays pass-type-free like the
+	// bgfx one
+	#include "../render/nri/passes/zircon_nri_passlib.h"
 #endif
 
 // bgfx
@@ -168,6 +174,92 @@ namespace
 				{
 					KOTEK_MESSAGE_ERROR(
 						"skipping unknown render pass '{}'", name.c_str());
+				}
+			}
+
+			if (*p_cursor == ',')
+			{
+				++p_cursor;
+			}
+		}
+	}
+} // namespace
+#endif
+
+#ifdef KOTEK_USE_RENDER_NRI
+namespace
+{
+	/// builds the NRI frame-pass list from a comma-separated pass-name
+	/// list through the NRI passlib seam (task Z5 phase 2 / P4) — the
+	/// NRI counterpart of zircon_create_render_passes_from_config above,
+	/// with the same token walk. The game manager OWNS the created
+	/// passes (out_passes is its member; destroyed via
+	/// zircon_nri_passlib_destroy once the NRI renderer is deleted) and
+	/// the renderer only views them. Unknown names are skipped loudly
+	/// (a nullptr never reaches the renderer).
+	void zircon_create_nri_frame_passes_from_names(
+		const char* p_comma_separated_names,
+		kotek::static_vector_t<kotek::core::ktkIRenderFramePass*,
+			ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT>& out_passes)
+	{
+		KOTEK_ASSERT(p_comma_separated_names,
+			"pass a valid comma-separated NRI pass-name list");
+
+		if (!p_comma_separated_names)
+			return;
+
+		const char* p_cursor = p_comma_separated_names;
+
+		while (*p_cursor != '\0')
+		{
+			while ((*p_cursor == ' ') || (*p_cursor == '\t'))
+			{
+				++p_cursor;
+			}
+
+			const char* p_token_begin = p_cursor;
+
+			while ((*p_cursor != '\0') && (*p_cursor != ','))
+			{
+				++p_cursor;
+			}
+
+			const char* p_token_end = p_cursor;
+
+			while ((p_token_end > p_token_begin) &&
+				((p_token_end[-1] == ' ') || (p_token_end[-1] == '\t')))
+			{
+				--p_token_end;
+			}
+
+			if (p_token_end > p_token_begin)
+			{
+				// a single name is strictly shorter than the whole
+				// list, so the list capacity can never truncate a valid
+				// token (same argument as the bgfx helper)
+				kotek::static_cstring_t<
+					ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
+					name;
+				name.assign(p_token_begin,
+					static_cast<kotek::ktk::size_t>(
+						p_token_end - p_token_begin));
+
+				kotek::core::ktkIRenderFramePass* p_pass =
+					zircon_nri_passlib_create(name.c_str());
+
+				if (p_pass)
+				{
+					KOTEK_ASSERT(
+						out_passes.size() < out_passes.capacity(),
+						"too many NRI frame passes configured, raise "
+						"ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT");
+					out_passes.push_back(p_pass);
+				}
+				else
+				{
+					KOTEK_MESSAGE_ERROR(
+						"skipping unknown NRI frame pass '{}'",
+						name.c_str());
 				}
 			}
 
@@ -1059,6 +1151,17 @@ void zircon_game_manager::Initialize(
 
 					break;
 				}
+				case kotek::core::eEngineSupportedRenderer::
+					kDirectX_Latest:
+				{
+					// task Z5 phase 2 (P4): the NRI backend has no
+					// render graphs — the editor session keeps the
+					// invalid render_graph_id (mirrors the game-session
+					// case); the renderer's frame-pass list is installed
+					// at game-session creation and drives every
+					// session's frame
+					break;
+				}
 				default:
 				{
 					KOTEK_ASSERT(false, "unsupported renderer");
@@ -1204,11 +1307,95 @@ void zircon_game_manager::Initialize(
 		case kotek::core::eEngineSupportedRenderer::
 			kDirectX_Latest:
 		{
+#ifdef KOTEK_USE_RENDER_NRI
+			// task Z5 phase 2 (P4): this backend has no render graphs —
+			// the session keeps the invalid render_graph_id. Instead the
+			// NRI renderer's frame-pass list is (re)installed here, at
+			// the same lifecycle point where the bgfx branch resolves
+			// the game pass set (the editor session is already current,
+			// so the scene leg of the chain is reachable): scene.json
+			// render_passes -> config render_passes_game -> the NRI
+			// built-in default, validated against the NRI passlib
+			// registry. The game manager owns the created passes, the
+			// renderer only views them. One list drives every session
+			// today — the per-session NRI sets arrive with the
+			// editor-on-NRI passes.
+			KOTEK_ASSERT(this->m_renderers.p_nri,
+				"the NRI renderer must exist before the game session is "
+				"created");
+
+			if (this->m_renderers.p_nri)
+			{
+				// a scene load can recreate the game session —
+				// reinstall from scratch (destroy inside the passlib,
+				// the cross-CRT rule) so the new scene's set applies
+				for (kotek::ktk::size_t pass_index = 0;
+					 pass_index < this->m_frame_passes_nri.size();
+					 ++pass_index)
+				{
+					zircon_nri_passlib_destroy(
+						this->m_frame_passes_nri[pass_index]);
+				}
+
+				this->m_frame_passes_nri.clear();
+
+				kotek::array_t<const char*,
+					ZIRCON_DEF_NRI_PASSLIB_REGISTRY_MAX_COUNT>
+					nri_registry_names{};
+
+				const unsigned nri_registry_count =
+					zircon_nri_passlib_get_count();
+
+				KOTEK_ASSERT(
+					nri_registry_count <=
+						ZIRCON_DEF_NRI_PASSLIB_REGISTRY_MAX_COUNT,
+					"the NRI pass registry ({}) exceeds the validation "
+					"capacity — raise "
+					"ZIRCON_DEF_NRI_PASSLIB_REGISTRY_MAX_COUNT",
+					nri_registry_count);
+
+				for (unsigned registry_index = 0;
+					 (registry_index < nri_registry_count) &&
+					 (registry_index <
+						 ZIRCON_DEF_NRI_PASSLIB_REGISTRY_MAX_COUNT);
+					 ++registry_index)
+				{
+					nri_registry_names[registry_index] =
+						zircon_nri_passlib_get_name(registry_index);
+				}
+
+				kotek::static_cstring_t<
+					ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
+					resolved_pass_names;
+
+				zircon_resolve_game_render_pass_set_with_default(
+					this->m_p_main_manager->GetFileSystem(),
+					this->get_active_scene_streaming_folder_path(),
+					this->m_p_config->get_render_passes_game(),
+					nri_registry_names.data(),
+					static_cast<kotek::uint8_t>(nri_registry_count),
+					kZircon_NriPasslib_DefaultGamePasses,
+					resolved_pass_names);
+
+				zircon_create_nri_frame_passes_from_names(
+					resolved_pass_names.c_str(), this->m_frame_passes_nri);
+
+				KOTEK_ASSERT(this->m_frame_passes_nri.empty() == false,
+					"the NRI built-in pass set must always yield the "
+					"present/clear pass — the passlib registry is "
+					"broken");
+
+				this->m_renderers.p_nri->Set_Frame_Passes(
+					this->m_frame_passes_nri.data(),
+					static_cast<kotek::uint8_t>(
+						this->m_frame_passes_nri.size()));
+			}
+#else
 			// NRI phase 1 (task K11/Z5): this backend has no render
-			// graphs yet — zircon_renderer_nri presents through the
+			// graphs — zircon_renderer_nri presents through the
 			// kotek.render.nri swapchain directly, so the session keeps
-			// the invalid render_graph_id; the passes split is the
-			// deferred Z5 work
+			// the invalid render_graph_id
+#endif
 			break;
 		}
 		default:
@@ -1678,7 +1865,30 @@ void zircon_game_manager::write_active_game_render_pass_set_to_scene(
 	bool is_from_live_graph = false;
 
 #ifdef KOTEK_USE_BGFX
-	if (this->m_renderers.p_bgfx)
+	// the renderers union must not be read through the bgfx member when
+	// another backend is active (the same guard the Render Passes window
+	// construction and the reload console command use): under NRI the
+	// union's live member is p_nri, p_bgfx only aliases it and calling
+	// bgfx methods on it is an AV — there is no live game graph to read
+	// then, so the config-baseline leg below wins
+	kotek::core::ktkIFrameworkConfig* p_engine_config =
+		this->m_p_main_manager->Get_EngineConfig();
+
+	const kotek::core::eEngineSupportedRenderer renderer_version =
+		static_cast<kotek::core::eEngineSupportedRenderer>(
+			p_engine_config->GetRendererVersion());
+
+	const bool is_bgfx_renderer_active =
+		(renderer_version ==
+				kotek::core::eEngineSupportedRenderer::kOpenGLES_3_0 ||
+			renderer_version ==
+				kotek::core::eEngineSupportedRenderer::kOpenGLES_3_1 ||
+			renderer_version ==
+				kotek::core::eEngineSupportedRenderer::kOpenGLES_3_2) &&
+		p_engine_config->IsFeatureEnabled(
+			kotek::core::eEngineFeatureRendererVendor::kBGFX);
+
+	if (is_bgfx_renderer_active && this->m_renderers.p_bgfx)
 	{
 		const kotek::uint8_t render_graph_id =
 			this->m_renderers.p_bgfx->get_render_graph_id_for_session_kind(
@@ -2256,6 +2466,18 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 
 		delete this->m_renderers.p_nri;
 		this->m_renderers.p_nri = nullptr;
+
+		// task Z5 phase 2 (P4): the game manager owns the NRI frame
+		// passes — destroy them inside the passlib (the cross-CRT rule)
+		// only after the renderer that drove them is gone
+		for (kotek::ktk::size_t pass_index = 0;
+			 pass_index < this->m_frame_passes_nri.size(); ++pass_index)
+		{
+			zircon_nri_passlib_destroy(
+				this->m_frame_passes_nri[pass_index]);
+		}
+
+		this->m_frame_passes_nri.clear();
 #else
 		KOTEK_ASSERT(false, "not implemented yet");
 #endif
