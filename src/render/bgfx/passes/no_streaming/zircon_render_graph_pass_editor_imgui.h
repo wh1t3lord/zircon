@@ -24,6 +24,17 @@ namespace no_streaming
 				p_previous_pass, kotek::ktk::uint32_t my_id_in_queue) override;
 
 	private:
+		/// task Z18 (batch 1): the icon-font merge table was the file-scope
+		/// static array s_fontRangeMerge — it is read-only per-pass config,
+		/// so it lives as a const member initialized by the constructor (no
+		/// static storage duration, zircon rule §2.1a)
+		struct FontRangeMerge
+		{
+			const void* data;
+			size_t size;
+			ImWchar ranges[3];
+		};
+
 		kotek::core::ktkIImguiWrapper* m_p_imgui_wrapper;
 
 		bgfx::ProgramHandle m_program;
@@ -39,5 +50,9 @@ namespace no_streaming
 		// storage for io.IniFilename, which imgui reads at load/save time
 		kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
 			m_imgui_ini_path;
+
+		// icon-font merge table (was the file-scope s_fontRangeMerge, task
+		// Z18 batch 1) — read-only after construction, hence const
+		const FontRangeMerge m_font_range_merge[2];
 	};
 }

@@ -32,23 +32,10 @@ const bgfx::EmbeddedShader _kEmbeddedShaders[] = {
 	BGFX_EMBEDDED_SHADER(vs_imgui_image), BGFX_EMBEDDED_SHADER(fs_imgui_image),
 	BGFX_EMBEDDED_SHADER_END()};
 
-struct FontRangeMerge
-{
-	const void* data;
-	size_t size;
-	ImWchar ranges[3];
-};
-
 #define ICON_MIN_KI 0xe900
 #define ICON_MAX_KI 0xe9e3
 #define ICON_MIN_FA 0xf000
 #define ICON_MAX_FA 0xf2e0
-
-static FontRangeMerge s_fontRangeMerge[] = {
-	{s_iconsKenneyTtf, sizeof(s_iconsKenneyTtf), {ICON_MIN_KI, ICON_MAX_KI, 0}},
-	{s_iconsFontAwesomeTtf, sizeof(s_iconsFontAwesomeTtf),
-		{ICON_MIN_FA, ICON_MAX_FA, 0}},
-};
 
 inline bool checkAvailTransientBuffers(uint32_t _numVertices,
 	const bgfx::VertexLayout& _layout, uint32_t _numIndices)
@@ -67,7 +54,12 @@ namespace no_streaming
 		m_program{BGFX_INVALID_HANDLE},
 		m_programImage{BGFX_INVALID_HANDLE},
 		m_imageLodEnabled{BGFX_INVALID_HANDLE}, m_tex{BGFX_INVALID_HANDLE},
-		m_texture{BGFX_INVALID_HANDLE}
+		m_texture{BGFX_INVALID_HANDLE},
+		m_font_range_merge{
+			{s_iconsKenneyTtf, sizeof(s_iconsKenneyTtf),
+				{ICON_MIN_KI, ICON_MAX_KI, 0}},
+			{s_iconsFontAwesomeTtf, sizeof(s_iconsFontAwesomeTtf),
+				{ICON_MIN_FA, ICON_MAX_FA, 0}}}
 	{
 	}
 
@@ -263,10 +255,11 @@ namespace no_streaming
 					config.MergeMode = true;
 					config.DstFont = m_font[0];
 
-					for (uint32_t ii = 0; ii < BX_COUNTOF(s_fontRangeMerge);
-						++ii)
+					for (uint32_t ii = 0;
+						ii < BX_COUNTOF(this->m_font_range_merge); ++ii)
 					{
-						const FontRangeMerge& frm = s_fontRangeMerge[ii];
+						const FontRangeMerge& frm =
+							this->m_font_range_merge[ii];
 
 						this->m_p_imgui_wrapper->FontAtlas_AddFontFromMemoryTTF(
 							this->m_p_imgui_wrapper->GetIO().Fonts,
