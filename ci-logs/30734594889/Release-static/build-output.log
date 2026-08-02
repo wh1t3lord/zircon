@@ -1,0 +1,732 @@
+MSBuild version 17.14.51+25f168cee for .NET Framework
+
+  1>Checking Build System
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.cpp/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/external/nri/CMakeLists.txt
+  main_core_defines_static_cpp_dll.cpp
+  Shared.cpp
+  kotek.core.defines.static.cpp.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.cpp.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.shared_ptr/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.any/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.render.dx/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.pair/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.function/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.render.gl/CMakeLists.txt
+  main_core_defines_static_render_dx_dll.cpp
+  main_core_containers_shared_ptr_dll.cpp
+  main_core_containers_function_dll.cpp
+  main_core_defines_static_render_gl_dll.cpp
+  kotek.core.defines.static.render.dx.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.render.dx.lib
+  main_core_containers_pair_dll.cpp
+  main_core_containers_any_dll.cpp
+  kotek.core.defines.static.render.gl.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.render.gl.lib
+  kotek.core.containers.pair.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.pair.lib
+  kotek.core.containers.shared_ptr.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.shared_ptr.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.render.bgfx/CMakeLists.txt
+  kotek.core.containers.function.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.function.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.constants.render/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.types.numerics/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.constants.window/CMakeLists.txt
+  main_core_defines_static_render_bgfx_dll.cpp
+  main_core_constants_window_dll.cpp
+  main_core_numerics_dll.cpp
+  main_core_constants_render_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.render.vk/CMakeLists.txt
+  kotek.core.constants.window.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.constants.window.lib
+  kotek.core.defines.static.render.bgfx.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.render.bgfx.lib
+  kotek.core.constants.render.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.constants.render.lib
+  kotek.core.containers.any.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.any.lib
+  main_core_defines_static_render_vk_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.atomic/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.hash/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.string/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.condition_variable/CMakeLists.txt
+  main_core_containers_multithreading_atomic_dll.cpp
+  main_core_containers_multithreading_condition_variable_dll.cpp
+  main_core_containers_hash_dll.cpp
+  main_core_defines_static_string_dll.cpp
+  kotek.core.containers.multithreading.atomic.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.atomic.lib
+  kotek.core.defines.static.render.vk.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.render.vk.lib
+  NRI_Shared.vcxproj -> D:\a\zircon\zircon\build\lib\Release\NRI_Shared.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.mutex/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.semaphore/CMakeLists.txt
+  kotek.core.containers.hash.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.hash.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.os.win32/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.shared_mutex/CMakeLists.txt
+  main_core_containers_multithreading_semaphore_dll.cpp
+  main_core_containers_multithreading_mutex_dll.cpp
+  main_core_containers_multithreading_shared_mutex_dll.cpp
+  main_core_defines_static_os_win32_dll.cpp
+  kotek.core.containers.multithreading.condition_variable.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.condition_variable.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.tbb/CMakeLists.txt
+  kotek.core.defines.static.string.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.string.lib
+  kotek.core.types.numerics.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.types.numerics.lib
+  kotek.core.containers.multithreading.semaphore.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.semaphore.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/external/nri/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/external/nri/CMakeLists.txt
+  main_core_containers_multithreading_tbb_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.thread/CMakeLists.txt
+  main_core_containers_multithreading_thread_dll.cpp
+  kotek.core.defines.static.os.win32.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.os.win32.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.unique_ptr/CMakeLists.txt
+  kotek.core.containers.multithreading.mutex.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.mutex.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.enum.render.vk/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.constants.ecs/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.variant/CMakeLists.txt
+  main_core_containers_unique_ptr_dll.cpp
+  main_core_containers_variant_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.enum.render.dx/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.constants.math/CMakeLists.txt
+  kotek.core.containers.multithreading.shared_mutex.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.shared_mutex.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.array/CMakeLists.txt
+  main_core_constants_ecs_dll.cpp
+  main_core_enum_render_vk_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.git/CMakeLists.txt
+  main_core_containers_array_dll.cpp
+  main_core_defines_static_git_dll.cpp
+  kotek.core.defines.static.git.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.git.lib
+  kotek.core.containers.unique_ptr.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.unique_ptr.lib
+  kotek.core.containers.variant.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.variant.lib
+  main_core_constants_math_dll.cpp
+  kotek.core.constants.ecs.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.constants.ecs.lib
+  kotek.core.enum.render.vk.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.enum.render.vk.lib
+  kotek.core.containers.multithreading.thread.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.thread.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.math/CMakeLists.txt
+  kotek.core.containers.multithreading.tbb.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.tbb.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.profilers/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.sdk/CMakeLists.txt
+  main_core_defines_static_math_dll.cpp
+  main_core_defines_static_profilers_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.tests/CMakeLists.txt
+  main_core_defines_static_sdk_dll.cpp
+  kotek.core.defines.static.math.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.math.lib
+  kotek.core.containers.array.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.array.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.render/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.os/CMakeLists.txt
+  main_core_defines_static_tests_dll.cpp
+  kotek.core.defines.static.profilers.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.profilers.lib
+  kotek.core.defines.static.sdk.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.sdk.lib
+  ImplVal.cpp
+  ImplD3D12.cpp
+  kotek.core.defines.static.tests.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.tests.lib
+  main_core_enum_render_dx_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core/tests/kotek.core.tests.plugin/CMakeLists.txt
+  kotek.core.constants.math.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.constants.math.lib
+  plugin_override_double.cpp
+  building zircon_shaderpack (host tool)
+  -- Building for: Visual Studio 17 2022
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+     Creating library D:/a/zircon/zircon/build/lib/Release/kotek.core.tests.plugin.lib and object D:/a/zircon/zircon/build/lib/Release/kotek.core.tests.plugin.exp
+  kotek.core.enum.render.dx.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.enum.render.dx.lib
+  kotek.core.tests.plugin.vcxproj -> D:\a\zircon\zircon\build\bin\Release\kotek.core.tests.plugin.dll
+  NRI_Validation.vcxproj -> D:\a\zircon\zircon\build\lib\Release\NRI_Validation.lib
+  main_core_defines_render_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static.os.linux/CMakeLists.txt
+  kotek.core.defines.static.render.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.render.lib
+  main_core_defines_static_os_linux_dll.cpp
+  main_core_defines_static_os_dll.cpp
+  NRI_D3D12.vcxproj -> D:\a\zircon\zircon\build\lib\Release\NRI_D3D12.lib
+  kotek.core.defines.static.os.linux.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.os.linux.lib
+  kotek.core.defines.static.os.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.os.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.types.char/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines_dependent.text/CMakeLists.txt
+  main_core_defines_dependent_text_dll.cpp
+  main_core_types_char_dll.cpp
+  kotek.core.defines_dependent.text.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines_dependent.text.lib
+  kotek.core.types.char.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.types.char.lib
+  -- The C compiler identification is MSVC 19.44.35228.0
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.io/CMakeLists.txt
+  main_core_containers_io_dll.cpp
+  -- The CXX compiler identification is MSVC 19.44.35228.0
+  -- Detecting C compiler ABI info
+  kotek.core.containers.io.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.io.lib
+  -- Detecting C compiler ABI info - done
+  -- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+  -- Detecting C compile features
+  -- Detecting C compile features - done
+  -- Detecting CXX compiler ABI info
+  -- Detecting CXX compiler ABI info - done
+  -- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+  -- Detecting CXX compile features
+  -- Detecting CXX compile features - done
+  -- Configuring done (7.4s)
+  -- Generating done (0.0s)
+  -- Build files have been written to: D:/a/zircon/zircon/build/zircon_tools_shaderpack
+  MSBuild version 17.14.51+25f168cee for .NET Framework
+  
+    1>Checking Build System
+    Building Custom Rule D:/a/zircon/zircon/src/tools/zircon_shaderpack/CMakeLists.txt
+    zircon_shaderpack.cpp
+    zircon_shaderpack.vcxproj -> D:\a\zircon\zircon\build\zircon_tools_shaderpack\Release\zircon_shaderpack.exe
+    Building Custom Rule D:/a/zircon/zircon/src/tools/zircon_shaderpack/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/src/render/CMakeLists.txt
+  slang: gizmo.fs -> bgfx/dx11 .bin (fxc)
+  compilation object save succeeded; see D:\a\zircon\zircon\build\generated\shaders\gizmo.fs.dxbc
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/dx11/gizmo.fs.bin: 724 bytes blob -> 764 bytes .bin (hashIn 0x00000000, hashOut 0x00000000, uniforms 1, cb 16 bytes)
+  slang: gizmo.vs -> bgfx/dx11 .bin (fxc)
+  compilation object save succeeded; see D:\a\zircon\zircon\build\generated\shaders\gizmo.vs.dxbc
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/dx11/gizmo.vs.bin: 900 bytes blob -> 950 bytes .bin (hashIn 0x00000000, hashOut 0x00000000, uniforms 1, cb 64 bytes)
+  slang: grid.fs -> bgfx/dx11 .bin (fxc)
+  compilation object save succeeded; see D:\a\zircon\zircon\build\generated\shaders\grid.fs.dxbc
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/dx11/grid.fs.bin: 2772 bytes blob -> 2840 bytes .bin (hashIn 0xbb20f104, hashOut 0x00000000, uniforms 2, cb 80 bytes)
+  slang: grid.vs -> bgfx/dx11 .bin (fxc)
+  compilation object save succeeded; see D:\a\zircon\zircon\build\generated\shaders\grid.vs.dxbc
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/dx11/grid.vs.bin: 756 bytes blob -> 778 bytes .bin (hashIn 0x00000000, hashOut 0xbb20f104, uniforms 0, cb 0 bytes)
+  slang: model_static.fs -> bgfx/dx11 .bin (fxc)
+  compilation object save succeeded; see D:\a\zircon\zircon\build\generated\shaders\model_static.fs.dxbc
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/dx11/model_static.fs.bin: 1620 bytes blob -> 1728 bytes .bin (hashIn 0xe0a75641, hashOut 0x00000000, uniforms 4, cb 64 bytes)
+  slang: model_static.vs -> bgfx/dx11 .bin (fxc)
+  compilation object save succeeded; see D:\a\zircon\zircon\build\generated\shaders\model_static.vs.dxbc
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/dx11/model_static.vs.bin: 1440 bytes blob -> 1507 bytes .bin (hashIn 0x00000000, hashOut 0xe0a75641, uniforms 2, cb 128 bytes)
+  slang: gizmo.fs -> bgfx/vulkan .bin + nri/dx12 .dxil
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/vulkan/gizmo.fs.bin: 580 bytes blob -> 620 bytes .bin (hashIn 0x00000000, hashOut 0x00000000, uniforms 1, cb 16 bytes)
+  slang: gizmo.vs -> bgfx/vulkan .bin + nri/dx12 .dxil
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/vulkan/gizmo.vs.bin: 740 bytes blob -> 790 bytes .bin (hashIn 0x00000000, hashOut 0x00000000, uniforms 1, cb 64 bytes)
+  slang: grid.fs -> bgfx/vulkan .bin + nri/dx12 .dxil
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/vulkan/grid.fs.bin: 3572 bytes blob -> 3640 bytes .bin (hashIn 0xbb20f104, hashOut 0x00000000, uniforms 2, cb 80 bytes)
+  slang: grid.vs -> bgfx/vulkan .bin + nri/dx12 .dxil
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/vulkan/grid.vs.bin: 908 bytes blob -> 930 bytes .bin (hashIn 0x00000000, hashOut 0xbb20f104, uniforms 0, cb 0 bytes)
+  slang: model_static.fs -> bgfx/vulkan .bin + nri/dx12 .dxil
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/vulkan/model_static.fs.bin: 2076 bytes blob -> 2184 bytes .bin (hashIn 0xe0a75641, hashOut 0x00000000, uniforms 4, cb 64 bytes)
+  slang: model_static.vs -> bgfx/vulkan .bin + nri/dx12 .dxil
+  [zircon_shaderpack]: D:/a/zircon/zircon/data_user/shader_cache/bgfx/vulkan/model_static.vs.bin: 1620 bytes blob -> 1687 bytes .bin (hashIn 0x00000000, hashOut 0xe0a75641, uniforms 2, cb 128 bytes)
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.microsoft.wrl.comptr/CMakeLists.txt
+  main_core_containers_microsoft_wrl_comptr_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/external/nri/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.constants.string/CMakeLists.txt
+  Creation.cpp
+  main_core_constants_string_dll.cpp
+  kotek.core.containers.microsoft.wrl.comptr.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.microsoft.wrl.comptr.lib
+  kotek.core.constants.string.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.constants.string.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines.static/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.microsoft/CMakeLists.txt
+  main_core_containers_microsoft_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.enum.render.bgfx/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.constants/CMakeLists.txt
+  main_core_defines_static_dll.cpp
+  main_core_enum_render_bgfx_dll.cpp
+  kotek_translation.cpp
+  kotek.core.defines.static.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.static.lib
+  main_core_constants_dll.cpp
+  NRI.vcxproj -> D:\a\zircon\zircon\build\bin\Release\NRI.lib
+  kotek.core.containers.microsoft.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.microsoft.lib
+  kotek.core.constants.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.constants.lib
+  kotek.core.enum.render.bgfx.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.enum.render.bgfx.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.enum.render.gl/CMakeLists.txt
+  main_core_enum_render_gl_dll.cpp
+  kotek_translation.cpp
+  kotek.core.enum.render.gl.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.enum.render.gl.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.enum.render/CMakeLists.txt
+  kotek_translation.cpp
+  main_core_enum_render_dll.cpp
+  kotek.core.enum.render.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.enum.render.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.enum.core/CMakeLists.txt
+  kotek_translation.cpp
+  main_core_enum_core_dll.cpp
+  kotek_core_enum_core_test_translation.cpp
+  kotek.core.enum.core.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.enum.core.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.enum/CMakeLists.txt
+  main_core_enum_dll.cpp
+  kotek.core.enum.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.enum.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.ecs/CMakeLists.txt
+  main_core_ecs_dll.cpp
+  kotek.core.ecs.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.ecs.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.main_manager/CMakeLists.txt
+  kotek_main_manager.cpp
+  kotek_plugin_invoke.cpp
+  kotek_plugin_override.cpp
+  main_core_main_manager_dll.cpp
+  Generating Code...
+  kotek.core.main_manager.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.main_manager.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.engine_config/CMakeLists.txt
+  kotek_std_config.cpp
+  main_core_engine_config_dll.cpp
+  Generating Code...
+  kotek.core.engine_config.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.engine_config.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.log/CMakeLists.txt
+  main_core_log_dll.cpp
+  kotek.core.log.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.log.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.os.win32/CMakeLists.txt
+  main_core_os_win32_dll.cpp
+  kotek.core.os.win32.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.os.win32.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.os/CMakeLists.txt
+  main_core_os_dll.cpp
+  kotek.core.os.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.os.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.memory.cpu/CMakeLists.txt
+  main_core_memory_cpu_dll.cpp
+  kotek_std_memory.cpp
+  offsetAllocator.cpp
+  kotek.core.memory.cpu.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.memory.cpu.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.format/CMakeLists.txt
+  main_core_format_dll.cpp
+  kotek.core.format.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.format.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.vector/CMakeLists.txt
+  main_core_containers_vector_dll.cpp
+  kotek.core.containers.vector.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.vector.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.unordered_set/CMakeLists.txt
+  main_core_containers_unordered_set_dll.cpp
+  kotek.core.containers.unordered_set.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.unordered_set.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.unordered_map/CMakeLists.txt
+  main_core_containers_unordered_map_dll.cpp
+  kotek.core.containers.unordered_map.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.unordered_map.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.filesystem.path/CMakeLists.txt
+  main_core_containers_filesystem_path_dll.cpp
+  kotek.core.containers.filesystem.path.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.filesystem.path.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.dll/CMakeLists.txt
+  main_core_containers_dll_dll.cpp
+  kotek.core.containers.dll.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.dll.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.string/CMakeLists.txt
+  kotek_core_test_string.cpp
+  main_core_containers_string_dll.cpp
+  kotek_std_alias_string.cpp
+  Generating Code...
+  kotek.core.containers.string.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.string.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.casting.string/CMakeLists.txt
+  main_core_casting_string_dll.cpp
+  kotek_std_alias_casting.cpp
+  Generating Code...
+  kotek.core.casting.string.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.casting.string.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.casting.lexical/CMakeLists.txt
+  main_core_casting_lexical_dll.cpp
+  kotek.core.casting.lexical.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.casting.lexical.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.types.string/CMakeLists.txt
+  main_core_types_string_dll.cpp
+  kotek.core.types.string.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.types.string.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.api/CMakeLists.txt
+  main_api_dll.cpp
+  kotek.core.api.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.api.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines_dependent.ecs/CMakeLists.txt
+  main_core_defines_dependent_ecs_dll.cpp
+  kotek.core.defines_dependent.ecs.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines_dependent.ecs.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines_dependent.assert/CMakeLists.txt
+  main_core_defines_dependent_assert_dll.cpp
+  kotek.core.defines_dependent.assert.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines_dependent.assert.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines_dependent.message/CMakeLists.txt
+  main_core_defines_dependent_message_dll.cpp
+  kotek.core.defines_dependent.message.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines_dependent.message.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.filesystem/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines_dependent/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.deque/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.json/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.memory.gpu.vulkan/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.list/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.profilers.gpu/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.map/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.input/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.ui.videoplayer.avif/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.types/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.casting/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.window.glfw/CMakeLists.txt
+  main_core_casting_dll.cpp
+  kotek_std_window.cpp
+  kotek_input.cpp
+  main_ui_videoplayer_avif_dll.cpp
+  kotek_ui_videoplayer.cpp
+  main_core_types_dll.cpp
+  main_core_containers_list_dll.cpp
+  kotek.core.casting.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.casting.lib
+  main_core_containers_map_dll.cpp
+  kotek.core.types.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.types.lib
+  kotek_std_json.cpp
+  main_core_profilers_gpu_dll.cpp
+  kotek.core.containers.map.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.map.lib
+  kotek_std_alias_filesystem.cpp
+  kotek.core.profilers.gpu.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.profilers.gpu.lib
+  main_core_containers_json_dll.cpp
+  Generating Code...
+  main_core_window_glfw_dll.cpp
+  main_core_input_dll.cpp
+  kotek.ui.videoplayer.avif.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.ui.videoplayer.avif.lib
+  main_core_memory_gpu_vulkan_dll.cpp
+  Generating Code...
+  main_core_defines_dependent_dll.cpp
+  main_core_containers_filesystem_dll.cpp
+  kotek.core.containers.json.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.json.lib
+  kotek.core.containers.list.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.list.lib
+  main_core_containers_deque_dll.cpp
+  Generating Code...
+  kotek_core_test_input.cpp
+  kotek.core.defines_dependent.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines_dependent.lib
+  kotek.core.window.glfw.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.window.glfw.lib
+  kotek.core.memory.gpu.vulkan.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.memory.gpu.vulkan.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.window/CMakeLists.txt
+  kotek_window_console.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.defines/CMakeLists.txt
+  kotek.core.containers.deque.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.deque.lib
+  main_core_defines_dll.cpp
+  Generating Code...
+  kotek.core.containers.filesystem.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.filesystem.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.memory.gpu/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.os.linux/CMakeLists.txt
+  main_core_memory_gpu_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.queue/CMakeLists.txt
+  main_core_os_linux_dll.cpp
+  kotek.core.defines.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.defines.lib
+  main_core_containers_queue_dll.cpp
+  kotek.core.os.linux.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.os.linux.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.ui.videoplayer/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.filesystem.file_text/CMakeLists.txt
+  main_ui_videoplayer_dll.cpp
+  kotek_file_text.cpp
+  kotek_core_test_input_winapi.cpp
+  kotek.ui.videoplayer.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.ui.videoplayer.lib
+  kotek.core.containers.queue.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.queue.lib
+  main_core_window_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.console/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.utility/CMakeLists.txt
+  kotek.core.memory.gpu.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.memory.gpu.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading.queue/CMakeLists.txt
+  kotek_std_utility.cpp
+  kotek_console.cpp
+  main_core_containers_multithreading_queue_dll.cpp
+  main_core_filesystem_file_text_dll.cpp
+  Generating Code...
+  kotek.core.containers.multithreading.queue.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.queue.lib
+  Generating Code...
+  kotek.core.filesystem.file_text.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.filesystem.file_text.lib
+  Generating Code...
+  kotek_std_utility_tests.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers.multithreading/CMakeLists.txt
+  kotek.core.input.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.input.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.filesystem/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.memory/CMakeLists.txt
+  main_core_memory_dll.cpp
+  kotek.core.window.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.window.lib
+  kotek_filesystem.cpp
+  main_core_console_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.ui.rmlui/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.window_manager/CMakeLists.txt
+  kotek_window_manager.cpp
+  main_core_containers_multithreading_dll.cpp
+  kotek_ui_game_ui_manager.cpp
+  main_core_utility_dll.cpp
+  kotek_filesystem_native.cpp
+  Generating Code...
+  kotek.core.containers.multithreading.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.multithreading.lib
+  kotek.core.memory.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.memory.lib
+  main_core_window_manager_dll.cpp
+  kotek.core.console.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.console.lib
+  Generating Code...
+  main_ui_rmlui_dll.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.containers/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.profilers.cpu/CMakeLists.txt
+  main_core_profilers_cpu_dll.cpp
+  kotek.core.utility.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.utility.lib
+  main_core_containers_dll.cpp
+  kotek_filesystem_zlib.cpp
+  Generating Code...
+  kotek.core.profilers.cpu.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.profilers.cpu.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.math/CMakeLists.txt
+  kotek.core.window_manager.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.window_manager.lib
+  kotek_core_test_math.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core.profilers/CMakeLists.txt
+  Generating Code...
+  kotek_profiler.cpp
+  kotek.ui.rmlui.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.ui.rmlui.lib
+  kotek.core.containers.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.containers.lib
+  kotek_virtualfilemapper.cpp
+  kotek_std_math_vector1f.cpp
+  main_core_profilers_dll.cpp
+  kotek_std_math_vector2f.cpp
+  main_core_filesystem_dll.cpp
+  kotek_std_math_vector3f.cpp
+  kotek_std_math_vector4f.cpp
+  Generating Code...
+  kotek.core.profilers.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.profilers.lib
+  kotek_std_math_matrix2x2_f.cpp
+  Generating Code...
+  kotek_std_math_matrix3x3_f.cpp
+  kotek.core.filesystem.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.filesystem.lib
+  kotek_std_math_matrix4x4_f.cpp
+  kotek_std_math_vectornf_view.cpp
+  kotek_std_math_matrixnf_view.cpp
+  main_core_math_dll.cpp
+  Generating Code...
+  kotek.core.math.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.math.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.ui.imgui/CMakeLists.txt
+  kotek_ui_imgui_context_manager.cpp
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.core/CMakeLists.txt
+  main_core_dll.cpp
+  kotek_core_test_filesystem.cpp
+  kotek_core_test_json.cpp
+  kotek_core_test_json_own.cpp
+  imgui_impl_dx9.cpp
+  imgui_impl_dx10.cpp
+  imgui_impl_dx11.cpp
+  imgui_impl_dx12.cpp
+  kotek_core_test_string.cpp
+  kotek_core_test_container_deque.cpp
+  kotek_core_test_container_vector.cpp
+  imgui_impl_opengl2.cpp
+  kotek_core_test_container_unordered_set.cpp
+  imgui_impl_opengl3.cpp
+  imgui_impl_vulkan.cpp
+  kotek_core_test_container_unordered_map.cpp
+  kotek_core_test_container_set.cpp
+  kotek_core_test_container_queue.cpp
+  imgui_impl_win32.cpp
+  kotek_core_test_container_map.cpp
+  kotek_core_test_container_list.cpp
+  kotek_core_test_plugin_override.cpp
+  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  kotek_ui_imgui_wrapper.cpp
+  kotek_core_test_math_backends.cpp
+  kotek_core_test_containers_hybrid.cpp
+  kotek_core_test_render_nri.cpp
+  main_ui_imgui_dll.cpp
+  imgui_impl_glfw.cpp
+  Generating Code...
+  kotek.core.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.core.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.render.bgfx/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.render.nri/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.render.shared.bgfx/CMakeLists.txt
+  Generating zircon_editor_enums.h using zircon_generator
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+  -- KOTEK_DEPS_FOLDER = vcpkg
+  -- KOTEK_NUGET_PLATFORM_NAME = Win11
+  -- KOTEK_NUGET_COMPILER_NAME = Msvc
+  -- KOTEK_NUGET_ARCH_BIT_NUMBER = x64
+  -- CMAKE_BINARY_DIR = D:/a/zircon/zircon/build/zircon_tools/$<CONFIG>
+  -- D:/a/zircon/zircon/src/tools/cpp_generators/ecs_fields_generator
+  -- nuget_clang_folder = Kotek.Packages.Clang.Vcpkg.Runtimes.Win11.Msvc.x64.18.1.6
+  -- nuget_openssl_folder = Kotek.Packages.OpenSSL.Vcpkg.Runtimes.Win11.Msvc.x64.3.5.0
+  -- nuget_zlib_folder = Kotek.Packages.zlib.Vcpkg.Runtimes.Win11.Msvc.x64.1.3.1
+  -- nuget_zstd_folder = Kotek.Packages.Zstd.Vcpkg.Runtimes.Win11.Msvc.x64.1.5.7
+  [zircon_generator][nuget]: package clang exists!
+  [zircon_generator][nuget]: package openssl exists!
+  [zircon_generator][nuget]: package zlib exists!
+  [zircon_generator][nuget]: package zstd exists!
+  -- LLVM libraries: 
+  -- Found LLVM 
+  [zircon_generator]: zstd package included directory
+  [zircon_generator][Debug]: adding zstd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zstd.lib to not Debug configurations
+  [zircon_generator]: zlib package included directory
+  [zircon_generator][Debug]: adding zlibd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zlib.lib to not Debug configurations
+  [zircon_generator]: openssl package included directory
+  [zircon_generator][Debug]: adding libcrypto.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libcrypto.lib to not Debug configurations
+  [zircon_generator]: clang package included directory
+  [zircon_generator][Debug]: adding libclang.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libclang.lib to not Debug configuration
+  -- LLVM include path: 
+  -- LLVM library path: 
+  -- 
+  -- Configuring done (0.0s)
+  -- Generating done (0.0s)
+  -- Build files have been written to: D:/a/zircon/zircon/build/zircon_tools
+  cmake_pch.cxx
+  cmake_pch.cxx
+  MSBuild version 17.14.51+25f168cee for .NET Framework
+  
+    1>Checking Build System
+    Building Custom Rule D:/a/zircon/zircon/src/tools/cpp_generators/ecs_fields_generator/CMakeLists.txt
+    generate_zircon.cpp
+    zircon_generator.vcxproj -> D:\a\zircon\zircon\build\zircon_tools\Release\zircon_generator.exe
+    copying dlls after compilation of zircon_generator
+    Building Custom Rule D:/a/zircon/zircon/src/tools/cpp_generators/ecs_fields_generator/CMakeLists.txt
+  argv=..\..\zircon_tools\Release\zircon_generator | strcmp=1
+  argv=--type | strcmp=0
+  Found type!
+  type = 1
+  what_to_generate: 1
+  Generating sdk fields!
+  sdk_src_dir = D:/a/zircon/zircon/src/editor/ui
+  output_file = D:/a/zircon/zircon/src/core/zircon_editor_enums.h
+  SDK window enum file generated: D:/a/zircon/zircon/src/core/zircon_editor_enums.h
+  File was generated successfully!
+  Building Custom Rule D:/a/zircon/zircon/src/core/CMakeLists.txt
+  cmake_pch.cxx
+  cmake_pch.cxx
+  kotek.ui.imgui.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.ui.imgui.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.ui/CMakeLists.txt
+  main_ui_dll.cpp
+  kotek_render_graph_simplified.cpp
+  kotek_render_graph_simplified_render_pass.cpp
+  kotek_render_data_types.cpp
+  main_render_shared_bgfx_dll.cpp
+  kotek_render_shader_manager.cpp
+  kotek_render_texture_manager.cpp
+  kotek_render_resource_manager.cpp
+  kotek_render_buffer.cpp
+  kotek_render_geometry_manager.cpp
+  kotek_render_device.cpp
+  kotek_render_swapchain.cpp
+  main_render_bgfx_dll.cpp
+  kotek_render_static_buffer_pool.cpp
+  kotek_render_static_buffer_pool_with_linear_allocator.cpp
+  kotek_render_allocator_ring_with_tabs.cpp
+  kotek_render_allocator_ring.cpp
+  kotek.render.shared.bgfx.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.render.shared.bgfx.lib
+  kotek.render.bgfx.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.render.bgfx.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.render.shared/CMakeLists.txt
+  cmake_pch.cxx
+  main_core_dll.cpp
+  zircon_config.cpp
+  zircon_editor_ui_state_interface.cpp
+  zircon_session.cpp
+  zircon_gltf_loader.cpp
+  kotek_render_device.cpp
+  kotek_render_swapchain.cpp
+  kotek_render_resource_manager.cpp
+  main_render_nri_dll.cpp
+  zircon.core.vcxproj -> D:\a\zircon\zircon\build\lib\Release\zircon.core.lib
+  kotek.ui.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.ui.lib
+  Building zircon_generator
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+  -- KOTEK_DEPS_FOLDER = vcpkg
+  -- KOTEK_NUGET_PLATFORM_NAME = Win11
+  -- KOTEK_NUGET_COMPILER_NAME = Msvc
+  -- KOTEK_NUGET_ARCH_BIT_NUMBER = x64
+  -- CMAKE_BINARY_DIR = D:/a/zircon/zircon/build/zircon_tools/$<CONFIG>
+  -- D:/a/zircon/zircon/src/tools/cpp_generators/ecs_fields_generator
+  -- nuget_clang_folder = Kotek.Packages.Clang.Vcpkg.Runtimes.Win11.Msvc.x64.18.1.6
+  -- nuget_openssl_folder = Kotek.Packages.OpenSSL.Vcpkg.Runtimes.Win11.Msvc.x64.3.5.0
+  -- nuget_zlib_folder = Kotek.Packages.zlib.Vcpkg.Runtimes.Win11.Msvc.x64.1.3.1
+  -- nuget_zstd_folder = Kotek.Packages.Zstd.Vcpkg.Runtimes.Win11.Msvc.x64.1.5.7
+  [zircon_generator][nuget]: package clang exists!
+  [zircon_generator][nuget]: package openssl exists!
+  [zircon_generator][nuget]: package zlib exists!
+  [zircon_generator][nuget]: package zstd exists!
+  -- LLVM libraries: 
+  -- Found LLVM 
+  -- LLVM include path: 
+  -- LLVM library path: 
+  -- 
+  [zircon_generator]: zstd package included directory
+  [zircon_generator][Debug]: adding zstd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zstd.lib to not Debug configurations
+  [zircon_generator]: zlib package included directory
+  [zircon_generator][Debug]: adding zlibd.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding zlib.lib to not Debug configurations
+  [zircon_generator]: openssl package included directory
+  [zircon_generator][Debug]: adding libcrypto.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libcrypto.lib to not Debug configurations
+  [zircon_generator]: clang package included directory
+  [zircon_generator][Debug]: adding libclang.lib to Debug configuration
+  [zircon_generator][None-Debug]: adding libclang.lib to not Debug configuration
+  -- Configuring done (0.0s)
+  -- Generating done (0.0s)
+  -- Build files have been written to: D:/a/zircon/zircon/build/zircon_tools
+  MSBuild version 17.14.51+25f168cee for .NET Framework
+  
+    zircon_generator.vcxproj -> D:\a\zircon\zircon\build\zircon_tools\Release\zircon_generator.exe
+    copying dlls after compilation of zircon_generator
+  argv=..\..\zircon_tools\Release\zircon_generator | strcmp=1
+  argv=--type | strcmp=0
+  Found type!
+  type = 0
+  what_to_generate: 0
+  Generating ecs fields!
+  --src = D:/a/zircon/zircon/src/ecs
+  --kotek_src = D:/a/zircon/zircon/src/ecs/../../kotek/src/kotek.core.defines_dependent.ecs/include/
+  --output = D:/a/zircon/zircon/src/ecs/zircon_component_fields.h
+  File was generated successfully!
+  Building Custom Rule D:/a/zircon/zircon/src/ecs/CMakeLists.txt
+  kotek.render.nri.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.render.nri.lib
+  cmake_pch.cxx
+  kotek_render_data_types.cpp
+  main_render_shared_dll.cpp
+  kotek.render.shared.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.render.shared.lib
+  Building Custom Rule D:/a/zircon/zircon/kotek/src/kotek.render/CMakeLists.txt
+  cmake_pch.cxx
+  zircon_component_sdk_scene_name.cpp
+  zircon_component_sdk_camera.cpp
+  zircon_component_sdk_input.cpp
+  zircon_component_camera.cpp
+  zircon_component_input.cpp
+  zircon_component_transform.cpp
+  zircon_component_geometry.cpp
+  zircon_component_actor.cpp
+  zircon_component_terrain_cbt.cpp
+  zircon_component_terrain_static.cpp
+  zircon_component_terrain_gcm.cpp
+  zircon_component_frustum.cpp
+  zircon_component_bounding_sphere.cpp
+  zircon_component_ui_surface.cpp
+  zircon_component_ui_camera.cpp
+  zircon_component_animation.cpp
+  main_ecs_dll.cpp
+  zircon_factory.cpp
+  zircon_component_interface.cpp
+D:\a\zircon\zircon\src\ecs\zircon_factory.cpp(345,1): warning C4715: 'zircon_factory::is_valid_entity': not all control paths return a value [D:\a\zircon\zircon\build\src\ecs\zircon.ecs.vcxproj]
+  zircon.ecs.vcxproj -> D:\a\zircon\zircon\build\lib\Release\zircon.ecs.lib
+  Building Custom Rule D:/a/zircon/zircon/src/editor/commands/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/src/editor/ui/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/src/world/CMakeLists.txt
+  main_render_dll.cpp
+  cmake_pch.cxx
+  cmake_pch.cxx
+  cmake_pch.cxx
+  kotek.render.vcxproj -> D:\a\zircon\zircon\build\lib\Release\kotek.render.lib
+  main_world_dll.cpp
+  zircon_world.cpp
+  zircon_world_manager.cpp
+  main_editor_dll.cpp
+  zircon_editor_ui_state.cpp
+  zircon_ui_top_bar.cpp
+  zircon_ui_object_list.cpp
+  zircon_ui_window_game.cpp
+  zircon_ui_window_animation.cpp
+  zircon_ui_window_sound.cpp
+  zircon_ui_window_log.cpp
+  zircon_ui_window_prefab.cpp
+  zircon_ui_window_prefab_browser.cpp
+  zircon_ui_component_inspector.cpp
+  zircon_ui_window_history_command_log.cpp
+  main_editor_dll.cpp
+  zircon_command_history.cpp
+  zircon_command_journal.cpp
+  zircon_ui_window_render_stats.cpp
+  zircon_command_registry.cpp
+D:\a\zircon\zircon\kotek\src\kotek.core.format\include\kotek_std_alias_format.h(163,22): error C2440: 'initializing': cannot convert from 'std::string' to 'const Kotek::ktk::cstring &' [D:\a\zircon\zircon\build\src\editor\ui\zircon.editor.ui.vcxproj]
+  (compiling source file '../../../../src/editor/ui/zircon_ui_component_inspector.cpp')
+      D:\a\zircon\zircon\kotek\src\kotek.core.format\include\kotek_std_alias_format.h(163,22):
+      Reason: cannot convert from 'std::string' to 'const Kotek::ktk::cstring'
+      D:\a\zircon\zircon\kotek\src\kotek.core.format\include\kotek_std_alias_format.h(163,22):
+      No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+      D:\a\zircon\zircon\kotek\src\kotek.core.format\include\kotek_std_alias_format.h(163,22):
+      the template instantiation context (the oldest one first) is
+          D:\a\zircon\zircon\src\editor\ui\zircon_ui_component_inspector.cpp(281,39):
+          see reference to function template instantiation 'Kotek::ktk::cstring Kotek::ktk::format<Kotek::uint32_t>(const Kotek::ktk::cstring_view &,Kotek::uint32_t &&) noexcept' being compiled
+  
+  zircon_gizmo_edit_commit.cpp
+  zircon_ui_window_settings.cpp
+  zircon_ui_render_passes.cpp
+  zircon_ui_window_debug_input.cpp
+  zircon_ui_gizmo_overlay.cpp
+  zircon_ui_gizmo_imguizmo.cpp
+  zircon_command_add_component_to_entity.cpp
+  zircon_command_delete_component_from_entity.cpp
+  zircon_command_create_entity.cpp
+  zircon_command_delete_entity.cpp
+  zircon.world.vcxproj -> D:\a\zircon\zircon\build\lib\Release\zircon.world.lib
+  zircon_command_edit_component_state.cpp
+  Building Custom Rule D:/a/zircon/zircon/src/game/session/CMakeLists.txt
+  Building Custom Rule D:/a/zircon/zircon/src/editor/session/CMakeLists.txt
+  cmake_pch.cxx
+  zircon.editor.commands.vcxproj -> D:\a\zircon\zircon\build\lib\Release\zircon.editor.commands.lib
+  cmake_pch.cxx
+  main_editor_dll.cpp
+  zircon_scene_metadata.cpp
+  zircon_session_editor.cpp
+  zircon_session_editor_manager.cpp
+D:\a\zircon\zircon\src\editor\session\zircon_session_editor_manager.cpp(53,14): error C2039: 'm_was_allocated_by_manager': is not a member of 'zircon_session_editor' [D:\a\zircon\zircon\build\src\editor\session\zircon.editor.session.vcxproj]
+  (compiling source file '../../../../src/editor/session/zircon_session_editor_manager.cpp')
+      D:\a\zircon\zircon\src\editor\session\zircon_session_editor.h(24,7):
+      see declaration of 'zircon_session_editor'
+  
+  main_game_dll.cpp
+  zircon_session_game.cpp
+  zircon_session_game_manager.cpp
+  zircon.game.session.vcxproj -> D:\a\zircon\zircon\build\lib\Release\zircon.game.session.lib
+  Building Custom Rule D:/a/zircon/zircon/src/game/CMakeLists.txt
+  cmake_pch.cxx
+  main_game_dll.cpp
+  zircon_asset_manager.cpp
+  zircon.game.vcxproj -> D:\a\zircon\zircon\build\lib\Release\zircon.game.lib
