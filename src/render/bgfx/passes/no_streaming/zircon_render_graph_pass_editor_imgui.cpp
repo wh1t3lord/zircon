@@ -63,13 +63,28 @@ namespace no_streaming
 {
 	zircon_render_graph_pass_editor_imgui_bgfx::
 		zircon_render_graph_pass_editor_imgui_bgfx() :
-		zircon_render_graph_pass_editor_bgfx(), m_p_imgui_wrapper{}
+		zircon_render_graph_pass_editor_bgfx(), m_p_imgui_wrapper{},
+		m_program{BGFX_INVALID_HANDLE},
+		m_programImage{BGFX_INVALID_HANDLE},
+		m_imageLodEnabled{BGFX_INVALID_HANDLE}, m_tex{BGFX_INVALID_HANDLE},
+		m_texture{BGFX_INVALID_HANDLE}
 	{
 	}
 
 	zircon_render_graph_pass_editor_imgui_bgfx::
 		~zircon_render_graph_pass_editor_imgui_bgfx(void)
 	{
+		// the pass can be destroyed before OnCreateResources ever ran
+		// (the graphics-development hot-reload, task Z3 P3b, swaps the
+		// pass library at a frame boundary — a reload requested by the
+		// console on frame 1 hits passes that were created but never
+		// initialized): the teardown below dereferences the managers and
+		// bgfx handles that only OnCreateResources provides
+		if (this->m_p_manager_main == nullptr)
+		{
+			return;
+		}
+
 		bool is_imgui_enabled = false;
 		bool is_sdk_enabled = false;
 
@@ -113,11 +128,11 @@ namespace no_streaming
 
 				this->m_p_imgui_wrapper->DestroyContext();
 			}
-		}
 
-		p_config->SetFeatureStatus(kotek::Core::eEngineFeatureSDK::
-									   kEngine_Feature_SDK_ImGui_Initialized,
-			false);
+			p_config->SetFeatureStatus(kotek::Core::eEngineFeatureSDK::
+										   kEngine_Feature_SDK_ImGui_Initialized,
+				false);
+		}
 	}
 
 	void zircon_render_graph_pass_editor_imgui_bgfx::OnCreateResources(

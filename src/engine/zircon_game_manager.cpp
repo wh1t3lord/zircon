@@ -2157,7 +2157,8 @@ void zircon_game_manager::Initialize_Renderer(void) noexcept
 					this->m_p_config->is_feature_enabled(
 						eZirconSDKFeatures::
 							kSDK_Feature_GraphicsDevelopment),
-					&zircon_passlib_create, &zircon_passlib_destroy);
+					&zircon_passlib_create, &zircon_passlib_destroy,
+					&zircon_passlib_get_count, &zircon_passlib_get_name);
 
 				this->m_p_current_renderer =
 					this->m_renderers.p_bgfx;
@@ -3437,6 +3438,64 @@ void zircon_game_manager::RegisterConsole_Commands(void
 		p_command_initialize_world,
 		static_cast<kotek::enum_base_t>(
 			eZirconConsoleCommands::initialize_world
+		)
+	);
+
+	// hot-reload of the pass library (task Z3 P3b): the manual override
+	// of the graphics-development file watcher — sets the same atomic
+	// flag, the swap itself runs at the top of the renderer's next
+	// draw(). Degrades to a warning on non-bgfx backends and in builds
+	// without ZIRCON_GRAPHICS_DEVELOPMENT
+	auto p_command_reload_render_passes = [this]() -> bool
+	{
+		auto* p_engine_config =
+			this->m_p_main_manager->Get_EngineConfig();
+
+		KOTEK_ASSERT(
+			p_engine_config,
+			"you must initialize engine config for using this method"
+		);
+
+		const kotek::core::eEngineSupportedRenderer renderer_version =
+			static_cast<kotek::core::eEngineSupportedRenderer>(
+				p_engine_config->GetRendererVersion()
+			);
+
+		// the renderers union must not be read through the bgfx member
+		// when another backend is active (the same guard the Render
+		// Passes window construction uses)
+		const bool is_bgfx_renderer_active =
+			(renderer_version ==
+			        kotek::core::eEngineSupportedRenderer::
+			            kOpenGLES_3_0 ||
+			    renderer_version ==
+			        kotek::core::eEngineSupportedRenderer::
+			            kOpenGLES_3_1 ||
+			    renderer_version ==
+			        kotek::core::eEngineSupportedRenderer::
+			            kOpenGLES_3_2) &&
+			p_engine_config->IsFeatureEnabled(
+				kotek::core::eEngineFeatureRendererVendor::kBGFX
+			);
+
+		if (is_bgfx_renderer_active && this->m_renderers.p_bgfx)
+		{
+			this->m_renderers.p_bgfx->request_pass_library_reload();
+			return true;
+		}
+
+		KOTEK_MESSAGE_WARNING(
+			"reload_render_passes: the bgfx renderer is not active — "
+			"nothing to reload"
+		);
+
+		return false;
+	};
+
+	this->m_p_console->Register_Command(
+		p_command_reload_render_passes,
+		static_cast<kotek::ktk::enum_base_t>(
+			eZirconConsoleCommands::reload_render_passes
 		)
 	);
 
@@ -5154,6 +5213,18 @@ void zircon_game_manager::run_unit_tests()
 		&argc,
 		this->m_p_main_manager->Get_EngineConfig()->GetARGV()
 	);
+
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	// the graphics-development export surface (the PRE_LINK-generated
+	// .def whose entries act as /INCLUDE) can pull kotek module test
+	// objects into game.ktk through shared COMDATs — their suites then
+	// self-register into THIS registry too. They already run in
+	// kotek.exe's own run; executing them here as well would double-run
+	// non-rerun-safe tests (the plugin-override test's never-unloaded
+	// double dll locks its own re-copy). This runner is zircon's, so it
+	// runs zircon's suites only.
+	testing::GTEST_FLAG(filter) = "Zircon_*";
+#endif
 
 	auto status = RUN_ALL_TESTS();
 	fprintf(

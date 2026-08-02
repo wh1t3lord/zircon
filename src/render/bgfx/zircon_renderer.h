@@ -114,30 +114,60 @@ public:
 
 	void set_current_render_graph(kotek::uint8_t render_graph_id);
 
+	/// the create side of the pass-library seam (task Z3 P3a): installed
+	/// by the pass library manager, bound to it via p_owner (the
+	/// no-static-storage rule — the wrapper reaches the manager's
+	/// members through this pointer, never through file statics)
 	void set_render_pass_create_callback(
-		zircon_render_pass_create_pfn_t pfn_create) noexcept;
+		zircon_render_pass_create_seam_pfn_t pfn_create,
+		void* p_owner) noexcept;
 
 	/// the destroy side of the pass-library seam (task Z3 P3a): when
 	/// installed, graph teardown detaches the passes and destroys each
 	/// through this callback (the creating library's own code) instead of
 	/// ktkRenderGraphSimplified::Shutdown's plain delete
 	void set_render_pass_destroy_callback(
-		zircon_render_pass_destroy_pfn_t pfn_destroy) noexcept;
+		zircon_render_pass_destroy_seam_pfn_t pfn_destroy,
+		void* p_owner) noexcept;
 
 	/// one call wiring of the pass-library seam (task Z3 P3a): the
 	/// manager decides DLL vs static from the build configuration and the
 	/// runtime flag and installs the callbacks above; p_static_create /
-	/// p_static_destroy are the statically-linked zircon_passlib_*
-	/// functions
+	/// p_static_destroy (+ the p_static_get_count / p_static_get_name
+	/// enumeration twins, task Z3 P3b) are the statically-linked
+	/// zircon_passlib_* functions
 	void initialize_pass_library(bool prefer_shared_library,
 		zircon_render_pass_create_pfn_t p_static_create,
-		zircon_render_pass_destroy_pfn_t p_static_destroy) noexcept;
+		zircon_render_pass_destroy_pfn_t p_static_destroy,
+		zircon_passlib_get_count_pfn_t p_static_get_count,
+		zircon_passlib_get_name_pfn_t p_static_get_name) noexcept;
 
 	/// creates a pass through the installed create callback (the unified
 	/// seam every graph creation flows through); nullptr when no callback
 	/// is installed or the name is not registered
 	kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
 	create_render_pass(const char* p_pass_name) noexcept;
+
+	/// the manual hot-reload override (task Z3 P3b — the
+	/// reload_render_passes console command): sets the same atomic flag
+	/// the pass-library file watcher sets; the swap runs at the top of
+	/// the next draw(). Warns and does nothing in builds without
+	/// ZIRCON_GRAPHICS_DEVELOPMENT
+	void request_pass_library_reload(void) noexcept;
+
+	/// the pass registry the Render Passes window shows (task Z3 P3b):
+	/// the generation bumps on every (re-)enumeration of the pass library
+	/// (init + each successful hot-reload) — the window compares it in
+	/// Draw and re-points its tables through the getter. Default
+	/// configuration: 0 / false forever (the window keeps its
+	/// compile-time ctor tables — zero behavior change)
+	kotek::uint32_t get_pass_library_registry_generation(
+		void) const noexcept;
+	bool get_pass_library_registry(
+		const char* const*& out_p_editor_pass_names,
+		kotek::uint8_t& out_editor_pass_count,
+		const char* const*& out_p_game_pass_names,
+		kotek::uint8_t& out_game_pass_count) const noexcept;
 
 	/// Render Passes window reads (Z3 P2a): slot count + read-only slot
 	/// state + the slot id of a session kind (returns
@@ -183,6 +213,20 @@ private:
 	void process_pending_render_graph_rebuilds(void) noexcept;
 	void rebuild_render_graph(kotek::uint8_t render_graph_id) noexcept;
 
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	/// the pass-library hot-reload (task Z3 P3b): consumes the watcher /
+	/// console atomic flag at the top of draw() — the frame boundary
+	/// where no pass is mid-execution. Three phases through the pass
+	/// library manager: prepare (shadow-copy + load + resolve, the old
+	/// library untouched) -> destroy every slot's passes through the OLD
+	/// library -> commit (the candidate becomes active) -> recreate each
+	/// slot's stored name set through the NEW library (the P2a rebuild
+	/// logic) -> finish (the replaced library unloads, the registry
+	/// re-enumerates for the Render Passes window). Any failure before
+	/// the commit keeps the old library running — never pass-less
+	void process_pending_pass_library_reload(void) noexcept;
+#endif
+
 private:
 	kotek::uint8_t m_previous_render_graph_id;
 	kotek::core::ktkMainManager* m_p_main_manager;
@@ -193,8 +237,11 @@ private:
 	// backend plugin dll
 	kotek::core::ktkIRenderResourceManager* m_p_render_resource_manager;
 	kotek::render::bgfx::ktkRenderGraphSimplified* m_p_current_render_graph;
-	zircon_render_pass_create_pfn_t m_pfn_create_render_pass{};
-	zircon_render_pass_destroy_pfn_t m_pfn_destroy_render_pass{};
+	zircon_render_pass_create_seam_pfn_t m_pfn_create_render_pass{};
+	zircon_render_pass_destroy_seam_pfn_t m_pfn_destroy_render_pass{};
+	/// the owner the two seam callbacks are bound to (the pass library
+	/// manager instance — member of this renderer, outlives every pass)
+	void* m_p_pass_seam_owner{};
 	zircon_render_pass_library_manager m_pass_library_manager;
 	kotek::static_vector_t<zircon_render_graph_simplified_bgfx_info_t,
 		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>

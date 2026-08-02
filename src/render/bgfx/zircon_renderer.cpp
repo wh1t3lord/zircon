@@ -12,13 +12,14 @@
 #include <kotek.render.bgfx/include/kotek_render_device.h>
 #include <kotek.render.bgfx/include/kotek_render_resource_manager.h>
 
-// todo: move to config please
-constexpr kotek::uint8_t _kInvalidRenderGraphID =
-	std::numeric_limits<kotek::uint8_t>::max();
+// todo: move to config please (a compile-time constant — a #define, not
+// a static-storage variable, per the 2026-08-02 rule)
+#define ZIRCON_DEF_RENDERER_BGFX_INVALID_RENDER_GRAPH_ID \
+	(kotek::uint8_t(-1))
 
 zircon_renderer_bgfx::zircon_renderer_bgfx(
 	kotek::Core::ktkMainManager* p_main_manager) :
-	m_previous_render_graph_id{_kInvalidRenderGraphID},
+	m_previous_render_graph_id{ZIRCON_DEF_RENDERER_BGFX_INVALID_RENDER_GRAPH_ID},
 	m_p_main_manager{p_main_manager}, m_p_session_game_manager{},
 	m_p_session_editor_manager{},
 	m_p_render_device{static_cast<kotek::render::bgfx::ktkRenderDevice*>(
@@ -62,6 +63,13 @@ void zircon_renderer_bgfx::Shutdown(void)
 void zircon_renderer_bgfx::draw()
 {
 	this->Begin();
+
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	// the pass-library hot-reload (task Z3 P3b) runs at the very top of
+	// the frame, before any pass and while the GPU is idle — never
+	// mid-pass
+	this->process_pending_pass_library_reload();
+#endif
 
 	// updating all stuff for uploading...
 	this->m_p_render_resource_manager->Update();
@@ -234,7 +242,7 @@ kotek::uint8_t zircon_renderer_bgfx::create_render_graph(
 			ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT,
 			this->m_render_graphs.size());
 
-		return _kInvalidRenderGraphID;
+		return ZIRCON_DEF_RENDERER_BGFX_INVALID_RENDER_GRAPH_ID;
 	}
 
 	KOTEK_ASSERT(passes.size() == pass_names.size(),
@@ -358,7 +366,7 @@ void zircon_renderer_bgfx::set_current_render_graph(
 	this->m_p_current_render_graph =
 		&this->m_render_graphs[render_graph_id].graph;
 
-	if (this->m_previous_render_graph_id != _kInvalidRenderGraphID)
+	if (this->m_previous_render_graph_id != ZIRCON_DEF_RENDERER_BGFX_INVALID_RENDER_GRAPH_ID)
 	{
 		KOTEK_ASSERT(
 			this->m_render_graphs[this->m_previous_render_graph_id].in_use,
@@ -379,32 +387,53 @@ void zircon_renderer_bgfx::set_current_render_graph(
 }
 
 void zircon_renderer_bgfx::set_render_pass_create_callback(
-	zircon_render_pass_create_pfn_t pfn_create) noexcept
+	zircon_render_pass_create_seam_pfn_t pfn_create,
+	void* p_owner) noexcept
 {
 	KOTEK_ASSERT(pfn_create,
-		"pass a valid pass-creation callback (the generated pass "
-		"factory's create-by-name entry)");
+		"pass a valid pass-creation callback (the pass library manager's "
+		"seam wrapper)");
+	KOTEK_ASSERT(p_owner,
+		"pass the seam owner (the pass library manager instance — the "
+		"wrapper reaches its members through this pointer)");
 
-	this->m_pfn_create_render_pass = pfn_create;
+	if (pfn_create)
+	{
+		this->m_pfn_create_render_pass = pfn_create;
+		this->m_p_pass_seam_owner = p_owner;
+	}
 }
 
 void zircon_renderer_bgfx::set_render_pass_destroy_callback(
-	zircon_render_pass_destroy_pfn_t pfn_destroy) noexcept
+	zircon_render_pass_destroy_seam_pfn_t pfn_destroy,
+	void* p_owner) noexcept
 {
 	KOTEK_ASSERT(pfn_destroy,
 		"pass a valid pass-destruction callback (the pass library's own "
 		"destroy entry)");
+	KOTEK_ASSERT(p_owner &&
+			(p_owner == this->m_p_pass_seam_owner ||
+				this->m_p_pass_seam_owner == nullptr),
+		"the destroy seam must bind to the same owner as the create seam "
+		"(one pass library manager per renderer)");
 
-	this->m_pfn_destroy_render_pass = pfn_destroy;
+	if (pfn_destroy)
+	{
+		this->m_pfn_destroy_render_pass = pfn_destroy;
+		this->m_p_pass_seam_owner = p_owner;
+	}
 }
 
 void zircon_renderer_bgfx::initialize_pass_library(
 	bool prefer_shared_library,
 	zircon_render_pass_create_pfn_t p_static_create,
-	zircon_render_pass_destroy_pfn_t p_static_destroy) noexcept
+	zircon_render_pass_destroy_pfn_t p_static_destroy,
+	zircon_passlib_get_count_pfn_t p_static_get_count,
+	zircon_passlib_get_name_pfn_t p_static_get_name) noexcept
 {
 	this->m_pass_library_manager.Initialize(this, prefer_shared_library,
-		p_static_create, p_static_destroy);
+		p_static_create, p_static_destroy, p_static_get_count,
+		p_static_get_name);
 }
 
 kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
@@ -419,7 +448,50 @@ zircon_renderer_bgfx::create_render_pass(const char* p_pass_name) noexcept
 		return nullptr;
 	}
 
-	return this->m_pfn_create_render_pass(p_pass_name);
+	return this->m_pfn_create_render_pass(
+		this->m_p_pass_seam_owner, p_pass_name);
+}
+
+void zircon_renderer_bgfx::request_pass_library_reload(void) noexcept
+{
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	this->m_pass_library_manager.request_reload();
+#else
+	KOTEK_MESSAGE_WARNING(
+		"[passlib]: reload_render_passes is available only in a "
+		"ZIRCON_GRAPHICS_DEVELOPMENT build — the passes are statically "
+		"linked into this one");
+#endif
+}
+
+kotek::uint32_t
+zircon_renderer_bgfx::get_pass_library_registry_generation(
+	void) const noexcept
+{
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	return this->m_pass_library_manager.get_registry_generation();
+#else
+	return 0;
+#endif
+}
+
+bool zircon_renderer_bgfx::get_pass_library_registry(
+	const char* const*& out_p_editor_pass_names,
+	kotek::uint8_t& out_editor_pass_count,
+	const char* const*& out_p_game_pass_names,
+	kotek::uint8_t& out_game_pass_count) const noexcept
+{
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	return this->m_pass_library_manager.get_registry(
+		out_p_editor_pass_names, out_editor_pass_count,
+		out_p_game_pass_names, out_game_pass_count);
+#else
+	out_p_editor_pass_names = nullptr;
+	out_editor_pass_count = 0;
+	out_p_game_pass_names = nullptr;
+	out_game_pass_count = 0;
+	return false;
+#endif
 }
 
 kotek::uint8_t zircon_renderer_bgfx::get_render_graph_count(
@@ -721,7 +793,8 @@ void zircon_renderer_bgfx::shutdown_render_graph_passes(
 		{
 			if (p_pass)
 			{
-				this->m_pfn_destroy_render_pass(p_pass);
+				this->m_pfn_destroy_render_pass(
+					this->m_p_pass_seam_owner, p_pass);
 			}
 		}
 	}
@@ -797,7 +870,7 @@ void zircon_renderer_bgfx::rebuild_render_graph(
 	for (kotek::ktk::size_t i = 0; i < names_to_create.size(); ++i)
 	{
 		kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass* p_pass =
-			this->m_pfn_create_render_pass(names_to_create[i].c_str());
+			this->create_render_pass(names_to_create[i].c_str());
 
 		if (!p_pass)
 		{
@@ -828,3 +901,206 @@ void zircon_renderer_bgfx::rebuild_render_graph(
 	KOTEK_MESSAGE("rebuilt render graph#{} with {} pass(es)",
 		render_graph_id, passes.size());
 }
+
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+void zircon_renderer_bgfx::process_pending_pass_library_reload(
+	void) noexcept
+{
+	if (!this->m_pass_library_manager.is_reload_requested())
+	{
+		return;
+	}
+
+	// the observable contract of the feature: the phase lines below, in
+	// this order (reload detected -> passes destroyed -> library swapped
+	// -> passes recreated)
+	KOTEK_MESSAGE(
+		"[passlib]: reload detected — swapping the pass library at the "
+		"frame boundary");
+
+	// phase 1: shadow-copy + load + resolve of the candidate, the
+	// running library untouched; on failure the flag is cleared and the
+	// old library keeps running (never pass-less)
+	if (!this->m_pass_library_manager.prepare_reload_candidate())
+	{
+		return;
+	}
+
+	// the currently-presented slot (pointer identity — the slots live in
+	// a reserved static_vector and never move) and every slot's
+	// initialization state BEFORE the detach below resets it
+	kotek::uint8_t current_render_graph_id = ZIRCON_DEF_RENDERER_BGFX_INVALID_RENDER_GRAPH_ID;
+
+	kotek::static_vector_t<bool,
+		ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT>
+		was_initialized;
+
+	for (kotek::uint8_t i = 0;
+	     i < static_cast<kotek::uint8_t>(this->m_render_graphs.size());
+	     ++i)
+	{
+		const auto& info = this->m_render_graphs[i];
+
+		if (&info.graph == this->m_p_current_render_graph)
+		{
+			current_render_graph_id = i;
+		}
+
+		was_initialized.push_back(info.graph.Is_Initialized());
+	}
+
+	// destroy phase: every pass dies through the library that created it
+	// — the destroy callback still routes to the OLD library (the commit
+	// below switches it); the graphs detach WITHOUT deleting
+	kotek::uint8_t destroyed_editor_count = 0;
+	kotek::uint8_t destroyed_game_count = 0;
+
+	for (auto& info : this->m_render_graphs)
+	{
+		const kotek::uint8_t pass_count = static_cast<kotek::uint8_t>(
+			info.graph.Get_Passes().size());
+
+		if (info.is_game_session)
+		{
+			destroyed_game_count += pass_count;
+		}
+		else
+		{
+			destroyed_editor_count += pass_count;
+		}
+
+		this->shutdown_render_graph_passes(info);
+	}
+
+	KOTEK_MESSAGE("[passlib]: passes destroyed ({} editor, {} game)",
+		destroyed_editor_count, destroyed_game_count);
+
+	// phase 2: the candidate becomes the active library (the replaced
+	// one is staged for finish_reload; the create/destroy wrappers now
+	// resolve into the NEW library)
+	this->m_pass_library_manager.commit_reload_candidate();
+
+	KOTEK_MESSAGE(
+		"[passlib]: pass library swapped — recreating the session pass "
+		"sets from the new library");
+
+	// recreate phase: every slot's stored name set (task Z3 P2a) is
+	// re-resolved through the NEW library; a name the new library can't
+	// create drops loudly (same rule as rebuild_render_graph) and the
+	// per-pass skip flags ride over aligned with the surviving names
+	kotek::uint8_t created_editor_count = 0;
+	kotek::uint8_t created_game_count = 0;
+
+	for (kotek::uint8_t i = 0;
+	     i < static_cast<kotek::uint8_t>(this->m_render_graphs.size());
+	     ++i)
+	{
+		auto& info = this->m_render_graphs[i];
+
+		if (info.pass_names.empty())
+		{
+			continue;
+		}
+
+		const kotek::static_vector_t<
+			kotek::static_cstring_t<
+				ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+			names_to_create = info.pass_names;
+
+		const kotek::static_vector_t<bool,
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+			enabled_to_restore = info.pass_enabled;
+
+		info.pass_names.clear();
+		info.pass_enabled.clear();
+
+		kotek::static_vector_t<
+			kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+			passes;
+
+		for (kotek::ktk::size_t pass_index = 0;
+		     pass_index < names_to_create.size(); ++pass_index)
+		{
+			kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*
+				p_pass = this->create_render_pass(
+					names_to_create[pass_index].c_str());
+
+			if (!p_pass)
+			{
+				KOTEK_MESSAGE_ERROR(
+					"[passlib]: render pass '{}' is not registered in "
+					"the new pass library — dropping it from render "
+					"graph#{}",
+					names_to_create[pass_index].c_str(), i);
+				continue;
+			}
+
+			passes.push_back(p_pass);
+			info.pass_names.push_back(names_to_create[pass_index]);
+			info.pass_enabled.push_back(enabled_to_restore[pass_index]);
+
+			if (info.is_game_session)
+			{
+				++created_game_count;
+			}
+			else
+			{
+				++created_editor_count;
+			}
+		}
+
+		if (passes.empty())
+		{
+			// the new library can't create a single pass of this session
+			// — the graph stays detached (uninitialized) and the session
+			// renders nothing until the next reload; Add_Passes asserts
+			// on an empty set, so it must not be called here
+			KOTEK_MESSAGE_ERROR(
+				"[passlib]: render graph#{} got zero passes from the new "
+				"pass library — the session renders nothing until the "
+				"next reload",
+				i);
+			continue;
+		}
+
+		info.graph.Add_Passes(passes);
+
+		// only a graph that was initialized before the swap is
+		// re-initialized here — a slot still waiting for its lazy boot
+		// initialization keeps waiting (its console command runs the
+		// regular path on the new passes)
+		if (was_initialized[i])
+		{
+			// the regular initialize path (mirrors the boot flow):
+			// pass-base OnRegisterManagers dynamic_casts +
+			// graph.Initialize, which runs every pass's OnCreateResources
+			this->initialize_render_graph(i, this->m_p_main_manager,
+				this->m_p_render_resource_manager,
+				this->m_p_session_game_manager,
+				this->m_p_session_editor_manager);
+		}
+	}
+
+	// re-seat the presentation: the slot objects never moved across the
+	// swap, so the pointer stayed valid — this is a plain re-seat, the
+	// in_use flags never changed (NOT set_current_render_graph, whose
+	// flag assertions would rightfully fire)
+	if (current_render_graph_id != ZIRCON_DEF_RENDERER_BGFX_INVALID_RENDER_GRAPH_ID)
+	{
+		this->m_p_current_render_graph =
+			&this->m_render_graphs[current_render_graph_id].graph;
+	}
+
+	KOTEK_MESSAGE("[passlib]: passes recreated ({} editor, {} game)",
+		created_editor_count, created_game_count);
+
+	// phase 3: the replaced library unloads (all its objects are dead),
+	// its shadow is deleted, the registry re-enumerates for the Render
+	// Passes window, the flag clears
+	this->m_pass_library_manager.finish_reload();
+
+	KOTEK_MESSAGE("[passlib]: reload complete");
+}
+#endif

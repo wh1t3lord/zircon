@@ -39,11 +39,11 @@ endif()
 
 include_directories(${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	add_compile_definitions(
-		KOTEK_DEBUG
-	)
-endif()
+# per-CONFIG, not configure-time CMAKE_BUILD_TYPE: on multi-config generators
+# (VS) a configure-time "Debug" puts KOTEK_DEBUG into the Release config too,
+# silently masking every Release-only defect (CI's true-Release legs caught
+# two classes of them in 2026-08)
+add_compile_definitions($<$<CONFIG:Debug>:KOTEK_DEBUG>)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

@@ -77,9 +77,11 @@ public:
 
 private:
 	/// re-reads the registered-pass name tables; called from Show() so
-	/// an open always reflects the current library. P3 (hot-reload)
-	/// calls this after a pass-DLL reload — that's when the tables can
-	/// actually change under the window
+	/// an open always reflects the current library, and from Draw() when
+	/// the pass library manager's registry generation bumped (task Z3
+	/// P3b: a hot-reload swapped the library — the tables re-enumerate
+	/// from the NEW library through the renderer's getters, so a pass
+	/// added in the rebuild appears without an editor restart)
 	void refresh_registry(void) noexcept;
 
 	void draw_session_section(
@@ -121,6 +123,16 @@ private:
 	kotek::uint8_t m_registry_editor_pass_count;
 	const char* const* m_p_registry_game_pass_names;
 	kotek::uint8_t m_registry_game_pass_count;
+
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	/// the last pass-library registry generation this window picked up
+	/// (task Z3 P3b): Draw() compares it against the renderer's counter
+	/// and refreshes the tables on a change — the pull side of the
+	/// hot-reload registry handoff (the manager publishes, the window
+	/// picks up on its own thread-confined draw — no callback into the
+	/// executor needed)
+	kotek::uint32_t m_registry_generation_seen{};
+#endif
 
 	/// the game session's dirty-check baseline (task Z3 P2h): the
 	/// resolved pass set the game session was created with — owned by

@@ -184,6 +184,24 @@ void zircon_editor_ui_window_render_passes::Draw(
 	if (!p_wrapper_imgui)
 		return;
 
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	// a pass-library hot-reload (task Z3 P3b) re-enumerates the registry
+	// and bumps the generation — pick up the new tables the next time
+	// this window draws (same thread: the swap runs at the top of draw()
+	// and this Draw runs inside the imgui pass of the same frame)
+	if (this->m_p_renderer_bgfx)
+	{
+		const kotek::uint32_t registry_generation =
+			this->m_p_renderer_bgfx->get_pass_library_registry_generation();
+
+		if (registry_generation != this->m_registry_generation_seen)
+		{
+			this->m_registry_generation_seen = registry_generation;
+			this->refresh_registry();
+		}
+	}
+#endif
+
 	// docked left by default (the persisted imgui.ini under
 	// data_user/sdk/settings takes over after the first run), focused
 	// once on open — the first-run presentation is the "wizard"
@@ -264,11 +282,34 @@ bool zircon_editor_ui_window_render_passes::Is_Shown(void) const
 
 void zircon_editor_ui_window_render_passes::refresh_registry(void) noexcept
 {
-	// P2a: the tables are the generated compile-time registry the ctor
-	// received, so this only re-points at them; P3 (hot-reload) swaps
-	// the source to the reloaded pass library's exported table and this
-	// method becomes the real refresh — call sites (Show, and P3's
-	// reload watcher) stay unchanged
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	// task Z3 P3b: the graphics-development build re-points the tables
+	// at the pass library manager's executor-owned registry copies —
+	// after a hot-reload these were re-enumerated from the NEW library's
+	// get_count/get_name exports, so a pass added in the rebuild shows
+	// up without an editor restart. The pointers are stable across swaps
+	// (fixed inline storage inside the manager)
+	if (!this->m_p_renderer_bgfx)
+		return;
+
+	const char* const* p_editor_pass_names = nullptr;
+	kotek::uint8_t editor_pass_count = 0;
+	const char* const* p_game_pass_names = nullptr;
+	kotek::uint8_t game_pass_count = 0;
+
+	if (this->m_p_renderer_bgfx->get_pass_library_registry(
+			p_editor_pass_names, editor_pass_count, p_game_pass_names,
+			game_pass_count))
+	{
+		this->m_p_registry_editor_pass_names = p_editor_pass_names;
+		this->m_registry_editor_pass_count = editor_pass_count;
+		this->m_p_registry_game_pass_names = p_game_pass_names;
+		this->m_registry_game_pass_count = game_pass_count;
+	}
+#endif
+
+	// the default configuration: the compile-time registry tables from
+	// the ctor never change — nothing to refresh
 }
 
 void zircon_editor_ui_window_render_passes::draw_session_section(

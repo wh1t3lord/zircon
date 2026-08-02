@@ -85,7 +85,12 @@ foreach (_entry IN LISTS _testlib_objdirs)
 
 	foreach (_object IN LISTS _testlib_objects)
 		get_filename_component(_object_name "${_object}" NAME)
-		if ("${_object_name}" MATCHES "_test_")
+		if ("${_object_name}" MATCHES "_test_" OR
+			"${_object_name}" MATCHES "^main_.*_dll\\.obj$")
+			# test objects (gtest self-registration must not leak into
+			# game.ktk) and module entry objects (the passes DLL never
+			# imports InitializeModule_*/ShutdownModule_*; their
+			# registrar references would drag the test objects in)
 			continue()
 		endif()
 		list(APPEND _inputs "${_object}")
@@ -133,11 +138,22 @@ foreach (_file IN LISTS _inputs)
 	# (??_G/??_E) are skipped too: exporting them draws LNK4102 ("image
 	# may not run correctly") and the passes DLL never deletes through an
 	# exported destructor — every pass is destroyed by the library's own
-	# zircon_passlib_destroy (the reload-safety rule)
+	# zircon_passlib_destroy (the reload-safety rule).
+	#
+	# Module entries (?InitializeModule_*/?ShutdownModule_* etc.) are
+	# never imported by the passes DLL, and listing them would /INCLUDE-
+	# pull the module entry objects whose references to the test
+	# registrars drag every test object into game.ktk (the kotek suite
+	# would then run in game.ktk's registry too — see the run_unit_tests
+	# filter in zircon_game_manager.cpp). std::/stdext:: symbols are
+	# excluded as well: the DLL is a self-contained /MT module and must
+	# never bind std runtime into game.ktk (cross-CRT), and their shared
+	# COMDATs are the lottery vector that once pulled
+	# kotek_core_test_plugin_override.obj for std::string::find.
 	list(FILTER _functions EXCLUDE REGEX
-		"PchSym|__IMPORT_DESCRIPTOR|__NULL_IMPORT_DESCRIPTOR|^__imp_|^\\?\\?_G|^\\?\\?_E")
+		"PchSym|__IMPORT_DESCRIPTOR|__NULL_IMPORT_DESCRIPTOR|^__imp_|^\\?\\?_G|^\\?\\?_E|^\\?(Initialize|Shutdown|Serialize|Deserialize)Module_|std@@|stdext@@")
 	list(FILTER _data EXCLUDE REGEX
-		"PchSym|__IMPORT_DESCRIPTOR|__NULL_IMPORT_DESCRIPTOR|^__imp_")
+		"PchSym|__IMPORT_DESCRIPTOR|__NULL_IMPORT_DESCRIPTOR|^__imp_|std@@|stdext@@")
 
 	list(LENGTH _functions _fn_count)
 	list(LENGTH _data _data_count)

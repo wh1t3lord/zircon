@@ -49,8 +49,8 @@ kotek::uint8_t zircon_session_editor_manager::create_session(void)
 	{
 #ifdef KOTEK_DEBUG
 		KOTEK_MESSAGE("created session: {}", generated_session_id);
-#endif
 		p_session->m_was_allocated_by_manager = true;
+#endif
 		this->m_sessions.push_back(p_session);
 	}
 	else
