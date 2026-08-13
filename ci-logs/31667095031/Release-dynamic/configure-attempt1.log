@@ -1,0 +1,86 @@
+-- Building for: Visual Studio 17 2022
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+-- The C compiler identification is MSVC 19.44.35228.0
+-- The CXX compiler identification is MSVC 19.44.35228.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- applying D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake
+-- [kotek]: C++ standard is C++20 (KOTEK_WINDOWS_XP=OFF)
+-- D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake is applied!
+[zircon]: build type is 'Release'
+[zircon]: CMAKE_SYSTEM_VERSION='10.0.20348'
+[zircon]: output dir is 'D:/a/zircon/zircon/build'
+-- applying D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake
+[kotek.engine]: CMAKE_SOURCE_DIR=D:/a/zircon/zircon
+[kotek.engine]: CMAKE_CURRENT_SOURCE_DIR=D:/a/zircon/zircon/kotek
+[kotek.engine]: vcpkg triplet is 'x64-windows-static'
+-- applying D:/a/zircon/zircon/kotek/cmake/library.cmake
+-- [kotek]: linkage scenario is 'SHARED' (force static: '', force shared: '')
+-- D:/a/zircon/zircon/kotek/cmake/library.cmake is applied!
+[kotek.engine]: Setting default name for kotek.exe folder: kotek
+[kotek.engine]: KOTEK_DEPS_FOLDER is enabled! Now you should specified your dependency folder name (but not its path)
+[kotek.engine]: build type is 'Release'
+[kotek.engine]: library development - EMB (EMB is embedded and DYN is dynamic and HYB is hybrid, check documentation about these definitions)
+[kotek.engine]: filename for generating preprocessors: 'D:/a/zircon/zircon/build/generated/kotek_std_preprocessors.h'
+[kotek.engine]: using nuget packages
+KOTEK_CONFIGURATION_TYPE=minimal
+KOTEK_VCPKG_FILENAME=vcpkg_nuget_minimal.cmake using this for installing packages from vcpkg
+-- Downloading vcpkg for downloading big packages because of nuget limitations...
+Initialized empty Git repository in D:/a/zircon/zircon/kotek/vcpkg/.git/
+From https://github.com/microsoft/vcpkg
+ * branch              1bf999414d7def6fea4c3c310d613ceed039f929 -> FETCH_HEAD
+Note: switching to 'FETCH_HEAD'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at 1bf99941 [libfabric] Update to 2.5.1 (#52023)
+-- [kotek]: patched vcpkg tracy port (TRACY_DELAYED_INIT + TRACY_MANUAL_LIFETIME forwarded)
+Downloading https://github.com/microsoft/vcpkg-tool/releases/download/2026-04-08/vcpkg.exe -> D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe...While calling Windows API function WinHttpReceiveResponse got error 0x00002F78:
+The server returned an invalid or unrecognized response
+
+
+D:\a\zircon\zircon\kotek\vcpkg\scripts\bootstrap.ps1 : Downloading vcpkg.exe failed. Please check your internet 
+connection, or consider downloading a recent vcpkg.exe from https://github.com/microsoft/vcpkg-tool with a browser.
+At line:1 char:4
++ & {& "D:\a\zircon\zircon\kotek\vcpkg\scripts\bootstrap.ps1" }
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,bootstrap.ps1
+ 
+ScriptHalted
+At D:\a\zircon\zircon\kotek\vcpkg\scripts\bootstrap.ps1:63 char:5
++     throw
++     ~~~~~
+    + CategoryInfo          : OperationStopped: (:) [], RuntimeException
+    + FullyQualifiedErrorId : ScriptHalted
+ 
+-- [kotek]: rebuilding tracy with the manual-lifetime patch (one-time)...
+CMake Error at kotek/cmake/windows/vcpkg_nuget_minimal.cmake:93 (message):
+  [kotek]: tracy rebuild after the port patch failed (no such file or
+  directory)
+Call Stack (most recent call first):
+  kotek/CMakeLists.txt:129 (include)
+
+
+-- Configuring incomplete, errors occurred!
