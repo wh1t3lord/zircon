@@ -169,6 +169,13 @@ public:
 	/// reads scene.json through this path
 	const char* get_streaming_folder_path(void) const noexcept;
 
+	/// @brief \~english the command type registry (member of the
+	/// history since task Z18 batch 2a — was the Meyers singleton
+	/// zircon_command_registry::get_instance()); the history owns the
+	/// command lifecycle: initialize() registers the built-in types
+	/// and journal reconstruction resolves them through this table
+	zircon_command_registry& get_command_registry(void) noexcept;
+
 private:
 	/// @brief \~english the command object for a node: live pool
 	/// hit or reconstruction from the journal into the scratch slot
@@ -272,6 +279,11 @@ private:
 		m_entity_reincarnation;
 
 	zircon_command_journal m_journal;
+
+	/// @brief \~english command type registry, owned by the history
+	/// (task Z18 batch 2a — no statics); registered in initialize(),
+	/// consulted by ExecuteCommand and reconstruct_command
+	zircon_command_registry m_command_registry;
 
 	kotek::static_cstring_t<KOTEK_DEF_MAXIMUM_OS_PATH_LENGTH>
 		m_path_to_streaming_folder;

@@ -123,10 +123,6 @@ public:
 
 	kotek::size_t get_registered_count(void) const noexcept;
 
-	/// @brief \~english process-wide instance (pure data table, no
-	/// allocation; safe across module boundaries in static linkage)
-	static zircon_command_registry& get_instance(void) noexcept;
-
 private:
 	kotek::static_vector_t<
 		zircon_command_type_info,

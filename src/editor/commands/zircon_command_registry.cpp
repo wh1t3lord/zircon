@@ -277,14 +277,6 @@ kotek::size_t zircon_command_registry::get_registered_count(
 	return this->m_types.size();
 }
 
-zircon_command_registry&
-zircon_command_registry::get_instance(void) noexcept
-{
-	static zircon_command_registry instance;
-
-	return instance;
-}
-
 namespace
 {
 	kotek::core::ktkISDKRedoUndo* zircon_create_command_create_entity(

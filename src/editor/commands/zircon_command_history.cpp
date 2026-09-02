@@ -66,11 +66,11 @@ void zircon_editor_command_history::initialize(
 	this->m_p_manager_session_editor = p_manager_session_editor;
 
 	zircon_register_builtin_command_types(
-		zircon_command_registry::get_instance()
+		this->m_command_registry
 	);
 
 	KOTEK_ASSERT(
-		zircon_command_registry::get_instance()
+		this->m_command_registry
 				.get_max_instance_size() <=
 			zircon_DEF_COMMAND_INSTANCE_STORAGE_SIZE,
 		"registered commands do not fit into the pool slots, "
@@ -300,7 +300,7 @@ void zircon_editor_command_history::ExecuteCommand(
 		);
 
 	KOTEK_ASSERT(
-		zircon_command_registry::get_instance().find_by_type(
+		this->m_command_registry.find_by_type(
 			command_type
 		),
 		"command [{}] with type {} is not registered in "
@@ -950,6 +950,14 @@ zircon_editor_command_history::get_streaming_folder_path(
 	return this->m_path_to_streaming_folder.c_str();
 }
 
+zircon_command_registry&
+zircon_editor_command_history::get_command_registry(
+	void
+) noexcept
+{
+	return this->m_command_registry;
+}
+
 kotek::uint64_t
 zircon_editor_command_history::get_journal_raw_entry_bytes(
 	void
@@ -1007,7 +1015,7 @@ zircon_editor_command_history::reconstruct_command(
 		this->m_nodes[node_id];
 
 	const zircon_command_type_info* p_type_info =
-		zircon_command_registry::get_instance().find_by_type(
+		this->m_command_registry.find_by_type(
 			node.m_command_type
 		);
 
