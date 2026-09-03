@@ -81,6 +81,19 @@
    would need a fragile transpiler). The vendored imgui embedded `.bin.h`
    blobs are the temporary exception (editor-internal reference shaders) —
    they migrate to Slang when the editor shaders join the pipeline.
+   **cbuffer slot rule per target (the 2026-09-03 "black screen" lesson)**:
+   fragment cbuffers sit at `register(b1, space0)`/`vk::binding(1,0)` for
+   NRI-dx12/bgfx-vulkan, but the bgfx **d3d11** route (`slangc -target hlsl`
+   + fxc) compiles with `-DZIRCON_SLANG_BGFX_FXC` and FS cbuffers MUST drop
+   to `register(b0)` under that define — bgfx's d3d renderers bind the
+   uniform cbuffer at slot 0 for BOTH stages
+   (`renderer_d3d11.cpp PSSetConstantBuffers(0, ...)`), so a `b1`
+   declaration silently reads zeros (grid NaN-discards, model renders
+   black, gizmo transparent — the whole 3D view black while imgui works).
+   Vertex cbuffers stay at b0 on every target. bgfx predefined uniforms
+   (`u_invViewProj`, `u_modelViewProj`, ...) ARE valid in fragment binaries
+   (name-matched at shader create, filled per-draw from the view state) —
+   never `createUniform` them.
 6. **Namespace form**: the real namespace is `Kotek` (capital, renamable via
    `KOTEK_BEGIN_NAMESPACE_KOTEK`); `kotek.core/include/kotek_core.h` defines the
    lowercase aliases (`namespace kotek/core/render = Kotek::Core/...`).
@@ -409,6 +422,21 @@ non-existent target name in some configs — verify when touching root CMake (ta
   of the same cross-CRT class. The proper fix is kotek-side: stop
   passing heap-owning objects across module boundaries or share one
   CRT (K9); do not "fix" it by hiding reports.
+- **RESOLVED (2026-09-03): the all-black 3D view (grid/model/gizmo
+  invisible, imgui fine)**. Root cause: every Slang FRAGMENT cbuffer
+  declared `register(b1, space0)` (the bgfx-vulkan/NRI-dx12 slot), but
+  bgfx's d3d11 renderer binds the uniform cbuffer at slot **0 for both
+  stages** (`renderer_d3d11.cpp` `PSSetConstantBuffers(0, ...)`), so the
+  fxc-compiled FS read zeros — grid: zero `u_invViewProj` → NaN rays →
+  discard; model_static: zero lights → black geometry; gizmo: zero
+  `u_color` → transparent. Fix: the `-target hlsl` (fxc) route compiles
+  with `-DZIRCON_SLANG_BGFX_FXC` and FS cbuffers drop to `register(b0)`
+  under that define (grid/model_static/gizmo FS + cmake +
+  `zircon_core.slang` house rules — the rule is now §2.5a). Verified:
+  frame capture shows the full editor grid (1 m cells, 10 m majors,
+  red/blue axes, distance fade). Also proven in bgfx source en route:
+  predefined uniforms (`u_invViewProj` etc.) ARE filled for fragment
+  binaries (name-matched at create, per-draw `inverse(viewProj)` upload).
 
 ## 6. Task Registry (owner's tasks — update status as work happens)
 

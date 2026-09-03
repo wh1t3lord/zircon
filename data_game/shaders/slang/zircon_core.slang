@@ -25,7 +25,12 @@
 //   cbuffer at binding 1, texture N at binding 2+N with its sampler at
 //   binding 18+N (bgfx shaderc_spirv.cpp setShiftBinding /
 //   shader_spirv.h kSpirvVertexBinding/kSpirvFragmentBinding/kSpirvBindShift/
-//   kSpirvSamplerShift).
+//   kSpirvSamplerShift). EXCEPTION — the bgfx d3d11 route (slang -target
+//   hlsl + fxc) compiles with -DZIRCON_SLANG_BGFX_FXC and fragment cbuffers
+//   MUST drop to register(b0) under that define: bgfx's d3d renderers bind
+//   the uniform cbuffer at slot 0 for BOTH stages
+//   (renderer_d3d11.cpp PSSetConstantBuffers(0, ...)); a b1 declaration
+//   reads zeros there. Vertex cbuffers stay at b0 on every target.
 // - cbuffer member byte offsets must match the uniform table metadata
 //   (std140/HLSL packing: float4x4 = 64 bytes); u_model at 0, u_viewProj
 //   at 64 in ModelParams below.

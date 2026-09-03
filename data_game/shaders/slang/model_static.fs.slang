@@ -8,17 +8,27 @@
 
 import zircon_core;
 
-// fragment-stage uniform buffer. bgfx-vulkan expects the FS cbuffer at
-// set 0 / binding 1 (kSpirvFragmentBinding); the NRI-dx12 path uses
-// register(b1, space0). Member offsets (cbuffer packing): u_lightDir = 0,
-// u_lightColor = 16, u_ambient = 32, u_cameraPos = 48 — mirrored in
+// fragment-stage uniform buffer. The slot depends on the compile target:
+// bgfx-vulkan expects the FS cbuffer at set 0 / binding 1
+// (kSpirvFragmentBinding) and the NRI-dx12 path at register(b1, space0),
+// but the bgfx d3d11 route (slang -target hlsl + fxc, compiled with
+// -DZIRCON_SLANG_BGFX_FXC from cmake/zircon_slang_shaders.cmake) MUST sit
+// at b0 — bgfx's d3d renderers bind the uniform cbuffer at slot 0 for BOTH
+// stages (renderer_d3d11.cpp PSSetConstantBuffers(0, ...)), so a b1
+// declaration there reads zeros (the 2026-09-03 "black screen" bug).
+// Member offsets (cbuffer packing): u_lightDir = 0, u_lightColor = 16,
+// u_ambient = 32, u_cameraPos = 48 — mirrored in
 // cmake/zircon_slang_shaders.cmake (u_lightDir:vec4:0:1,
 // u_lightColor:vec4:16:1, u_ambient:vec4:32:1, u_cameraPos:vec4:48:1).
 // Every member is pass-written (no bgfx predefined uniforms here): the
 // pass fills them per frame from the zircon_DEF_RENDER_PASS_MODEL_STATIC_*
 // defines until light components land (a later task).
+#ifdef ZIRCON_SLANG_BGFX_FXC
+cbuffer LightParams : register(b0, space0)
+#else
 [[vk::binding(1, 0)]]
 cbuffer LightParams : register(b1, space0)
+#endif
 {
 	float4 u_lightDir;   // xyz = direction the light travels (FROM the light), normalized
 	float4 u_lightColor; // xyz = light rgb (w unused, 16-byte slot)

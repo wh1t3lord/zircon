@@ -6,8 +6,11 @@
 #       the blob into bgfx's .bin container (bin version 11) ->
 #       data_user/shader_cache/bgfx/vulkan/<name>.<vs|fs>.bin
 #   bgfx (d3d11 renderer — the default boot's active one): slangc -target hlsl
-#       (sm_5_0), the Windows SDK's fxc compiles DXBC, zircon_shaderpack wraps
-#       it into the same v11 container with the same io/uniform metadata ->
+#       (sm_5_0) with -DZIRCON_SLANG_BGFX_FXC (fragment cbuffers land at b0 —
+#       bgfx's d3d renderers bind the uniform cbuffer at slot 0 for BOTH
+#       stages, unlike the vulkan b0-vs/b1-fs convention), the Windows SDK's
+#       fxc compiles DXBC, zircon_shaderpack wraps it into the same v11
+#       container with the same io/uniform metadata ->
 #       data_user/shader_cache/bgfx/dx11/<name>.<vs|fs>.bin
 #   NRI (dx12): slangc -target dxil (raw blob, no container) ->
 #       data_user/shader_cache/nri/dx12/<name>.<vs|fs>.dxil
@@ -225,6 +228,7 @@ function(zircon_add_slang_shader name)
 			OUTPUT "${bgfx_bin_d3d11}"
 			COMMAND "${ZIRCON_SLANGC}" "${slang_file}"
 				-entry ${stage}_main -target hlsl -profile sm_5_0
+				-DZIRCON_SLANG_BGFX_FXC
 				-o "${hlsl_file}"
 			COMMAND "${ZIRCON_FXC}" /nologo /T ${fxc_profile}
 				/E ${stage}_main /Fo "${dxbc_file}" "${hlsl_file}"
