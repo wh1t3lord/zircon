@@ -405,6 +405,32 @@ namespace no_streaming
 				return;
 			}
 
+			// ESC arbitration (task Z19): the frame is open (NewFrame ran
+			// above) and no window has drawn yet — dismissals take effect
+			// for THIS frame's draw. The pass feeds ONE semantic cancel
+			// event per ESC press into the session's arbiter; the arbiter
+			// dismisses at most one consumer (gizmo drag > popup/modal >
+			// text input > selection) and ordinary windows are never
+			// closed (owner decision 2026-09-03). Edge-only
+			// (repeat=false): a held ESC must not drain the whole
+			// consumer stack level by level. Phase 2 moves the key source
+			// to kotek.core.input — this adapter is the only thing that
+			// changes, the arbiter and consumers stay untouched
+			if (this->m_p_imgui_wrapper &&
+				this->m_p_imgui_wrapper->IsKeyPressed(
+					ImGuiKey_Escape, false))
+			{
+				const char* p_consumed_consumer = nullptr;
+
+				if (p_session->get_cancel_arbiter()->handle_cancel(
+						&p_consumed_consumer))
+				{
+					KOTEK_MESSAGE("[cancel]: ESC dismissed consumer '{}'",
+						p_consumed_consumer ? p_consumed_consumer
+											: "<unnamed>");
+				}
+			}
+
 			auto& imgui_ui_elements = p_session->get_imgui_ui_elements();
 
 			for (auto* p_element : imgui_ui_elements)

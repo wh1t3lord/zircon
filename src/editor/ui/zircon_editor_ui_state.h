@@ -18,6 +18,16 @@ struct zircon_gizmo_overlay_state_t
 	bool m_is_gizmo_active;
 	bool m_is_dragging;
 	bool m_is_snap_enabled;
+	// the ESC-arbitration pair (task Z19): the pass publishes
+	// m_is_drag_active while a drag is in progress; the session's cancel
+	// arbiter (its gizmo-drag consumer) sets m_cancel_drag_requested to
+	// ask the pass to abort the drag — the pass restores the pre-drag
+	// component state, journals NOTHING and clears both flags. The pair
+	// rides this existing session<->pass POD, so the consumer reaches the
+	// renderer without a session->renderer call edge (same pattern as
+	// click-select)
+	bool m_is_drag_active;
+	bool m_cancel_drag_requested;
 	// per-mode delta: translate -> world xyz delta, rotate -> the
 	// dragged axis's angle in degrees (one component), scale -> the
 	// per-component scale delta

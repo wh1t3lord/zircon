@@ -332,6 +332,18 @@ namespace no_streaming
 			const float* p_start_position, const float* p_start_scale,
 			const float* p_start_rotation_quat) noexcept;
 
+		// the drag-CANCEL counterpart of commit_drag_edit (task Z19, the
+		// ESC arbitration): writes the captured drag-START state back
+		// into the component and journals NOTHING — the drag is aborted
+		// as if it never started. Factored as a pass static (same shape
+		// as commit_drag_edit) so the unit suite drives it headlessly.
+		// False when the chain breaks — the caller's drag teardown still
+		// ends the drag in that case
+		static bool cancel_drag_edit(zircon_factory* p_factory,
+			zircon_ecs_context_t* p_context, kotek::entity_t entity,
+			const float* p_start_position, const float* p_start_scale,
+			const float* p_start_rotation_quat) noexcept;
+
 		// --- the handle function implementations (registered in the
 		// table; public so the table can name them and the unit tests
 		// can pin them one by one)

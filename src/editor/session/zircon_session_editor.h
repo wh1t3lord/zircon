@@ -2,6 +2,7 @@
 
 #include "../../core/zircon_defs.h"
 #include "../../core/zircon_session.h"
+#include "../../core/zircon_cancel_arbiter.h"
 #include "../ui/zircon_editor_ui_state.h"
 #include "../commands\zircon_command_history.h"
 
@@ -78,6 +79,12 @@ public:
 	const zircon_editor_command_history*
 	get_command_history(void) const noexcept;
 
+	/// the session's ESC/cancel arbiter (task Z19) — the editor imgui
+	/// pass's OnUpdate adapter feeds it the semantic cancel event
+	zircon_cancel_arbiter* get_cancel_arbiter(void) noexcept;
+	const zircon_cancel_arbiter* get_cancel_arbiter(void
+	) const noexcept;
+
 	zircon_world* get_world(void) const noexcept;
 
 	void set_imgui_ui_elements(
@@ -92,6 +99,10 @@ private:
 	void update_component_camera(void) noexcept;
 	void update_component_camera_sdk(void) noexcept;
 	void try_to_initialize_render_graph(void) noexcept;
+
+	/// the arbiter's default consumers (task Z19), registered ONCE at
+	/// initialize — poll-on-event, so nothing re-registers per frame
+	void register_cancel_arbiter_consumers(void) noexcept;
 
 private:
 #ifdef KOTEK_DEBUG
@@ -111,4 +122,7 @@ private:
 		m_name;
 	zircon_editor_ui_state m_state;
 	zircon_editor_command_history m_command_history_manager;
+	/// one arbiter per session (task Z19) — like its command history;
+	/// the game layer instantiates the same class for its own UI later
+	zircon_cancel_arbiter m_cancel_arbiter;
 };

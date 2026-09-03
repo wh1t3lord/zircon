@@ -611,7 +611,9 @@ namespace no_streaming
 		this->m_is_click_candidate = false;
 		this->m_is_warned_about_missing_program = false;
 
-		// the overlay window must not keep drawing a dead pass's state
+		// the overlay window must not keep drawing a dead pass's state —
+		// and the cancel arbiter must not probe a stale drag flag of a
+		// pass that no longer exists (task Z19)
 		frame_context_t frame = this->resolve_frame_context();
 
 		if (frame.m_p_session && frame.m_p_session->get_ui_state())
@@ -619,6 +621,9 @@ namespace no_streaming
 			frame.m_p_session->get_ui_state()
 				->get_gizmo_overlay_state()
 				.m_is_gizmo_active = false;
+			frame.m_p_session->get_ui_state()
+				->get_gizmo_overlay_state()
+				.m_is_drag_active = false;
 		}
 	}
 
@@ -759,41 +764,65 @@ namespace no_streaming
 
 		if (this->m_drag.m_is_active)
 		{
-			if (is_frame_ready)
-			{
-				apply_drag(this->m_drag, ray_origin, ray_direction,
-					this->m_is_snap_enabled);
+			// ESC arbitration (task Z19): the session's cancel arbiter
+			// (through the editor imgui pass's adapter) asked to abort
+			// the drag — restore the pre-drag component state, journal
+			// NOTHING, end the drag; the request flag is consumed here,
+			// m_is_drag_active is re-asserted by publish_overlay_state
+			// below
+			zircon_gizmo_overlay_state_t* p_overlay_state =
+				(frame.m_p_session && frame.m_p_session->get_ui_state())
+				? &frame.m_p_session->get_ui_state()
+					   ->get_gizmo_overlay_state()
+				: nullptr;
 
-				// the live preview mutates the component directly; the
-				// drag-end commit restores the start state and issues
-				// ONE journaled command, so the history sees a single
-				// edit
-				frame.m_p_transform->set_position(kotek::math::vec3f_t(
-					this->m_drag.m_result_position[0],
-					this->m_drag.m_result_position[1],
-					this->m_drag.m_result_position[2]));
-				frame.m_p_transform->set_scale(kotek::math::vec3f_t(
-					this->m_drag.m_result_scale[0],
-					this->m_drag.m_result_scale[1],
-					this->m_drag.m_result_scale[2]));
-				frame.m_p_transform->set_rotation(kotek::math::quatf_t(
-					this->m_drag.m_result_rotation[0],
-					this->m_drag.m_result_rotation[1],
-					this->m_drag.m_result_rotation[2],
-					this->m_drag.m_result_rotation[3]));
-			}
-
-			if (is_mouse_up_edge)
+			if (p_overlay_state && p_overlay_state->m_cancel_drag_requested)
 			{
-				commit_drag_edit(this->m_p_manager_session_editor,
-					frame.m_p_factory,
-					frame.m_p_session->get_command_history(),
-					frame.m_p_ecs_context, frame.m_selected_entity,
-					this->m_drag.m_start_position,
-					this->m_drag.m_start_scale,
-					this->m_drag.m_start_rotation);
+				cancel_drag_edit(frame.m_p_factory, frame.m_p_ecs_context,
+					frame.m_selected_entity, this->m_drag.m_start_position,
+					this->m_drag.m_start_scale, this->m_drag.m_start_rotation);
 
 				this->m_drag.m_is_active = false;
+				p_overlay_state->m_cancel_drag_requested = false;
+			}
+			else
+			{
+				if (is_frame_ready)
+				{
+					apply_drag(this->m_drag, ray_origin, ray_direction,
+						this->m_is_snap_enabled);
+
+					// the live preview mutates the component directly; the
+					// drag-end commit restores the start state and issues
+					// ONE journaled command, so the history sees a single
+					// edit
+					frame.m_p_transform->set_position(kotek::math::vec3f_t(
+						this->m_drag.m_result_position[0],
+						this->m_drag.m_result_position[1],
+						this->m_drag.m_result_position[2]));
+					frame.m_p_transform->set_scale(kotek::math::vec3f_t(
+						this->m_drag.m_result_scale[0],
+						this->m_drag.m_result_scale[1],
+						this->m_drag.m_result_scale[2]));
+					frame.m_p_transform->set_rotation(kotek::math::quatf_t(
+						this->m_drag.m_result_rotation[0],
+						this->m_drag.m_result_rotation[1],
+						this->m_drag.m_result_rotation[2],
+						this->m_drag.m_result_rotation[3]));
+				}
+
+				if (is_mouse_up_edge)
+				{
+					commit_drag_edit(this->m_p_manager_session_editor,
+						frame.m_p_factory,
+						frame.m_p_session->get_command_history(),
+						frame.m_p_ecs_context, frame.m_selected_entity,
+						this->m_drag.m_start_position,
+						this->m_drag.m_start_scale,
+						this->m_drag.m_start_rotation);
+
+					this->m_drag.m_is_active = false;
+				}
 			}
 		}
 		else if (is_frame_ready)
@@ -2218,6 +2247,48 @@ namespace no_streaming
 			entity, p_start_position, p_start_scale,
 			p_start_rotation_quat);
 	}
+
+	bool zircon_render_graph_pass_editor_gizmo_own_bgfx::cancel_drag_edit(
+		zircon_factory* p_factory, zircon_ecs_context_t* p_context,
+		kotek::entity_t entity, const float* p_start_position,
+		const float* p_start_scale,
+		const float* p_start_rotation_quat) noexcept
+	{
+		KOTEK_ASSERT(p_factory, "must be valid");
+		KOTEK_ASSERT(p_context, "must be valid");
+		KOTEK_ASSERT(p_start_position, "must be valid");
+		KOTEK_ASSERT(p_start_scale, "must be valid");
+		KOTEK_ASSERT(p_start_rotation_quat, "must be valid");
+
+		if (p_factory == nullptr || p_context == nullptr ||
+			p_start_position == nullptr || p_start_scale == nullptr ||
+			p_start_rotation_quat == nullptr)
+		{
+			return false;
+		}
+
+		zircon_component_transform* p_transform =
+			static_cast<zircon_component_transform*>(
+				p_factory->get_component_by_enum(p_context, entity,
+					eZirconComponentType::kzircon_component_transform));
+
+		if (p_transform == nullptr)
+			return false;
+
+		// the whole cancel: put the drag-START capture back — unlike
+		// commit_drag_edit nothing is serialized and no command is
+		// placement-new'd, so the journal never sees the aborted drag
+		p_transform->set_position(kotek::math::vec3f_t(p_start_position[0],
+			p_start_position[1], p_start_position[2]));
+		p_transform->set_scale(kotek::math::vec3f_t(p_start_scale[0],
+			p_start_scale[1], p_start_scale[2]));
+		p_transform->set_rotation(
+			kotek::math::quatf_t(p_start_rotation_quat[0],
+				p_start_rotation_quat[1], p_start_rotation_quat[2],
+				p_start_rotation_quat[3]));
+
+		return true;
+	}
 } // namespace no_streaming
 
 namespace no_streaming
@@ -2623,6 +2694,20 @@ namespace no_streaming
 		state.m_is_snap_enabled = this->m_is_snap_enabled;
 		state.m_is_gizmo_active = context.m_p_transform != nullptr;
 		state.m_is_dragging = this->m_drag.m_is_active;
+
+		// the ESC-arbitration pair (task Z19): the arbiter's gizmo-drag
+		// consumer probes m_is_drag_active and sets
+		// m_cancel_drag_requested to abort the drag. The request channel
+		// is meaningful only while a drag lives — a stale request (a
+		// hot-reload destroyed the pass mid-drag) must never eat the
+		// NEXT drag, so publish enforces the invariant at every frame
+		// end
+		state.m_is_drag_active = this->m_drag.m_is_active;
+
+		if (this->m_drag.m_is_active == false)
+		{
+			state.m_cancel_drag_requested = false;
+		}
 
 		for (int component = 0; component < 3; ++component)
 			state.m_drag_delta[component] = this->m_drag.m_delta[component];

@@ -4,6 +4,148 @@
 #include "../../core/zircon_console.h"
 #include "../commands/zircon_command_history.h"
 
+#include <kotek.core.main_manager/include/kotek_core_main_manager.h>
+
+namespace
+{
+	// --- the session's default cancel consumers (task Z19): plain free
+	// functions on the arbiter's fnptr+void* seam (no statics, §2.1a) —
+	// the owner pointer is the session's ui_state for the zircon-state
+	// consumers and the main manager for the imgui-state ones; every
+	// probe guards its chain so a headless session (no imgui wrapper)
+	// simply never reports active
+
+	bool zircon_session_cancel_gizmo_drag_is_active(void* p_owner)
+	{
+		zircon_editor_ui_state* p_ui_state =
+			static_cast<zircon_editor_ui_state*>(p_owner);
+
+		return p_ui_state &&
+			p_ui_state->get_gizmo_overlay_state().m_is_drag_active;
+	}
+
+	bool zircon_session_cancel_gizmo_drag_dismiss(void* p_owner)
+	{
+		zircon_editor_ui_state* p_ui_state =
+			static_cast<zircon_editor_ui_state*>(p_owner);
+
+		if (p_ui_state == nullptr)
+		{
+			return false;
+		}
+
+		// the gizmo pass honors the request at the top of its next
+		// drag update: it restores the pre-drag component state it
+		// already snapshots for the drag-end commit, journals NOTHING
+		// and clears both flags
+		p_ui_state->get_gizmo_overlay_state().m_cancel_drag_requested =
+			true;
+		return true;
+	}
+
+	kotek::core::ktkIImguiWrapper* zircon_session_cancel_imgui_wrapper(
+		void* p_owner)
+	{
+		kotek::core::ktkMainManager* p_main_manager =
+			static_cast<kotek::core::ktkMainManager*>(p_owner);
+
+		return p_main_manager ? p_main_manager->Get_ImguiWrapper()
+							  : nullptr;
+	}
+
+	bool zircon_session_cancel_popup_is_active(void* p_owner)
+	{
+		kotek::core::ktkIImguiWrapper* p_wrapper =
+			zircon_session_cancel_imgui_wrapper(p_owner);
+
+		// AnyPopupId + AnyPopupLevel = "any popup/modal open anywhere"
+		// (the id argument is ignored, so the probe does not depend on
+		// a current window); covers the inspector's failed-add modal,
+		// the top-bar Save Scene modal and any future popup for free —
+		// imgui state is the source of truth
+		return p_wrapper &&
+			p_wrapper->IsPopupOpen("",
+				ImGuiPopupFlags_AnyPopupId |
+					ImGuiPopupFlags_AnyPopupLevel);
+	}
+
+	bool zircon_session_cancel_popup_dismiss(void* p_owner)
+	{
+		kotek::core::ktkIImguiWrapper* p_wrapper =
+			zircon_session_cancel_imgui_wrapper(p_owner);
+
+		if (p_wrapper == nullptr)
+		{
+			return false;
+		}
+
+		p_wrapper->CloseCurrentPopup();
+		return true;
+	}
+
+	// priority-30 slot (drag-drop payload) intentionally NOT registered:
+	// ktkIImguiWrapper exposes GetDragDropPayload but no
+	// ClearDragDrop-style entry, so the dismiss half cannot be written
+	// without a wrapper addition — TODO(zircon): register the consumer
+	// here when the wrapper gains it (the arbiter and the reserved
+	// ZIRCON_DEF_CANCEL_ARBITER_PRIORITY_DRAG_DROP_PAYLOAD slot do not
+	// change)
+
+	bool zircon_session_cancel_text_input_is_active(void* p_owner)
+	{
+		kotek::core::ktkIImguiWrapper* p_wrapper =
+			zircon_session_cancel_imgui_wrapper(p_owner);
+
+		// imgui refreshes WantTextInput in NewFrame from the previous
+		// frame's widgets, so after the adapter's NewFrame the flag
+		// still says "an input field was active as of the last drawn
+		// frame" — exactly the state ESC should release first
+		return p_wrapper && p_wrapper->GetIO().WantTextInput;
+	}
+
+	bool zircon_session_cancel_text_input_dismiss(void* p_owner)
+	{
+		kotek::core::ktkIImguiWrapper* p_wrapper =
+			zircon_session_cancel_imgui_wrapper(p_owner);
+
+		if (p_wrapper == nullptr)
+		{
+			return false;
+		}
+
+		// drops the keyboard focus without touching the field's
+		// content — the first ESC while typing releases the keyboard
+		// instead of nuking the selection (the expected editor feel)
+		p_wrapper->SetKeyboardFocusHere(-1);
+		return true;
+	}
+
+	bool zircon_session_cancel_selection_is_active(void* p_owner)
+	{
+		zircon_editor_ui_state* p_ui_state =
+			static_cast<zircon_editor_ui_state*>(p_owner);
+
+		return p_ui_state &&
+			p_ui_state->get_selected_entity() !=
+				kotek::ktk::kInvalidECSEntity;
+	}
+
+	bool zircon_session_cancel_selection_dismiss(void* p_owner)
+	{
+		zircon_editor_ui_state* p_ui_state =
+			static_cast<zircon_editor_ui_state*>(p_owner);
+
+		if (p_ui_state == nullptr)
+		{
+			return false;
+		}
+
+		p_ui_state->set_selected_entity(
+			kotek::entity_t{kotek::ktk::kInvalidECSEntity});
+		return true;
+	}
+} // namespace
+
 constexpr kotek::uint8_t _kInvalidSessionID =
 	std::numeric_limits<kotek::uint8_t>::max();
 
@@ -91,6 +233,13 @@ void zircon_session_editor::initialize(
 			p_history_streaming_folder_name);
 		this->m_state.initialize(p_current_world->get_factory());
 
+		// task Z19: the session's cancel arbiter — consumers registered
+		// ONCE here (poll-on-event: nothing re-registers per frame and
+		// no push/pop stack drifts); the owners are the session's own
+		// ui_state and the main manager, both alive for the session's
+		// whole lifetime
+		this->register_cancel_arbiter_consumers();
+
 		this->m_was_initialized = true;
 	}
 }
@@ -100,6 +249,10 @@ void zircon_session_editor::shutdown(void)
 	if (this->m_was_initialized)
 	{
 		this->m_command_history_manager.shutdown();
+		// the consumer owners die with the session — drop the
+		// registrations so a shutdown->initialize cycle can not stack
+		// duplicates onto stale owners (task Z19)
+		this->m_cancel_arbiter.clear();
 		for (kotek::core::ktkISDKUIElement* p_element :
 			this->m_imgui_ui_elements)
 		{
@@ -355,6 +508,59 @@ const zircon_editor_ui_state* zircon_session_editor::get_ui_state(
 	void) const noexcept
 {
 	return &this->m_state;
+}
+
+zircon_cancel_arbiter* zircon_session_editor::get_cancel_arbiter(
+	void) noexcept
+{
+	return &this->m_cancel_arbiter;
+}
+
+const zircon_cancel_arbiter* zircon_session_editor::get_cancel_arbiter(
+	void) const noexcept
+{
+	return &this->m_cancel_arbiter;
+}
+
+void zircon_session_editor::register_cancel_arbiter_consumers(
+	void) noexcept
+{
+	// the editor's default set (task Z19, priority order): in-progress
+	// gizmo drag -> open popup/modal -> active text input -> entity
+	// selection; windows are NEVER consumers (owner decision 2026-09-03:
+	// ESC does not close windows)
+	zircon_cancel_consumer_t consumer{};
+
+	consumer.pfn_is_active = &zircon_session_cancel_gizmo_drag_is_active;
+	consumer.pfn_dismiss = &zircon_session_cancel_gizmo_drag_dismiss;
+	consumer.p_owner = &this->m_state;
+	consumer.priority = ZIRCON_DEF_CANCEL_ARBITER_PRIORITY_GIZMO_DRAG;
+	consumer.p_debug_name = "gizmo_drag";
+	this->m_cancel_arbiter.register_consumer(consumer);
+
+	consumer = zircon_cancel_consumer_t{};
+	consumer.pfn_is_active = &zircon_session_cancel_popup_is_active;
+	consumer.pfn_dismiss = &zircon_session_cancel_popup_dismiss;
+	consumer.p_owner = this->m_p_main_manager;
+	consumer.priority = ZIRCON_DEF_CANCEL_ARBITER_PRIORITY_POPUP_MODAL;
+	consumer.p_debug_name = "popup_modal";
+	this->m_cancel_arbiter.register_consumer(consumer);
+
+	consumer = zircon_cancel_consumer_t{};
+	consumer.pfn_is_active = &zircon_session_cancel_text_input_is_active;
+	consumer.pfn_dismiss = &zircon_session_cancel_text_input_dismiss;
+	consumer.p_owner = this->m_p_main_manager;
+	consumer.priority = ZIRCON_DEF_CANCEL_ARBITER_PRIORITY_TEXT_INPUT;
+	consumer.p_debug_name = "text_input";
+	this->m_cancel_arbiter.register_consumer(consumer);
+
+	consumer = zircon_cancel_consumer_t{};
+	consumer.pfn_is_active = &zircon_session_cancel_selection_is_active;
+	consumer.pfn_dismiss = &zircon_session_cancel_selection_dismiss;
+	consumer.p_owner = &this->m_state;
+	consumer.priority = ZIRCON_DEF_CANCEL_ARBITER_PRIORITY_SELECTION;
+	consumer.p_debug_name = "entity_selection";
+	this->m_cancel_arbiter.register_consumer(consumer);
 }
 
 const zircon_editor_command_history* zircon_session_editor::get_command_history(
