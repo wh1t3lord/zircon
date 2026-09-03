@@ -1,5 +1,13 @@
 #include "zircon_render_graph_pass_editor_imgui.h"
 
+#ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
+	// the exe-side input bridge: the concrete GLFW window class exposes
+	// Set_EventChain (GLFW is static from vcpkg — game.ktk's own GLFW
+	// copy is never initialized, so imgui's own callback installation
+	// no-ops on it; only the window module's copy in kotek.exe is live)
+	#include <kotek.core.window.glfw/include/kotek_std_window.h>
+	#include <kotek.ui.imgui/include/imgui_impl_glfw.h>
+#endif
 #ifdef KOTEK_USE_WINDOW_LIBRARY_WIN32
 	// task K17 phase 2: the imgui WndProc chain hook on the concrete
 	// window class (the interface stays frozen)
@@ -109,6 +117,24 @@ namespace no_streaming
 
 #ifdef KOTEK_USE_WINDOW_LIBRARY_GLFW
 					this->m_p_imgui_wrapper->ImGui_ShutdownPlatform();
+
+					// drop the exe-side event chain BEFORE this pass's code
+					// can go away: in the graphics-development hot-reload
+					// (task Z3 P3b) the pass library is unloaded right
+					// after destruction while the window keeps polling —
+					// a stale chain would call into freed code. The
+					// re-created pass reinstalls it in OnCreateResources.
+					if (auto* p_active_window =
+							this->m_p_manager_main->Get_WindowManager()
+								->Get_ActiveWindow())
+					{
+						if (auto* p_glfw_window =
+								dynamic_cast<kotek::core::ktkWindow*>(
+									p_active_window))
+						{
+							p_glfw_window->Set_EventChain(nullptr);
+						}
+					}
 #elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
 					// the wrapper maps the glfw-named calls onto the win32
 					// backend in this configuration (task K17)
@@ -304,10 +330,68 @@ namespace no_streaming
 					GLFWwindow* p_handle = static_cast<GLFWwindow*>(
 						p_main_manager->GetGameManager()->GetWindowHandle());
 
+					// install_callbacks=true — imgui's GLFW backend installs
+					// its own mouse/keyboard/char callbacks (the window
+					// module installs none, so there is no conflict). The
+					// historical `false` here left imgui with zero input in
+					// every GLFW build (windows drew but were inert).
 					KOTEK_ASSERT(
 						this->m_p_imgui_wrapper->ImGui_InitForOther(
-							p_handle, false),
+							p_handle, true),
 						"failed to ImGui_InitForOther");
+
+					// ...but install_callbacks alone is NOT enough with a
+					// static GLFW: this module's own GLFW copy is never
+					// initialized, so imgui's glfwSet*Callback calls
+					// silently no-op on it. The live copy belongs to the
+					// window module in kotek.exe — hand imgui's backend
+					// handlers to the window's exe-side event chain (the
+					// bridge installed at window creation) so real events
+					// reach imgui. Input must degrade, not abort: warn
+					// only when the window/cast is unavailable.
+					if (auto* p_active_window =
+							p_main_manager->Get_WindowManager()
+								->Get_ActiveWindow())
+					{
+						auto* p_glfw_window =
+							dynamic_cast<kotek::core::ktkWindow*>(
+								p_active_window);
+
+						if (p_glfw_window)
+						{
+							kotek::core::ktkGlfwEventChain chain{};
+							chain.p_cursor_pos =
+								&ImGui_ImplGlfw_CursorPosCallback;
+							chain.p_mouse_button =
+								&ImGui_ImplGlfw_MouseButtonCallback;
+							chain.p_scroll = &ImGui_ImplGlfw_ScrollCallback;
+							chain.p_key = &ImGui_ImplGlfw_KeyCallback;
+							chain.p_char = &ImGui_ImplGlfw_CharCallback;
+							chain.p_cursor_enter =
+								&ImGui_ImplGlfw_CursorEnterCallback;
+							chain.p_window_focus =
+								&ImGui_ImplGlfw_WindowFocusCallback;
+
+							p_glfw_window->Set_EventChain(&chain);
+
+							KOTEK_MESSAGE(
+								"[input]: glfw event chain installed");
+						}
+						else
+						{
+							KOTEK_MESSAGE_WARNING(
+								"[input]: the active window is not the "
+								"GLFW flavor — imgui gets no input on "
+								"this backend");
+						}
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"[input]: no active window — the glfw event "
+							"chain is not installed, imgui gets no "
+							"input");
+					}
 #elif defined(KOTEK_USE_WINDOW_LIBRARY_WIN32)
 					// the own Win32 window backend (task K17): the wrapper
 					// maps the init onto ImGui_ImplWin32_Init — the handle

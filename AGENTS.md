@@ -42,6 +42,14 @@
    statics are being swept (tasks Z18/K24 — incl. `_pLoggerMain`-style
    module globals and `g_main_manager`); new static storage in a PR is a
    defect on sight.
+1b. **Wrappers only (owner directive 2026-09-02).** Zircon code calls ONLY
+   kotek-provided wrappers — never standard-library or third-party
+   functions directly (no `std::filesystem::*`, C-runtime or OS APIs, no
+   third-party calls — host tools under `src/tools` stay exempt). When a
+   needed wrapper is missing, it is added KOTEK-SIDE first with the backend
+   matrix (STD / BOOST / kotek-own / user re-registration), and zircon then
+   consumes the wrapper. That is what keeps every zircon line switchable
+   across backends, CRTs, and platforms.
    arithmetic types (`short`/`char` over `int`) wherever the value range
    provably allows it; prefer **streaming** (append-only journal, chunked
    IO) over materializing whole blobs in RAM. The undo/redo journal is the
@@ -93,6 +101,14 @@
    a class/module PROMISES (§7 test philosophy), not per-method formalities.
    Coverage bar (task Z14): every class and every public function in zircon
    gets one; cover behavior and edge cases, not happy paths only.
+8a. **Test tiers: heavy suites are flag-gated (owner directive 2026-09-02).**
+   Heavy stress suites run ONLY under `ZIRCON_USE_TESTS_HEAVY` (CMake
+   `-DZIRCON_TESTS_HEAVY=ON`, OFF by default); every heavy suite keeps a
+   lightweight default tier of the same functional proof (the command-history
+   stress runs 5,000 ops by default, 100,000 under the flag — the reference
+   shape). Debug boot time is a budget: no test may make the default boot
+   meaningfully slower without the flag. CI runs the default tier; the heavy
+   tier is an opt-in local/CI-matrix configuration.
 9. **Memory, streaming, cache (the standing engineering bar).** Memory is a
    budgeted resource: every capacity is a named preprocessor constant
    (`zircon_DEF_*` / `KOTEK_DEF_*`), sized from measured data — never a magic

@@ -45,6 +45,14 @@ include_directories(${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src)
 # two classes of them in 2026-08)
 add_compile_definitions($<$<CONFIG:Debug>:KOTEK_DEBUG>)
 
+# test tiers (rule §2.8a, owner directive 2026-09-02): heavy stress suites
+# (e.g. the 100k-op command-history stress) are opt-in; default boots run the
+# lightweight tier of the same proofs
+option(ZIRCON_TESTS_HEAVY "enable heavy stress suites (default: lightweight tiers)" OFF)
+if (ZIRCON_TESTS_HEAVY)
+	add_compile_definitions(ZIRCON_USE_TESTS_HEAVY)
+endif()
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

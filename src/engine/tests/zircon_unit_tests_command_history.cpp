@@ -40,7 +40,14 @@
 
 namespace
 {
+	// test tiers (rule §2.8a): the default boot runs the lightweight tier —
+	// debug runtime is a budget; the heavy tier needs
+	// -DZIRCON_TESTS_HEAVY=ON at configure time
+	#ifdef ZIRCON_USE_TESTS_HEAVY
 	constexpr kotek::uint32_t _k_test_command_count = 100000;
+	#else
+	constexpr kotek::uint32_t _k_test_command_count = 5000;
+	#endif
 	constexpr kotek::uint32_t _k_test_max_alive_entities = 200;
 
 	// components that are cheap to create headless and have a full
