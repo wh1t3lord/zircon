@@ -4605,7 +4605,34 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				    );
 				}
 	#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
-				KOTEK_ASSERT(false, "todo: [ecs]");
+				// the command classes are backend-agnostic (factory
+				// calls only) and journaled — the PICO console paths
+				// just instantiate them (the 2026-09-03 "game closed"
+				// on a manual sdk_camera add was THIS trap)
+				if (p_factory->get_component_by_name(
+						p_ecs_context, id, component_name) == nullptr)
+				{
+					auto* p_placement_new_memory =
+						p_history_manager
+							->allocate_memory_for_command(
+								sizeof(
+									zircon_command_add_component_to_entity
+								),
+								"zircon_command_add_component_"
+								"to_entity"
+							);
+
+					zircon_command_add_component_to_entity*
+						p_command = new (p_placement_new_memory)
+							zircon_command_add_component_to_entity(
+								this->m_p_session_editor_manager,
+								id,
+								component_name
+							);
+
+					p_history_manager->ExecuteCommand(p_command
+				    );
+				}
 	#endif
 
 #endif
@@ -4792,7 +4819,36 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				    );
 				}
 	#elif defined(KOTEK_USE_ECS_BACKEND_PICO)
-				KOTEK_ASSERT(false, "todo: [ecs]");
+				// by-enum resolves to the codegen'd name and rides the
+				// same journaled command class as by-name
+				if (decoded_component_type !=
+						eZirconComponentType::kunknown &&
+					p_factory->has_component(p_ecs_context, id,
+						decoded_component_type) == false)
+				{
+					auto* p_placement_new_memory =
+						p_history_manager
+							->allocate_memory_for_command(
+								sizeof(
+									zircon_command_add_component_to_entity
+								),
+								"zircon_command_add_component_"
+								"to_entity"
+							);
+
+					zircon_command_add_component_to_entity*
+						p_command = new (p_placement_new_memory)
+							zircon_command_add_component_to_entity(
+								this->m_p_session_editor_manager,
+								id,
+								p_factory->get_component_name_by_enum(
+									decoded_component_type
+								)
+							);
+
+					p_history_manager->ExecuteCommand(p_command
+				    );
+				}
 	#endif
 #endif
 
@@ -4829,6 +4885,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				zircon_editor_command_history*
 					p_history_manager = nullptr;
 				zircon_factory* p_factory = nullptr;
+				// the PICO command paths resolve components through the
+				// session world's ecs context (captured below)
+				zircon_ecs_context_t* p_ecs_context = nullptr;
 				kotek::uint8_t session_editor_id =
 					this->m_p_session_editor_manager
 						->get_current_session_id();
@@ -4853,6 +4912,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 						if (p_session->get_world())
 						{
 							p_factory = this->m_p_factory;
+							p_ecs_context =
+								p_session->get_world()
+									->get_ecs_context();
 						}
 						else
 						{
@@ -4935,7 +4997,35 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				    );
 				}
 #elif defined(KOTEK_USE_ECS_BACKEND_PICO)
-				KOTEK_ASSERT(false, "todo: [ecs]");
+				// backend-agnostic journaled command (its ctor takes
+				// the factory explicitly); presence-gated like ENTT
+				if (p_ecs_context &&
+					p_factory->get_component_by_name(
+						p_ecs_context, entity, p_component_name) !=
+						nullptr)
+				{
+					auto* p_placement_new_memory =
+						p_history_manager
+							->allocate_memory_for_command(
+								sizeof(
+									zircon_command_delete_component_from_entity
+								),
+								"zircon_command_delete_"
+								"component_from_entity"
+							);
+
+					zircon_command_delete_component_from_entity*
+						p_command = new (p_placement_new_memory)
+							zircon_command_delete_component_from_entity(
+								this->m_p_session_editor_manager,
+								p_factory,
+								entity,
+								p_component_name
+							);
+
+					p_history_manager->ExecuteCommand(p_command
+				    );
+				}
 #endif
 
 				return true;
@@ -4971,6 +5061,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				zircon_editor_command_history*
 					p_history_manager = nullptr;
 				zircon_factory* p_factory = nullptr;
+				// the PICO command paths resolve components through the
+				// session world's ecs context (captured below)
+				zircon_ecs_context_t* p_ecs_context = nullptr;
 				kotek::uint8_t session_editor_id =
 					this->m_p_session_editor_manager
 						->get_current_session_id();
@@ -4995,6 +5088,9 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 						if (p_session->get_world())
 						{
 							p_factory = this->m_p_factory;
+							p_ecs_context =
+								p_session->get_world()
+									->get_ecs_context();
 						}
 						else
 						{
@@ -5078,7 +5174,45 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				    );
 				}
 #elif defined(KOTEK_USE_ECS_BACKEND_PICO)
-				KOTEK_ASSERT(false, "todo: [ecs]");
+				// by-enum resolves to the codegen'd name and rides the
+				// same journaled command class as by-name
+				{
+					const eZirconComponentType decoded_component_type =
+						static_cast<eZirconComponentType>(
+							component_type
+						);
+
+					if (p_ecs_context &&
+						decoded_component_type !=
+							eZirconComponentType::kunknown &&
+						p_factory->has_component(p_ecs_context, entity,
+							decoded_component_type))
+					{
+						auto* p_placement_new_memory =
+							p_history_manager
+								->allocate_memory_for_command(
+									sizeof(
+										zircon_command_delete_component_from_entity
+									),
+									"zircon_command_delete_"
+									"component_from_entity"
+								);
+
+						zircon_command_delete_component_from_entity*
+							p_command = new (p_placement_new_memory)
+								zircon_command_delete_component_from_entity(
+									this->m_p_session_editor_manager,
+									p_factory,
+									entity,
+									p_factory->get_component_name_by_enum(
+										decoded_component_type
+									)
+								);
+
+						p_history_manager->ExecuteCommand(p_command
+					    );
+					}
+				}
 
 #endif
 

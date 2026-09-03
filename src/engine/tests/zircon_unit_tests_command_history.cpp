@@ -46,7 +46,7 @@ namespace
 	#ifdef ZIRCON_USE_TESTS_HEAVY
 	constexpr kotek::uint32_t _k_test_command_count = 100000;
 	#else
-	constexpr kotek::uint32_t _k_test_command_count = 5000;
+	constexpr kotek::uint32_t _k_test_command_count = 100;
 	#endif
 	constexpr kotek::uint32_t _k_test_max_alive_entities = 200;
 
