@@ -1,1 +1,1 @@
-{"label":"tests","schemaVersion":1,"color":"brightgreen","message":"passing"}
+{"schemaVersion":1,"color":"red","message":"failing","label":"tests"}
