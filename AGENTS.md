@@ -303,13 +303,22 @@ non-existent target name in some configs — verify when touching root CMake (ta
   first day (not a regression; the old gles3-era input died with Z10).
   Same family as the etl-terminator and cross-CRT rules: **per-module
   statics + cross-module inline code do not mix** (now also rule §2.1a for
-  our own code). Fixed with the `ktkGlfwEventChain` bridge: the exe's live
-  window installs the real GLFW callbacks and forwards them to handlers
-  registered from game.ktk (mirrors K17's `Set_WndProcChain`). BACKLOG:
+  our own code). The fix turned out to be one flag ON TOP OF the correct
+  architecture: the imgui wrapper object (and thus the initialized imgui
+  backend) lives in kotek.exe beside the live GLFW copy, so
+  `ImGui_InitForOther(handle, true)` installs working callbacks into it —
+  events flow exe-glfw → exe-imgui-backend → the shared context.
+  **WARNING (the 2026-09-03 crash): there are TWO imgui copies in the
+  process** (exe: wrapper/backend, initialized; game.ktk: inline API for
+  UI code, its backend data is NULL). Never hand raw `ImGui_ImplGlfw_*`
+  addresses taken from a game.ktk TU to anything — they resolve to the
+  UNINITIALIZED copy and deref a null backend (`bd`) — an early
+  "event-chain bridge" of that shape crashed on the first mouse move and
+  was reverted the same day. BACKLOG:
   `kotek.core.input` has the same disease — the engine's own callbacks are
   installed via game.ktk's dead copy
-  (`zircon_game_manager.cpp::initialize_input` ~:2666-2676) and need the
-  same bridge treatment.
+  (`zircon_game_manager.cpp::initialize_input` ~:2666-2676) and need a
+  wrapper-route fix (through the exe, not raw game.ktk addresses).
 - **Cross-CRT heap frees (root-caused 2026-07-23, mitigated)**: `/MT` gives
   kotek.exe and game.ktk separate debug-heap block lists; objects with
   header-inline code (std::string with `_ITERATOR_DEBUG_LEVEL=2` proxies,
