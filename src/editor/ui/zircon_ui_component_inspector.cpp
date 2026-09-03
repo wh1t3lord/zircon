@@ -337,12 +337,14 @@ void zircon_editor_ui_window_component_inspector::Draw(
 					}
 				}
 			}
-		}
-		else
-		{
-			p_wrapper_imgui->Text(
-				"you didn't select any element on scene or from "
-				"object list");
+			else
+			{
+				// this hint belongs to the no-selection branch — in the
+				// Begin()-false else below it was never visible
+				p_wrapper_imgui->Text(
+					"you didn't select any element on scene or from "
+					"object list");
+			}
 		}
 
 		this->update_modal_windows(p_wrapper_imgui);

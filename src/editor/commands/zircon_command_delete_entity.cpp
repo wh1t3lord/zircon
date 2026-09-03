@@ -116,6 +116,19 @@ void zircon_command_delete_entity::Execute(void)
 		// before the entity is destroyed
 		this->capture_component_states(p_ecs_context);
 
+		// the selection must not outlive the entity (same rule as
+		// zircon_command_create_entity::Undo — stale selected ids reach
+		// per-frame pico consumers)
+		zircon_editor_ui_state* p_ui_state = p_session->get_ui_state();
+
+		if (p_ui_state &&
+			p_ui_state->get_selected_entity().id ==
+				this->m_entity_created.id)
+		{
+			p_ui_state->set_selected_entity(
+				kotek::ktk::kInvalidECSEntity);
+		}
+
 		this->m_p_factory->destroy_entity(
 			p_ecs_context, this->m_entity_created
 		);

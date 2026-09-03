@@ -327,7 +327,7 @@ zircon_factory::allocate_context() noexcept
 }
 
 bool zircon_factory::is_valid_entity(
-	zircon_ecs_context_t* p_context, 
+	zircon_ecs_context_t* p_context,
 	kotek::entity_t id
 ) noexcept
 {
@@ -336,12 +336,26 @@ bool zircon_factory::is_valid_entity(
 	if (p_context)
 	{
 #ifdef KOTEK_USE_ECS_BACKEND_PICO
-		bool result = ecs_is_invalid_entity(id);
-		return result==false;
+		// id != 0 is NOT validity: a queued-destroy entity keeps its id
+		// but pico flips ready=false inside ecs_queue_destroy, and every
+		// pico consumer (ecs_has/ecs_get/ecs_queue_*) asserts on non-
+		// ready entities — they must read as invalid here (the
+		// 2026-09-03 undo-of-create with a stale selection abort)
+		if (ecs_is_invalid_entity(id))
+		{
+			return false;
+		}
+
+		KOTEK_ASSERT(p_context->p_impl, "must be valid");
+
+		return ::ecs_is_ready(
+			static_cast<ecs_t*>(p_context->p_impl), id);
 #elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
-		#error todo: provide impl
+	#error todo: provide impl
 #endif
 	}
+
+	return false;
 }
 
 void zircon_factory::get_all_components_of_entity(
@@ -364,7 +378,22 @@ void zircon_factory::get_all_components_of_entity(
 	if (p_context)
 	{
 #ifdef KOTEK_USE_ECS_BACKEND_PICO
+		// pico offers no per-entity component enumeration — probe each
+		// registered type instead (a 16-entry lookup-table scan, house
+		// rule 2; the result capacity 64 covers the whole enum by
+		// construction)
+		for (int component_index = 0;
+		     component_index < static_cast<int>(eZirconComponentType::kunknown);
+		     ++component_index)
+		{
+			const eZirconComponentType component_type =
+				static_cast<eZirconComponentType>(component_index);
 
+			if (this->has_component(p_context, entity_id, component_type))
+			{
+				result.push_back(component_type);
+			}
+		}
 #elif defined(KOTEK_USE_ECS_BACKEND_ENTT)
 	#error todo: provide impl
 #endif

@@ -164,6 +164,20 @@ void zircon_command_create_entity::Undo()
 
 		this->m_entity_previous_id = this->m_created_entity;
 
+		// the selection must not outlive the entity: a stale selected id
+		// reaches per-frame pico consumers (the gizmo pass, the
+		// inspector) through is_valid_entity and now reads as invalid —
+		// clearing keeps the UI honest instead of leaning on the guard
+		zircon_editor_ui_state* p_ui_state = p_session->get_ui_state();
+
+		if (p_ui_state &&
+			p_ui_state->get_selected_entity().id ==
+				this->m_created_entity.id)
+		{
+			p_ui_state->set_selected_entity(
+				kotek::ktk::kInvalidECSEntity);
+		}
+
 		this->m_p_factory->destroy_entity(
 			p_world->get_ecs_context(), this->m_created_entity
 		);

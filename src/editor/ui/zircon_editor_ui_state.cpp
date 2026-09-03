@@ -33,6 +33,28 @@ void zircon_editor_ui_state::initialize(
 			)
 		         .c_str()] = false;
 #elif defined(KOTEK_USE_ECS_BACKEND_PICO)
+			// PICO has no runtime registry to iterate — enumerate the
+			// codegen'd component enum instead. The map's keys are
+			// const char* with POINTER identity (etl's hash has no
+			// const char* content specialization), so the inserted keys
+			// must be these exact codegen literals — the inspector's
+			// is_need_to_show_component_in_widget queries with the same
+			// pointers
+			for (int component_index = 0;
+			     component_index <
+			     static_cast<int>(eZirconComponentType::kunknown);
+			     ++component_index)
+			{
+				const eZirconComponentType component_type =
+					static_cast<eZirconComponentType>(component_index);
+
+				this->m_components_to_show
+					[p_factory_game->get_component_name_by_enum(
+						component_type)] =
+						(component_type !=
+							eZirconComponentType::
+								kzircon_component_bounding_sphere);
+			}
 #endif
 	}
 }
