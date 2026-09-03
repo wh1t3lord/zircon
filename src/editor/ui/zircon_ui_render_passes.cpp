@@ -325,6 +325,13 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 		return;
 	}
 
+	// both session sections draw into the SAME window and each row loop
+	// restarts PushID(i) from 0 (the available list PushIDs by name,
+	// which can also repeat across sessions) — without a per-section
+	// scope, editor row i and game row i widgets share one ImGui ID and
+	// hover/active state leaks across the sections
+	p_wrapper_imgui->PushID(p_section_title);
+
 	const kotek::uint8_t render_graph_id =
 		this->m_p_renderer_bgfx->get_render_graph_id_for_session_kind(
 			is_game_session);
@@ -333,6 +340,7 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 	{
 		p_wrapper_imgui->TextDisabled(
 			"no render graph exists for this session");
+		p_wrapper_imgui->PopID();
 		return;
 	}
 
@@ -508,6 +516,8 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 	{
 		p_wrapper_imgui->TextDisabled("modified (unsaved)");
 	}
+
+	p_wrapper_imgui->PopID();
 }
 
 int zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
