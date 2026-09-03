@@ -293,6 +293,23 @@ non-existent target name in some configs — verify when touching root CMake (ta
   WerFault, clear via `taskkill //F //IM <exe>`). A modal an agent cannot
   click blocks all automation — the WER switch above is the last line of
   defense, not a substitute for the routing flag.
+- **Static libraries carry per-module state (the input bug, root-caused
+  2026-09-02)**: static third-party libs (GLFW is the case in point) give
+  EVERY module its own copy of the library's global state — the window
+  lives in kotek.exe's initialized GLFW copy while the editor imgui pass
+  runs in game.ktk's NEVER-initialized copy (`glfwGetPlatform()==0`,
+  `glfwGetWin32Window(valid_window)==NULL`), so every imgui GLFW call
+  silently no-opped and imgui input was dead in GLFW mode from the pass's
+  first day (not a regression; the old gles3-era input died with Z10).
+  Same family as the etl-terminator and cross-CRT rules: **per-module
+  statics + cross-module inline code do not mix** (now also rule §2.1a for
+  our own code). Fixed with the `ktkGlfwEventChain` bridge: the exe's live
+  window installs the real GLFW callbacks and forwards them to handlers
+  registered from game.ktk (mirrors K17's `Set_WndProcChain`). BACKLOG:
+  `kotek.core.input` has the same disease — the engine's own callbacks are
+  installed via game.ktk's dead copy
+  (`zircon_game_manager.cpp::initialize_input` ~:2666-2676) and need the
+  same bridge treatment.
 - **Cross-CRT heap frees (root-caused 2026-07-23, mitigated)**: `/MT` gives
   kotek.exe and game.ktk separate debug-heap block lists; objects with
   header-inline code (std::string with `_ITERATOR_DEBUG_LEVEL=2` proxies,
