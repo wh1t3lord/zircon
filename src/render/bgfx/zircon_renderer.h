@@ -169,6 +169,17 @@ public:
 		const char* const*& out_p_game_pass_names,
 		kotek::uint8_t& out_game_pass_count) const noexcept;
 
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+	/// the user-visible pass-library reload status for the Render Passes
+	/// window (task Z3 P3b UX): a passthrough to the pass library
+	/// manager's state — false when there is nothing to show (kIdle: the
+	/// initial state, or the graphics_development feature is off and the
+	/// swap never runs)
+	bool get_pass_library_status(
+		eZirconRenderPassLibraryStatus& out_status,
+		const char*& out_p_message) const noexcept;
+#endif
+
 	/// Render Passes window reads (Z3 P2a): slot count + read-only slot
 	/// state + the slot id of a session kind (returns
 	/// kotek::uint8_t(-1) when no such slot exists — compare against

@@ -75,6 +75,27 @@ using zircon_render_pass_destroy_seam_pfn_t =
 /// that header includes this one, so its constant is not visible here)
 #define ZIRCON_DEF_RENDER_PASS_LIBRARY_REGISTRY_NAME_MAX_LENGTH 96
 
+/// the fixed buffer behind the user-visible reload status line (task Z3
+/// P3b UX) — the value is the static_cstring capacity, the same
+/// convention as ZIRCON_DEF_RENDER_PASS_LIBRARY_SHADOW_PATH_MAX_LENGTH
+#define ZIRCON_DEF_RENDER_PASS_LIBRARY_STATUS_MESSAGE_MAX_LENGTH 128
+
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+/// the user-visible reload status of the pass library (task Z3 P3b UX):
+/// the renderer drives it through the manager's set_status at the phase
+/// transitions of the frame-boundary swap; the Render Passes window draws
+/// one colored line for any non-kIdle value (kIdle also covers "the
+/// graphics_development feature is off" — the window then draws nothing)
+enum class eZirconRenderPassLibraryStatus : kotek::uint8_t
+{
+	kIdle,
+	kChangeDetected,
+	kReloading,
+	kReloadFailed,
+	kReloadSucceeded
+};
+#endif
+
 /// the seam between the executor and the concrete render passes (task Z3
 /// P3a). The manager OWNS the renderer's create callback in every
 /// configuration (a wrapper bound to this instance) and routes internally
@@ -191,6 +212,22 @@ public:
 		kotek::uint8_t& out_editor_pass_count,
 		const char* const*& out_p_game_pass_names,
 		kotek::uint8_t& out_game_pass_count) const noexcept;
+
+	/// the user-visible reload status (task Z3 P3b UX), read by the
+	/// Render Passes window: kReloadSucceeded/kReloadFailed persist until
+	/// the next change (no timers); kIdle = nothing to show (the initial
+	/// state, or the graphics_development feature is off — the swap
+	/// never runs, so the status never leaves kIdle)
+	eZirconRenderPassLibraryStatus get_status(void) const noexcept;
+	const char* get_status_message(void) const noexcept;
+
+	/// the single write path of the reload status: the renderer calls
+	/// this at the phase transitions of process_pending_pass_library_
+	/// reload (and the manager's prepare at its own failure sites, where
+	/// the precise reason lives); p_message is copied into the fixed
+	/// buffer — nullptr clears it
+	void set_status(eZirconRenderPassLibraryStatus status,
+		const char* p_message) noexcept;
 #endif
 
 private:
@@ -306,5 +343,15 @@ private:
 	kotek::static_vector_t<const char*,
 		ZIRCON_DEF_RENDER_PASS_LIBRARY_MAX_REGISTRY_PASS_COUNT>
 		m_registry_game_pass_name_ptrs;
+
+	/// the reload status behind get_status/get_status_message (task Z3
+	/// P3b UX): render-thread only — the swap phases write it inside
+	/// draw() and the Render Passes window reads it from the imgui pass
+	/// of the same thread, so plain members suffice (no atomics)
+	eZirconRenderPassLibraryStatus m_status{
+		eZirconRenderPassLibraryStatus::kIdle};
+	kotek::static_cstring_t<
+		ZIRCON_DEF_RENDER_PASS_LIBRARY_STATUS_MESSAGE_MAX_LENGTH>
+		m_status_message;
 #endif
 };

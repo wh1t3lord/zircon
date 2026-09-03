@@ -725,6 +725,9 @@ bool zircon_render_pass_library_manager::prepare_reload_candidate(
 			ZIRCON_DEF_RENDER_PASS_LIBRARY_SHARED_FILE_PATH,
 			this->m_candidate_shadow_path.c_str(), GetLastError());
 
+		this->set_status(eZirconRenderPassLibraryStatus::kReloadFailed,
+			"copy failed — keeping the current pass library");
+
 		this->m_candidate_shadow_path.clear();
 		this->m_reload_requested.store(false);
 		return false;
@@ -740,6 +743,9 @@ bool zircon_render_pass_library_manager::prepare_reload_candidate(
 			"[passlib]: reload FAILED — the shadow '{}' did not load; "
 			"keeping the current pass library",
 			this->m_candidate_shadow_path.c_str());
+
+		this->set_status(eZirconRenderPassLibraryStatus::kReloadFailed,
+			"load failed — keeping the current pass library");
 
 		zircon_delete_pass_library_shadow(
 			this->m_candidate_shadow_path.c_str());
@@ -777,6 +783,9 @@ bool zircon_render_pass_library_manager::prepare_reload_candidate(
 			"least one of the 4 C-ABI exports; keeping the current pass "
 			"library",
 			this->m_candidate_shadow_path.c_str());
+
+		this->set_status(eZirconRenderPassLibraryStatus::kReloadFailed,
+			"resolve failed — keeping the current pass library");
 
 		this->m_pfn_candidate_get_count = nullptr;
 		this->m_pfn_candidate_get_name = nullptr;
@@ -890,6 +899,33 @@ bool zircon_render_pass_library_manager::get_registry(
 		this->m_registry_game_pass_name_ptrs.size());
 
 	return this->m_registry_generation != 0;
+}
+
+eZirconRenderPassLibraryStatus
+zircon_render_pass_library_manager::get_status(void) const noexcept
+{
+	return this->m_status;
+}
+
+const char* zircon_render_pass_library_manager::get_status_message(
+	void) const noexcept
+{
+	return this->m_status_message.c_str();
+}
+
+void zircon_render_pass_library_manager::set_status(
+	eZirconRenderPassLibraryStatus status, const char* p_message) noexcept
+{
+	this->m_status = status;
+
+	this->m_status_message.clear();
+
+	if (p_message)
+	{
+		// every writer passes a short string literal or a buffer
+		// pre-formatted into the same capacity — far under the limit
+		this->m_status_message.assign(p_message);
+	}
 }
 
 void zircon_render_pass_library_manager::watch_pass_library_file(

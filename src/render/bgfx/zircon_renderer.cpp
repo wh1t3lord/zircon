@@ -494,6 +494,20 @@ bool zircon_renderer_bgfx::get_pass_library_registry(
 #endif
 }
 
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+bool zircon_renderer_bgfx::get_pass_library_status(
+	eZirconRenderPassLibraryStatus& out_status,
+	const char*& out_p_message) const noexcept
+{
+	out_status = this->m_pass_library_manager.get_status();
+	out_p_message = this->m_pass_library_manager.get_status_message();
+
+	// kIdle means the window draws nothing: the initial state, or the
+	// graphics_development feature is off and the swap never runs
+	return out_status != eZirconRenderPassLibraryStatus::kIdle;
+}
+#endif
+
 kotek::uint8_t zircon_renderer_bgfx::get_render_graph_count(
 	void) const noexcept
 {
@@ -918,11 +932,25 @@ void zircon_renderer_bgfx::process_pending_pass_library_reload(
 		"[passlib]: reload detected — swapping the pass library at the "
 		"frame boundary");
 
+	// the user-visible status line (task Z3 P3b UX): the renderer drives
+	// every transition through the manager's set_status — the Render
+	// Passes window reads the state from the imgui pass of this same
+	// thread
+	this->m_pass_library_manager.set_status(
+		eZirconRenderPassLibraryStatus::kChangeDetected,
+		"change detected — swapping the pass library");
+
 	// phase 1: shadow-copy + load + resolve of the candidate, the
 	// running library untouched; on failure the flag is cleared and the
 	// old library keeps running (never pass-less)
+	this->m_pass_library_manager.set_status(
+		eZirconRenderPassLibraryStatus::kReloading,
+		"reloading the pass library...");
+
 	if (!this->m_pass_library_manager.prepare_reload_candidate())
 	{
+		// prepare already wrote kReloadFailed with the precise reason
+		// (copy/load/resolve) — the old library keeps running
 		return;
 	}
 
@@ -990,6 +1018,11 @@ void zircon_renderer_bgfx::process_pending_pass_library_reload(
 	// per-pass skip flags ride over aligned with the surviving names
 	kotek::uint8_t created_editor_count = 0;
 	kotek::uint8_t created_game_count = 0;
+
+	// a session graph that ends up with zero passes renders nothing
+	// until the next reload — that is a recreation failure for the
+	// user-visible status line (task Z3 P3b UX)
+	bool recreation_failed = false;
 
 	for (kotek::uint8_t i = 0;
 	     i < static_cast<kotek::uint8_t>(this->m_render_graphs.size());
@@ -1062,6 +1095,7 @@ void zircon_renderer_bgfx::process_pending_pass_library_reload(
 				"pass library — the session renders nothing until the "
 				"next reload",
 				i);
+			recreation_failed = true;
 			continue;
 		}
 
@@ -1102,5 +1136,30 @@ void zircon_renderer_bgfx::process_pending_pass_library_reload(
 	this->m_pass_library_manager.finish_reload();
 
 	KOTEK_MESSAGE("[passlib]: reload complete");
+
+	// the terminal status (task Z3 P3b UX): persists until the next
+	// change — no timers, no return to kIdle
+	if (recreation_failed)
+	{
+		this->m_pass_library_manager.set_status(
+			eZirconRenderPassLibraryStatus::kReloadFailed,
+			"recreation failed — a session renders nothing (see the log)");
+	}
+	else
+	{
+		kotek::array_t<char,
+			ZIRCON_DEF_RENDER_PASS_LIBRARY_STATUS_MESSAGE_MAX_LENGTH>
+			status_message{};
+
+		kotek::ktk::sprintf(status_message.data(), status_message.size(),
+			"reload succeeded — %u passes recreated (%u editor, %u game)",
+			static_cast<unsigned>(created_editor_count + created_game_count),
+			static_cast<unsigned>(created_editor_count),
+			static_cast<unsigned>(created_game_count));
+
+		this->m_pass_library_manager.set_status(
+			eZirconRenderPassLibraryStatus::kReloadSucceeded,
+			status_message.data());
+	}
 }
 #endif

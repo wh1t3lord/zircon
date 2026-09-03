@@ -226,6 +226,38 @@ void zircon_editor_ui_window_render_passes::Draw(
 		}
 		else
 		{
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
+			// the pass-library hot-reload status line (task Z3 P3b UX):
+			// one colored line fed by the renderer-driven state — yellow
+			// while a change is being applied, red on failure (the OLD
+			// library keeps running — never pass-less), green on success;
+			// kIdle (the feature is off / no change yet) draws nothing
+			eZirconRenderPassLibraryStatus pass_library_status{};
+			const char* p_pass_library_status_message = nullptr;
+
+			if (this->m_p_renderer_bgfx->get_pass_library_status(
+					pass_library_status, p_pass_library_status_message))
+			{
+				ImVec4 status_color(1.0f, 0.9f, 0.2f, 1.0f);
+
+				if (pass_library_status ==
+					eZirconRenderPassLibraryStatus::kReloadFailed)
+				{
+					status_color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
+				}
+				else if (pass_library_status ==
+					eZirconRenderPassLibraryStatus::kReloadSucceeded)
+				{
+					status_color = ImVec4(0.35f, 1.0f, 0.35f, 1.0f);
+				}
+
+				p_wrapper_imgui->TextColored(status_color, "pass library: %s",
+					p_pass_library_status_message
+						? p_pass_library_status_message
+						: "");
+			}
+#endif
+
 			this->draw_session_section(p_wrapper_imgui, false);
 			this->draw_session_section(p_wrapper_imgui, true);
 		}
