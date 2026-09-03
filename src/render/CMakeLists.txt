@@ -324,12 +324,48 @@ if (ZIRCON_GRAPHICS_DEVELOPMENT)
 	target_compile_options(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PRIVATE
 		"/DIMGUI_API=__declspec(dllimport)")
 
-	# the dependency edge: the DLL builds after game.ktk (whose import
-	# library it links) and after the twin (whose PRE_BUILD runs the
-	# pass-factory codegen both variants compile against)
-	target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PRIVATE zircon)
-	add_dependencies(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}
+	# the dependency edges (task Z3 P3b mid-run hot-reload): the DLL
+	# links game.ktk's import library BY PATH — deliberately NOT
+	# through a `zircon` target edge. A target edge would pull game.ktk
+	# into every `--target zircon.render.passes.bgfx` build, and
+	# game.ktk statically contains the twin: a passes-only edit
+	# recompiles the twin, re-archives its .lib and forces a game.ktk
+	# relink, which fails LNK1168 while the graphics-development editor
+	# has game.ktk loaded. With the by-path link the mid-run build
+	# graph contains only the twin (its re-archive is harmless —
+	# nothing pulls from it here) and the DLL itself; game.ktk stays
+	# untouched. game.lib sits FIRST on the link line so every symbol
+	# the DLL references resolves from game.ktk's export surface
+	# (measured 2026-09-03: all imports come from the static closure,
+	# none from zircon's own objects or the twin); the transitively
+	# linked engine libs after it stay unpulled (pull semantics — a
+	# statically-linked second copy would duplicate global state:
+	# bgfx's context, imgui's GImGui, etl's module-local terminators).
+	# The twin edge stays: it carries the usage requirements (the
+	# shared closure's include dirs / compile definitions) and orders
+	# the twin's PRE_BUILD pass-factory codegen before this target's
+	# compiles — subsuming the old add_dependencies.
+	target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PRIVATE
+		"${CMAKE_BINARY_DIR}/lib/$<CONFIG>/game.lib"
 		${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}.static)
+
+	# fresh-tree ordering gate: nothing above orders this target after
+	# `zircon` (game.lib's producer) in ALL_BUILD — that edge is
+	# exactly the one that must not exist (see above). On the very
+	# first full build the DLL can reach its link before game.ktk's
+	# link produced the import library; the gate waits for it
+	# (game.ktk IS part of ALL_BUILD, so it always appears). A bare
+	# `--target` build on a tree game.ktk was never built in times out
+	# with an actionable error instead of a cryptic LNK1104.
+	add_custom_command(
+		TARGET ${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}
+		PRE_LINK
+		COMMAND ${CMAKE_COMMAND}
+			"-DZIRCON_WAIT_FILE=${CMAKE_BINARY_DIR}/lib/$<CONFIG>/game.lib"
+			"-DZIRCON_WAIT_DESCRIPTION=game.ktk's import library (produced by target 'zircon')"
+			-P "${CMAKE_SOURCE_DIR}/cmake/zircon_wait_for_file.cmake"
+		VERBATIM
+	)
 
 	# unresolved-symbol hygiene: game.ktk re-exports its closure, so
 	# anything still missing must fail loudly here (a silent pull from a

@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
-#include <ctime>
 #include <clang-c/Index.h>
 #include <openssl/md5.h>
 
@@ -50,6 +49,36 @@ uint32_t get_field_id(const std::string& field_name) {
         modulus *= 36;
     }
     return numeric_hash % modulus;
+}
+
+// write-if-different (task Z3 P3b hot-reload): a generated file whose
+// content did not change must keep its mtime — every generator output is
+// a compile input of the engine modules, so an unconditional rewrite
+// re-triggers their compile and the game.ktk relink (LNK1168 while the
+// graphics-development editor has game.ktk loaded). Text mode on both
+// sides on purpose: the generated files carry CRLF, text-mode read
+// normalizes CRLF to '\n' so the comparison matches the in-memory
+// content, and text-mode write reproduces the CRLF bytes exactly.
+// Returns false only on an I/O failure (the caller reports it).
+bool write_file_if_different(const std::string& file_path, const std::string& content) {
+    {
+        std::ifstream existing(file_path);
+        if (existing.good()) {
+            std::ostringstream old_content;
+            old_content << existing.rdbuf();
+            if (old_content.str() == content) {
+                std::cout << "unchanged, write skipped: " << file_path << std::endl;
+                return true;
+            }
+        }
+    }
+
+    std::ofstream out(file_path);
+    if (!out.good()) {
+        return false;
+    }
+    out << content;
+    return out.good();
 }
 
 class HeaderGenerator {
@@ -330,34 +359,30 @@ public:
         process_files();
         generate_unit_test();
         generate_helper();
-        
-        std::time_t now = std::time(nullptr);
-        std::tm* now_tm = std::localtime(&now);
-        char date_buf[80];
-        std::strftime(date_buf, sizeof(date_buf), "%m/%d/%Y, %H:%M:%S", now_tm);
-        
-        std::ofstream out(output_path);
 
-        if (!out.good())
-        {
-            std::cerr << "FAILED TO CREATE FILE: " << output_path << std::endl;
-            std::cerr << "TRY TO REQUEST ADMIN PRIVILEGES" << std::endl;
-        }
+        // no timestamp in the banner on purpose: volatile data would make
+        // every regeneration a content change and defeat the
+        // write-if-different below (task Z3 P3b)
+        std::ostringstream out;
 
         out << "/*\n"
             << " * author: wh1t3lord\n"
             << " * description: generated fields of each class for serialization\n"
-            << " * date: " << date_buf << "\n"
             << " * ATTENTION: Auto-generated - DO NOT EDIT!\n"
             << "*/\n\n"
             << "#pragma once\n\n";
-        
+
         for (const auto& line : output_debug) out << line << "\n";
         out << "\n";
         for (const auto& line : output_release) out << line << "\n";
         out << "\n";
         for (const auto& line : unit_test_str) out << line << "\n";
         out << helper_str;
+
+        if (!write_file_if_different(output_path.string(), out.str())) {
+            std::cerr << "FAILED TO CREATE FILE: " << output_path << std::endl;
+            std::cerr << "TRY TO REQUEST ADMIN PRIVILEGES" << std::endl;
+        }
     }
 };
 
@@ -499,13 +524,9 @@ int generate_sdk_fields(int argc, char* argv[])
 	}
 	clang_disposeIndex(index);
 
-	// Write to output file
-	std::ofstream out(output_file);
-	if (!out.good())
-	{
-		std::cerr << "FAILED TO CREATE FILE: " << output_file << std::endl;
-		return 1;
-	}
+	// Write to output file (write-if-different keeps the mtime of an
+	// unchanged header — task Z3 P3b)
+	std::ostringstream out;
 
 	out << "/*\n"
 		<< " * Auto-generated enum for Zircon Editor UI Windows\n"
@@ -533,7 +554,11 @@ int generate_sdk_fields(int argc, char* argv[])
 	out << "        default: return \"kWindow_SDK_UNDEFINED_ENUM\";\n";
 	out << "    }\n}\n";
 
-	out.close();
+	if (!write_file_if_different(output_file, out.str()))
+	{
+		std::cerr << "FAILED TO CREATE FILE: " << output_file << std::endl;
+		return 1;
+	}
 	std::cout << "SDK window enum file generated: " << output_file << std::endl;
 	return 0;
 }
@@ -669,24 +694,27 @@ std::string extractBackendFromPath(const std::string& path) {
 }
 
 void generateEnumFile(const std::string& filePath, const std::string& enumName, const std::set<std::string>& passes) {
-    std::ofstream file(filePath);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filePath << std::endl;
-        return;
-    }
-    
-    std::string guard = enumName;
-    std::transform(guard.begin(), guard.end(), guard.begin(), ::toupper);
-    guard += "_H";
-    
-    file << "#ifndef " << guard << "\n";
-    file << "#define " << guard << "\n\n";
-    file << "enum class " << enumName << " : kun_kotek kun_ktk enum_base_t {\n";
-    for (const auto& pass : passes) {
-        file << "    " << toEnumValue(pass) << ",\n";
-    }
-    file << "};\n\n";
-    file << "#endif // " << guard << "\n";
+	std::ostringstream file;
+
+	std::string guard = enumName;
+	std::transform(guard.begin(), guard.end(), guard.begin(), ::toupper);
+	guard += "_H";
+
+	file << "#ifndef " << guard << "\n";
+	file << "#define " << guard << "\n\n";
+	file << "enum class " << enumName << " : kun_kotek kun_ktk enum_base_t {\n";
+	for (const auto& pass : passes) {
+		file << "    " << toEnumValue(pass) << ",\n";
+	}
+	file << "};\n\n";
+	file << "#endif // " << guard << "\n";
+
+	// write-if-different: an unchanged enum header keeps its mtime so the
+	// engine modules do not recompile on a no-op regeneration (task Z3 P3b)
+	if (!write_file_if_different(filePath, file.str())) {
+		std::cerr << "Failed to open file: " << filePath << std::endl;
+		return;
+	}
 }
 
 void generateFactoryHeader(const std::string& folderPath, 
@@ -695,13 +723,8 @@ void generateFactoryHeader(const std::string& folderPath,
                           const std::string& backend,
                           const std::set<std::string>& passHeaders) {
     std::string factoryPath = folderPath + "/zircon_render_pass_factory.h";
-    std::ofstream file(factoryPath);
-    
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << factoryPath << std::endl;
-        return;
-    }
-    
+    std::ostringstream file;
+
     std::string guard = "ZIRCON_RENDER_PASS_FACTORY_H";
     // namespace segments compose as kun_kotek + kun_render +
     // kun_render_<backend> (each macro carries its own trailing ::,
@@ -803,6 +826,14 @@ void generateFactoryHeader(const std::string& folderPath,
     
     file << "};\n\n";
     file << "#endif // " << guard << "\n";
+
+    // write-if-different: an unchanged factory header keeps its mtime so
+    // the engine modules do not recompile on a no-op regeneration (task
+    // Z3 P3b)
+    if (!write_file_if_different(factoryPath, file.str())) {
+        std::cerr << "Failed to open file: " << factoryPath << std::endl;
+        return;
+    }
 }
 
 void generateRenderPassEnums(const std::string& folderPath) {

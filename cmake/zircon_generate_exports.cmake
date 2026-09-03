@@ -12,7 +12,9 @@
 # static libraries linked into the dll are invisible to it, even with
 # /WHOLEARCHIVE. The passes DLL needs those symbols (bgfx, imgui incl.
 # the GImGui data symbol, the zircon/kotek modules), so the export list
-# is generated here instead.
+# is generated here instead. The .def itself is written write-if-
+# different: a content-identical dump keeps the old file's mtime (task Z3
+# P3b — see the _def_content accumulation below).
 #
 # Inputs (-D):
 #   ZIRCON_GENERATE_EXPORTS_DUMPBIN   full path to dumpbin.exe
@@ -97,7 +99,12 @@ foreach (_entry IN LISTS _testlib_objdirs)
 	endforeach()
 endforeach()
 
-file(WRITE "${ZIRCON_GENERATE_EXPORTS_OUT}" "EXPORTS\n")
+# the def is accumulated in memory and written once at the end,
+# write-if-different: a content-identical dump keeps the previous file's
+# mtime, so a no-change PRE_LINK regeneration does not by itself re-arm
+# the link inputs (task Z3 P3b — a mid-run passes rebuild in the
+# graphics-development configuration must leave game.ktk untouched)
+set(_def_content "EXPORTS\n")
 
 set(_total_functions 0)
 set(_total_data 0)
@@ -165,18 +172,34 @@ foreach (_file IN LISTS _inputs)
 		# LNK2001 names a symbol, finding it here says which library it
 		# came from
 		get_filename_component(_file_name "${_file}" NAME)
-		file(APPEND "${ZIRCON_GENERATE_EXPORTS_OUT}"
+		string(APPEND _def_content
 			"; source: ${_file_name} (${_fn_count} functions, ${_data_count} data)\n")
 		string(REPLACE ";" "\n" _fn_blob "${_functions}")
-		file(APPEND "${ZIRCON_GENERATE_EXPORTS_OUT}" "${_fn_blob}\n")
+		string(APPEND _def_content "${_fn_blob}\n")
 		if (_data_count)
 			list(TRANSFORM _data APPEND " DATA")
 			string(REPLACE ";" "\n" _data_blob "${_data}")
-			file(APPEND "${ZIRCON_GENERATE_EXPORTS_OUT}"
-				"${_data_blob}\n")
+			string(APPEND _def_content "${_data_blob}\n")
 		endif()
 	endif()
 endforeach()
+
+# write-if-different (see _def_content above): identical content keeps
+# the old mtime
+set(_def_write_needed TRUE)
+if (EXISTS "${ZIRCON_GENERATE_EXPORTS_OUT}")
+	file(READ "${ZIRCON_GENERATE_EXPORTS_OUT}" _def_existing)
+	if ("${_def_existing}" STREQUAL "${_def_content}")
+		set(_def_write_needed FALSE)
+	endif()
+endif()
+
+if (_def_write_needed)
+	file(WRITE "${ZIRCON_GENERATE_EXPORTS_OUT}" "${_def_content}")
+else()
+	message(STATUS
+		"[zircon]: ${ZIRCON_GENERATE_EXPORTS_OUT} unchanged — write skipped (mtime preserved)")
+endif()
 
 math(EXPR _total_exports "${_total_functions} + ${_total_data}")
 message(STATUS
