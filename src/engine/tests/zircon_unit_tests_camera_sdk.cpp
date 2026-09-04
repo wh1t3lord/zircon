@@ -265,31 +265,56 @@ TEST(Zircon_Editor, SdkBootstrapCreatesExactlyOneEntityAndIsIdempotent)
 	EXPECT_TRUE(env.factory.has_component(env.world.get_ecs_context(), id,
 		eZirconComponentType::kzircon_component_transform));
 
-	// the driver-visible defaults: the old init branch's yaw/pitch and
-	// the identity quat (== those euler defaults), identity transform
+	// the driver-visible vantage (2026-09-04): the bootstrap spawns at the
+	// render passes' default orbit — position (4,3,4), yaw=-135, pitch
+	// =asin(-3/sqrt(41)) — so a fresh scene shows the grid (a camera at
+	// the origin sits ON the grid plane and sees nothing)
 	auto* p_camera = static_cast<zircon_component_sdk_camera*>(
 		env.factory.get_component_by_enum(env.world.get_ecs_context(), id,
 			eZirconComponentType::kzircon_component_sdk_camera));
 
 	ASSERT_NE(p_camera, nullptr);
-	EXPECT_FLOAT_EQ(p_camera->get_camera().get_yaw(), -90.0f);
-	EXPECT_FLOAT_EQ(p_camera->get_camera().get_pitch(), 0.0f);
-
-	const auto& rotation =
-		p_camera->get_camera().get_rotation_quaternion();
-	EXPECT_FLOAT_EQ(rotation.x(), 0.0f);
-	EXPECT_FLOAT_EQ(rotation.y(), 0.0f);
-	EXPECT_FLOAT_EQ(rotation.z(), 0.0f);
-	EXPECT_FLOAT_EQ(rotation.w(), 1.0f);
+	EXPECT_FLOAT_EQ(p_camera->get_camera().get_yaw(),
+		ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_YAW_DEGREES);
+	EXPECT_FLOAT_EQ(p_camera->get_camera().get_pitch(),
+		ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_PITCH_DEGREES);
 
 	auto* p_transform = static_cast<zircon_component_transform*>(
 		env.factory.get_component_by_enum(env.world.get_ecs_context(), id,
 			eZirconComponentType::kzircon_component_transform));
 
 	ASSERT_NE(p_transform, nullptr);
-	EXPECT_FLOAT_EQ(p_transform->get_position().x(), 0.0f);
-	EXPECT_FLOAT_EQ(p_transform->get_position().y(), 0.0f);
-	EXPECT_FLOAT_EQ(p_transform->get_position().z(), 0.0f);
+	EXPECT_FLOAT_EQ(p_transform->get_position().x(),
+		ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_X);
+	EXPECT_FLOAT_EQ(p_transform->get_position().y(),
+		ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_Y);
+	EXPECT_FLOAT_EQ(p_transform->get_position().z(),
+		ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_Z);
+
+	// both rotation representations must aim at the origin from the
+	// vantage: forward == normalize(-4,-3,-4) in euler AND in quat (the
+	// quat was synced through the driver's own recurrence)
+	float yaw = p_camera->get_camera().get_yaw();
+	float pitch = p_camera->get_camera().get_pitch();
+	kotek::ktk::math::vec3f_t front_euler;
+
+	zircon_sdk_camera_drive_euler(yaw, pitch, 0.0f, 0.0f, front_euler);
+
+	kotek::ktk::math::quatf_t rotation =
+		p_camera->get_camera().get_rotation_quaternion();
+	kotek::ktk::math::vec3f_t front_quat;
+
+	zircon_sdk_camera_drive_quaternion(rotation, 0.0f, 0.0f, front_quat);
+
+	constexpr float _kInvSqrt41 = 1.0f / 6.40312423743284869f;
+
+	EXPECT_NEAR(front_euler.x(), -4.0f * _kInvSqrt41, 1e-3f);
+	EXPECT_NEAR(front_euler.y(), -3.0f * _kInvSqrt41, 1e-3f);
+	EXPECT_NEAR(front_euler.z(), -4.0f * _kInvSqrt41, 1e-3f);
+
+	EXPECT_NEAR(front_quat.x(), front_euler.x(), 1e-3f);
+	EXPECT_NEAR(front_quat.y(), front_euler.y(), 1e-3f);
+	EXPECT_NEAR(front_quat.z(), front_euler.z(), 1e-3f);
 
 	// the second call is a no-op returning the same entity
 	kotek::entity_t id_second =

@@ -1,6 +1,8 @@
 #include "zircon_editor_sdk_camera.h"
 
 #include "../../ecs/zircon_factory.h"
+#include "../../ecs/zircon_component_transform.h"
+#include "../../ecs/zircon_component_sdk_camera.h"
 #include "../../core/zircon_defs.h"
 
 void zircon_sdk_camera_drive_euler(
@@ -180,6 +182,47 @@ kotek::entity_t zircon_editor_ensure_sdk_bootstrap_entity(
 		was_camera && was_input && was_transform,
 		"editor sdk bootstrap: failed to create the components"
 	);
+
+	// the spawn vantage mirrors the render passes' default orbit (eye
+	// (4,3,4) looking at the origin): the identity transform at the
+	// origin leaves the camera ON the grid plane staring at the horizon
+	// — the 2026-09-04 "black editor, no grid" report. Both rotation
+	// representations are set: the euler pair directly and the
+	// quaternion by driving the driver's OWN recurrence from the
+	// identity defaults (the deltas are the vantage minus them), so both
+	// modes start on the same view without a closed-form euler->quat
+	zircon_component_transform* p_transform =
+		static_cast<zircon_component_transform*>(
+			p_factory->get_component_by_enum(p_context, id,
+				eZirconComponentType::kzircon_component_transform));
+
+	zircon_component_sdk_camera* p_camera =
+		static_cast<zircon_component_sdk_camera*>(
+			p_factory->get_component_by_enum(p_context, id,
+				eZirconComponentType::kzircon_component_sdk_camera));
+
+	if (p_transform && p_camera)
+	{
+		p_transform->set_position(kotek::ktk::math::vec3f_t(
+			ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_X,
+			ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_Y,
+			ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_Z));
+
+		p_camera->get_camera().set_yaw(
+			ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_YAW_DEGREES);
+		p_camera->get_camera().set_pitch(
+			ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_PITCH_DEGREES);
+
+		kotek::ktk::math::quatf_t rotation =
+			p_camera->get_camera().get_rotation_quaternion();
+		kotek::ktk::math::vec3f_t front;
+
+		zircon_sdk_camera_drive_quaternion(rotation,
+			ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_YAW_DEGREES - (-90.0f),
+			ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_PITCH_DEGREES - 0.0f, front);
+
+		p_camera->get_camera().set_rotation_quaternion(rotation);
+	}
 
 #ifdef KOTEK_DEBUG
 	KOTEK_MESSAGE(

@@ -17,6 +17,19 @@ struct zircon_ecs_context_t;
 /// the euler and quaternion paths clamped identically)
 #define ZIRCON_DEF_SDK_CAMERA_MAX_PITCH_DEGREES 89.0f
 
+/// @brief \~english the bootstrap camera's spawn vantage — mirrors the
+/// render passes' default orbit (eye (4,3,4) looking at the origin, so a
+/// fresh editor scene shows the grid immediately). The yaw/pitch aim the
+/// -Z-forward convention from that eye at the origin: yaw=-135 exactly,
+/// pitch=asin(-3/sqrt(41))≈-27.94. Spawning at the identity transform
+/// leaves the camera ON the grid plane staring at the horizon — the
+/// 2026-09-04 "black editor, no grid" report
+#define ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_X 4.0f
+#define ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_Y 3.0f
+#define ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_POSITION_Z 4.0f
+#define ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_YAW_DEGREES (-135.0f)
+#define ZIRCON_DEF_SDK_CAMERA_BOOTSTRAP_PITCH_DEGREES (-27.94f)
+
 /// @brief \~english the euler representation (yaw/pitch accumulation,
 /// the pre-Z20 driver math untouched): deltas are in degrees (mouse
 /// delta * sensitivity at the call site), pitch is clamped to
