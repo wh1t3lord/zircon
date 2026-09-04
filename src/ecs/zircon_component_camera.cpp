@@ -6,8 +6,24 @@ zircon_component_camera::zircon_component_camera(void) :
 	m_is_enabled{true}, m_plane_near(0.1f),
 	m_plane_far(1000.0f), m_fov(60.0f), m_yaw(-90.0f),
 	m_pitch(0.0f), m_front(0.0f, 0.0f, -1.0f),
-	m_up(0.0f, 1.0f, 0.0f)
+	m_right(1.0f, 0.0f, 0.0f), m_up(0.0f, 1.0f, 0.0f),
+	// identity == the euler defaults above (yaw=-90/pitch=0 look down
+	// -Z); a zero-initialized quat would be degenerate (normalize -> NaN)
+	m_rotation_quaternion(0.0f, 0.0f, 0.0f, 1.0f)
 {
+	// a default-constructed camera must BE a usable camera: the kotek
+	// math default is the ZERO matrix (matrix4x4f{} -> m_base{}), which
+	// poisons every view-state consumer (inverse(0) = NaN — the
+	// 2026-09-04 black-editor + gizmo scale assert chain). Identity view
+	// + a sane default perspective here; the per-frame driver overwrites
+	// both for the editor camera anyway
+	m_view = kotek::ktk::math::mat4x4f_t(1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f);
+
+	m_projection = kotek::ktk::math::perspective(
+		kotek::ktk::math::convert_to_radians(m_fov), 4.0f / 3.0f,
+		m_plane_near, m_plane_far);
 }
 
 zircon_component_camera::~zircon_component_camera(void) {}
@@ -30,6 +46,19 @@ float zircon_component_camera::get_pitch(void) const noexcept
 void zircon_component_camera::set_pitch(float value) noexcept
 {
 	this->m_pitch = value;
+}
+
+const kotek::ktk::math::quatf_t&
+zircon_component_camera::get_rotation_quaternion(void) const noexcept
+{
+	return this->m_rotation_quaternion;
+}
+
+void zircon_component_camera::set_rotation_quaternion(
+	const kotek::ktk::math::quatf_t& rotation
+) noexcept
+{
+	this->m_rotation_quaternion = rotation;
 }
 
 float zircon_component_camera::get_plane_near(void

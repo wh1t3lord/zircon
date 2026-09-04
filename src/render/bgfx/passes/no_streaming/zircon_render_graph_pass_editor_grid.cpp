@@ -274,6 +274,34 @@ namespace no_streaming
 				p_view[10] * p_view[14]);
 	}
 
+	bool zircon_render_graph_pass_editor_grid_bgfx::is_matrix_usable(
+		const float* p_matrix) noexcept
+	{
+		if (p_matrix == nullptr)
+			return false;
+
+		bool is_any_non_zero = false;
+
+		for (int element_index = 0; element_index < 16; ++element_index)
+		{
+			const float element = p_matrix[element_index];
+
+			// std::isfinite rides this file's existing <cmath> allowance
+			// (sqrt/fabs) — a kotek.core.math finiteness predicate is
+			// wrapper debt (none exists today)
+			if (std::isfinite(element) == false)
+			{
+				return false;
+			}
+
+			is_any_non_zero |= element != 0.0f;
+		}
+
+		// an all-zero matrix is "valid" numerically and poisons every
+		// consumer just the same (inverse(0) = NaN)
+		return is_any_non_zero;
+	}
+
 	bool zircon_render_graph_pass_editor_grid_bgfx::compute_world_ray(
 		const float* p_inverse_view_projection, float ndc_x, float ndc_y,
 		float* p_out_point_near, float* p_out_point_far) noexcept
@@ -423,6 +451,16 @@ namespace no_streaming
 				kotek::math::value_ptr(camera.get_view());
 			const float* p_camera_projection =
 				kotek::math::value_ptr(camera.get_projection());
+
+			// the camera component is USER data (scene content): a
+			// default-constructed or corrupt camera (zero/NaN matrices)
+			// must not poison the view state — skip it and fall back to
+			// the default orbit
+			if (is_matrix_usable(p_camera_view) == false ||
+				is_matrix_usable(p_camera_projection) == false)
+			{
+				continue;
+			}
 
 			for (int element_index = 0; element_index < 16;
 				 ++element_index)

@@ -6,6 +6,8 @@
 		#include <gtest/gtest.h>
 
 		#include <cmath>
+	#include <cstring>
+	#include <limits>
 
 		#include "../../ecs/zircon_factory.h"
 		#include "../../ecs/zircon_component_geometry.h"
@@ -484,6 +486,52 @@ TEST(Zircon_Editor, RenderPassEditorGridRayMath)
 	EXPECT_NEAR(hit[0], 1.0f, 0.0001f);
 	EXPECT_NEAR(hit[1], 0.0f, 0.0001f);
 	EXPECT_NEAR(hit[2], 1.0f, 0.0001f);
+}
+
+// 2026-09-04 regression: a scene's sdk_camera with a default-constructed
+// (zero) or corrupt camera poisoned every consumer of its matrices —
+// the grid rendered nothing, and the gizmo's screen-scale math turned a
+// NaN camera position into a NaN/zero gizmo_scale that tripped
+// pick_handle's "must be positive" assert on a viewport click. The
+// resolve paths now gate user-sourced matrices through is_matrix_usable
+// and fall back to the default orbit
+TEST(Zircon_Editor, RenderPassEditorCameraMatrixGuard)
+{
+	// the default orbit's matrices are usable
+	float view[16];
+	float projection[16];
+
+	zircon_pass_editor_grid::build_default_orbit_view_projection(
+		view, projection, 4.0f / 3.0f, false);
+
+	EXPECT_TRUE(zircon_pass_editor_grid::is_matrix_usable(view));
+	EXPECT_TRUE(zircon_pass_editor_grid::is_matrix_usable(projection));
+
+	// the identity is usable (a zero-rotation camera at the origin)
+	float identity[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+
+	EXPECT_TRUE(zircon_pass_editor_grid::is_matrix_usable(identity));
+
+	// the default-constructed camera's all-zero matrices are not
+	float zero_matrix[16]{};
+
+	EXPECT_FALSE(zircon_pass_editor_grid::is_matrix_usable(zero_matrix));
+
+	// nor is anything carrying a NaN/inf element
+	float nan_matrix[16];
+	std::memcpy(nan_matrix, identity, sizeof(identity));
+	nan_matrix[5] = std::numeric_limits<float>::quiet_NaN();
+
+	EXPECT_FALSE(zircon_pass_editor_grid::is_matrix_usable(nan_matrix));
+
+	float inf_matrix[16];
+	std::memcpy(inf_matrix, identity, sizeof(identity));
+	inf_matrix[12] = std::numeric_limits<float>::infinity();
+
+	EXPECT_FALSE(zircon_pass_editor_grid::is_matrix_usable(inf_matrix));
+
+	EXPECT_FALSE(zircon_pass_editor_grid::is_matrix_usable(nullptr));
 }
 
 using zircon_pass_editor_gizmo_own =

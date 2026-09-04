@@ -338,6 +338,7 @@ namespace
 				&this->main_manager,
 				&this->console,
 				&this->filesystem,
+				&this->engine_config,
 				p_streaming_folder_name
 			);
 		}
@@ -2004,6 +2005,113 @@ TEST(Zircon_Editor, CommandHistory_PassSetExcludedFromJournal)
 
 	env_reopened.shutdown();
 	delete &env_reopened;
+}
+
+// 2026-09-04 regression (owner repro): create an entity (the object
+// list's "Add" path), then add zircon_component_sdk_camera to it (the
+// inspector's "Add component" path) aborted the run. Neither sdk_camera
+// nor sdk_input sat in the stress component pool, so the journaled
+// component commands were never exercised against the sdk_* types —
+// this test pins the full add -> undo -> redo -> delete -> undo cycle
+// for sdk_camera through the exact command classes the console commands
+// (C1) instantiate
+TEST(Zircon_Editor, CommandHistory_SdkCameraComponentAddDeleteUndoRedo)
+{
+	constexpr const char* _k_test_folder = "z6_sdk_camera_component_test";
+
+	{
+		auto* p_config = new kotek::core::ktkFrameworkConfig();
+		auto* p_filesystem = new kotek::core::ktkFileSystem();
+
+		p_filesystem->Initialize(p_config);
+
+		zircon_test_remove_streaming_folder(p_filesystem, _k_test_folder);
+
+		p_filesystem->Shutdown();
+
+		delete p_filesystem;
+		delete p_config;
+	}
+
+	zircon_test_history_env& env = *new zircon_test_history_env();
+	env.initialize(_k_test_folder);
+
+	zircon_editor_command_history* p_history = env.history();
+
+	ASSERT_NE(p_history, nullptr);
+	ASSERT_EQ(p_history->get_total_recorded_commands(), 0);
+
+	// unjournaled scene setup: the fresh entity the repro starts from
+	kotek::entity_t entity =
+		env.factory.create_entity(env.ecs_context());
+
+	EXPECT_TRUE(env.factory.is_valid_entity(env.ecs_context(), entity));
+
+	// the inspector's "Add component": the journaled add for sdk_camera
+	{
+		unsigned char* p_memory =
+			p_history->allocate_memory_for_command(
+				sizeof(zircon_command_add_component_to_entity),
+				"zircon_command_add_component_to_entity"
+			);
+
+		zircon_command_add_component_to_entity* p_command =
+			new (p_memory) zircon_command_add_component_to_entity(
+				&env.session_manager, entity, "zircon_component_sdk_camera"
+			);
+
+		p_history->ExecuteCommand(p_command);
+	}
+
+	EXPECT_EQ(p_history->get_total_recorded_commands(), 1);
+
+	EXPECT_TRUE(env.factory.has_component(env.ecs_context(), entity,
+		eZirconComponentType::kzircon_component_sdk_camera));
+
+	// undo removes it...
+	p_history->Undo();
+
+	EXPECT_FALSE(env.factory.has_component(env.ecs_context(), entity,
+		eZirconComponentType::kzircon_component_sdk_camera));
+
+	// ...redo restores it
+	p_history->Redo();
+
+	EXPECT_TRUE(env.factory.has_component(env.ecs_context(), entity,
+		eZirconComponentType::kzircon_component_sdk_camera));
+
+	// the inspector's "Delete component from list box": the journaled
+	// delete with its state capture
+	{
+		unsigned char* p_memory =
+			p_history->allocate_memory_for_command(
+				sizeof(zircon_command_delete_component_from_entity),
+				"zircon_command_delete_component_from_entity"
+			);
+
+		zircon_command_delete_component_from_entity* p_command =
+			new (p_memory)
+				zircon_command_delete_component_from_entity(
+					&env.session_manager, &env.factory, entity,
+					"zircon_component_sdk_camera"
+				);
+
+		p_history->ExecuteCommand(p_command);
+	}
+
+	EXPECT_EQ(p_history->get_total_recorded_commands(), 2);
+
+	EXPECT_FALSE(env.factory.has_component(env.ecs_context(), entity,
+		eZirconComponentType::kzircon_component_sdk_camera));
+
+	// undo restores the component with its captured state
+	p_history->Undo();
+
+	EXPECT_TRUE(env.factory.has_component(env.ecs_context(), entity,
+		eZirconComponentType::kzircon_component_sdk_camera));
+
+	env.shutdown();
+	delete &env;
 }
 
 		#endif

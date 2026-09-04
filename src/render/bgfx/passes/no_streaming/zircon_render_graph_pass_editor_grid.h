@@ -83,6 +83,14 @@ namespace no_streaming
 		static bool intersect_xz_plane(const float* p_ray_origin,
 			const float* p_ray_direction, float* p_out_hit) noexcept;
 
+		// validity gate for matrices sourced from USER data (the
+		// sdk_camera component is scene content, not programmer state):
+		// every element finite and at least one non-zero — a
+		// default-constructed or corrupt camera falls back to the default
+		// orbit instead of NaN-ing every consumer downstream (the
+		// 2026-09-04 "clicked an entity, gizmo scale assert" chain)
+		static bool is_matrix_usable(const float* p_matrix) noexcept;
+
 	private:
 		// reads one compiled shader blob from
 		// data_user/shader_cache/bgfx/<active renderer>/ through the kotek

@@ -30,6 +30,17 @@ public:
 	float get_pitch(void) const noexcept;
 	void set_pitch(float value) noexcept;
 
+	/// @brief \~english the quaternion rotation representation (task Z20,
+	/// kSDK_Feature_SDKCamera_Rotation_Quaternion): the editor camera
+	/// driver accumulates mouse deltas into this quat instead of
+	/// yaw/pitch when the feature is on; identity == the euler defaults
+	/// (yaw=-90, pitch=0, forward -Z)
+	const kotek::ktk::math::quatf_t& get_rotation_quaternion(void
+	) const noexcept;
+	void set_rotation_quaternion(
+		const kotek::ktk::math::quatf_t& rotation
+	) noexcept;
+
 	float get_plane_near(void) const noexcept;
 	void set_plane_near(float value) noexcept;
 
@@ -66,6 +77,7 @@ private:
 	kotek::ktk::math::vec3f_t m_up;
 	kotek::ktk::math::mat4x4f_t m_view;
 	kotek::ktk::math::mat4x4f_t m_projection;
+	kotek::ktk::math::quatf_t m_rotation_quaternion;
 };
 
 #ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
@@ -91,6 +103,8 @@ inline void tag_invoke(const kotek::ktk::json::value_from_tag&,
 		kotek::ktk::json::value_from(data.get_front());
 	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP] =
 		kotek::ktk::json::value_from(data.get_up());
+	camera[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_ROTATION_QUATERNION] =
+		kotek::ktk::json::value_from(data.get_rotation_quaternion());
 
 	write_to = camera;
 }
@@ -123,6 +137,10 @@ inline zircon_component_camera tag_invoke(
 		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_FRONT)));
 	result.set_up(kotek::ktk::json::value_to<kotek::ktk::math::vec3f_t>(
 		camera.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_UP)));
+	result.set_rotation_quaternion(
+		kotek::ktk::json::value_to<kotek::ktk::math::quatf_t>(
+			camera.at(
+				ZIRCON_DEF_GAME_ZIRCON_COMPONENT_CAMERA_FIELD_M_ROTATION_QUATERNION)));
 
 	return result;
 }

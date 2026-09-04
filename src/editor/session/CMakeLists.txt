@@ -12,6 +12,8 @@ set(to_include_module_files
 set(to_include_session_files
 	"zircon_scene_metadata.h"
 	"zircon_scene_metadata.cpp"
+	"zircon_editor_sdk_camera.h"
+	"zircon_editor_sdk_camera.cpp"
 	"zircon_session_editor.h"
 	"zircon_session_editor.cpp"
 	"zircon_session_editor_manager.h"

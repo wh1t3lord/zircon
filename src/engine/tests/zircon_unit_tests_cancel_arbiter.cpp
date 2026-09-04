@@ -122,6 +122,7 @@ namespace
 			this->session()->initialize("zircon_z19_test_session",
 				session_id, &this->world, &this->session_manager,
 				&this->main_manager, &this->console, &this->filesystem,
+				&this->engine_config,
 				p_streaming_folder_name);
 		}
 

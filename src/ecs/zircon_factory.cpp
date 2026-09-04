@@ -670,6 +670,66 @@ bool zircon_factory::create_component(
 		);
 
 		result = p_data != nullptr;
+
+		// the input components need the engine input manager wired —
+		// the ENTT-era template path did this after creation (see the
+		// KOTEK_USE_ECS_BACKEND_ENTT blocks in the header); the PICO
+		// path created through ecs_add and never wired it, so every
+		// sdk_input created under PICO (console commands, scene
+		// deserialize, the editor camera bootstrap) asserted on first
+		// use (2026-09-04)
+		if (result)
+		{
+			switch (component_type)
+			{
+			case eZirconComponentType::kzircon_component_sdk_input:
+			{
+				zircon_component_sdk_input* p_component =
+					static_cast<zircon_component_sdk_input*>(
+						this->get_component_by_enum(
+							p_context, id, component_type
+						)
+					);
+
+				KOTEK_ASSERT(
+					p_component, "the component was just created"
+				);
+
+				if (p_component)
+				{
+					p_component->get_input().register_input(
+						this->m_p_input
+					);
+				}
+
+				break;
+			}
+			case eZirconComponentType::kzircon_component_input:
+			{
+				zircon_component_input* p_component =
+					static_cast<zircon_component_input*>(
+						this->get_component_by_enum(
+							p_context, id, component_type
+						)
+					);
+
+				KOTEK_ASSERT(
+					p_component, "the component was just created"
+				);
+
+				if (p_component)
+				{
+					p_component->register_input(this->m_p_input);
+				}
+
+				break;
+			}
+			default:
+			{
+				break;
+			}
+			}
+		}
 	}
 
 	return result;

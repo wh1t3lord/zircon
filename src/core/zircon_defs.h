@@ -33,6 +33,18 @@ enum class eZirconSDKFeatures : kotek::ktk::uint16_t
 	/// DLL), FALSE otherwise (where the flag is inert — a warning and
 	/// the static passes)
 	kSDK_Feature_GraphicsDevelopment = 1 << 4,
+	/// @brief \~english drive the editor camera's rotation through the
+	/// component's quaternion (m_rotation_quaternion) instead of euler
+	/// yaw/pitch accumulation (task Z20); persisted in game_config.json
+	/// as "sdk_camera_rotation_quaternion", default FALSE (euler keeps
+	/// the historical behavior)
+	kSDK_Feature_SDKCamera_Rotation_Quaternion = 1 << 5,
+	/// @brief \~english auto-create the ONE sdk_camera+sdk_input+
+	/// transform bootstrap entity the editor camera driver needs when an
+	/// editor session's world is initialized without a scene load (task
+	/// Z20, owner clarification: the bootstrap is opt-out); persisted in
+	/// game_config.json as "sdk_camera_input_bootstrap", default TRUE
+	kSDK_Feature_AddSdkCameraInputBootstrap_Automatically = 1 << 6,
 
 	kSDK_Feature_Unknown = 0
 };

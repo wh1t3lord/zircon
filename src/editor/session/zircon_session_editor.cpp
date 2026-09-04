@@ -1,7 +1,9 @@
 #include "zircon_session_editor.h"
+#include "zircon_editor_sdk_camera.h"
 #include "../../world/zircon_world.h"
 #include "../../ecs/zircon_factory.h"
 #include "../../core/zircon_console.h"
+#include "../../core/zircon_config.h"
 #include "../commands/zircon_command_history.h"
 
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
@@ -156,7 +158,7 @@ zircon_session_editor::zircon_session_editor(kotek::uint8_t id) :
 	m_was_render_graph_initialized{}, m_was_initialized{},
 	m_is_change_title_once_for_editing_status{}, m_id{id},
 	m_render_graph_id{static_cast<kotek::uint8_t>(-1)}, m_p_world{},
-	m_p_main_manager{}, m_name{"not_inited"}
+	m_p_main_manager{}, m_p_config{}, m_name{"not_inited"}
 {
 }
 
@@ -167,7 +169,7 @@ zircon_session_editor::zircon_session_editor(void) :
 	m_was_render_graph_initialized{}, m_was_initialized{},
 	m_is_change_title_once_for_editing_status{}, m_id{_kInvalidSessionID},
 	m_render_graph_id{static_cast<kotek::uint8_t>(-1)}, m_p_world{},
-	m_p_main_manager{}, m_name{"not_inited"}
+	m_p_main_manager{}, m_p_config{}, m_name{"not_inited"}
 {
 }
 
@@ -196,6 +198,7 @@ void zircon_session_editor::initialize(
 	kotek::core::ktkMainManager* p_main_manager,
 	kotek::core::ktkConsole* p_console,
 	kotek::core::ktkIFileSystem* p_filesystem,
+	zircon_config* p_config,
 	const char* p_history_streaming_folder_name)
 {
 	KOTEK_ASSERT(
@@ -228,6 +231,7 @@ void zircon_session_editor::initialize(
 		this->m_p_world = p_current_world;
 		this->m_p_main_manager = p_main_manager;
 		this->m_p_console = p_console;
+		this->m_p_config = p_config;
 		this->m_command_history_manager.initialize(
 			p_manager_session_editor, p_filesystem,
 			p_history_streaming_folder_name);
@@ -261,6 +265,7 @@ void zircon_session_editor::shutdown(void)
 
 		this->m_imgui_ui_elements.clear();
 		this->m_p_world = nullptr;
+		this->m_p_config = nullptr;
 		this->m_was_initialized = false;
 	}
 }
@@ -827,36 +832,59 @@ void zircon_session_editor::update_component_camera_sdk(void) noexcept
 
 				auto& camera = p_component_camera->get_camera();
 
-				auto pitch = camera.get_pitch();
-				auto yaw = camera.get_yaw();
+				float delta_yaw{};
+				float delta_pitch{};
 
 				if (input.is_key_holding(
 						kotek::core::eInputAllKeys::kCM_KEY_RIGHT))
 				{
-					yaw += input.get_delta_x(kotek::core::eInputControllerType::
+					delta_yaw = input.get_delta_x(kotek::core::eInputControllerType::
 								   kControllerMouse) *
 						input.get_sensetivity();
-					pitch += input.get_delta_y(kotek::core::
+					delta_pitch = input.get_delta_y(kotek::core::
 									 eInputControllerType::kControllerMouse) *
 						input.get_sensetivity();
 				}
 
-				if (pitch > 89.0f)
-					pitch = 89.0f;
-
-				if (pitch < -89.0f)
-					pitch = -89.0f;
-
-				camera.set_pitch(pitch);
-				camera.set_yaw(yaw);
+				// the rotation representation switch (task Z20) — read
+				// every frame so the Settings checkbox applies live;
+				// euler is the pre-Z20 driver math (through
+				// zircon_sdk_camera_drive_euler), the quaternion path
+				// accumulates the deltas into the component's quat —
+				// both feed the SAME projection + look_at build below
+				const bool is_rotation_quaternion =
+					this->m_p_config &&
+					this->m_p_config->is_feature_enabled(
+						eZirconSDKFeatures::
+							kSDK_Feature_SDKCamera_Rotation_Quaternion
+					);
 
 				kotek::ktk::math::vec3f_t front;
 
-				front.x() = cos(kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(kotek::ktk::math::convert_to_radians(pitch));
-				front.y() = sin(kotek::ktk::math::convert_to_radians(pitch));
-				front.z() = sin(kotek::ktk::math::convert_to_radians(yaw)) *
-					cos(kotek::ktk::math::convert_to_radians(pitch));
+				if (is_rotation_quaternion)
+				{
+					kotek::ktk::math::quatf_t rotation =
+						camera.get_rotation_quaternion();
+
+					zircon_sdk_camera_drive_quaternion(
+						rotation, delta_yaw, delta_pitch, front
+					);
+
+					camera.set_rotation_quaternion(rotation);
+				}
+				else
+				{
+					auto pitch = camera.get_pitch();
+					auto yaw = camera.get_yaw();
+
+					zircon_sdk_camera_drive_euler(
+						yaw, pitch, delta_yaw, delta_pitch, front
+					);
+
+					camera.set_pitch(pitch);
+					camera.set_yaw(yaw);
+				}
+
 				auto height = this->m_p_main_manager->Get_WindowManager()
 								  ->ActiveWindow_GetHeight();
 				auto width = this->m_p_main_manager->Get_WindowManager()

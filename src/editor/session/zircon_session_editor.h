@@ -8,6 +8,7 @@
 
 class zircon_world;
 class zircon_session_editor_manager;
+class zircon_config;
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
@@ -44,6 +45,7 @@ public:
 		kotek::core::ktkMainManager* p_main_manager,
 		kotek::core::ktkConsole* p_console,
 		kotek::core::ktkIFileSystem* p_filesystem,
+		zircon_config* p_config,
 		const char* p_history_streaming_folder_name = "current"
 	);
 	void shutdown(void) override;
@@ -117,6 +119,10 @@ private:
 	zircon_world* m_p_world;
 	kotek::core::ktkConsole* m_p_console;
 	kotek::core::ktkMainManager* m_p_main_manager;
+	/// @brief \~english non-owning (the game manager owns the config);
+	/// the camera driver reads the rotation-representation feature from
+	/// it every frame so the Settings checkbox applies live (task Z20)
+	zircon_config* m_p_config;
 	zircon_imgui_elements_t m_imgui_ui_elements;
 	kotek::static_cstring_t<ZIRCON_DEF_MAX_SESSION_NAME_LENGTH>
 		m_name;

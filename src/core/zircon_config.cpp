@@ -61,7 +61,9 @@ zircon_config::zircon_config(void) :
 	// P3a) defaults TRUE only in ZIRCON_GRAPHICS_DEVELOPMENT builds —
 	// that build exists to run passes from the DLL; every other build
 	// keeps the static passes
-	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart
+	m_features_sdk{eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart |
+		eZirconSDKFeatures::
+			kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
 #ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
 			| eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
 #endif
@@ -201,6 +203,28 @@ void zircon_config::serialize(
 			),
 			this->is_feature_enabled(
 				eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
+			)
+		);
+
+		config.Write(
+			translate_zircon_sdk_features(
+				eZirconSDKFeatures::
+					kSDK_Feature_SDKCamera_Rotation_Quaternion
+			),
+			this->is_feature_enabled(
+				eZirconSDKFeatures::
+					kSDK_Feature_SDKCamera_Rotation_Quaternion
+			)
+		);
+
+		config.Write(
+			translate_zircon_sdk_features(
+				eZirconSDKFeatures::
+					kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
+			),
+			this->is_feature_enabled(
+				eZirconSDKFeatures::
+					kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
 			)
 		);
 
@@ -383,6 +407,69 @@ void zircon_config::deserialize(
 					}
 				}
 			}
+
+			// same absent-key-keeps-default rule (task Z20): the ctor
+			// default is FALSE (euler), a config written before the flag
+			// existed must not silently enable the quaternion driver
+			{
+				const auto& object = file.Get_Object();
+
+				auto it = object.find(translate_zircon_sdk_features(
+					eZirconSDKFeatures::
+						kSDK_Feature_SDKCamera_Rotation_Quaternion
+				));
+
+				if (it != object.end())
+				{
+					if ((*it).value().is_bool())
+					{
+						this->set_feature(
+							eZirconSDKFeatures::
+								kSDK_Feature_SDKCamera_Rotation_Quaternion,
+							(*it).value().as_bool()
+						);
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"config key 'sdk_camera_rotation_quaternion' "
+							"must be a bool, ignoring"
+						);
+					}
+				}
+			}
+
+			// same absent-key-keeps-default rule (task Z20): the ctor
+			// default is TRUE (the bootstrap is opt-out per the owner's
+			// clarification) — a config that predates the key must keep
+			// the bootstrap on
+			{
+				const auto& object = file.Get_Object();
+
+				auto it = object.find(translate_zircon_sdk_features(
+					eZirconSDKFeatures::
+						kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
+				));
+
+				if (it != object.end())
+				{
+					if ((*it).value().is_bool())
+					{
+						this->set_feature(
+							eZirconSDKFeatures::
+								kSDK_Feature_AddSdkCameraInputBootstrap_Automatically,
+							(*it).value().as_bool()
+						);
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"config key 'sdk_camera_input_bootstrap' "
+							"must be a bool, ignoring"
+						);
+					}
+				}
+			}
 		}
 	}
 }
@@ -467,6 +554,12 @@ void zircon_config::initialize_default() noexcept
 	this->set_feature(
 		eZirconSDKFeatures::kSDK_Feature_ShowPassManagerOnStart, true
 	);
+
+	this->set_feature(
+		eZirconSDKFeatures::
+			kSDK_Feature_AddSdkCameraInputBootstrap_Automatically,
+		true
+	);
 }
 
 const char*
@@ -501,6 +594,25 @@ translate_zircon_sdk_features(eZirconSDKFeatures features)
 			 ))
 	{
 		return "graphics_development";
+	}
+	else if (KOTEK_CHECK_FLAG(
+				 features,
+				 eZirconSDKFeatures::
+					 kSDK_Feature_SDKCamera_Rotation_Quaternion
+			 ))
+	{
+		return "sdk_camera_rotation_quaternion";
+	}
+	else if (KOTEK_CHECK_FLAG(
+				 features,
+				 eZirconSDKFeatures::
+					 kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
+			 ))
+	{
+		// 26 chars — the config's Write truncates keys at 32 (see
+		// "add_required_components_automati" in a written
+		// game_config.json), keep new keys under the limit
+		return "sdk_camera_input_bootstrap";
 	}
 	else if (KOTEK_CHECK_FLAG(
 				 features,

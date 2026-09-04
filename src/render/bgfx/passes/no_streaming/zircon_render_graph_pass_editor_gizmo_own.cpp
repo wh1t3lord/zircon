@@ -2434,6 +2434,15 @@ namespace no_streaming
 		*p_out_gizmo_scale = compute_gizmo_scale(p_out_camera_position,
 			p_out_gizmo_origin, p_out_projection[5], viewport_height);
 
+		// defense in depth: user-derived matrices are validated at the
+		// resolve, so a degenerate scale here means an internal bug — the
+		// clamp keeps the frame alive (pick_handle's assert guards the
+		// internal contract); NaN compares false and lands here too
+		if ((*p_out_gizmo_scale > 1e-6f) == false)
+		{
+			*p_out_gizmo_scale = 1.0f;
+		}
+
 		return true;
 	}
 
@@ -2503,6 +2512,19 @@ namespace no_streaming
 				kotek::math::value_ptr(camera.get_view());
 			const float* p_camera_projection =
 				kotek::math::value_ptr(camera.get_projection());
+
+			// the camera component is USER data (scene content): a
+			// default-constructed or corrupt camera (zero/NaN matrices)
+			// must not poison the frame — skip it and let the caller
+			// fall back to the default orbit (the 2026-09-04 viewport-
+			// click assert chain)
+			if (zircon_render_graph_pass_editor_grid_bgfx::
+					is_matrix_usable(p_camera_view) == false ||
+				zircon_render_graph_pass_editor_grid_bgfx::
+					is_matrix_usable(p_camera_projection) == false)
+			{
+				continue;
+			}
 
 			for (int element_index = 0; element_index < 16;
 				 ++element_index)

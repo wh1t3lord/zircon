@@ -11,6 +11,7 @@
 #ifdef KOTEK_USE_SDK_IMGUI
 	#include "../editor/session/zircon_session_editor.h"
 	#include "../editor/session/zircon_session_editor_manager.h"
+	#include "../editor/session/zircon_editor_sdk_camera.h"
 	#include "../editor/ui/zircon_ui_component_inspector.h"
 	#include "../editor/ui/zircon_ui_object_list.h"
 	#include "../editor/ui/zircon_ui_top_bar.h"
@@ -1178,8 +1179,34 @@ void zircon_game_manager::Initialize(
 					this->m_p_session_editor_manager,
 					this->m_p_main_manager,
 					this->m_p_console,
-					this->m_p_main_manager->GetFileSystem()
+					this->m_p_main_manager->GetFileSystem(),
+					this->m_p_config
 				);
+
+				// the editor camera bootstrap (task Z20): the world was
+				// initialized above WITHOUT a scene load, so ensure the
+				// one sdk_camera+sdk_input+transform entity the camera
+				// driver (zircon_session_editor::
+				// update_component_camera_sdk) needs; the helper is
+				// idempotent on the sdk_camera absence, so a scene load
+				// that brings its own camera never doubles it. Direct
+				// factory calls — NOT journaled history; the entity is
+				// then deletable through the normal journaled delete.
+				// Opt-out per the owner's clarification: the persisted
+				// feature flag (default ON, Settings-window checkbox)
+				// gates the creation
+				if (this->m_p_config &&
+					this->m_p_config->is_feature_enabled(
+						eZirconSDKFeatures::
+							kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
+					))
+				{
+					zircon_editor_ensure_sdk_bootstrap_entity(
+						this->m_p_factory,
+						p_world->get_ecs_context(),
+						p_world->get_entity_count_max_limit()
+					);
+				}
 
 				if (this->m_p_console)
 				{
@@ -4175,7 +4202,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 		);
 
 		this->m_p_console->Register_Command(
-			[this](kotek::entity_t entity) -> bool
+			[this](kotek::uint32_t entity) -> bool
 			{
 				KOTEK_ASSERT(
 					this->m_p_session_editor_manager,
@@ -4192,7 +4219,14 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
-				kotek::entity_t id = entity;
+				// console entity-id args are uint32 by house convention:
+				// check_args validates the variant alternatives EXACTLY
+				// per position and the text parser cannot produce
+				// entity_t at all — every call site (UI + typed
+				// commands) passes uint32, so the entity is
+				// reconstructed here (a kotek::entity_t parameter made
+				// this command a silent no-op, 2026-09-04)
+				kotek::entity_t id = kotek::entity_t{entity};
 
 				zircon_session_editor* p_session = nullptr;
 				zircon_editor_command_history*
@@ -4439,7 +4473,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 		this->m_p_console->Register_Command(
 			[this](
 				const char* component_name,
-				kotek::entity_t entity
+				kotek::uint32_t entity
 			) -> bool
 			{
 #ifdef KOTEK_USE_SDK_IMGUI
@@ -4560,7 +4594,11 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
-				kotek::entity_t id = entity;
+				// entity ids cross the console as uint32 (exact-type
+				// variant validation; the text parser cannot produce
+				// entity_t) — reconstruct here; see the DeleteEntity
+				// lambda for the full note
+				kotek::entity_t id = kotek::entity_t{entity};
 
 	#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 				if (p_factory->GetComponentByName(
@@ -4648,7 +4686,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 		this->m_p_console->Register_Command(
 			[this](
 				kotek::enum_base_t component_type,
-				kotek::entity_t entity
+				kotek::uint32_t entity
 			) -> bool
 			{
 #ifdef KOTEK_USE_SDK_IMGUI
@@ -4769,7 +4807,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
-				kotek::entity_t id = entity;
+				kotek::entity_t id = kotek::entity_t{entity};
 				eZirconComponentType decoded_component_type =
 					static_cast<eZirconComponentType>(
 						component_type
@@ -4863,7 +4901,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 		this->m_p_console->Register_Command(
 			[this](
 				const char* p_component_name,
-				kotek::entity_t entity
+				kotek::uint32_t entity
 			) -> bool
 			{
 				KOTEK_ASSERT(
@@ -4967,10 +5005,13 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
-#ifdef KOTEK_USE_ECS_BACKEND_ENTT
-				entt::entity id =
-					static_cast<entt::entity>(entity);
+				// entity ids cross the console as uint32 (exact-type
+				// variant validation; the text parser cannot produce
+				// entity_t) — reconstruct here; see the DeleteEntity
+				// lambda for the full note
+				kotek::entity_t id = kotek::entity_t{entity};
 
+#ifdef KOTEK_USE_ECS_BACKEND_ENTT
 				if (p_factory->GetComponentByName(
 						id, p_component_name
 					))
@@ -5001,7 +5042,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 				// the factory explicitly); presence-gated like ENTT
 				if (p_ecs_context &&
 					p_factory->get_component_by_name(
-						p_ecs_context, entity, p_component_name) !=
+						p_ecs_context, id, p_component_name) !=
 						nullptr)
 				{
 					auto* p_placement_new_memory =
@@ -5019,7 +5060,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 							zircon_command_delete_component_from_entity(
 								this->m_p_session_editor_manager,
 								p_factory,
-								entity,
+								id,
 								p_component_name
 							);
 
@@ -5039,7 +5080,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 		this->m_p_console->Register_Command(
 			[this](
 				kotek::enum_base_t component_type,
-				kotek::entity_t entity
+				kotek::uint32_t entity
 			) -> bool
 			{
 				KOTEK_ASSERT(
@@ -5143,11 +5184,14 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					return false;
 				}
 
+				// entity ids cross the console as uint32 (exact-type
+				// variant validation; the text parser cannot produce
+				// entity_t) — reconstruct here; see the DeleteEntity
+				// lambda for the full note
+				kotek::entity_t id = kotek::entity_t{entity};
+
 #ifdef KOTEK_USE_ECS_BACKEND_ENTT
 				// todo: implement delete component by enum
-				entt::entity id =
-					static_cast<entt::entity>(entity);
-
 				if (p_factory->GetComponentByName(
 						id, p_component_name
 					))
@@ -5185,7 +5229,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 					if (p_ecs_context &&
 						decoded_component_type !=
 							eZirconComponentType::kunknown &&
-						p_factory->has_component(p_ecs_context, entity,
+						p_factory->has_component(p_ecs_context, id,
 							decoded_component_type))
 					{
 						auto* p_placement_new_memory =
@@ -5203,7 +5247,7 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 								zircon_command_delete_component_from_entity(
 									this->m_p_session_editor_manager,
 									p_factory,
-									entity,
+									id,
 									p_factory->get_component_name_by_enum(
 										decoded_component_type
 									)

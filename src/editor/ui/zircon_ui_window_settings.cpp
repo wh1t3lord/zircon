@@ -124,6 +124,58 @@ void zircon_editor_ui_window_settings::Draw(
 								);
 							}
 						}
+
+						// editor camera rotation representation (task
+						// Z20): quaternion accumulation instead of
+						// euler yaw/pitch; the session's camera driver
+						// reads the flag every frame, so the toggle
+						// applies live
+						status = p_config->is_feature_enabled(
+							eZirconSDKFeatures::
+								kSDK_Feature_SDKCamera_Rotation_Quaternion
+						);
+
+						if (p_wrapper_imgui->Checkbox(
+								translate_zircon_sdk_features(
+									eZirconSDKFeatures::
+										kSDK_Feature_SDKCamera_Rotation_Quaternion
+								),
+								&status
+							))
+						{
+							p_config->set_feature(
+								eZirconSDKFeatures::
+									kSDK_Feature_SDKCamera_Rotation_Quaternion,
+								status
+							);
+						}
+
+						// the editor camera bootstrap entity (task
+						// Z20, owner clarification: opt-out) —
+						// auto-create the sdk_camera+sdk_input+
+						// transform entity when an editor session's
+						// world starts empty; OFF leaves the world
+						// untouched (e.g. for a scene that always
+						// brings its own camera)
+						status = p_config->is_feature_enabled(
+							eZirconSDKFeatures::
+								kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
+						);
+
+						if (p_wrapper_imgui->Checkbox(
+								translate_zircon_sdk_features(
+									eZirconSDKFeatures::
+										kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
+								),
+								&status
+							))
+						{
+							p_config->set_feature(
+								eZirconSDKFeatures::
+									kSDK_Feature_AddSdkCameraInputBootstrap_Automatically,
+								status
+							);
+						}
 					}
 				}
 			}
