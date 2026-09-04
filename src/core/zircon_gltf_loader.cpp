@@ -1817,12 +1817,11 @@ namespace
 		return true;
 	}
 
-	// reads a file through the kotek filesystem into caller storage with
-	// every native-path assert precondition checked first (missing file,
-	// caller buffer too small). The interface's path-based Get_FileSize
-	// is an unimplemented stub, so the size query goes through the
-	// alias-layer free function (the same layer the filesystem's own
-	// Is_Exists uses)
+	// reads a file through the kotek filesystem into caller storage.
+	// Get_FileSize(path) answers the size query through the interface
+	// (false = the file is absent — graceful since kotek B0, no assert
+	// anywhere on the read path), so the capacity check happens before
+	// the read and there is no existence/size TOCTOU pair
 	eZirconGltfLoadStatus gltf_read_file(
 		kotek::core::ktkIFileSystem* p_filesystem,
 		const kotek::static_path_t& path_to_file,
@@ -1830,18 +1829,15 @@ namespace
 		kotek::size_t file_buffer_capacity, kotek::size_t& io_used,
 		zircon_gltf_error_t& out_error) noexcept
 	{
-		if (p_filesystem->Is_Exists(path_to_file) == false)
+		kotek::size_t file_size = 0;
+
+		if (p_filesystem->Get_FileSize(path_to_file, file_size) == false)
 		{
 			gltf_set_error(out_error, "file does not exist");
 			return eZirconGltfLoadStatus::kError_FileRead;
 		}
 
-		std::error_code size_error;
-
-		const uintmax_t file_size = kotek::ktk::filesystem::file_size(
-			path_to_file, size_error);
-
-		if (size_error || file_size == 0)
+		if (file_size == 0)
 		{
 			gltf_set_error(out_error, "file is empty or unreadable");
 			return eZirconGltfLoadStatus::kError_FileRead;

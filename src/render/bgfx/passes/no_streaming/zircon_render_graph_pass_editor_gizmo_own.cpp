@@ -2845,9 +2845,9 @@ namespace no_streaming
 		shader_path /= p_dialect_directory;
 		shader_path /= p_shader_file_name;
 
-		// an absent blob is an expected pre-pipeline state, not an error
-		// (the native read path asserts on a missing file, hence the
-		// existence check first)
+		// an absent blob is an expected pre-pipeline state, not an error —
+		// the existence check keeps the (graceful since kotek B0)
+		// missing-file read from logging its warning
 		if (p_filesystem->Is_Exists(shader_path) == false)
 			return result;
 

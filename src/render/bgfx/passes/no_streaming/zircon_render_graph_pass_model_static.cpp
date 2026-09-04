@@ -1102,9 +1102,9 @@ namespace no_streaming
 		shader_path /= p_dialect_directory;
 		shader_path /= p_shader_file_name;
 
-		// an absent blob is an expected pre-pipeline state, not an error
-		// (the native read path asserts on a missing file, hence the
-		// existence check first)
+		// an absent blob is an expected pre-pipeline state, not an error —
+		// the existence check keeps the (graceful since kotek B0)
+		// missing-file read from logging its warning
 		if (p_filesystem->Is_Exists(shader_path) == false)
 			return result;
 
@@ -1120,8 +1120,7 @@ namespace no_streaming
 		if (read_status && buffer_length)
 		{
 			// bgfx::copy hands bgfx its own copy, so the filesystem's
-			// buffer (or its internal cache for oversized reads) is not
-			// referenced past this call
+			// buffer is not referenced past this call
 			result = bgfx::createShader(bgfx::copy(p_buffer,
 				static_cast<uint32_t>(buffer_length)));
 
