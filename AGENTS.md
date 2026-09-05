@@ -346,11 +346,25 @@ non-existent target name in some configs — verify when touching root CMake (ta
   addresses taken from a game.ktk TU to anything — they resolve to the
   UNINITIALIZED copy and deref a null backend (`bd`) — an early
   "event-chain bridge" of that shape crashed on the first mouse move and
-  was reverted the same day. BACKLOG:
-  `kotek.core.input` has the same disease — the engine's own callbacks are
-  installed via game.ktk's dead copy
-  (`zircon_game_manager.cpp::initialize_input` ~:2666-2676) and need a
-  wrapper-route fix (through the exe, not raw game.ktk addresses).
+  was reverted the same day. **INPUT HAD THE
+  SAME DISEASE — FIXED (2026-09-05, kotek K26)**: the engine's own input
+  callbacks were installed from game.ktk's dead GLFW copy by
+  `zircon_game_manager::initialize_input` (the whole installation block +
+  its editor gate + the ten `WindowCallback_*` free functions deleted).
+  The exe-side window (`ktkWindow::Initialize`, kotek.core.window.glfw)
+  now installs key / mouse-button / cursor-pos callbacks on the LIVE GLFW
+  copy and feeds `Get_Input()` directly (`Update_Controller` with
+  `ktkInputPlatformBackendArgs_GLFW3`; cursor-pos does the prev/current
+  `Set_ControllerData` dance + `Set_ControllerUpdate`), gated on the
+  input manager being initialized for GLFW3 (new additive
+  `ktkIInput::Get_PlatformBackend`), with NO editor/non-editor gate —
+  both boots feed input. The imgui backend still chains on top as
+  PrevUserCallback* (install order: window first, imgui later). Scroll
+  is not forwarded — `eInputControllerMouseData` has no scroll fields;
+  char/cursor-enter/focus/monitor events had nothing to feed. The
+  interactive proof (real RMB-look/WASD on the window) stays the owner's
+  manual check; the headless pin is kotek's
+  `Input.WindowCallbackFeedingContract_GLFW3` test.
 - **Console command argument validation is EXACT-type per position
   (the 2026-09-04 silent-buttons defect class)**: kotek's console stores
   each command as a variant-driven vfunction and `check_args`
