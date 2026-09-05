@@ -2,6 +2,12 @@
 
 #include "zircon_defs.h"
 
+// for ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH and
+// kZirconLocalization_DefaultLanguage — the config persists the
+// localization manager's active tags, so both sides share the one
+// capacity/default definition (no drift)
+#include "zircon_localization_manager.h"
+
 /// the data-carrying SDK features are a handful by design (bool features
 /// live directly in the flag enums, see m_features_sdk/m_features_game) —
 /// lookup-table-on-vector (rule 2), never a hash map; capacities are named
@@ -15,6 +21,24 @@
 /// bgfx" (62 chars), so 256 holds three such names with separators — raise
 /// when a session legitimately needs more simultaneous passes
 #define ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH 256
+
+/// the fixed json DOM memory of the config document (ktkResourceText's
+/// static_resource, no realloc). MEASURED (2026-09-05, task Z22): the
+/// 8 pre-localization keys sat just under the old 2048 — adding the two
+/// language keys threw bad_alloc mid-serialize (an uncaught boost::json
+/// exception = a message-less abort); 4096 covers the 10-key document
+/// (~0.7 KB serialized) including rehash peaks with >2x margin. When a
+/// future key outgrows this, raise the define — the failure mode is an
+/// abort, so measure before shipping a bigger config
+#define ZIRCON_DEF_CONFIG_JSON_MEMORY_SIZE 4096
+/// the PARSE leg of the config document: ktkResourceText's first
+/// template parameter is a separate static_resource the
+/// Create_FromMemory parser builds the DOM in (NOT the write leg
+/// above). MEASURED (2026-09-05, task Z22): the 8-key file parsed in
+/// 1024; the 10-key file's parse DOM exceeds 1024 and the exhaustion
+/// throw escapes the noexcept deserialize as a message-less abort;
+/// 2048 covers the 10-key parse with margin
+#define ZIRCON_DEF_CONFIG_JSON_PARSER_MEMORY_SIZE 2048
 
 // the translate functions return const char* (string literals, zero cost)
 // — static_cstring_t would CONSTRUCT a string per call for nothing
@@ -62,6 +86,17 @@ constexpr const char* kZirconConfig_RenderPassEditorGizmoImguizmoName =
 // through translate_zircon_sdk_features as "graphics_development"
 constexpr const char* kZirconConfig_ConsoleArg_GraphicsDevelopment =
 	"--graphics_development";
+
+// localization (task Z22): the active language tag per
+// zircon_localization_manager instance — the value names the
+// data_game/configs/locale/<editor|game>/<tag>.json file the instance
+// loads. Default "en" (the ctor initializes it, an absent key keeps the
+// default); 28/26 chars — under the config Write's 32-char key
+// truncation limit, keep them there
+constexpr const char* kZirconConfig_KeyLocalizationEditorLanguage =
+	"localization_editor_language";
+constexpr const char* kZirconConfig_KeyLocalizationGameLanguage =
+	"localization_game_language";
 
 class zircon_config
 {
@@ -112,6 +147,19 @@ public:
 	void set_render_passes_editor(const char* p_comma_separated_names) noexcept;
 	void set_render_passes_game(const char* p_comma_separated_names) noexcept;
 
+	/// the localization instances' active language tags (task Z22);
+	/// never empty in practice — constructed with the default ("en") and
+	/// deserialize only overwrites on a non-empty value
+	const char* get_localization_editor_language(void) const noexcept;
+	const char* get_localization_game_language(void) const noexcept;
+
+	/// internal data (the game manager mirrors the localization
+	/// manager's live tags into the config at save) — the value must fit
+	/// ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH, a loud assert
+	/// fires otherwise
+	void set_localization_editor_language(const char* p_language) noexcept;
+	void set_localization_game_language(const char* p_language) noexcept;
+
 private:
 	void initialize_default() noexcept;
 
@@ -125,6 +173,14 @@ private:
 		m_render_passes_editor;
 	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
 		m_render_passes_game;
+
+	// the localization instances' persisted language tags (task Z22) —
+	// same capacity as the manager's own member, so a value the manager
+	// accepted always fits here and vice versa
+	kotek::static_cstring_t<ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH>
+		m_localization_editor_language;
+	kotek::static_cstring_t<ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH>
+		m_localization_game_language;
 
 	// the variant carries every non-bool feature value; the string
 	// alternative is a static_cstring_t so no value ever allocates

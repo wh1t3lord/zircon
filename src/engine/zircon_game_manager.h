@@ -38,6 +38,7 @@ enum class eZirconSDKFeatures : kotek::ktk::uint16_t;
 class zircon_editor_command_history;
 class zircon_resource_manager;
 class zircon_config;
+class zircon_localization_manager;
 class zircon_factory;
 class zircon_world_manager;
 class zircon_interface_session;
@@ -137,6 +138,12 @@ public:
 
 	zircon_config* get_config() const noexcept;
 
+	/// @brief \~english task Z22: the localization manager (both
+	/// instances — editor and game). Windows receive it by injection
+	/// like the config pointer; valid after Initialize
+	zircon_localization_manager* get_localization_manager(void
+	) const noexcept;
+
 	/// @brief \~english task Z3 P2h: the game pass set this boot
 	/// RESOLVED (the loaded scene's scene.json render_passes -> config
 	/// render_passes_game -> built-in default) and created the game
@@ -184,6 +191,9 @@ private:
 
 	void initialize_config(void) noexcept;
 	void destroy_config(void) noexcept;
+
+	void initialize_localization(void) noexcept;
+	void destroy_localization(void) noexcept;
 
 	void UpdateInput(void) noexcept;
 	void UpdateCamera(void) noexcept;
@@ -240,6 +250,10 @@ private:
 	zircon_world_manager* m_p_world_manager;
 	zircon_resource_manager* m_p_resource_manager;
 	zircon_config* m_p_config;
+	/// @brief \~english task Z22: heap-owned like the config (the
+	/// tables are ~280 KB per instance at capacity — never a by-value
+	/// member of anything stack-bound)
+	zircon_localization_manager* m_p_localization_manager;
 	zircon_session_game_manager* m_p_session_game_manager;
 	zircon_factory* m_p_factory;
 	/// @brief \~english the game pass set the running game session was

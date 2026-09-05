@@ -1,6 +1,7 @@
 #include "zircon_game_manager.h"
 #include <cstdio>
 
+#include "../core/zircon_localization_manager.h"
 #include "../ecs/zircon_factory.h"
 #include "zircon_resource_manager.h"
 #include "../world/zircon_world_manager.h"
@@ -829,6 +830,7 @@ zircon_game_manager::zircon_game_manager(void) :
 	m_p_current_renderer{}, m_p_window_console{},
 	m_p_current_session{}, m_renderers{}, m_p_world_manager{},
 	m_p_resource_manager{}, m_p_config{},
+	m_p_localization_manager{},
 	m_p_session_game_manager{}
 #ifdef KOTEK_USE_SDK_IMGUI
 	,
@@ -867,6 +869,11 @@ void zircon_game_manager::Initialize(
 	this->m_p_config->deserialize(
 		this->m_p_main_manager->GetFileSystem()
 	);
+
+	// task Z22: the localization manager inits AFTER the config load —
+	// the persisted language tags (localization_editor_language /
+	// localization_game_language) select each instance's table
+	this->initialize_localization();
 
 	// --graphics_development (task Z3 P3a): session-scoped CLI override
 	// that forces the feature on for this run (mirrors the
@@ -1066,7 +1073,8 @@ void zircon_game_manager::Initialize(
 						new zircon_editor_ui_window_render_stats(
 						),
 						new zircon_editor_ui_window_settings(
-							this->m_p_config
+							this->m_p_config,
+							this->m_p_localization_manager
 						),
 #ifdef KOTEK_USE_BGFX
 						p_window_render_passes,
@@ -1531,6 +1539,7 @@ void zircon_game_manager::Shutdown(
 	this->Destroy_Console();
 	//	this->Destroy_Session();
 	//	this->Destroy_Factory();
+	this->destroy_localization();
 	this->destroy_config();
 }
 
@@ -1823,6 +1832,31 @@ kotek::core::ktkWindow* zircon_game_manager::GetWindow(void
 
 void zircon_game_manager::Serialize(void) noexcept
 {
+	// task Z22: a runtime language switch lives in the localization
+	// manager (set_language) — mirror the active tags into the config so
+	// the save below persists them
+	if (this->m_p_localization_manager && this->m_p_config)
+	{
+		const char* p_editor_language =
+			this->m_p_localization_manager->get_language(
+				eZirconLocalizationInstance::kEditor);
+		const char* p_game_language =
+			this->m_p_localization_manager->get_language(
+				eZirconLocalizationInstance::kGame);
+
+		if (p_editor_language && p_editor_language[0] != '\0')
+		{
+			this->m_p_config->set_localization_editor_language(
+				p_editor_language);
+		}
+
+		if (p_game_language && p_game_language[0] != '\0')
+		{
+			this->m_p_config->set_localization_game_language(
+				p_game_language);
+		}
+	}
+
 	this->m_p_config->serialize(
 		this->m_p_main_manager->GetFileSystem()
 	);
@@ -2033,6 +2067,12 @@ zircon_game_manager::GetMainManager(void) const noexcept
 zircon_config* zircon_game_manager::get_config() const noexcept
 {
 	return this->m_p_config;
+}
+
+zircon_localization_manager*
+zircon_game_manager::get_localization_manager(void) const noexcept
+{
+	return this->m_p_localization_manager;
 }
 
 void zircon_game_manager::initialize_render_graph(
@@ -5473,6 +5513,42 @@ void zircon_game_manager::Destroy_UI(void) noexcept
 void zircon_game_manager::initialize_config(void) noexcept
 {
 	this->m_p_config = new zircon_config();
+}
+
+void zircon_game_manager::initialize_localization(void) noexcept
+{
+	// task Z22: one manager, TWO instances (editor UI strings / layer-3
+	// game text). Each initialize loads the instance's active table ("en"
+	// until the persisted tag says otherwise) plus the "en" fallback;
+	// set_language below applies the persisted tags and is a no-op when
+	// the tag IS the default
+	this->m_p_localization_manager = new zircon_localization_manager();
+
+	this->m_p_localization_manager->initialize(
+		eZirconLocalizationInstance::kEditor, this->m_p_main_manager);
+	this->m_p_localization_manager->initialize(
+		eZirconLocalizationInstance::kGame, this->m_p_main_manager);
+
+	if (this->m_p_config)
+	{
+		this->m_p_localization_manager->set_language(
+			eZirconLocalizationInstance::kEditor,
+			this->m_p_config->get_localization_editor_language());
+		this->m_p_localization_manager->set_language(
+			eZirconLocalizationInstance::kGame,
+			this->m_p_config->get_localization_game_language());
+	}
+}
+
+void zircon_game_manager::destroy_localization(void) noexcept
+{
+	if (this->m_p_localization_manager)
+	{
+		this->m_p_localization_manager->shutdown();
+
+		delete this->m_p_localization_manager;
+		this->m_p_localization_manager = nullptr;
+	}
 }
 
 void zircon_game_manager::destroy_config(void) noexcept

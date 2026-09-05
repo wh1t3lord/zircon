@@ -1,0 +1,10 @@
+{
+	"language": "en",
+	"entries": {
+		"game.loading": "Loading...",
+		"game.paused": "Paused",
+		"game.press_any_key": "Press any key",
+		"common.ok": "OK",
+		"common.cancel": "Cancel"
+	}
+}

@@ -1,10 +1,14 @@
 #include "zircon_ui_window_settings.h"
 #include "../../core/zircon_config.h"
+#include "../../core/zircon_localization_manager.h"
 #include "zircon_editor_ui_state.h"
 
 zircon_editor_ui_window_settings::
-	zircon_editor_ui_window_settings(zircon_config* p_config) :
-	m_is_window_show(false), m_p_config{p_config}
+	zircon_editor_ui_window_settings(zircon_config* p_config,
+		zircon_localization_manager* p_localization) :
+	m_is_window_show(false),
+	m_p_config{p_config},
+	m_p_localization{p_localization}
 {
 }
 
@@ -16,6 +20,21 @@ zircon_editor_ui_window_settings::
 void zircon_editor_ui_window_settings::Initialize(void) {}
 
 void zircon_editor_ui_window_settings::Shutdown(void) {}
+
+const char* zircon_editor_ui_window_settings::translate(
+	const char* p_key) const noexcept
+{
+	if (this->m_p_localization == nullptr)
+	{
+		KOTEK_ASSERT(false,
+			"the settings window needs a valid "
+			"zircon_localization_manager (the game manager injects it)");
+		return p_key;
+	}
+
+	return this->m_p_localization->translate(
+		eZirconLocalizationInstance::kEditor, p_key);
+}
 
 void zircon_editor_ui_window_settings::Draw(
 	kotek::Core::ktkMainManager* p_main_manager
@@ -34,9 +53,16 @@ void zircon_editor_ui_window_settings::Draw(
 
 	if (p_wrapper_imgui)
 	{
-		if (p_wrapper_imgui->Begin("Settings"))
+		// the window title is the imgui ID and the imgui.ini section
+		// name: the "en" table keeps it byte-identical "Settings" so the
+		// existing docking/layout stays valid, while a non-default
+		// language simply opens its own ini section (imgui keys layout
+		// by the title string — that is inherent to string-table
+		// localization and applies to every migrated window)
+		if (p_wrapper_imgui->Begin(this->translate("settings.window_title")))
 		{
-			if (p_wrapper_imgui->CollapsingHeader("Features"))
+			if (p_wrapper_imgui->CollapsingHeader(
+					this->translate("settings.header.features")))
 			{
 				if (p_main_manager->GetGameManager())
 				{
@@ -52,9 +78,8 @@ void zircon_editor_ui_window_settings::Draw(
 							);
 
 						if (p_wrapper_imgui->Checkbox(
-								translate_zircon_sdk_features(
-									eZirconSDKFeatures::
-										kSDK_Feature_AddRequiredComponents_Automatically
+								this->translate(
+									"settings.feature.add_required_components"
 								),
 								&status
 							))
@@ -74,9 +99,8 @@ void zircon_editor_ui_window_settings::Draw(
 						);
 
 						if (p_wrapper_imgui->Checkbox(
-								translate_zircon_sdk_features(
-									eZirconSDKFeatures::
-										kSDK_Feature_SphereBoundingBox_Quality
+								this->translate(
+									"settings.feature.sphere_bounding_box_quality"
 								),
 								&status
 							))
@@ -110,7 +134,9 @@ void zircon_editor_ui_window_settings::Draw(
 							}
 
 							if (p_wrapper_imgui->DragInt(
-									"SBB quality",
+									this->translate(
+										"settings.feature.sbb_quality"
+									),
 									&quality,
 									1.0,
 									3,
@@ -136,9 +162,8 @@ void zircon_editor_ui_window_settings::Draw(
 						);
 
 						if (p_wrapper_imgui->Checkbox(
-								translate_zircon_sdk_features(
-									eZirconSDKFeatures::
-										kSDK_Feature_SDKCamera_Rotation_Quaternion
+								this->translate(
+									"settings.feature.sdk_camera_rotation_quaternion"
 								),
 								&status
 							))
@@ -163,9 +188,8 @@ void zircon_editor_ui_window_settings::Draw(
 						);
 
 						if (p_wrapper_imgui->Checkbox(
-								translate_zircon_sdk_features(
-									eZirconSDKFeatures::
-										kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
+								this->translate(
+									"settings.feature.sdk_camera_input_bootstrap"
 								),
 								&status
 							))

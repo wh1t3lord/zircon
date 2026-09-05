@@ -1,0 +1,20 @@
+{
+	"language": "en",
+	"entries": {
+		"settings.window_title": "Settings",
+		"settings.header.features": "Features",
+		"settings.feature.add_required_components": "add_required_components_automatically",
+		"settings.feature.sphere_bounding_box_quality": "sphere_bounding_box_quality",
+		"settings.feature.sbb_quality": "SBB quality",
+		"settings.feature.sdk_camera_rotation_quaternion": "sdk_camera_rotation_quaternion",
+		"settings.feature.sdk_camera_input_bootstrap": "sdk_camera_input_bootstrap",
+		"menu.file": "File",
+		"menu.file.save_scene": "Save Scene",
+		"menu.view": "View",
+		"menu.tools": "Tools",
+		"common.ok": "OK",
+		"common.cancel": "Cancel",
+		"common.save": "Save",
+		"common.close": "Close"
+	}
+}

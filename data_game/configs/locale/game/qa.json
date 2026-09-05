@@ -1,0 +1,7 @@
+{
+	"language": "qa",
+	"entries": {
+		"game.paused": "[qa] Paused",
+		"test.instance_marker": "game-qa"
+	}
+}

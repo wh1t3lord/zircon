@@ -1,0 +1,8 @@
+{
+	"language": "qa",
+	"entries": {
+		"settings.window_title": "[qa] Settings",
+		"settings.header.features": "[qa] Features",
+		"test.instance_marker": "editor-qa"
+	}
+}

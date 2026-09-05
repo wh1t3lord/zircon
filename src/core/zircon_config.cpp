@@ -48,6 +48,55 @@ namespace
 
 		out_list.assign(value.data(), value.size());
 	}
+
+	/// reads a language-tag config key into a static string (task Z22);
+	/// an absent key or an empty value keeps the current (default)
+	/// content, and a wrong-typed or over-long value is user data — a
+	/// warning, never an assert
+	template <kotek::ktk::uint32_t _ParserBufferSize,
+		kotek::ktk::uint32_t _JsonMemorySize, bool _Realloc,
+		kotek::ktk::size_t _Size>
+	void read_localization_language(
+		const kotek::core::ktkResourceText<_ParserBufferSize, _JsonMemorySize,
+			_Realloc>& file,
+		const char* p_key,
+		kotek::static_cstring_t<_Size>& out_language) noexcept
+	{
+		const auto& object = file.Get_Object();
+		auto it = object.find(p_key);
+
+		if (it == object.end())
+		{
+			return;
+		}
+
+		// (*it).value(): the own json backend's const iterator has no
+		// operator-> (boost's does) — this spelling compiles against
+		// both
+		if (!(*it).value().is_string())
+		{
+			KOTEK_MESSAGE_WARNING(
+				"config key '{}' must be a string, ignoring", p_key);
+			return;
+		}
+
+		const auto& value = (*it).value().as_string();
+
+		if (value.empty())
+		{
+			return;
+		}
+
+		if (value.size() > _Size)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"config key '{}' is too long ({} > {}), ignoring", p_key,
+				value.size(), _Size);
+			return;
+		}
+
+		out_language.assign(value.data(), value.size());
+	}
 } // namespace
 
 zircon_config::zircon_config(void) :
@@ -69,7 +118,12 @@ zircon_config::zircon_config(void) :
 #endif
 	},
 	m_render_passes_editor{kZirconConfig_DefaultRenderPassesEditor},
-	m_render_passes_game{kZirconConfig_DefaultRenderPassesGame}
+	m_render_passes_game{kZirconConfig_DefaultRenderPassesGame},
+	// task Z22: default-"en" tags live in the ctor so a config file that
+	// predates the keys keeps the default — deserialize only overwrites
+	// when the key is actually present (the absent-key idiom)
+	m_localization_editor_language{kZirconLocalization_DefaultLanguage},
+	m_localization_game_language{kZirconLocalization_DefaultLanguage}
 {
 }
 
@@ -162,7 +216,9 @@ void zircon_config::serialize(
 
 		path_to_file /= kZirconConfig_FileName;
 
-		kotek::core::ktkResourceText<1024, 2048, false> config(
+		kotek::core::ktkResourceText<ZIRCON_DEF_CONFIG_JSON_PARSER_MEMORY_SIZE,
+			ZIRCON_DEF_CONFIG_JSON_MEMORY_SIZE, false>
+			config(
 			kZirconConfig_FileName
 		);
 
@@ -238,6 +294,16 @@ void zircon_config::serialize(
 			this->m_render_passes_game.c_str()
 		);
 
+		config.Write(
+			kZirconConfig_KeyLocalizationEditorLanguage,
+			this->m_localization_editor_language.c_str()
+		);
+
+		config.Write(
+			kZirconConfig_KeyLocalizationGameLanguage,
+			this->m_localization_game_language.c_str()
+		);
+
 		// raw array is forced by kotek's template signature
 		// (ktkResourceText::Serialize_ToString(char (&)[N], Size&) in
 		// kotek.core.filesystem.file_text) — exempt from the no-raw-array
@@ -282,7 +348,9 @@ void zircon_config::deserialize(
 		}
 		else
 		{
-			kotek::core::ktkResourceText<1024, 2048, false>
+			kotek::core::ktkResourceText<
+				ZIRCON_DEF_CONFIG_JSON_PARSER_MEMORY_SIZE,
+				ZIRCON_DEF_CONFIG_JSON_MEMORY_SIZE, false>
 				file;
 
 			kotek::array_t<unsigned char, 1024> text{};
@@ -341,6 +409,20 @@ void zircon_config::deserialize(
 				file,
 				kZirconConfig_KeyRenderPassesGame,
 				this->m_render_passes_game
+			);
+
+			// task Z22: the localization instances' language tags —
+			// absent/empty keys keep the ctor default ("en")
+			read_localization_language(
+				file,
+				kZirconConfig_KeyLocalizationEditorLanguage,
+				this->m_localization_editor_language
+			);
+
+			read_localization_language(
+				file,
+				kZirconConfig_KeyLocalizationGameLanguage,
+				this->m_localization_game_language
 			);
 
 			// default-TRUE flag (Z3 P2a): read only when the key is
@@ -540,6 +622,60 @@ void zircon_config::set_render_passes_game(
 		);
 
 		this->m_render_passes_game.assign(p_comma_separated_names);
+	}
+}
+
+const char* zircon_config::get_localization_editor_language(
+	void) const noexcept
+{
+	return this->m_localization_editor_language.c_str();
+}
+
+const char* zircon_config::get_localization_game_language(
+	void) const noexcept
+{
+	return this->m_localization_game_language.c_str();
+}
+
+void zircon_config::set_localization_editor_language(
+	const char* p_language) noexcept
+{
+	KOTEK_ASSERT(
+		p_language,
+		"pass a valid language tag (never nullptr)"
+	);
+
+	if (p_language)
+	{
+		KOTEK_ASSERT(
+			std::strlen(p_language) <=
+				ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH,
+			"language tag is too long, raise "
+			"ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH"
+		);
+
+		this->m_localization_editor_language.assign(p_language);
+	}
+}
+
+void zircon_config::set_localization_game_language(
+	const char* p_language) noexcept
+{
+	KOTEK_ASSERT(
+		p_language,
+		"pass a valid language tag (never nullptr)"
+	);
+
+	if (p_language)
+	{
+		KOTEK_ASSERT(
+			std::strlen(p_language) <=
+				ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH,
+			"language tag is too long, raise "
+			"ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH"
+		);
+
+		this->m_localization_game_language.assign(p_language);
 	}
 }
 

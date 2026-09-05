@@ -61,6 +61,7 @@ else()
 		"tests/zircon_unit_tests_passlib.cpp"
 		"tests/zircon_unit_tests_cancel_arbiter.cpp"
 		"tests/zircon_unit_tests_camera_sdk.cpp"
+		"tests/zircon_unit_tests_localization.cpp"
 	)
 endif()
 
