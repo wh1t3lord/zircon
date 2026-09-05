@@ -11,12 +11,28 @@
 //
 //     { "language": "en", "entries": { "menu.file": "File", ... } }
 //
-// flat dotted keys, one file per language per instance. Lookup chain:
-// active language -> built-in default ("en") -> the key itself echoed
-// as the text (missing strings self-document on screen) + ONE warning
-// per missing key (deduped). Formatting (args in strings) is out of
-// scope v1 — the API takes/returns text unchanged; the design doesn't
-// preclude a later format entry point.
+// flat dotted keys, one file per language per instance.
+//
+// SINGLE RESIDENCY (owner directive 2026-09-05): an instance holds ONE
+// language table at a time — no second "en" table is ever loaded (the
+// memory budget is one table per instance, period). Lookup chain: the
+// active table -> the key itself echoed as the text (missing strings
+// self-document on screen) + ONE warning per missing key (deduped). A
+// language switch installs the new table only when its document proves
+// well-formed — a missing/malformed file keeps the PREVIOUS working
+// table AND tag (never lose text mid-session).
+//
+// Streaming note: locale files are bounded (ZIRCON_DEF_LOCALIZATION_
+// FILE_MAX_SIZE) and the table dominates memory anyway, so today's load
+// is one bounded read + one parse. When the filesystem's streaming API
+// lands (plan Part B3), install_table_from_file is the ONLY function
+// that changes: chunked Read_Stream -> a SAX handler (kotek's own-json
+// stream_reader) inserting entries directly — no DOM, memory = one
+// chunk + the table. The seam is deliberate.
+//
+// Formatting (args in strings) is out of scope v1 — the API
+// takes/returns text unchanged; the design doesn't preclude a later
+// format entry point.
 // ---------------------------------------------------------------------
 
 /// 512 entries cover an editor window set many times over (the shipped
@@ -61,10 +77,10 @@ enum class eZirconLocalizationInstance : kotek::uint8_t
 };
 
 /// @brief \~english the localization manager (task Z22). Heap-allocated
-/// by the game manager (the tables are ~280 KB per instance at the
+/// by the game manager (one table per instance is ~140 KB at the
 /// caps — never place this class on a stack frame). All lookup paths
-/// are allocation-free after load: tables are sorted static vectors of
-/// (fnv1a-64 key hash -> value) driven by binary search; equal hashes
+/// are allocation-free after load: the table is a sorted static vector
+/// of (fnv1a-64 key hash -> value) driven by binary search; equal hashes
 /// are treated as the same key (fnv1a-64 collisions across a 512-entry
 /// table are below any measurable rate, and a collision degrades to a
 /// wrong-but-stable string, never to corruption)
@@ -75,36 +91,40 @@ public:
 	~zircon_localization_manager(void);
 
 	/// loads the instance's active language table (the persisted
-	/// selection — the caller pushes it via set_language afterwards) and
-	/// the "en" fallback; missing files degrade to the fallback chain
+	/// selection — the caller pushes it via set_language afterwards);
+	/// a missing/malformed file degrades to an empty table + key echo
 	/// with warnings, never an assert (user data is not a programmer
-	/// error)
+	/// error). ONE table is resident per instance (single residency —
+	/// the header's comment block is the contract)
 	void initialize(
 		eZirconLocalizationInstance instance,
 		kotek::core::ktkMainManager* p_main_manager) noexcept;
 
 	void shutdown(void) noexcept;
 
-	/// never returns nullptr: active table -> "en" fallback -> the key
-	/// itself; non-const because the missing-key path maintains the
-	/// warned-once dedupe set
+	/// never returns nullptr: the active table -> the key itself echoed;
+	/// non-const because the missing-key path maintains the warned-once
+	/// dedupe set
 	const char* translate(
 		eZirconLocalizationInstance instance, const char* p_key) noexcept;
 
 	/// validates the tag (a language name becomes a FILE name: 1..16
 	/// chars of [a-zA-Z0-9_-], nothing else — path separators and dots
-	/// are rejected), then reloads the instance's tables; a same-value
-	/// call on an initialized instance is a no-op. The selection sticks
-	/// even when the file is missing (display falls back to en)
+	/// are rejected), then reloads the instance's table; a same-value
+	/// call on an initialized instance is a no-op. A rejected load
+	/// (missing/malformed file) keeps the PREVIOUS table and tag — the
+	/// session never loses its text
 	void set_language(eZirconLocalizationInstance instance,
 		const char* p_language) noexcept;
 
 	/// "" when the instance was never initialized
 	const char* get_language(eZirconLocalizationInstance instance) const noexcept;
 
-	/// re-reads the instance's files from disk (the editor's runtime
-	/// switch — cheap at these sizes); also re-arms the warned-once set
-	void reload(eZirconLocalizationInstance instance) noexcept;
+	/// re-reads the instance's file from disk (the editor's cheap runtime
+	/// path); re-arms the warned-once set only when the new table
+	/// actually installed. Returns false when the load was rejected (the
+	/// previous table is untouched)
+	bool reload(eZirconLocalizationInstance instance) noexcept;
 
 	/// installs a language table from in-memory text instead of a file.
 	/// Two consumers: the tests (malformed/overflow/over-long inputs
@@ -119,8 +139,6 @@ public:
 	/// diagnostics (the tests pin behavior through these; a future
 	/// editor statistics window reads the same numbers)
 	kotek::uint32_t get_entry_count(
-		eZirconLocalizationInstance instance) const noexcept;
-	kotek::uint32_t get_fallback_entry_count(
 		eZirconLocalizationInstance instance) const noexcept;
 	kotek::uint32_t get_warned_missing_count(
 		eZirconLocalizationInstance instance) const noexcept;
@@ -141,7 +159,6 @@ private:
 		instance_data_t(void) :
 			m_language{},
 			m_entries{},
-			m_entries_fallback_en{},
 			m_warned_missing{},
 			m_is_initialized{false},
 			m_warned_overflow_announced{false}
@@ -151,12 +168,10 @@ private:
 		kotek::static_cstring_t<
 			ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH>
 			m_language;
-		/// the active language's table, sorted by hash; when the active
-		/// language IS "en" this is the only loaded table
+		/// the ONE resident language table, sorted by hash (single
+		/// residency — replaced whole on a successful switch, kept
+		/// untouched on a rejected one)
 		table_t m_entries;
-		/// the "en" table, sorted by hash; EMPTY when the active
-		/// language is "en" (no double load, no double memory)
-		table_t m_entries_fallback_en;
 		kotek::static_vector_t<kotek::uint64_t,
 			ZIRCON_DEF_LOCALIZATION_MAX_WARNED_KEYS>
 			m_warned_missing;

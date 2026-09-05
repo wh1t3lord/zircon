@@ -116,9 +116,9 @@ void zircon_localization_manager::initialize(
 
 	KOTEK_MESSAGE(
 		"[localization]: {} instance initialized, language '{}', {} "
-		"entries (+{} fallback)",
+		"entries",
 		localization_instance_folder(instance), data.m_language.c_str(),
-		data.m_entries.size(), data.m_entries_fallback_en.size());
+		data.m_entries.size());
 }
 
 void zircon_localization_manager::shutdown(void) noexcept
@@ -129,7 +129,6 @@ void zircon_localization_manager::shutdown(void) noexcept
 
 		data.m_language.clear();
 		data.m_entries.clear();
-		data.m_entries_fallback_en.clear();
 		data.m_warned_missing.clear();
 		data.m_is_initialized = false;
 		data.m_warned_overflow_announced = false;
@@ -149,12 +148,9 @@ const char* zircon_localization_manager::translate(
 	const kotek::uint64_t key_hash =
 		localization_fnv1a(p_key, std::strlen(p_key));
 
-	// the chain: active language -> built-in "en" -> the key itself
+	// the chain: the active table -> the key itself echoed (single
+	// residency: no second language is ever loaded)
 	if (const entry_t* p_entry = find_entry(data.m_entries, key_hash))
-		return p_entry->m_value.c_str();
-
-	if (const entry_t* p_entry =
-			find_entry(data.m_entries_fallback_en, key_hash))
 		return p_entry->m_value.c_str();
 
 	bool already_warned = false;
@@ -218,11 +214,26 @@ void zircon_localization_manager::set_language(
 		return;
 	}
 
+	// keep the previous tag until the new table proves usable — a
+	// rejected load (missing/malformed file) rolls the tag back and the
+	// WORKING table stays (never lose text mid-session)
+	kotek::static_cstring_t<ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH>
+		language_previous = data.m_language;
+
 	data.m_language.assign(p_language);
 
 	if (this->m_p_filesystem)
 	{
-		this->reload(instance);
+		if (this->reload(instance) == false)
+		{
+			data.m_language = language_previous;
+
+			KOTEK_MESSAGE_WARNING(
+				"[localization]: language '{}' of the {} instance is "
+				"unavailable — staying on '{}'",
+				p_language, localization_instance_folder(instance),
+				language_previous.c_str());
+		}
 	}
 	// without a filesystem (never initialized) the tag is stored and
 	// initialize() loads it
@@ -234,7 +245,7 @@ const char* zircon_localization_manager::get_language(
 	return this->get_instance_data(instance).m_language.c_str();
 }
 
-void zircon_localization_manager::reload(
+bool zircon_localization_manager::reload(
 	eZirconLocalizationInstance instance) noexcept
 {
 	instance_data_t& data = this->get_instance_data(instance);
@@ -243,56 +254,37 @@ void zircon_localization_manager::reload(
 		"reload needs an initialized manager (no filesystem)");
 
 	if (this->m_p_filesystem == nullptr)
-		return;
+		return false;
 
-	const bool is_default_language =
-		std::strcmp(data.m_language.c_str(),
-			kZirconLocalization_DefaultLanguage) == 0;
-
-	data.m_entries.clear();
-	data.m_entries_fallback_en.clear();
-	data.m_warned_missing.clear();
-	data.m_warned_overflow_announced = false;
-
+	// NO pre-clear: install_table_from_* replaces the table only after
+	// the document proves well-formed, so a rejected load (missing or
+	// malformed file) leaves the WORKING table in place
 	const install_status status = this->install_table_from_file(
 		instance, data.m_language.c_str(), data.m_entries);
 
-	if (status != install_status::kInstalled)
+	if (status == install_status::kRejected)
 	{
 		KOTEK_MESSAGE_WARNING(
-			"[localization]: the active language '{}' of the {} instance "
-			"is not fully available — lookups fall back to '{}'",
+			"[localization]: the language '{}' of the {} instance is not "
+			"available — the previous table stays (missing keys echo on "
+			"screen)",
 			data.m_language.c_str(),
-			localization_instance_folder(instance),
-			kZirconLocalization_DefaultLanguage);
+			localization_instance_folder(instance));
+		return false;
 	}
 
-	// the fallback table loads only when it can differ from the active
-	// one (an "en" active table IS the fallback)
-	if (is_default_language == false)
-	{
-		const install_status fallback_status = this->install_table_from_file(
-			instance, kZirconLocalization_DefaultLanguage,
-			data.m_entries_fallback_en);
-
-		if (fallback_status == install_status::kRejected)
-		{
-			KOTEK_MESSAGE_WARNING(
-				"[localization]: the fallback language '{}' of the {} "
-				"instance is unavailable — missing keys will echo on "
-				"screen",
-				kZirconLocalization_DefaultLanguage,
-				localization_instance_folder(instance));
-		}
-	}
+	// the warned-once set re-arms only for a table that actually changed
+	data.m_warned_missing.clear();
+	data.m_warned_overflow_announced = false;
 
 	data.m_is_initialized = true;
 
 	KOTEK_MESSAGE(
-		"[localization]: {} instance reloaded, language '{}', {} entries "
-		"(+{} fallback)",
+		"[localization]: {} instance reloaded, language '{}', {} entries",
 		localization_instance_folder(instance), data.m_language.c_str(),
-		data.m_entries.size(), data.m_entries_fallback_en.size());
+		data.m_entries.size());
+
+	return true;
 }
 
 bool zircon_localization_manager::load_language_from_text(
@@ -310,9 +302,8 @@ bool zircon_localization_manager::load_language_from_text(
 		return false;
 	}
 
-	// the ACTIVE table only; the "en" fallback is owned by
-	// initialize/reload. A rejected document leaves the previous state
-	// (table AND tag) untouched
+	// installs into the instance's ONE resident table; a rejected
+	// document leaves the previous state (table AND tag) untouched
 	const install_status status = this->install_table_from_text(
 		p_language, p_text, text_size, data.m_entries);
 
@@ -331,13 +322,6 @@ kotek::uint32_t zircon_localization_manager::get_entry_count(
 {
 	return static_cast<kotek::uint32_t>(
 		this->get_instance_data(instance).m_entries.size());
-}
-
-kotek::uint32_t zircon_localization_manager::get_fallback_entry_count(
-	eZirconLocalizationInstance instance) const noexcept
-{
-	return static_cast<kotek::uint32_t>(
-		this->get_instance_data(instance).m_entries_fallback_en.size());
 }
 
 kotek::uint32_t zircon_localization_manager::get_warned_missing_count(

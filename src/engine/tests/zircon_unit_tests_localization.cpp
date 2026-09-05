@@ -18,12 +18,14 @@
 		#if ZIRCON_DEF_UNIT_TEST_LOCALIZATION == 1
 
 // functional proofs for task Z22 (plan Part A): the localization
-// manager loads the shipped en tables, translates through the
-// active -> en -> key-echo fallback chain, warns exactly once per
-// missing key, degrades gracefully on user data (missing language file,
-// malformed json, over-long entries, capacity overflow), keeps its two
-// instances isolated, switches language at runtime, and persists both
-// language tags through the real game_config.json
+// manager loads the shipped tables with SINGLE-LANGUAGE residency (one
+// table per instance — the active table, then the key echoed + one
+// deduped warning on a miss), warns exactly once per missing key,
+// degrades gracefully on user data (missing language file, malformed
+// json, over-long entries, capacity overflow), keeps its two instances
+// isolated, switches language at runtime with full table replacement (a
+// rejected switch keeps the previous working table AND tag), and
+// persists both language tags through the real game_config.json
 
 namespace
 {
@@ -66,7 +68,7 @@ namespace
 TEST(Zircon_Core, LocalizationLoadsEnglishAndTranslatesKnownKeys)
 {
 	// heap allocated like every fixture that touches these classes (the
-	// filesystem alone is ~600 KB, the manager's tables ~800 KB)
+	// filesystem alone is ~600 KB, the manager is ~400 KB with its two single-residency tables)
 	zircon_test_localization_env& env = *new zircon_test_localization_env();
 	env.initialize();
 
@@ -98,12 +100,6 @@ TEST(Zircon_Core, LocalizationLoadsEnglishAndTranslatesKnownKeys)
 		env.localization.translate(
 			eZirconLocalizationInstance::kGame, "game.paused"),
 		"Paused");
-
-	// the active language IS the default — no separate fallback table
-	// is loaded (no double memory)
-	EXPECT_EQ(env.localization.get_fallback_entry_count(
-				  eZirconLocalizationInstance::kEditor),
-		0u);
 
 	env.shutdown();
 	delete &env;
@@ -180,23 +176,22 @@ TEST(Zircon_Core, LocalizationWarnedSetCapsGracefully)
 	delete &env;
 }
 
-TEST(Zircon_Core, LocalizationMissingLanguageFallsBackToEnglish)
+TEST(Zircon_Core, LocalizationSwitchToMissingLanguageKeepsPreviousTable)
 {
 	zircon_test_localization_env& env = *new zircon_test_localization_env();
 	env.initialize();
 
-	// a language without a file: the selection sticks, the active table
-	// stays empty, and every lookup resolves through the "en" fallback
+	// single residency (owner directive 2026-09-05): NO fallback table is
+	// ever loaded — a switch to a language without a file is REJECTED and
+	// the previous working table AND tag stay (never lose text
+	// mid-session)
 	env.localization.set_language(
 		eZirconLocalizationInstance::kEditor, "xx_missing");
 
 	EXPECT_STREQ(env.localization.get_language(
 					 eZirconLocalizationInstance::kEditor),
-		"xx_missing");
+		"en");
 	EXPECT_EQ(env.localization.get_entry_count(
-				  eZirconLocalizationInstance::kEditor),
-		0u);
-	EXPECT_EQ(env.localization.get_fallback_entry_count(
 				  eZirconLocalizationInstance::kEditor),
 		15u);
 
@@ -205,7 +200,7 @@ TEST(Zircon_Core, LocalizationMissingLanguageFallsBackToEnglish)
 					 "settings.window_title"),
 		"Settings");
 
-	// a key not even "en" knows still echoes itself
+	// a key the resident table doesn't know echoes itself
 	EXPECT_STREQ(env.localization.translate(
 					 eZirconLocalizationInstance::kEditor,
 					 "editor.only.missing"),
@@ -218,7 +213,7 @@ TEST(Zircon_Core, LocalizationMissingLanguageFallsBackToEnglish)
 		eZirconLocalizationInstance::kEditor, "../evil");
 	EXPECT_STREQ(env.localization.get_language(
 					 eZirconLocalizationInstance::kEditor),
-		"xx_missing");
+		"en");
 
 	env.shutdown();
 	delete &env;
@@ -414,8 +409,8 @@ TEST(Zircon_Core, LocalizationSetLanguageAndReloadSwitchText)
 					 "settings.window_title"),
 		"Settings");
 
-	// the runtime switch: the qa table replaces the active one and the
-	// "en" table becomes the fallback
+	// the runtime switch: the qa table REPLACES the resident one (single
+	// residency — nothing of "en" stays loaded)
 	env.localization.set_language(
 		eZirconLocalizationInstance::kEditor, "qa");
 	EXPECT_STREQ(env.localization.get_language(
@@ -426,28 +421,72 @@ TEST(Zircon_Core, LocalizationSetLanguageAndReloadSwitchText)
 					 "settings.window_title"),
 		"[qa] Settings");
 
-	// a key the qa table lacks falls back to "en" (not to the echo)
+	// a key the qa table lacks ECHOES itself (no "en" table exists to
+	// fall back to — the residency contract)
 	EXPECT_STREQ(env.localization.translate(
 					 eZirconLocalizationInstance::kEditor, "common.ok"),
-		"OK");
+		"common.ok");
 
-	// reload re-reads the same files (the editor's cheap runtime path)
-	env.localization.reload(eZirconLocalizationInstance::kEditor);
+	// reload re-reads the same file (the editor's cheap runtime path)
+	EXPECT_TRUE(env.localization.reload(eZirconLocalizationInstance::kEditor));
 	EXPECT_STREQ(env.localization.translate(
 					 eZirconLocalizationInstance::kEditor,
 					 "settings.window_title"),
 		"[qa] Settings");
 
-	// switching back to the default drops the separate fallback table
+	// switching back replaces the table again — and "en" resolves again
 	env.localization.set_language(
 		eZirconLocalizationInstance::kEditor, "en");
 	EXPECT_STREQ(env.localization.translate(
 					 eZirconLocalizationInstance::kEditor,
 					 "settings.window_title"),
 		"Settings");
-	EXPECT_EQ(env.localization.get_fallback_entry_count(
+	EXPECT_STREQ(env.localization.translate(
+					 eZirconLocalizationInstance::kEditor, "common.ok"),
+		"OK");
+
+	env.shutdown();
+	delete &env;
+}
+
+TEST(Zircon_Core, LocalizationSingleResidencySwitchReplacesTable)
+{
+	zircon_test_localization_env& env = *new zircon_test_localization_env();
+	env.initialize();
+
+	// the single-residency proof: after the en -> qa switch the resident
+	// table IS the qa table (its exact entry count), an en-only key
+	// echoes, and switching roundtrip leaves no residue of either table
+	EXPECT_EQ(env.localization.get_entry_count(
 				  eZirconLocalizationInstance::kEditor),
-		0u);
+		15u);
+
+	env.localization.set_language(
+		eZirconLocalizationInstance::kEditor, "qa");
+
+	const kotek::uint32_t qa_count = env.localization.get_entry_count(
+		eZirconLocalizationInstance::kEditor);
+
+	EXPECT_GT(qa_count, 0u);
+	EXPECT_NE(qa_count, 15u);
+
+	// present in en, absent in qa -> echoes (nothing of en lingers)
+	EXPECT_STREQ(env.localization.translate(
+					 eZirconLocalizationInstance::kEditor, "common.ok"),
+		"common.ok");
+
+	// qa -> en -> qa: the counts swap exactly, no accumulation
+	env.localization.set_language(
+		eZirconLocalizationInstance::kEditor, "en");
+	EXPECT_EQ(env.localization.get_entry_count(
+				  eZirconLocalizationInstance::kEditor),
+		15u);
+
+	env.localization.set_language(
+		eZirconLocalizationInstance::kEditor, "qa");
+	EXPECT_EQ(env.localization.get_entry_count(
+				  eZirconLocalizationInstance::kEditor),
+		qa_count);
 
 	env.shutdown();
 	delete &env;
