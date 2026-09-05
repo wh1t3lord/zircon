@@ -141,6 +141,16 @@
    is **streamed**: fixed-size chunks, bounded queues, double buffers — never
    materialize a whole file/scene/journal in RAM when a forward cursor
    suffices (the undo/redo journal is the reference implementation).
+   **Streaming over runtime caches (owner directive 2026-09-05):** prefer
+   flow-through streaming (bounded buffers, double-buffering, the OS page
+   cache as the only file-content cache) over engine-owned runtime caches
+   of file/asset bytes; an engine cache needs a written justification of
+   what the OS/hardware doesn't already do better, sized by measurement.
+   Applied immediately: the filesystem's planned VFM mapping cache
+   (K25 B1) was DROPPED for it — mapped reads map+read+unmap (big reads
+   stream through the mapping in chunks), and repeated access rides the
+   OS page cache or B3's streaming, not a user-space cache. The locale
+   manager's single-language residency (Z22) is the same posture.
    Scalability rule: code must scale DOWN (embedded/consoles) and UP (PC)
    purely by changing preprocessor capacities, not by changing code.
 10. **ESC/cancel policy is arbiter-mediated (owner decision 2026-09-03,

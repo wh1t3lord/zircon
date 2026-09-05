@@ -1,1 +1,1 @@
-{"User":{"Engine":{"Name":"game.ktk","Callbacks":{"Init":"InitializeModule_Game","Shutdown":"ShutdownModule_Game","Update":"UpdateModule_Game","Init_Render":"InitializeModule_Render"}}},"Core":{"FS_PriorityList":["Native","ZLIB"],"FS_Features":["VFM_READ","PRIORITY_LIST","VFM_CACHE"]}}
+{"User":{"Engine":{"Name":"game.ktk","Callbacks":{"Init":"InitializeModule_Game","Shutdown":"ShutdownModule_Game","Update":"UpdateModule_Game","Init_Render":"InitializeModule_Render"}}},"Core":{"FS_PriorityList":["Native","ZLIB"],"FS_Features":["VFM_READ","PRIORITY_LIST"]}}
