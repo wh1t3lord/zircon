@@ -344,17 +344,122 @@ void zircon_resource_manager::load(
 					this->m_resources_desc[p_result->desc_id];
 				desc.cache_id =
 					this->m_dynamic_resources.size() - 1;
+				desc.flags = flags;
+				desc.type = eZirconResourceType::kText;
+
+#ifdef KOTEK_DEBUG
+				desc.debug_filename = path.c_str();
+#endif
+
+				// B3: the worker's real IO — the file is read through
+				// ktkIFileSystem's streaming API (Begin/Read/End_Stream)
+				// in bounded chunks and the accumulated text is parsed
+				// into the resource's json DOM. The no-cache text
+				// resource is bounded by
+				// ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE; a
+				// missing/empty/oversized file fails loudly but
+				// gracefully (the static cache's size classes are the
+				// bigger-text answer — not this branch)
+				bool is_content_ready = false;
+
+				kotek::size_t file_size = 0;
+
+				if (this->m_p_filesystem->Get_FileSize(
+						path, file_size
+					) &&
+				    file_size > 0 &&
+				    file_size <=
+				        ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE)
+				{
+					unsigned char stream_scratch
+						[ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE +
+						 1];
+
+					kotek::core::ktkFileHandleType stream =
+						this->m_p_filesystem->Begin_Stream(path);
+
+					if (stream != kotek::core::kInvalidFileHandleType)
+					{
+						kotek::size_t total_read = 0;
+						bool is_stream_ok = true;
+
+						while (
+							this->m_p_filesystem
+								->Get_RemainingStreamsCount(stream) >
+							0)
+						{
+							kotek::size_t chunk =
+								sizeof(stream_scratch) - total_read;
+
+							if (!this->m_p_filesystem->Read_Stream(
+									stream,
+									stream_scratch + total_read,
+									chunk
+								))
+							{
+								is_stream_ok = false;
+								break;
+							}
+
+							total_read += chunk;
+						}
+
+						this->m_p_filesystem->End_Stream(stream);
+
+						if (is_stream_ok && total_read == file_size)
+						{
+							is_content_ready =
+								p_data->Create_FromMemory(
+									stream_scratch, total_read
+								);
+
+							if (!is_content_ready)
+							{
+								KOTEK_MESSAGE_WARNING(
+									"failed to parse text resource "
+									"as json: {}",
+									path
+								);
+							}
+						}
+						else
+						{
+							KOTEK_MESSAGE_WARNING(
+								"failed to stream text resource: {}",
+								path
+							);
+						}
+					}
+					else
+					{
+						KOTEK_MESSAGE_WARNING(
+							"failed to open a stream for text "
+							"resource: {}",
+							path
+						);
+					}
+				}
+				else
+				{
+					KOTEK_MESSAGE_WARNING(
+						"text resource is missing, empty or bigger "
+						"than the no-cache bound ({} bytes): {}",
+						ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE,
+						path
+					);
+				}
+
+				desc.is_loaded = is_content_ready;
 
 				zircon_view_handle_t& view_handle =
 					this->m_resources_view[p_result->view_id];
 
+				// the view binds AFTER the parse: Create_FromMemory
+				// replaces the resource's json object storage, so a
+				// view taken earlier would bind the pre-parse storage
 				view_handle.p_view =
 					new (view_handle._view_storage
 				    ) kotek::core::ktkResourceViewText(*p_data);
-
-				
-
-
 			}
 
 		}
@@ -557,6 +662,25 @@ void zircon_resource_manager::unload(
 	}
 }
 
+const zircon_view_handle_t*
+zircon_resource_manager::get_view(zircon_resource_id_t id
+) const noexcept
+{
+	if (id == _kZirconInvalidResourceID)
+	{
+		KOTEK_MESSAGE_WARNING("passed invalid view lookup id!");
+		return nullptr;
+	}
+
+	if (id < this->m_resources_view.size())
+	{
+		return &this->m_resources_view[id];
+	}
+
+	KOTEK_MESSAGE_WARNING("passed out of range id: {}", id);
+	return nullptr;
+}
+
 const zircon_resource_desc_t*
 zircon_resource_manager::get_desc(zircon_resource_id_t id
 ) const noexcept
@@ -616,6 +740,23 @@ zircon_resource_manager::make_request(
 			m_allocator_shared_ptr.allocator
 		));
 	result->desc_id = req.desc_id;
+
+	// the async path owes the resource the same contract the sync path
+	// gives (the B3 worker does real IO through the private load now):
+	// a view slot of its own and the request wired to THIS handle —
+	// the worker's load(req...) touches m_resources_view by
+	// p_resource->view_id and asserts on the invalid id
+	result->view_id = this->allocate_view();
+
+	KOTEK_ASSERT(
+		result->view_id != _kZirconInvalidResourceID,
+		"failed to allocate view"
+	);
+
+	if (result->view_id == _kZirconInvalidResourceID)
+		return kotek::shared_ptr_t<zircon_resource_t>();
+
+	req.p_resource = result.get();
 
 	this->m_wt_queue.push(std::move(req));
 

@@ -322,6 +322,13 @@ public:
 	const zircon_resource_desc_t*
 	get_desc(zircon_resource_id_t id) const noexcept;
 
+	/// @brief \~english the view slot lookup (the get_desc mirror) —
+	/// nullptr on an invalid/out-of-range id. The view of a text
+	/// resource is a ktkResourceViewText placement-constructed into
+	/// zircon_view_handle_t::_view_storage.
+	const zircon_view_handle_t*
+	get_view(zircon_resource_id_t id) const noexcept;
+
 private:
 	kotek::shared_ptr_t<zircon_resource_t> make_request(
 		const kotek::static_path_t& path,
