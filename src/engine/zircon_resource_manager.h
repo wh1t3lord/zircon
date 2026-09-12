@@ -2,6 +2,7 @@
 
 #include "zircon_ecs.h"
 #include "../core/zircon_defs.h"
+#include "../core/zircon_embedded_defaults.h"
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
@@ -196,6 +197,14 @@ struct zircon_resource_desc_t
 	/// streamed fully or loaded
 	bool is_loaded = false;
 
+	/// @brief \~english task Z23 (plan Part B4): the content is the
+	/// EMBEDDED DEFAULT, not real file bytes — the dispatcher chain
+	/// (data_user/data_game/mounted packs) produced nothing usable for
+	/// this resource. is_loaded stays true (the default is valid
+	/// content); the editor badges defaulted resources later (recorded
+	/// here, not built)
+	bool is_default = false;
+
 	eZirconResourceLoadingFlags flags =
 		eZirconResourceLoadingFlags::kNone;
 
@@ -329,6 +338,13 @@ public:
 	const zircon_view_handle_t*
 	get_view(zircon_resource_id_t id) const noexcept;
 
+	/// @brief \~english task Z23 (plan Part B4): the manager's embedded-
+	/// defaults instance — the loud-once dedupe set behind every
+	/// default-resolution this manager performs (the tests pin the
+	/// contract through its diagnostics)
+	const zircon_embedded_defaults&
+	get_embedded_defaults(void) const noexcept;
+
 private:
 	kotek::shared_ptr_t<zircon_resource_t> make_request(
 		const kotek::static_path_t& path,
@@ -354,7 +370,7 @@ private:
 private:
 	char m_was_shutdown_called;
 
-#ifdef ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
+#if ZIRCON_DEF_RESOURCE_MANAGER_ENABLE_WORKER_THREAD == 1
 	char m_signaled_worker_thread;
 #endif
 
@@ -422,4 +438,12 @@ private:
 	zircon_static_cache_resource_text
 		static_cache_resource_text;
 #endif
+
+	/// @brief \~english task Z23 (plan Part B4): the embedded-defaults
+	/// facade behind the fallback chain — owns the loud-once dedupe set
+	/// for every default this manager resolves (member-level, house rule
+	/// 1a; the same single-threaded-at-a-time discipline as the
+	/// filesystem — the sync path and the worker never resolve
+	/// concurrently)
+	zircon_embedded_defaults m_embedded_defaults;
 };

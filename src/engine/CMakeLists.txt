@@ -63,6 +63,7 @@ else()
 		"tests/zircon_unit_tests_camera_sdk.cpp"
 		"tests/zircon_unit_tests_localization.cpp"
 		"tests/zircon_unit_tests_pack_boot.cpp"
+		"tests/zircon_unit_tests_embedded_defaults.cpp"
 	)
 endif()
 

@@ -231,19 +231,15 @@ void zircon_resource_manager::load(
 	if (!this->m_p_filesystem)
 		return;
 
-	KOTEK_ASSERT(
-		this->m_p_filesystem->Is_Exists(path, true),
-		"file is not exists!"
-	);
-
-	if (!this->m_p_filesystem->Is_Exists(path, true))
-	{
-		KOTEK_MESSAGE_WARNING(
-			"the following path [{}] is not presented in OS",
-			path
-		);
-		return;
-	}
+	// task Z23 (plan Part B4): NO native-only existence pre-check here
+	// (this line used to gate on Is_Exists, which only ever asked the
+	// native backend and so precluded pack-hosted resources — the
+	// B3-noted defect). Existence is judged by the dispatcher's read
+	// path below: Get_FileSize and Begin_Stream walk the whole override
+	// chain (data_user/data_game native dirs AND mounted packs per the
+	// priority machinery), and when NOTHING resolves the kText branch
+	// installs the embedded default — a missing resource is never a
+	// fault
 
 	KOTEK_ASSERT(path.has_filename(), "must have filename");
 
@@ -346,6 +342,7 @@ void zircon_resource_manager::load(
 					this->m_dynamic_resources.size() - 1;
 				desc.flags = flags;
 				desc.type = eZirconResourceType::kText;
+				desc.is_default = false;
 
 #ifdef KOTEK_DEBUG
 				desc.debug_filename = path.c_str();
@@ -356,17 +353,20 @@ void zircon_resource_manager::load(
 				// in bounded chunks and the accumulated text is parsed
 				// into the resource's json DOM. The no-cache text
 				// resource is bounded by
-				// ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE; a
-				// missing/empty/oversized file fails loudly but
-				// gracefully (the static cache's size classes are the
-				// bigger-text answer — not this branch)
+				// ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE (the
+				// static cache's size classes are the bigger-text
+				// answer — not this branch). B4: when the dispatcher
+				// chain produces nothing usable, the EMBEDDED empty-json
+				// default installs below instead of failing the resource
 				bool is_content_ready = false;
 
 				kotek::size_t file_size = 0;
 
-				if (this->m_p_filesystem->Get_FileSize(
-						path, file_size
-					) &&
+				const bool has_size = this->m_p_filesystem->Get_FileSize(
+					path, file_size
+				);
+
+				if (has_size &&
 				    file_size > 0 &&
 				    file_size <=
 				        ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE)
@@ -439,13 +439,76 @@ void zircon_resource_manager::load(
 						);
 					}
 				}
-				else
+				else if (has_size &&
+				         file_size >
+				             ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE)
 				{
+					// real content exists but does not fit the no-cache
+					// bound — the static cache's size classes are that
+					// answer (unimplemented branches below); the
+					// embedded default still installs so the resource
+					// stays valid, and is_default records the
+					// degradation for the editor's later badge
 					KOTEK_MESSAGE_WARNING(
-						"text resource is missing, empty or bigger "
-						"than the no-cache bound ({} bytes): {}",
+						"text resource is bigger than the no-cache "
+						"bound ({} > {} bytes), the embedded empty-json "
+						"default is used instead: {}",
+						file_size,
 						ZIRCON_DEF_RESOURCE_MANAGER_STREAM_BUFFER_SIZE,
 						path
+					);
+				}
+				// (a missing file already logged its one filesystem
+				// warning; an empty file has nothing to say — the
+				// loud-once default line below names the path)
+
+				// task Z23 (plan Part B4): the chain produced nothing
+				// usable (missing, empty, oversized for this branch, or
+				// unparseable — each reason logged above or by the
+				// filesystem itself). Install the EMBEDDED empty-json
+				// default: the resource stays VALID (is_loaded=true,
+				// is_default=true), never a fault on missing user data
+				if (is_content_ready == false)
+				{
+					const zircon_embedded_default_t& blob =
+						zircon_embedded_defaults::get_embedded_default(
+							eZirconEmbeddedDefaultType::kJson_Empty
+						);
+
+					// Create_FromMemory takes a non-const buffer (the
+					// parser never writes through it, but the signature
+					// is shared) — copy the 2-byte blob into scratch
+					// rather than const_cast the constexpr data
+					unsigned char default_scratch[8] = {};
+
+					static_assert(
+						sizeof(default_scratch) >= 2,
+						"the scratch must fit the empty-json blob"
+					);
+
+					KOTEK_ASSERT(
+						blob.m_size <= sizeof(default_scratch),
+						"the empty-json default outgrew its scratch"
+					);
+
+					kotek::ktk::memory::memcpy(
+						default_scratch, blob.m_p_bytes, blob.m_size
+					);
+
+					is_content_ready = p_data->Create_FromMemory(
+						default_scratch, blob.m_size
+					);
+
+					KOTEK_ASSERT(
+						is_content_ready,
+						"the embedded empty-json default must always "
+						"parse"
+					);
+
+					desc.is_default = true;
+
+					this->m_embedded_defaults.log_default_used_once(
+						eZirconEmbeddedDefaultType::kJson_Empty, path
 					);
 				}
 
@@ -679,6 +742,12 @@ zircon_resource_manager::get_view(zircon_resource_id_t id
 
 	KOTEK_MESSAGE_WARNING("passed out of range id: {}", id);
 	return nullptr;
+}
+
+const zircon_embedded_defaults&
+zircon_resource_manager::get_embedded_defaults(void) const noexcept
+{
+	return this->m_embedded_defaults;
 }
 
 const zircon_resource_desc_t*
