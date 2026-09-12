@@ -137,6 +137,12 @@ add_subdirectory("src/engine")
 add_subdirectory("src/render")
 add_subdirectory("src/world")
 
+# host tools built at BUILD time through nested standalone configures (the
+# zircon_shaderpack pattern): the .kpack packer (filesystem plan B2b) — it
+# compiles kotek's kotek.core.filesystem.pack module sources, so it sits
+# below the kotek add_subdirectory (the generated headers must exist)
+include("cmake/zircon_kpacker.cmake")
+
 # PLUGIN mode: finalize erased-edge usage for the zircon layer too (kotek's
 # own pass already ran at the end of kotek/CMakeLists.txt)
 if (COMMAND kotek_finalize_plugin_links)
