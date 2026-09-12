@@ -33,24 +33,8 @@ bool zircon_scene_metadata::save_render_passes(
 	scene_metadata.Write(
 		kZirconSceneMetadata_KeyRenderPasses, p_comma_separated_names);
 
-	// raw array is forced by kotek's template signature
-	// (ktkResourceText::Serialize_ToString(char (&)[N], Size&) in
-	// kotek.core.filesystem.file_text) — exempt from the no-raw-array
-	// rule, same as zircon_config::serialize
-	char text[1024];
-	kotek::uint16_t text_real_length = 0;
-
-	bool status =
-		scene_metadata.Serialize_ToString(text, text_real_length);
-	KOTEK_ASSERT(status, "failed to serialize scene metadata!");
-
-	if (!status)
-	{
-		return false;
-	}
-
-	status =
-		p_filesystem->Write_File(path_to_file, text, text_real_length);
+	const bool status =
+		kotek::core::write_json(p_filesystem, path_to_file, scene_metadata);
 	KOTEK_ASSERT(
 		status, "failed to write scene metadata file: {}", path_to_file);
 
@@ -79,32 +63,20 @@ bool zircon_scene_metadata::load_render_passes(
 
 	// an absent scene.json is the normal "the level carries no pass
 	// set" case (older scenes, fresh scenes) — the caller falls back
-	// down the resolution chain, silently by design
+	// down the resolution chain, silently by design; the Is_Exists
+	// gate keeps read_json's (single, B0-contract) missing-file
+	// warning silent
 	if (!p_filesystem->Is_Exists(path_to_file))
-	{
-		return false;
-	}
-
-	kotek::array_t<unsigned char, 1024> text{};
-
-	kotek::ktk::size_t text_size = text.size();
-
-	unsigned char* p_text = text.data();
-
-	bool status = p_filesystem->Read_File(path_to_file, p_text, text_size);
-	KOTEK_ASSERT(
-		status, "failed to read scene metadata file: {}", path_to_file);
-
-	if (!status)
 	{
 		return false;
 	}
 
 	kotek::core::ktkResourceText<1024, 2048, false> scene_metadata;
 
-	status = scene_metadata.Create_FromMemory(text.data(), text_size);
+	const bool status =
+		kotek::core::read_json(p_filesystem, path_to_file, scene_metadata);
 	KOTEK_ASSERT(status,
-		"failed to parse scene metadata file: {} — corrupt json?",
+		"failed to read scene metadata file: {} — corrupt json?",
 		path_to_file);
 
 	if (!status)

@@ -1818,10 +1818,10 @@ namespace
 	}
 
 	// reads a file through the kotek filesystem into caller storage.
-	// Get_FileSize(path) answers the size query through the interface
-	// (false = the file is absent — graceful since kotek B0, no assert
-	// anywhere on the read path), so the capacity check happens before
-	// the read and there is no existence/size TOCTOU pair
+	// file_size/read_file are the kotek API-simplicity helpers over the
+	// interface (false = the file is absent — graceful since kotek B0, no
+	// assert anywhere on the read path), so the capacity check happens
+	// before the read and there is no existence/size TOCTOU pair
 	eZirconGltfLoadStatus gltf_read_file(
 		kotek::core::ktkIFileSystem* p_filesystem,
 		const kotek::static_path_t& path_to_file,
@@ -1831,7 +1831,8 @@ namespace
 	{
 		kotek::size_t file_size = 0;
 
-		if (p_filesystem->Get_FileSize(path_to_file, file_size) == false)
+		if (kotek::core::file_size(p_filesystem, path_to_file, file_size) ==
+			false)
 		{
 			gltf_set_error(out_error, "file does not exist");
 			return eZirconGltfLoadStatus::kError_FileRead;
@@ -1850,17 +1851,21 @@ namespace
 			return eZirconGltfLoadStatus::kError_FileRead;
 		}
 
-		kotek::uint8_t* p_target = p_file_buffer + io_used;
-		kotek::size_t target_capacity = file_buffer_capacity - io_used;
+		kotek::size_t read_size = 0;
 
-		if (p_filesystem->Read_File(
-				path_to_file, p_target, target_capacity) == false)
+		if (kotek::core::read_file(p_filesystem, path_to_file,
+				p_file_buffer + io_used, file_buffer_capacity - io_used,
+				read_size) == false)
 		{
 			gltf_set_error(out_error, "file read failed");
 			return eZirconGltfLoadStatus::kError_FileRead;
 		}
 
-		io_used += static_cast<kotek::size_t>(file_size);
+		// read_size == file_size in every non-race execution (a
+		// successful single-shot read is the whole file); advancing by
+		// the real read size keeps the offset honest even under a
+		// shrink-mid-read race
+		io_used += read_size;
 
 		return eZirconGltfLoadStatus::kSuccess;
 	}

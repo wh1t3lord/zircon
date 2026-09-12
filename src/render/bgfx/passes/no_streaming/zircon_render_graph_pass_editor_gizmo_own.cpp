@@ -2838,10 +2838,10 @@ namespace no_streaming
 
 		kotek::static_path_t shader_path;
 
-		p_filesystem->Make_Path(shader_path,
-			kotek::core::eFolderIndex::kFolderIndex_DataUser_ShaderCache);
+		kotek::core::path_for(p_filesystem,
+			kotek::core::eFolderIndex::kFolderIndex_DataUser_ShaderCache,
+			"bgfx", shader_path);
 
-		shader_path /= "bgfx";
 		shader_path /= p_dialect_directory;
 		shader_path /= p_shader_file_name;
 
@@ -2854,18 +2854,17 @@ namespace no_streaming
 		kotek::uint8_t buffer
 			[zircon_DEF_RENDER_PASS_EDITOR_GIZMO_OWN_SHADER_BIN_MAX_SIZE];
 
-		kotek::uint8_t* p_buffer = buffer;
-		kotek::size_t buffer_length = sizeof(buffer);
+		kotek::size_t blob_size = 0;
 
-		bool read_status =
-			p_filesystem->Read_File(shader_path, p_buffer, buffer_length);
+		bool read_status = kotek::core::read_file(p_filesystem, shader_path,
+			buffer, sizeof(buffer), blob_size);
 
-		if (read_status && buffer_length)
+		if (read_status && blob_size)
 		{
 			// bgfx::copy hands bgfx its own copy, so the filesystem's
 			// buffer is not referenced past this call
-			result = bgfx::createShader(bgfx::copy(p_buffer,
-				static_cast<uint32_t>(buffer_length)));
+			result = bgfx::createShader(bgfx::copy(buffer,
+				static_cast<uint32_t>(blob_size)));
 
 			KOTEK_ASSERT(bgfx::isValid(result),
 				"shader blob '{}' failed to create — corrupt or "

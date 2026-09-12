@@ -209,12 +209,10 @@ void zircon_config::serialize(
 	if (p_filesystem)
 	{
 		ktk_filesystem_path path_to_file;
-		p_filesystem->Make_Path(
-			path_to_file,
-			kotek::core::eFolderIndex::kFolderIndex_DataUser
+		kotek::core::path_for(
+			p_filesystem, kotek::core::eFolderIndex::kFolderIndex_DataUser,
+			kZirconConfig_FileName, path_to_file
 		);
-
-		path_to_file /= kZirconConfig_FileName;
 
 		kotek::core::ktkResourceText<ZIRCON_DEF_CONFIG_JSON_PARSER_MEMORY_SIZE,
 			ZIRCON_DEF_CONFIG_JSON_MEMORY_SIZE, false>
@@ -304,20 +302,10 @@ void zircon_config::serialize(
 			this->m_localization_game_language.c_str()
 		);
 
-		// raw array is forced by kotek's template signature
-		// (ktkResourceText::Serialize_ToString(char (&)[N], Size&) in
-		// kotek.core.filesystem.file_text) — exempt from the no-raw-array
-		// rule, like the interface-shaped string_view sites
-		char text[1024];
-		kotek::uint16_t text_real_length = 0;
-		bool status = config.Serialize_ToString(text, text_real_length);
-		KOTEK_ASSERT(status, "failed to serialize!");
-
-		status = p_filesystem->Write_File(
-			path_to_file, text, text_real_length
-		);
+		const bool status =
+			kotek::core::write_json(p_filesystem, path_to_file, config);
 		KOTEK_ASSERT(
-			status, "failed to write to file: {}", path_to_file
+			status, "failed to write config file: {}", path_to_file
 		);
 	}
 }
@@ -335,13 +323,14 @@ void zircon_config::deserialize(
 	if (p_filesystem)
 	{
 		ktk_filesystem_path path_to_file;
-		p_filesystem->Make_Path(
-			path_to_file,
-			kotek::core::eFolderIndex::kFolderIndex_DataUser
+		kotek::core::path_for(
+			p_filesystem, kotek::core::eFolderIndex::kFolderIndex_DataUser,
+			kZirconConfig_FileName, path_to_file
 		);
 
-		path_to_file /= kZirconConfig_FileName;
-
+		// an absent config is the normal first-boot case — the Is_Exists
+		// gate keeps read_json's (single, B0-contract) missing-file
+		// warning silent and installs the defaults
 		if (!p_filesystem->Is_Exists(path_to_file))
 		{
 			this->initialize_default();
@@ -353,29 +342,13 @@ void zircon_config::deserialize(
 				ZIRCON_DEF_CONFIG_JSON_MEMORY_SIZE, false>
 				file;
 
-			kotek::array_t<unsigned char, 1024> text{};
-
-			kotek::ktk::size_t text_size = text.size();
-
-			unsigned char* p_text = text.data();
-			bool status = p_filesystem->Read_File(
-				path_to_file, p_text, text_size
-			);
+			const bool is_loaded =
+				kotek::core::read_json(p_filesystem, path_to_file, file);
 			KOTEK_ASSERT(
-				status, "failed to read file: {}", path_to_file
+				is_loaded, "failed to read config file: {}", path_to_file
 			);
 
-			status = file.Create_FromMemory(
-				text.data(), text_size
-			);
-
-			KOTEK_ASSERT(
-				status,
-				"failed to load from memory: {}",
-				path_to_file
-			);
-
-			status = file.Get<
+			bool status = file.Get<
 				bool>(translate_zircon_sdk_features(
 				eZirconSDKFeatures::
 					kSDK_Feature_AddRequiredComponents_Automatically
