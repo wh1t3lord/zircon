@@ -82,7 +82,9 @@ build/bin/Debug/kotek.exe --render_nri_dx12                  # NRI (DirectX 12) 
 
 The full configuration reference — CMake options, runtime arguments, and the
 `game_config.json` keys — lives in
-[doc/git/en/configuration.md](doc/git/en/configuration.md).
+[doc/git/en/configuration.md](doc/git/en/configuration.md). The filesystem
+usage guide — helpers, streaming, .kpack packing, embedded defaults — lives in
+[doc/git/en/filesystem.md](doc/git/en/filesystem.md).
 
 ## Status and verification
 

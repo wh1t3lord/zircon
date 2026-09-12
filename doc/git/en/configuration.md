@@ -141,3 +141,7 @@ newest-first and prepends the pack backend to the priority list (packs
 override native dirs; a miss falls through to native silently), so packed
 and unpacked content coexist and `data_user/` overrides still win when the
 user orders them first.
+
+The consumer-side guide to the whole filesystem (helpers, streaming, the
+override chain, embedded defaults) is
+[filesystem.md](filesystem.md).

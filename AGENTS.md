@@ -3,9 +3,9 @@
 > Living document. Every agent working in this repo MUST read this first and MUST
 > update the Task Registry (status + date + notes) when it advances or finishes a task.
 > Also read `kotek/AGENTS.md` — zircon is built on kotek and must not violate its rules.
-> Last updated: 2026-09-12 (filesystem plan "API simplicity": kotek's
-> helper free functions landed (K25) + the zircon call-site sweep — config,
-> scene metadata, shader readers, gltf; see the Z8 row).
+> Last updated: 2026-09-12 (filesystem plan K25 follow-up: the consumer
+> usage guide `doc/git/en/filesystem.md` + kotek's `test_hdd_*` HDD-evidence
+> benchmark suites; see §5's filesystem-guide bullet and kotek's K25 row).
 
 ## 1. What zircon is
 
@@ -313,6 +313,18 @@ non-existent target name in some configs — verify when touching root CMake (ta
   root README — any change that adds or alters an option, an argument, or a
   config key updates this file in the same commit (same drift rule as kotek's
   options registry).
+- **Filesystem usage guide (2026-09-12, owner-requested K25 follow-up)**:
+  `doc/git/en/filesystem.md` is the consumer-side guide to the kotek
+  filesystem — the five-minute helpers (`read_json`/`write_json`/`read_file`/
+  `file_size`/`path_for`), the override-chain mental model (pack-first
+  default, `["Native","Pack"]` flip), the streaming contract (forward-only,
+  the pack step = the 64 KB compression block, byte-identical guarantee),
+  `zircon_kpacker` end-to-end, the embedded-defaults fault-tolerance chain
+  (`is_default` + the loud-once log), and the four complex scenarios
+  (texture/mesh streaming, cached small-hot files, never-materialize big
+  cold regions). Referenced from the root README and from configuration.md
+  §Tools; the HDD-evidence benchmark that backs its claims is kotek-side
+  (the three `Filesystem.test_hdd_*` suites — see kotek's K25 row).
 - **Linkage scenarios (2026-07-22)**: kotek implements the three output modes
   (`KOTEK_LINKAGE=STATIC|SHARED|PLUGIN` — see kotek/AGENTS.md §5a). Zircon
   modules participate via `kotek_add_library`; the cyclic editor cluster
