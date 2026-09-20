@@ -130,6 +130,10 @@ set(to_include_bgfx_game_passes_no_streaming_files
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_present.cpp"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_model_static.cpp"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_model_static.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_model_static_gpu_driven.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_model_static_gpu_driven.cpp"
+	"bgfx/passes/no_streaming/zircon_render_chunk_pool.h"
+	"bgfx/passes/no_streaming/zircon_render_chunk_pool.cpp"
 )
 
 set(to_include_bgfx_editor_passes_no_streaming_files

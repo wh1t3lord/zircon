@@ -3196,6 +3196,155 @@ void zircon_game_manager::RegisterConsole_Commands(void
 		)
 	);
 
+	// the GPU-driven A/B toggle (task Z24 B1): swaps the game graph's
+	// model_static member for the gpu-driven one (or back) through the
+	// renderer's structural-edit requests — the rebuild itself runs at
+	// the next frame boundary, so the command is safe from the console.
+	// Exactly one of the two passes is expected in the set; neither
+	// present = a warning, not a silent no-op
+	auto p_command_render_passes_game_toggle_ab = [this]() -> bool
+	{
+		auto* p_engine_config =
+			this->m_p_main_manager->Get_EngineConfig();
+
+		KOTEK_ASSERT(
+			p_engine_config,
+			"you must initialize engine config for using this method"
+		);
+
+		const kotek::core::eEngineSupportedRenderer renderer_version =
+			static_cast<kotek::core::eEngineSupportedRenderer>(
+				p_engine_config->GetRendererVersion()
+			);
+
+		// the renderers union must not be read through the bgfx member
+		// when another backend is active (the same guard
+		// reload_render_passes uses)
+		const bool is_bgfx_renderer_active =
+			(renderer_version ==
+					kotek::core::eEngineSupportedRenderer::
+						kOpenGLES_3_0 ||
+				renderer_version ==
+					kotek::core::eEngineSupportedRenderer::
+						kOpenGLES_3_1 ||
+				renderer_version ==
+					kotek::core::eEngineSupportedRenderer::
+						kOpenGLES_3_2) &&
+			p_engine_config->IsFeatureEnabled(
+				kotek::core::eEngineFeatureRendererVendor::kBGFX
+			);
+
+		if (is_bgfx_renderer_active == false ||
+			this->m_renderers.p_bgfx == nullptr)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"render_passes_game_toggle_ab: the bgfx renderer is not "
+				"active — nothing to toggle"
+			);
+
+			return false;
+		}
+
+		const kotek::uint8_t game_graph_id =
+			this->m_renderers.p_bgfx->get_render_graph_id_for_session_kind(
+				true
+			);
+
+		if (game_graph_id >=
+			this->m_renderers.p_bgfx->get_render_graph_count())
+		{
+			KOTEK_MESSAGE_WARNING(
+				"render_passes_game_toggle_ab: no game render graph — "
+				"nothing to toggle"
+			);
+
+			return false;
+		}
+
+		const zircon_render_graph_simplified_bgfx_info_t& info =
+			this->m_renderers.p_bgfx->get_render_graph_info(
+				game_graph_id
+			);
+
+		kotek::uint8_t index_cpu_path =
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT;
+		kotek::uint8_t index_gpu_path =
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT;
+
+		for (kotek::uint8_t pass_index = 0;
+			 pass_index < info.pass_names.size(); ++pass_index)
+		{
+			if (info.pass_names[pass_index] ==
+				kZirconConfig_RenderPassGameModelStaticName)
+			{
+				index_cpu_path = pass_index;
+			}
+			else if (info.pass_names[pass_index] ==
+				kZirconConfig_RenderPassGameModelStaticGpuDrivenName)
+			{
+				index_gpu_path = pass_index;
+			}
+		}
+
+		if (index_cpu_path !=
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT)
+		{
+			this->m_renderers.p_bgfx->request_render_pass_remove(
+				game_graph_id, index_cpu_path
+			);
+			this->m_renderers.p_bgfx->request_render_pass_add(
+				game_graph_id,
+				kZirconConfig_RenderPassGameModelStaticGpuDrivenName
+			);
+
+			KOTEK_MESSAGE(
+				"render_passes_game_toggle_ab: game pass set -> "
+				"GPU-driven ({}); the rebuild runs at the next frame "
+				"boundary",
+				kZirconConfig_RenderPassGameModelStaticGpuDrivenName
+			);
+
+			return true;
+		}
+
+		if (index_gpu_path !=
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT)
+		{
+			this->m_renderers.p_bgfx->request_render_pass_remove(
+				game_graph_id, index_gpu_path
+			);
+			this->m_renderers.p_bgfx->request_render_pass_add(
+				game_graph_id,
+				kZirconConfig_RenderPassGameModelStaticName
+			);
+
+			KOTEK_MESSAGE(
+				"render_passes_game_toggle_ab: game pass set -> "
+				"per-item CPU ({}); the rebuild runs at the next frame "
+				"boundary",
+				kZirconConfig_RenderPassGameModelStaticName
+			);
+
+			return true;
+		}
+
+		KOTEK_MESSAGE_WARNING(
+			"render_passes_game_toggle_ab: neither '{}' nor '{}' is in "
+			"the game pass set — nothing to toggle",
+			kZirconConfig_RenderPassGameModelStaticName,
+			kZirconConfig_RenderPassGameModelStaticGpuDrivenName
+		);
+
+		return false;
+	};
+
+	this->m_p_console->Register_Command(
+		p_command_render_passes_game_toggle_ab,
+		static_cast<kotek::ktk::enum_base_t>(
+			eZirconConsoleCommands::render_passes_game_toggle_ab
+		)
+	);
+
 	// --exec="<cmd>" (task K23): every queued console command runs right
 	// after all built-in commands are registered, in the order the flags
 	// were given

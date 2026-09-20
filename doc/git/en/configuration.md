@@ -66,7 +66,7 @@ kotek.exe --render_nri_dx12                 # boot on the NRI (DirectX 12) rende
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `render_passes_editor` | string (comma list) | `present,grid,gizmo_own,imgui` | the editor session's render pass set, in execution order; names come from the pass factory registry; imgui must stay last (it draws the UI over everything) |
-| `render_passes_game` | string (comma list) | `present,model_static` | the game session's render pass set, in execution order |
+| `render_passes_game` | string (comma list) | `present,model_static` | the game session's render pass set, in execution order. The GPU-driven A/B (task Z24 B1): swap `model_static` for `model_static_gpu_driven` (the chunked GPU-driven baseline — compute frustum cull + one indirect draw) by editing this key, by a scene's `scene.json` `render_passes`, or live at the console with `render_passes_game_toggle_ab()` |
 | `add_required_components_automatically` | bool | `true` | entity creation auto-attaches the required components |
 | `sphere_bounding_box_quality` | int | `8` | tessellation quality of generated bounding spheres |
 | `graphics_development` | bool | `true` in `ZIRCON_GRAPHICS_DEVELOPMENT=ON` builds, `false` otherwise | render passes come from the hot-swappable `passes/zircon.render.passes.bgfx.dll` instead of the statically-linked passlib (task Z3 P3a); inert in builds without the option (a warning and the static passes) |

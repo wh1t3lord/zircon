@@ -34,6 +34,47 @@
 // - cbuffer member byte offsets must match the uniform table metadata
 //   (std140/HLSL packing: float4x4 = 64 bytes); u_model at 0, u_viewProj
 //   at 64 in ModelParams below.
+// - COMPUTE shaders (task Z24 B1, *.cs.slang): [shader("compute")] +
+//   [numthreads] + entry cs_main. The single cbuffer sits at register(b0)
+//   on every target ([[vk::binding(0, 0)]] — the compute UBO binding is
+//   kSpirvVertexBinding = 0). Storage buffers/images bind at bgfx stage
+//   N: register(tN/uN) for the d3d11/dx12 routes and
+//   [[vk::binding(2+N, 0)]] for vulkan (kSpirvBindShift = 2; the .bin
+//   storage table carries them — cmake's CS_UNIFORMS_VULKAN). The bgfx
+//   d3d11 route (ZIRCON_SLANG_BGFX_FXC) MUST declare the TYPED buffer
+//   forms (Buffer<T>/RWBuffer<T>) — bgfx's d3d11 renderer creates typed
+//   UAV/SRV views, never structured (renderer_d3d11.cpp
+//   BufferD3D11::create: no D3D11_RESOURCE_MISC_BUFFER_STRUCTURED); the
+//   other routes declare StructuredBuffer/RWStructuredBuffer.
+
+// forward-Phong lighting (task Z3 P2g) — ONE implementation shared by
+// model_static.fs.slang and model_static_gpu_driven.fs.slang (task Z24
+// B1); never fork it per pass. Mirrored one-to-one by the C++ static
+// zircon_render_graph_pass_model_static_bgfx::evaluate_phong (the unit
+// tests pin them — keep all three in sync): one directional light +
+// ambient floor + Phong specular, clamped. All directions are normalized
+// by the caller (the shaders normalize the interpolated normal and the
+// view vector, the pass uploads a normalized light direction).
+// light_dir_from points the way the light travels (FROM the light).
+float3 zircon_evaluate_phong(float3 normal, float3 light_dir_from,
+	float3 light_color_rgb, float3 ambient_rgb, float3 view_dir,
+	float shininess)
+{
+	// Lambert: the direction TO the light is -light_dir_from
+	float ndotl = saturate(dot(normal, -light_dir_from));
+
+	// Phong specular — killed on backfacing normals (reflect() would
+	// still peak there); reflect(I, N) mirrors the incident direction
+	float specular = 0.0;
+
+	if (ndotl > 0.0)
+	{
+		float3 reflected = reflect(light_dir_from, normal);
+		specular = pow(saturate(dot(reflected, view_dir)), shininess);
+	}
+
+	return saturate(ambient_rgb + light_color_rgb * (ndotl + specular));
+}
 
 // model_static: forward-Phong static geometry, per-vertex normal + color
 // (game pass "model_static", task Z3 P2b unlit -> P2g lit — Slang port of

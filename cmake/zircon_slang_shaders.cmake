@@ -15,6 +15,11 @@
 #   NRI (dx12): slangc -target dxil (raw blob, no container) ->
 #       data_user/shader_cache/nri/dx12/<name>.<vs|fs>.dxil
 #
+# Compute shaders (task Z24 B1) ride the same three routes through
+# zircon_add_slang_compute_shader below: <name>.cs.slang with -entry
+# cs_main (fxc profile cs_5_0, packer --type c), producing
+# <name>.cs.bin / <name>.cs.dxil.
+#
 # Included from src/render/CMakeLists.txt. Steps:
 #   1. fetch the pinned slang + dxc toolchains into ${CMAKE_BINARY_DIR}/_tools
 #      (build tree, gitignored — never commit binaries; the pattern follows
@@ -267,6 +272,23 @@ zircon_add_slang_shader(model_static
 		"u_ambient:vec4:32:1"
 		"u_cameraPos:vec4:48:1"
 )
+# model_static_gpu_driven (task Z24 B1): the GPU-driven chunked path's
+# draw pair. The VS carries no model matrix (chunk transforms are baked
+# into the shared pool at registration) — only u_viewProj; the FS is the
+# model_static forward-Phong contract verbatim (shared lighting code,
+# same LightParams layout/binding discipline)
+zircon_add_slang_shader(model_static_gpu_driven
+	VS_IN "a_position,a_normal,a_color0"
+	VS_OUT "v_worldPos,v_normal,v_color0"
+	VS_UNIFORMS
+		"u_viewProj:mat4:0:4"
+	FS_IN "v_worldPos,v_normal,v_color0"
+	FS_UNIFORMS
+		"u_lightDir:vec4:0:1"
+		"u_lightColor:vec4:16:1"
+		"u_ambient:vec4:32:1"
+		"u_cameraPos:vec4:48:1"
+)
 
 # editor infinite grid (task Z3 P2d): vertex-id fullscreen triangle (no
 # vertex inputs), analytic XZ grid in the fragment stage; u_invViewProj is
@@ -293,6 +315,113 @@ zircon_add_slang_shader(gizmo
 	FS_IN ""
 	FS_UNIFORMS
 		"u_color:vec4:0:1"
+)
+
+# compute shaders (task Z24 B1, the GPU-driven path): a new stage for the
+# pipeline — same three routes as vs/fs with -entry cs_main (fxc profile
+# cs_5_0, packer --type c). CS_UNIFORMS carries the cbuffer members (both
+# containers); CS_UNIFORMS_VULKAN carries the storage buffer/image entries
+# that ONLY the vulkan container needs — the d3d11 reader skips End-typed
+# entries and binds UAVs/SRVs from the DXBC registers (renderer_d3d11.cpp
+# ShaderD3D11::create + the CSSetUnorderedAccessViews stage-array), so the
+# d3d11 pack omits them exactly like shaderc's hlsl route does
+#
+# zircon_add_slang_compute_shader(<name>
+#     CS_UNIFORMS <spec>...         # cbuffer members — both containers
+#     CS_UNIFORMS_VULKAN <spec>...) # storage entries — the vulkan pack only
+function(zircon_add_slang_compute_shader name)
+	cmake_parse_arguments(ZS "" "" "CS_UNIFORMS;CS_UNIFORMS_VULKAN" ${ARGN})
+
+	set(slang_file "${ZIRCON_SLANG_SHADER_DIR}/${name}.cs.slang")
+	set(spv_file "${ZIRCON_SHADER_SPV_DIR}/${name}.cs.spv")
+	set(bgfx_bin "${ZIRCON_SHADER_CACHE_DIR}/bgfx/vulkan/${name}.cs.bin")
+	set(nri_dxil "${ZIRCON_SHADER_CACHE_DIR}/nri/dx12/${name}.cs.dxil")
+
+	set(pack_uniforms "")
+	foreach(spec IN LISTS ZS_CS_UNIFORMS ZS_CS_UNIFORMS_VULKAN)
+		list(APPEND pack_uniforms --uniform "${spec}")
+	endforeach()
+
+	set(pack_uniforms_d3d11 "")
+	foreach(spec IN LISTS ZS_CS_UNIFORMS)
+		list(APPEND pack_uniforms_d3d11 --uniform "${spec}")
+	endforeach()
+
+	add_custom_command(
+		OUTPUT "${bgfx_bin}" "${nri_dxil}"
+		# bgfx (vulkan): SPIR-V blob -> bgfx .bin container (with the
+		# storage table the vulkan descriptor layout is built from)
+		COMMAND "${ZIRCON_SLANGC}" "${slang_file}"
+			-entry cs_main -target spirv -profile spirv_1_5
+			-o "${spv_file}"
+		COMMAND "${ZIRCON_SHADERPACK_EXE}"
+			--type c --input "${spv_file}" --output "${bgfx_bin}"
+			${pack_uniforms}
+		# NRI (dx12): raw DXIL blob, no container
+		COMMAND "${ZIRCON_SLANGC}" "${slang_file}"
+			-entry cs_main -target dxil -profile sm_6_0
+			-o "${nri_dxil}"
+		DEPENDS
+			"${slang_file}"
+			"${ZIRCON_SLANG_SHADER_DIR}/zircon_core.slang"
+			"${ZIRCON_SHADERPACK_STAMP}"
+		COMMENT "slang: ${name}.cs -> bgfx/vulkan .bin + nri/dx12 .dxil"
+		VERBATIM
+	)
+
+	# bgfx d3d11: Slang -> HLSL (sm_5_0) -> FXC DXBC -> the same v11 .bin
+	# container; ZIRCON_SLANG_BGFX_FXC selects the typed-buffer forms
+	# (bgfx's d3d11 renderer creates TYPED UAV/SRV views, not structured —
+	# renderer_d3d11.cpp BufferD3D11::create) and the b0 cbuffer slot
+	set(hlsl_file "${ZIRCON_SHADER_SPV_DIR}/${name}.cs.hlsl")
+	set(dxbc_file "${ZIRCON_SHADER_SPV_DIR}/${name}.cs.dxbc")
+	set(bgfx_bin_d3d11 "${ZIRCON_SHADER_CACHE_DIR}/bgfx/dx11/${name}.cs.bin")
+
+	add_custom_command(
+		OUTPUT "${bgfx_bin_d3d11}"
+		COMMAND "${ZIRCON_SLANGC}" "${slang_file}"
+			-entry cs_main -target hlsl -profile sm_5_0
+			-DZIRCON_SLANG_BGFX_FXC
+			-o "${hlsl_file}"
+		COMMAND "${ZIRCON_FXC}" /nologo /T cs_5_0
+			/E cs_main /Fo "${dxbc_file}" "${hlsl_file}"
+		COMMAND "${ZIRCON_SHADERPACK_EXE}"
+			--type c --input "${dxbc_file}" --output "${bgfx_bin_d3d11}"
+			${pack_uniforms_d3d11}
+		DEPENDS
+			"${slang_file}"
+			"${ZIRCON_SLANG_SHADER_DIR}/zircon_core.slang"
+			"${ZIRCON_SHADERPACK_STAMP}"
+		COMMENT "slang: ${name}.cs -> bgfx/dx11 .bin (fxc)"
+		VERBATIM
+	)
+
+	list(APPEND ZIRCON_SHADER_OUTPUTS "${bgfx_bin}" "${nri_dxil}"
+		"${bgfx_bin_d3d11}")
+	set(ZIRCON_SHADER_OUTPUTS "${ZIRCON_SHADER_OUTPUTS}" PARENT_SCOPE)
+endfunction()
+
+# model_static_gpu_driven (task Z24 B1): the compute frustum cull of the
+# GPU-driven chunked path. The CullParams cbuffer holds the six frustum
+# planes (vec4 x6 = 96 bytes) + the meta vec4 (x = chunk count, y = the
+# kernel mode: 0 clear / 1 cull / 2 stats-copy); the vulkan storage table
+# binds the chunk bounds AoSoA array (binding 2 = stage 0, read-only;
+# 2 x float4 per chunk), the narrow draw-ranges records (binding 3 =
+# stage 1, read-only; 1 x uint4 per chunk), the indirect command buffer
+# (binding 4 = stage 2, read-write), the visible-count counter (binding
+# 5 = stage 3, read-write) and the 1x1 R32U stats image (binding 6 =
+# stage 4; tex component Uint=2, dimension 2D=2, format R32U=48 —
+# bgfx/src/shader.cpp's id tables)
+zircon_add_slang_compute_shader(model_static_gpu_driven_cull
+	CS_UNIFORMS
+		"u_cullPlanes:vec4:0:6:6"
+		"u_cullMeta:vec4:96:1"
+	CS_UNIFORMS_VULKAN
+		"u_chunkBounds:storagebuffer_ro:2:0"
+		"u_chunkRanges:storagebuffer_ro:3:0"
+		"u_indirectCommands:storagebuffer:4:0"
+		"u_visibleCount:storagebuffer:5:0"
+		"u_statsImage:storageimage:6:0:0:2:2:48"
 )
 
 add_custom_target(zircon_shaders DEPENDS ${ZIRCON_SHADER_OUTPUTS})

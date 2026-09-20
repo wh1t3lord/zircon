@@ -68,6 +68,18 @@ constexpr const char* kZirconConfig_DefaultRenderPassesGame =
 	"no_streaming::zircon_render_graph_pass_present_bgfx,"
 	"no_streaming::zircon_render_graph_pass_model_static_bgfx";
 
+// the game pass pair of the GPU-driven A/B (task Z24 B1): the per-item
+// CPU path (model_static, the house default above) and the GPU-driven
+// chunked path are ALTERNATE members of the game pass set — the
+// render_passes_game_toggle_ab console command swaps one for the other
+// live (the renderer's frame-boundary rebuild), a scene.json
+// render_passes key pins either. These single-source names keep the
+// toggle and the tests spelling the same string
+constexpr const char* kZirconConfig_RenderPassGameModelStaticName =
+	"no_streaming::zircon_render_graph_pass_model_static_bgfx";
+constexpr const char* kZirconConfig_RenderPassGameModelStaticGpuDrivenName =
+	"no_streaming::zircon_render_graph_pass_model_static_gpu_driven_bgfx";
+
 // the gizmo pair (tasks Z3 P2e/P2f): the two editor gizmo variants are
 // MUTUALLY EXCLUSIVE members of the editor pass set — the Render Passes
 // window enforces it (enabling one disables the other; both disabled = no

@@ -2,9 +2,11 @@
 // (task Z3 P2g). Conventions: see zircon_core.slang. One directional light
 // + ambient floor + a modest Phong specular, clamped; the lit result
 // modulates the interpolated vertex color so the unlit path's coloring
-// still reads. The lighting math is mirrored one-to-one by the C++ static
+// still reads. The lighting math itself lives in zircon_core.slang
+// (zircon_evaluate_phong — shared with model_static_gpu_driven.fs.slang,
+// task Z24 B1) and is mirrored one-to-one by the C++ static
 // zircon_render_graph_pass_model_static_bgfx::evaluate_phong (the unit
-// tests pin it) — keep the two in sync.
+// tests pin it) — keep all three in sync.
 
 import zircon_core;
 
@@ -46,21 +48,8 @@ float4 fs_main(ZirconVsToFs_model_static input) : SV_Target
 	float3 light_dir = normalize(u_lightDir.xyz);
 	float3 view_dir = normalize(u_cameraPos.xyz - input.v_worldPos);
 
-	// Lambert: the direction TO the light is -light_dir
-	float ndotl = saturate(dot(normal, -light_dir));
-
-	// Phong specular — killed on backfacing normals (reflect() would
-	// still peak there); reflect(I, N) mirrors the incident direction
-	float specular = 0.0;
-
-	if (ndotl > 0.0)
-	{
-		float3 reflected = reflect(light_dir, normal);
-		specular = pow(saturate(dot(reflected, view_dir)), kShininess);
-	}
-
-	float3 lighting =
-		saturate(u_ambient.xyz + u_lightColor.xyz * (ndotl + specular));
+	float3 lighting = zircon_evaluate_phong(normal, light_dir,
+		u_lightColor.xyz, u_ambient.xyz, view_dir, kShininess);
 
 	return float4(input.v_color0.rgb * lighting, input.v_color0.a);
 }

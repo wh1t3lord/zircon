@@ -52,7 +52,8 @@
 	OP(set_current_render_graph_for_renderer)                        \
 	OP(initialize_render_graph)                                      \
 	OP(initialize_world)                                             \
-	OP(reload_render_passes)
+	OP(reload_render_passes)                                         \
+	OP(render_passes_game_toggle_ab)
 
 enum class eZirconConsoleCommands : kotek::enum_base_t
 {

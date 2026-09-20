@@ -193,17 +193,36 @@ namespace
 	// -------------------------------------------------------------------
 	constexpr uint32_t k_magic_vsh = 0x0b485356; // 'VSH' + version 11
 	constexpr uint32_t k_magic_fsh = 0x0b485346; // 'FSH' + version 11
-	constexpr uint32_t k_magic_csh = 0x0b435348; // 'CSH' + version 11
+	// 'CSH' + version 11 — little-endian bytes 43 53 48 0b. (The earlier
+	// value 0x0b435348 spelled 'HSC' and slipped through while the
+	// constant served the dump decoder only; bgfx's createShader rejects
+	// it via isShaderBin — bgfx_p.h:437-442.)
+	constexpr uint32_t k_magic_csh = 0x0b485343;
 
 	// bgfx UniformType::Enum (bgfx.h:276-282) + the type-byte flag bits
 	// (bgfx_p.h:1468-1471)
 	constexpr uint8_t k_uniform_type_sampler = 0;
+	constexpr uint8_t k_uniform_type_end = 1;
 	constexpr uint8_t k_uniform_type_vec4 = 2;
 	constexpr uint8_t k_uniform_type_mat3 = 3;
 	constexpr uint8_t k_uniform_type_mat4 = 4;
 	constexpr uint8_t k_uniform_fragment_bit = 0x10;
 	constexpr uint8_t k_uniform_sampler_bit = 0x20;
+	constexpr uint8_t k_uniform_readonly_bit = 0x40;
 	constexpr uint8_t k_uniform_mask = 0xf0; // kUniformMask
+
+	// storage uniform entries (compute): type base is UniformType::End and
+	// regCount carries the descriptor type id (bgfx/src/shader.cpp:18-26
+	// s_descriptorTypeToId — the ids are the SPIR-V descriptor type
+	// numbers). The renderers decode them as: renderer_vk.cpp:5138-5172
+	// (regIndex = SPIR-V binding, stage = binding - kSpirvBindShift(2),
+	// regCount -> buffer vs image); the d3d11 reader skips End-typed
+	// entries (renderer_d3d11.cpp ShaderD3D11::create — UAV/SRV bindings
+	// come from the DXBC itself, so the d3d11 pack omits storage entries
+	// entirely, exactly like shaderc's hlsl route which never reflects
+	// them into the table)
+	constexpr uint16_t k_descriptor_type_storage_buffer = 0x0007;
+	constexpr uint16_t k_descriptor_type_storage_image = 0x0003;
 
 	// bgfx attribute name -> id table (bgfx/src/vertexlayout.cpp:167-191,
 	// names in shaderc_spirv.cpp:285-307)
@@ -351,18 +370,43 @@ namespace
 			out.type = k_uniform_type_mat3;
 		else if (type == "mat4")
 			out.type = k_uniform_type_mat4;
+		else if (type == "storagebuffer")
+		{
+			// read-write storage buffer (compute): regIndex = the SPIR-V
+			// binding, regCount is forced to the descriptor type id — the
+			// spec's regCount field is ignored for storage types
+			out.type = k_uniform_type_end;
+			out.reg_count = k_descriptor_type_storage_buffer;
+		}
+		else if (type == "storagebuffer_ro")
+		{
+			// read-only storage buffer (the NonWritable decoration in
+			// shaderc_spirv.cpp:843-846)
+			out.type = k_uniform_type_end | k_uniform_readonly_bit;
+			out.reg_count = k_descriptor_type_storage_buffer;
+		}
+		else if (type == "storageimage")
+		{
+			// read-write storage image; the tex component/dimension/format
+			// fields carry the image metadata (only texDimension is read by
+			// the vulkan renderer — the view type)
+			out.type = k_uniform_type_end;
+			out.reg_count = k_descriptor_type_storage_image;
+		}
 		else
 		{
 			std::fprintf(stderr,
 				"[zircon_shaderpack]: unknown uniform type '%s' in '%s' "
-				"(sampler|vec4|mat3|mat4)\n",
+				"(sampler|vec4|mat3|mat4|storagebuffer|storagebuffer_ro|"
+				"storageimage)\n",
 				type.c_str(), spec.c_str());
 			return false;
 		}
 
 		out.name = fields[0];
 		out.reg_index = static_cast<uint16_t>(std::stoul(fields[2]));
-		out.reg_count = static_cast<uint16_t>(std::stoul(fields[3]));
+		if ((out.type & ~k_uniform_mask) != k_uniform_type_end)
+			out.reg_count = static_cast<uint16_t>(std::stoul(fields[3]));
 		if (fields.size() > 4)
 			out.num = static_cast<uint8_t>(std::stoul(fields[4]));
 		if (fields.size() > 5)
@@ -454,13 +498,19 @@ namespace
 			"container (version 11), byte-compatible with bgfx shaderc.\n"
 			"\n"
 			"pack:\n"
-			"  zircon_shaderpack --type v|f --input <blob> --output <bin>\n"
+			"  zircon_shaderpack --type v|f|c --input <blob> --output <bin>\n"
 			"      [--in-names a_position,a_color0] [--out-names v_color0]\n"
 			"      [--uniform name:type:regIndex:regCount[:num[:texComp:texDim:texFmt]]]...\n"
-			"        type: sampler|vec4|mat3|mat4; regIndex = cbuffer byte offset\n"
-			"        (sampler: SPIR-V binding); regCount = 16-byte registers\n"
+			"        type: sampler|vec4|mat3|mat4|storagebuffer|storagebuffer_ro|\n"
+			"        storageimage; regIndex = cbuffer byte offset (sampler: SPIR-V\n"
+			"        binding; storage*: SPIR-V binding, regCount ignored — forced\n"
+			"        to the descriptor type id); regCount = 16-byte registers\n"
 			"      vertex:   --in-names  = attributes (SPIR-V location order)\n"
 			"                --out-names = varyings   (hashed)\n"
+			"      fragment: --in-names  = varyings   (hashed)\n"
+			"      compute:  no io names; storage* uniforms form the buffer/image\n"
+			"                table (vulkan container only — the d3d11 route binds\n"
+			"                UAVs/SRVs from the DXBC, so omit storage entries there)\n"
 			"      fragment: --in-names  = varyings   (hashed)\n"
 			"\n"
 			"inspect:\n"
@@ -475,6 +525,10 @@ namespace
 	{
 		const bool is_vertex = 0 == std::strcmp(type_arg, "v");
 		const bool is_fragment = 0 == std::strcmp(type_arg, "f");
+		// compute (task Z24 B1): CSH magic, both io hashes 0, zero
+		// attributes, no fragment bit — the container body is otherwise
+		// identical (shaderc.cpp:2209-2225)
+		const bool is_compute = 0 == std::strcmp(type_arg, "c");
 
 		std::vector<uint8_t> blob;
 		if (!read_file(input_path, blob))
@@ -490,7 +544,9 @@ namespace
 		std::vector<uint8_t> out;
 		out.reserve(64 + blob.size());
 
-		write_u32(out, is_vertex ? k_magic_vsh : k_magic_fsh);
+		write_u32(out, is_vertex ? k_magic_vsh
+				: is_fragment  ? k_magic_fsh
+							   : k_magic_csh);
 		write_u32(out, hash_in);
 		write_u32(out, hash_out);
 
@@ -633,6 +689,9 @@ namespace
 			case k_uniform_type_sampler:
 				base = "sampler";
 				break;
+			case k_uniform_type_end:
+				base = "storage";
+				break;
 			case k_uniform_type_vec4:
 				base = "vec4";
 				break;
@@ -643,11 +702,12 @@ namespace
 				base = "mat4";
 				break;
 			}
-			std::printf("  [%u] '%s' type %s%s%s num %u regIndex %u regCount "
+			std::printf("  [%u] '%s' type %s%s%s%s num %u regIndex %u regCount "
 						"%u tex(%u,%u,%u)\n",
 				ii, name.c_str(), base,
 				(type & k_uniform_fragment_bit) ? "|fragment" : "",
-				(type & k_uniform_sampler_bit) ? "|samplerBit" : "", num,
+				(type & k_uniform_sampler_bit) ? "|samplerBit" : "",
+				(type & k_uniform_readonly_bit) ? "|readOnly" : "", num,
 				reg_index, reg_count, tex_comp, tex_dim, tex_fmt);
 		}
 
@@ -797,7 +857,8 @@ int main(int argc, char** argv)
 	}
 
 	if (nullptr == type || nullptr == input || nullptr == output ||
-		(0 != std::strcmp(type, "v") && 0 != std::strcmp(type, "f")))
+		(0 != std::strcmp(type, "v") && 0 != std::strcmp(type, "f") &&
+			0 != std::strcmp(type, "c")))
 	{
 		print_usage();
 		return 1;
