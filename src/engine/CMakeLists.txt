@@ -65,6 +65,7 @@ else()
 		"tests/zircon_unit_tests_pack_boot.cpp"
 		"tests/zircon_unit_tests_embedded_defaults.cpp"
 		"tests/zircon_unit_tests_chunk_pool.cpp"
+		"tests/zircon_unit_tests_csg.cpp"
 	)
 endif()
 

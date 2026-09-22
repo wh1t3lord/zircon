@@ -7,7 +7,7 @@ an argument, or a config key updates this file in the same commit.
 
 ## CMake
 
-zircon adds one option of its own; everything else is configured through
+zircon adds these options of its own; everything else is configured through
 kotek's options — see
 [kotek's configuration reference](https://github.com/wh1t3lord/kotek/blob/main/doc/git/en/configuration.md)
 (`cmake -DKOTEK_HELP=ON` prints the same registry from the build).
@@ -15,6 +15,8 @@ kotek's options — see
 | Option | Default | Meaning |
 |---|---|---|
 | `ZIRCON_GRAPHICS_DEVELOPMENT` | `OFF` | graphics-development mode (task Z3 P3a): the bgfx render passes build as the hot-swappable `passes/zircon.render.passes.bgfx.dll` (next to `data_game`/`data_user`) with a static fallback twin linked into `game.ktk`; `game.ktk` re-exports its whole static closure (`/WHOLEARCHIVE` + a PRE_LINK-generated `.def`) so the DLL resolves every engine/bgfx/imgui symbol from the single loaded copy. `OFF` keeps the passes statically linked — zero behavior change. Whether passes actually come from the DLL at runtime is the `graphics_development` config key / `--graphics_development` CLI override (default ON in these builds) |
+| `ZIRCON_TESTS_HEAVY` | `OFF` | the heavy stress test tiers (rule §2.8a): heavy suites run only with `-DZIRCON_TESTS_HEAVY=ON`; the default lightweight tier of the same proofs is what boots and CI run |
+| `ZIRCON_CSG_PRECISION` | `F32` | the CSG scalar precision (task Z25) — one scalar drives both the component storage and the evaluation integration: `F32` (the editor/PC path, float with the documented epsilon policy), `U32F` (16.16 fixed-point in a u32 lane — the deterministic bake path: identical input produces byte-identical output on every IEEE-754 platform), `F64` (robustness-debug; validates that the f32/u32f paths do not diverge). The evaluation core stays templated on the scalar and the unit proofs instantiate all three modes in every build |
 
 Two hard requirements are enforced by zircon itself
 (`src/core/include/zircon_config_guard.h`, force-included into every zircon

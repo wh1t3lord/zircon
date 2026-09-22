@@ -44,6 +44,14 @@ set(to_include_game_ecs_files
 	"zircon_component_ui_camera.cpp"
 	"zircon_component_animation.h"
 	"zircon_component_animation.cpp"
+	# task Z25 A1 (CSG): the component pair — appended LAST so the
+	# codegen'd enum keeps every existing value stable (scenes serialize
+	# components by NAME, but stable enum values keep journals
+	# debugging-friendly)
+	"zircon_component_csg_primitive.h"
+	"zircon_component_csg_primitive.cpp"
+	"zircon_component_csg.h"
+	"zircon_component_csg.cpp"
 )
 
 set(to_include_game_factory_files 
@@ -399,6 +407,10 @@ kotek_add_library(${PROJECT_NAME}
 	${to_include_game_factory_files}
 	"zircon_component_interface.h"
 	"zircon_component_interface.cpp"
+	# the CSG core (task Z25 A1) — header-only templates + the scalar
+	# configuration; NOT in the codegen lists (they name no component)
+	"zircon_csg_defs.h"
+	"zircon_csg_evaluate.h"
 	${zircon_enum_file_name}
 	${zircon_generate_header_component_fields}
 	## we don't include some files because they're used in project with #include directive so they compile with project implicitly
@@ -457,6 +469,8 @@ source_group("Game/Components" FILES
 	${to_include_game_ecs_files}
 	"zircon_component_interface.h"
 	"zircon_component_interface.cpp"
+	"zircon_csg_defs.h"
+	"zircon_csg_evaluate.h"
 	${zircon_enum_file_name}
 )
 source_group("Game/Factory" FILES ${to_include_game_factory_files})

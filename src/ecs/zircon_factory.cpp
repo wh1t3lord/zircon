@@ -582,6 +582,21 @@ void zircon_factory::register_components(
 					zircon_component_sdk_input>(p_casted);
 				break;
 			}
+			case eZirconComponentType::
+				kzircon_component_csg_primitive:
+			{
+				component_definition = zircon_define_component<
+					zircon_component_csg_primitive>(p_casted);
+				break;
+			}
+			case eZirconComponentType::kzircon_component_csg:
+			{
+				component_definition =
+					zircon_define_component<zircon_component_csg>(
+						p_casted
+					);
+				break;
+			}
 			default:
 			{
 				KOTEK_ASSERT(

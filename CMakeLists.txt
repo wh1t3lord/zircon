@@ -53,6 +53,20 @@ if (ZIRCON_TESTS_HEAVY)
 	add_compile_definitions(ZIRCON_USE_TESTS_HEAVY)
 endif()
 
+# CSG scalar precision (task Z25, the plan's precision configuration):
+# the one define selects BOTH the component storage scalar and the
+# evaluation instantiation the integration uses — F32 (default, the
+# editor/PC path), U32F (16.16 fixed-point, the deterministic bake
+# path), F64 (robustness debug). The evaluation core stays templated
+# and the tests instantiate all three modes in every build.
+set(ZIRCON_CSG_PRECISION "F32" CACHE STRING "CSG scalar precision: F32 (default) | U32F (fixed-point 16.16 deterministic) | F64 (robustness debug)")
+set_property(CACHE ZIRCON_CSG_PRECISION PROPERTY STRINGS F32 U32F F64)
+if (NOT ZIRCON_CSG_PRECISION MATCHES "^(F32|U32F|F64)$")
+	message(FATAL_ERROR "unknown ZIRCON_CSG_PRECISION='${ZIRCON_CSG_PRECISION}' (expected F32|U32F|F64)")
+endif()
+add_compile_definitions(ZIRCON_DEF_CSG_PRECISION=ZIRCON_CSG_PRECISION_${ZIRCON_CSG_PRECISION})
+message("[${PROJECT_NAME}]: ZIRCON_CSG_PRECISION=${ZIRCON_CSG_PRECISION}")
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

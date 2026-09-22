@@ -13,6 +13,10 @@
 #include "zircon_component_terrain_gcm.h"
 #include "zircon_component_terrain_static.h"
 
+// csg (task Z25)
+#include "zircon_component_csg_primitive.h"
+#include "zircon_component_csg.h"
+
 // render
 #include "zircon_component_bounding_sphere.h"
 
