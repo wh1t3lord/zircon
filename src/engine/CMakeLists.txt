@@ -68,6 +68,7 @@ else()
 		"tests/zircon_unit_tests_csg.cpp"
 		"tests/zircon_unit_tests_csg_editor.cpp"
 		"tests/zircon_unit_tests_csg_bake.cpp"
+		"tests/zircon_unit_tests_meshlet.cpp"
 	)
 endif()
 
