@@ -35,6 +35,15 @@ set(to_include_commands_files
 	"zircon_command_add_component_to_entity.cpp"
 	"zircon_command_delete_component_from_entity.h"
 	"zircon_command_delete_component_from_entity.cpp"
+	# task Z25 A2: the CSG primitive commands (the shared resolve/dirty
+	# glue is a header-only helper, not a compiled unit)
+	"zircon_command_csg_utils.h"
+	"zircon_command_csg_create_primitive.h"
+	"zircon_command_csg_create_primitive.cpp"
+	"zircon_command_csg_delete_primitive.h"
+	"zircon_command_csg_delete_primitive.cpp"
+	"zircon_command_csg_edit_primitive.h"
+	"zircon_command_csg_edit_primitive.cpp"
 	"zircon_command_create_entity.h"
 	"zircon_command_create_entity.cpp"
 	"zircon_command_delete_entity.h"

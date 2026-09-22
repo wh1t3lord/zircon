@@ -55,7 +55,10 @@ public:
 	get_primitive_entities(void) const noexcept;
 	kotek::uint32_t get_primitive_count(void) const noexcept;
 
-	// the dirty flag (u8)
+	// the dirty flag (u8 — a GENERATION counter since task Z25 A2,
+	// not a level: every mark_dirty() bumps it so a re-edit while
+	// the flag is still set stays observable as a new edit; nonzero
+	// = dirty is the whole contract)
 	kotek::uint8_t is_dirty(void) const noexcept;
 	void mark_dirty(void) noexcept;
 	void clear_dirty(void) noexcept;

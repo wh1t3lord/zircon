@@ -145,6 +145,13 @@ set(to_include_bgfx_editor_passes_no_streaming_files
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_model_static.h"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.cpp"
+	# task Z25 A2: the editor CSG compound draw (the one-draw-call
+	# dynamic pool + the pass) — the factory codegen picks the pass
+	# class up from this directory
+	"bgfx/passes/no_streaming/zircon_render_csg_editor_pool.h"
+	"bgfx/passes/no_streaming/zircon_render_csg_editor_pool.cpp"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_csg.h"
+	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_csg.cpp"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.cpp"
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_imguizmo.h"

@@ -18,9 +18,10 @@
 #define ZIRCON_DEF_CONFIG_FEATURE_STRING_MAX_LENGTH 32
 /// one comma-separated render-pass list: the longest registered pass name
 /// today is "no_streaming::zircon_render_graph_pass_editor_model_static_
-/// bgfx" (62 chars), so 256 holds three such names with separators — raise
-/// when a session legitimately needs more simultaneous passes
-#define ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH 256
+/// bgfx" (62 chars); the default editor set of 5 passes (task Z25 A2 added
+/// editor_csg) measures 287 — 512 holds it with headroom for two more
+/// full-length names
+#define ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH 512
 
 /// the fixed json DOM memory of the config document (ktkResourceText's
 /// static_resource, no realloc). MEASURED (2026-09-05, task Z22): the
@@ -53,8 +54,10 @@ constexpr const char* kZirconConfig_FileName = "game_config.json";
 // reproduce the pre-config hardcoded sets exactly. The editor set keeps
 // imgui LAST (it draws the UI over everything); the grid (task Z3 P2d)
 // sits between the present clear and the gizmo, under the scene geometry;
-// the gizmo (task Z3 P2e) is a depth-test-off overlay between the grid and
-// imgui so the handles always read over the scene
+// the editor CSG draw (task Z25 A2) is scene geometry right after the grid
+// (depth-tested over it, under the gizmo overlay); the gizmo (task Z3 P2e)
+// is a depth-test-off overlay between the CSG draw and imgui so the
+// handles always read over the scene
 constexpr const char* kZirconConfig_KeyRenderPassesEditor =
 	"render_passes_editor";
 constexpr const char* kZirconConfig_KeyRenderPassesGame =
@@ -62,6 +65,7 @@ constexpr const char* kZirconConfig_KeyRenderPassesGame =
 constexpr const char* kZirconConfig_DefaultRenderPassesEditor =
 	"no_streaming::zircon_render_graph_pass_editor_present_bgfx,"
 	"no_streaming::zircon_render_graph_pass_editor_grid_bgfx,"
+	"no_streaming::zircon_render_graph_pass_editor_csg_bgfx,"
 	"no_streaming::zircon_render_graph_pass_editor_gizmo_own_bgfx,"
 	"no_streaming::zircon_render_graph_pass_editor_imgui_bgfx";
 constexpr const char* kZirconConfig_DefaultRenderPassesGame =

@@ -5,6 +5,7 @@
 #include "../../core/zircon_cancel_arbiter.h"
 #include "../ui/zircon_editor_ui_state.h"
 #include "../commands\zircon_command_history.h"
+#include "zircon_csg_editor_rebuild_scheduler.h"
 
 class zircon_world;
 class zircon_session_editor_manager;
@@ -87,6 +88,14 @@ public:
 	const zircon_cancel_arbiter* get_cancel_arbiter(void
 	) const noexcept;
 
+	/// the session's CSG compound rebuild scheduler (task Z25 A2) —
+	/// the editor CSG pass drains its completed results; one per
+	/// session, like the command history
+	zircon_csg_editor_rebuild_scheduler* get_csg_scheduler(void
+	) noexcept;
+	const zircon_csg_editor_rebuild_scheduler* get_csg_scheduler(
+		void) const noexcept;
+
 	zircon_world* get_world(void) const noexcept;
 
 	void set_imgui_ui_elements(
@@ -100,6 +109,7 @@ private:
 	void update_component_input_sdk(void) noexcept;
 	void update_component_camera(void) noexcept;
 	void update_component_camera_sdk(void) noexcept;
+	void update_csg_rebuilds(void) noexcept;
 	void try_to_initialize_render_graph(void) noexcept;
 
 	/// the arbiter's default consumers (task Z19), registered ONCE at
@@ -131,4 +141,7 @@ private:
 	/// one arbiter per session (task Z19) — like its command history;
 	/// the game layer instantiates the same class for its own UI later
 	zircon_cancel_arbiter m_cancel_arbiter;
+	/// one CSG rebuild scheduler per session (task Z25 A2) — owns the
+	/// rebuild worker thread; the editor CSG pass drains it
+	zircon_csg_editor_rebuild_scheduler m_csg_scheduler;
 };

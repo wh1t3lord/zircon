@@ -512,8 +512,6 @@ void zircon_resource_manager::load(
 					);
 				}
 
-				desc.is_loaded = is_content_ready;
-
 				zircon_view_handle_t& view_handle =
 					this->m_resources_view[p_result->view_id];
 
@@ -523,6 +521,14 @@ void zircon_resource_manager::load(
 				view_handle.p_view =
 					new (view_handle._view_storage
 				    ) kotek::core::ktkResourceViewText(*p_data);
+
+				// is_loaded PUBLISHES the resource (task Z25 A2: the
+				// flag must be the LAST write — consumers spin on it
+				// without an acquire edge, so a flag written before
+				// the view bind published "loaded" with a null view;
+				// the scheduler's worker thread widened that window
+				// into a deterministic test abort)
+				desc.is_loaded = is_content_ready;
 			}
 
 		}

@@ -5,6 +5,9 @@
 #include "zircon_command_add_component_to_entity.h"
 #include "zircon_command_delete_component_from_entity.h"
 #include "zircon_command_edit_component_state.h"
+#include "zircon_command_csg_create_primitive.h"
+#include "zircon_command_csg_delete_primitive.h"
+#include "zircon_command_csg_edit_primitive.h"
 
 zircon_command_delta_writer::zircon_command_delta_writer(
 	unsigned char* p_buffer, kotek::size_t capacity
@@ -343,6 +346,45 @@ namespace
 				p_manager_session_editor, p_factory
 			);
 	}
+
+	kotek::core::ktkISDKRedoUndo*
+	zircon_create_command_csg_create_primitive(
+		void* p_placement_memory,
+		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_factory* p_factory
+	) noexcept
+	{
+		return new (p_placement_memory)
+			zircon_command_csg_create_primitive(
+				p_manager_session_editor, p_factory
+			);
+	}
+
+	kotek::core::ktkISDKRedoUndo*
+	zircon_create_command_csg_delete_primitive(
+		void* p_placement_memory,
+		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_factory* p_factory
+	) noexcept
+	{
+		return new (p_placement_memory)
+			zircon_command_csg_delete_primitive(
+				p_manager_session_editor, p_factory
+			);
+	}
+
+	kotek::core::ktkISDKRedoUndo*
+	zircon_create_command_csg_edit_primitive(
+		void* p_placement_memory,
+		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_factory* p_factory
+	) noexcept
+	{
+		return new (p_placement_memory)
+			zircon_command_csg_edit_primitive(
+				p_manager_session_editor, p_factory
+			);
+	}
 } // namespace
 
 void zircon_register_builtin_command_types(
@@ -394,5 +436,27 @@ void zircon_register_builtin_command_types(
 		 "zircon_command_edit_component_state",
 		 &zircon_create_command_edit_component_state,
 		 sizeof(zircon_command_edit_component_state)}
+	);
+
+	// task Z25 A2: the CSG primitive commands
+	registry.register_type(
+		{zircon_DEF_COMMAND_TYPE_CSG_CREATE_PRIMITIVE,
+		 "zircon_command_csg_create_primitive",
+		 &zircon_create_command_csg_create_primitive,
+		 sizeof(zircon_command_csg_create_primitive)}
+	);
+
+	registry.register_type(
+		{zircon_DEF_COMMAND_TYPE_CSG_DELETE_PRIMITIVE,
+		 "zircon_command_csg_delete_primitive",
+		 &zircon_create_command_csg_delete_primitive,
+		 sizeof(zircon_command_csg_delete_primitive)}
+	);
+
+	registry.register_type(
+		{zircon_DEF_COMMAND_TYPE_CSG_EDIT_PRIMITIVE,
+		 "zircon_command_csg_edit_primitive",
+		 &zircon_create_command_csg_edit_primitive,
+		 sizeof(zircon_command_csg_edit_primitive)}
 	);
 }

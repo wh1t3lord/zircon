@@ -237,6 +237,10 @@ void zircon_session_editor::initialize(
 			p_history_streaming_folder_name);
 		this->m_state.initialize(p_current_world->get_factory());
 
+		// task Z25 A2: the session's CSG rebuild scheduler — the
+		// worker thread starts here and joins in shutdown
+		this->m_csg_scheduler.initialize();
+
 		// task Z19: the session's cancel arbiter — consumers registered
 		// ONCE here (poll-on-event: nothing re-registers per frame and
 		// no push/pop stack drifts); the owners are the session's own
@@ -252,6 +256,7 @@ void zircon_session_editor::shutdown(void)
 {
 	if (this->m_was_initialized)
 	{
+		this->m_csg_scheduler.shutdown();
 		this->m_command_history_manager.shutdown();
 		// the consumer owners die with the session — drop the
 		// registrations so a shutdown->initialize cycle can not stack
@@ -288,6 +293,7 @@ void zircon_session_editor::update(void)
 
 	this->update_component_input_sdk();
 	this->update_component_camera_sdk();
+	this->update_csg_rebuilds();
 }
 
 kotek::uint8_t zircon_session_editor::get_id(void) const noexcept
@@ -527,6 +533,18 @@ const zircon_cancel_arbiter* zircon_session_editor::get_cancel_arbiter(
 	return &this->m_cancel_arbiter;
 }
 
+zircon_csg_editor_rebuild_scheduler*
+zircon_session_editor::get_csg_scheduler(void) noexcept
+{
+	return &this->m_csg_scheduler;
+}
+
+const zircon_csg_editor_rebuild_scheduler*
+zircon_session_editor::get_csg_scheduler(void) const noexcept
+{
+	return &this->m_csg_scheduler;
+}
+
 void zircon_session_editor::register_cancel_arbiter_consumers(
 	void) noexcept
 {
@@ -734,6 +752,32 @@ void zircon_session_editor::update_editing_status(void) noexcept
 }
 
 void zircon_session_editor::update_component_camera(void) noexcept {}
+
+void zircon_session_editor::update_csg_rebuilds(void) noexcept
+{
+	if (this->m_p_world == nullptr)
+		return;
+
+	zircon_factory* p_factory = this->m_p_world->get_factory();
+
+	if (p_factory == nullptr)
+		return;
+
+	// the history epoch: any movement (an executed command — the
+	// batch boundary — or an undo/redo cursor move) is observable as
+	// a change of the recorded-command count / cursor node pair; the
+	// scheduler treats a change as "a journaled batch completed"
+	zircon_editor_command_history* p_history =
+		&this->m_command_history_manager;
+
+	const kotek::uint64_t history_epoch =
+		(p_history->get_total_recorded_commands() << 32) |
+		p_history->get_cursor_node_id();
+
+	this->m_csg_scheduler.update(p_factory,
+		this->m_p_world->get_ecs_context(),
+		this->m_p_world->get_entity_count_max_limit(), history_epoch);
+}
 
 void zircon_session_editor::update_component_camera_sdk(void) noexcept
 {

@@ -14,6 +14,10 @@ set(to_include_session_files
 	"zircon_scene_metadata.cpp"
 	"zircon_editor_sdk_camera.h"
 	"zircon_editor_sdk_camera.cpp"
+	# task Z25 A2: the CSG compound rebuild scheduler (dirty watch +
+	# debounce + the evaluation worker)
+	"zircon_csg_editor_rebuild_scheduler.h"
+	"zircon_csg_editor_rebuild_scheduler.cpp"
 	"zircon_session_editor.h"
 	"zircon_session_editor.cpp"
 	"zircon_session_editor_manager.h"
@@ -37,4 +41,5 @@ source_group("Module" FILES ${to_include_module_files})
 kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)

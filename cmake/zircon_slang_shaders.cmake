@@ -317,6 +317,24 @@ zircon_add_slang_shader(gizmo
 		"u_color:vec4:0:1"
 )
 
+# editor CSG compound draw (task Z25 A2): the shared dynamic pool
+# streamed with world-space positions/normals (rebuild-merge bake) —
+# the model_static_gpu_driven draw contract verbatim (same IO structs,
+# same ModelParams u_viewProj predefined cbuffer, the shared
+# zircon_evaluate_phong fragment)
+zircon_add_slang_shader(editor_csg
+	VS_IN "a_position,a_normal,a_color0"
+	VS_OUT "v_worldPos,v_normal,v_color0"
+	VS_UNIFORMS
+		"u_viewProj:mat4:0:4"
+	FS_IN "v_worldPos,v_normal,v_color0"
+	FS_UNIFORMS
+		"u_lightDir:vec4:0:1"
+		"u_lightColor:vec4:16:1"
+		"u_ambient:vec4:32:1"
+		"u_cameraPos:vec4:48:1"
+)
+
 # compute shaders (task Z24 B1, the GPU-driven path): a new stage for the
 # pipeline — same three routes as vs/fs with -entry cs_main (fxc profile
 # cs_5_0, packer --type c). CS_UNIFORMS carries the cbuffer members (both

@@ -106,7 +106,16 @@ kotek::uint8_t zircon_component_csg::is_dirty(void) const noexcept
 
 void zircon_component_csg::mark_dirty(void) noexcept
 {
-	this->m_is_dirty = 1;
+	// a GENERATION bump, not a level (task Z25 A2): the editor
+	// rebuild scheduler debounces on edges — a re-edit while the
+	// flag is still set must be observable as a NEW edit, which a
+	// plain 0/1 level cannot express. Nonzero = dirty is the whole
+	// contract (is_dirty(), the json roundtrip); the u8 wraps
+	// naturally and the scheduler compares raw bytes (inequality is
+	// wrap-safe — the generation only has to differ from the last
+	// observation)
+	this->m_is_dirty = static_cast<kotek::uint8_t>(
+		this->m_is_dirty + 1u);
 }
 
 void zircon_component_csg::clear_dirty(void) noexcept

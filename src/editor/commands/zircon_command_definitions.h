@@ -67,6 +67,13 @@
 // clear of kotek's enum range)
 #define zircon_DEF_COMMAND_TYPE_EDIT_COMPONENT_STATE 0x80000001
 
+// task Z25 A2: the CSG primitive commands (the compound they touch is
+// carried inside each delta; the high-bit zircon-local id convention
+// holds)
+#define zircon_DEF_COMMAND_TYPE_CSG_CREATE_PRIMITIVE 0x80000002
+#define zircon_DEF_COMMAND_TYPE_CSG_DELETE_PRIMITIVE 0x80000003
+#define zircon_DEF_COMMAND_TYPE_CSG_EDIT_PRIMITIVE 0x80000004
+
 // serialization attribute names (the JSON representation). These compile
 // in every config — JSON is the debug representation per the Z6 design but
 // it is fully functional in release.
