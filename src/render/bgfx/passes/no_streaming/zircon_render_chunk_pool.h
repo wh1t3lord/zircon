@@ -29,6 +29,14 @@
 
 #include "zircon_render_graph_pass_model_static.h"
 
+#include <kotek.core.containers.filesystem.path/include/kotek_core_containers_filesystem_path.h>
+
+KOTEK_BEGIN_NAMESPACE_KOTEK
+KOTEK_BEGIN_NAMESPACE_CORE
+class ktkIFileSystem;
+KOTEK_END_NAMESPACE_CORE
+KOTEK_END_NAMESPACE_KOTEK
+
 // pool capacities — named per the memory-budget rule, sized by comment:
 // the vertex pool matches the gltf loader's single-mesh cap
 // (zircon_DEF_GLTF_MAX_VERTEX_COUNT = 16384) times four so several
@@ -200,6 +208,26 @@ public:
 	// ranges and marks the pools fully dirty for re-upload
 	void defrag_pools(void) noexcept;
 
+	// ---- the A3 pack-loaded variant (task Z25): reads a baked CSG
+	// chunk set (the zircon_csg_bake.h format — manifest + per-chunk
+	// entries) through the filesystem dispatcher (the priority chain
+	// resolves packs vs dirs), dequantizes into the pool's layout
+	// (positions float from the u16/u8 normalized quanta against the
+	// manifest's f64 per-chunk bounds, normals from the u8 octahedral
+	// per-triangle code, the triangle-soup expansion per chunk) and
+	// registers every chunk for the B1 GPU-culled path — the game
+	// session does ZERO CSG evaluation. pack_path_prefix is RELATIVE
+	// TO THE FILESYSTEM ROOT ("csg/<scene>"; the root resolution keeps
+	// the reads cwd-independent). All-or-nothing per call: a manifest
+	// that fails validation, a corrupt/oversized entry, or a pool
+	// capacity breach aborts BEFORE any registration (the capacity
+	// pre-check sums the manifest) or at the offending chunk (loud,
+	// false; the chunks registered so far stay — clear() resets).
+	// out_loaded_chunk_count receives the registered count on success.
+	bool load_chunks_from_pack(kotek::core::ktkIFileSystem* p_filesystem,
+		const kotek::static_path_t& pack_path_prefix_relative_to_root,
+		kotek::uint32_t& out_loaded_chunk_count) noexcept;
+
 	// ---- the CPU mirror of the GPU cull (the unit-test seam AND the
 	// pass's cpu-side visible count for the A/B proof): walks the live
 	// chunks, tests each AABB against the six planes and returns the
@@ -232,6 +260,7 @@ public:
 	// the pool shadows)
 	const zircon_chunk_bounds_t* get_bounds(void) const noexcept;
 	const zircon_chunk_ranges_t* get_ranges(void) const noexcept;
+	const kotek::uint16_t* get_material_ids(void) const noexcept;
 	kotek::uint32_t get_chunk_slot_count(void) const noexcept;
 	kotek::uint32_t get_live_chunk_count(void) const noexcept;
 	bool is_chunk_live(kotek::uint32_t chunk_id) const noexcept;
@@ -240,6 +269,10 @@ public:
 	const kotek::uint16_t* get_index_shadow(void) const noexcept;
 	kotek::uint32_t get_vertex_high_water(void) const noexcept;
 	kotek::uint32_t get_index_high_water(void) const noexcept;
+
+	// the free slot budget (the pack load's capacity pre-check and the
+	// tests): live-capable slots still available
+	kotek::uint32_t get_free_chunk_slot_count(void) const noexcept;
 
 	// the upload bookkeeping: the pass re-uploads the used ranges when
 	// dirty, then clears the flags (registration batches and defrag set

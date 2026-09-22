@@ -18,6 +18,8 @@ kotek_add_library(${PROJECT_NAME}
 	"zircon_localization_manager.cpp"
 	"zircon_embedded_defaults.h"
 	"zircon_embedded_defaults.cpp"
+	"zircon_csg_bake.h"
+	"zircon_csg_bake.cpp"
 	"zircon_cancel_arbiter.h"
 	"zircon_cancel_arbiter.cpp"
 	"zircon_editor_ui_state_interface.h"

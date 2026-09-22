@@ -1,5 +1,12 @@
 #include "zircon_render_chunk_pool.h"
 
+#include <kotek.core.api/include/kotek_api.h>
+#include <kotek.core.filesystem.pack/include/kotek_kpack_format.h>
+
+// the A3 bake format (task Z25): the pack-loaded chunk variant reads
+// the manifest/chunk entries through the shared format helpers
+#include "../../../../core/zircon_csg_bake.h"
+
 #include <cmath>
 #include <cstring>
 
@@ -773,6 +780,12 @@ const zircon_chunk_ranges_t* zircon_render_chunk_pool::get_ranges(
 	return this->m_ranges.data();
 }
 
+const kotek::uint16_t* zircon_render_chunk_pool::get_material_ids(
+	void) const noexcept
+{
+	return this->m_material_ids.data();
+}
+
 kotek::uint32_t zircon_render_chunk_pool::get_chunk_slot_count(
 	void) const noexcept
 {
@@ -842,4 +855,505 @@ const zircon_pool_range_allocator&
 zircon_render_chunk_pool::get_index_allocator(void) const noexcept
 {
 	return this->m_index_allocator;
+}
+
+kotek::uint32_t zircon_render_chunk_pool::get_free_chunk_slot_count(
+	void) const noexcept
+{
+	return static_cast<kotek::uint32_t>(
+		zircon_DEF_RENDER_CHUNK_POOL_MAX_CHUNKS -
+		this->m_bounds.size() + this->m_free_chunk_slots.size());
+}
+
+// ---------------------------------------------------------------------------
+// the A3 pack-loaded variant (task Z25): the baked CSG chunk set through
+// the filesystem dispatcher into the B1 GPU-culled path
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	// u32 -> decimal append (the bake-side helper's twin — the entry
+	// name must hash identically to the bake's)
+	void chunk_pool_append_u32(kotek::static_cstring_t<
+			ZIRCON_DEF_CSG_BAKE_ENTRY_NAME_MAX_LENGTH>& out_string,
+		kotek::uint32_t value) noexcept
+	{
+		char digits[10];
+		kotek::uint32_t count = 0;
+
+		do
+		{
+			digits[count++] = static_cast<char>('0' + (value % 10u));
+			value /= 10u;
+		} while (value != 0u);
+
+		while (count > 0)
+		{
+			char symbol[2] = {digits[--count], '\0'};
+			out_string += symbol;
+		}
+	}
+
+	// <prefix>/compound_<i>/chunk_<j>.bin — byte-identical to the
+	// bake's entry name (the manifest's name-hash check pins it)
+	void chunk_pool_build_entry_name(kotek::static_cstring_t<
+			ZIRCON_DEF_CSG_BAKE_ENTRY_NAME_MAX_LENGTH>& out_name,
+		const kotek::static_path_t& prefix, kotek::uint32_t compound_index,
+		kotek::uint32_t chunk_index) noexcept
+	{
+		out_name.assign(prefix.c_str());
+		out_name += "/compound_";
+		chunk_pool_append_u32(out_name, compound_index);
+		out_name += "/chunk_";
+		chunk_pool_append_u32(out_name, chunk_index);
+		out_name += ".bin";
+	}
+
+	// the per-chunk entry's exact byte size (the bake's layout)
+	kotek::uint32_t chunk_pool_bin_size(kotek::uint32_t welded_count,
+		kotek::uint32_t triangle_count, kotek::uint32_t index_count
+		) noexcept
+	{
+		return zircon_csg_bake_chunk_header_size +
+			welded_count * 3 *
+				sizeof(zircon_csg_bake_position_quant_t) +
+			triangle_count * 2 +
+			index_count * static_cast<kotek::uint32_t>(
+				sizeof(kotek::uint32_t)) +
+			triangle_count * static_cast<kotek::uint32_t>(
+				sizeof(kotek::uint16_t));
+	}
+} // namespace
+
+bool zircon_render_chunk_pool::load_chunks_from_pack(
+	kotek::core::ktkIFileSystem* p_filesystem,
+	const kotek::static_path_t& pack_path_prefix_relative_to_root,
+	kotek::uint32_t& out_loaded_chunk_count) noexcept
+{
+	out_loaded_chunk_count = 0;
+
+	KOTEK_ASSERT(
+		p_filesystem, "the pack load reads through the filesystem"
+	);
+
+	if (p_filesystem == nullptr)
+		return false;
+
+	// the root resolution (cwd-independent), the bake's twin
+	kotek::static_path_t root_path;
+	p_filesystem->Make_Path(
+		root_path, kotek::core::eFolderIndex::kFolderIndex_Root);
+
+	kotek::static_path_t manifest_path = root_path;
+	manifest_path /= pack_path_prefix_relative_to_root;
+	manifest_path /= "manifest.bin";
+
+	kotek::size_t manifest_size = 0;
+
+	if (p_filesystem->Get_FileSize(manifest_path, manifest_size) == false)
+		return false; // the probe's one B0 warning
+
+	if (manifest_size < zircon_csg_bake_manifest_header_size ||
+		(manifest_size - zircon_csg_bake_manifest_header_size) %
+				zircon_csg_bake_manifest_record_size !=
+			0)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[chunk_pool] load_chunks_from_pack: the manifest size {} "
+			"does not fit the record grid — corrupt",
+			static_cast<kotek::uint32_t>(manifest_size));
+		return false;
+	}
+
+	const kotek::uint32_t record_count =
+		static_cast<kotek::uint32_t>(
+			(manifest_size - zircon_csg_bake_manifest_header_size) /
+			zircon_csg_bake_manifest_record_size);
+
+	if (record_count > ZIRCON_DEF_CSG_BAKE_MAX_CHUNKS_PER_SCENE)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[chunk_pool] load_chunks_from_pack: the manifest declares "
+			"{} chunks (cap {}) — corrupt",
+			record_count, ZIRCON_DEF_CSG_BAKE_MAX_CHUNKS_PER_SCENE);
+		return false;
+	}
+
+	if (record_count == 0)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"[chunk_pool] load_chunks_from_pack: the manifest declares "
+			"no chunks — nothing to load");
+		return true;
+	}
+
+	// the manifest read (heap: up to ~384 KB at the cap; +1 for the
+	// read path's '\0' terminator)
+	kotek::uint8_t* p_manifest = new kotek::uint8_t[manifest_size + 1];
+	kotek::uint8_t* p_manifest_cursor = p_manifest;
+	kotek::size_t manifest_read_size = manifest_size + 1;
+
+	const bool is_manifest_read = p_filesystem->Read_File(
+		manifest_path, p_manifest_cursor, manifest_read_size);
+
+	if (is_manifest_read == false ||
+		manifest_read_size != manifest_size)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[chunk_pool] load_chunks_from_pack: the manifest read "
+			"failed ({} of {} bytes)",
+			static_cast<kotek::uint32_t>(manifest_read_size),
+			static_cast<kotek::uint32_t>(manifest_size));
+		delete[] p_manifest;
+		return false;
+	}
+
+	// the header validation
+	if (std::memcmp(p_manifest, zircon_csg_bake_manifest_magic, 8) != 0)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[chunk_pool] load_chunks_from_pack: the manifest magic "
+			"does not match — not a CSG bake");
+		delete[] p_manifest;
+		return false;
+	}
+
+	const kotek::uint32_t chunk_size_bits =
+		zircon_csg_bake_load_u32(p_manifest + 8);
+	float chunk_size_meters = 0.0f;
+	std::memcpy(&chunk_size_meters, &chunk_size_bits,
+		sizeof(chunk_size_meters));
+
+	if (chunk_size_meters !=
+		static_cast<float>(ZIRCON_DEF_CSG_BAKE_CHUNK_SIZE_METERS))
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[chunk_pool] load_chunks_from_pack: the manifest's grid "
+			"cell is {} m, this build bakes {} m — format skew",
+			static_cast<double>(chunk_size_meters),
+			static_cast<double>(
+				ZIRCON_DEF_CSG_BAKE_CHUNK_SIZE_METERS));
+		delete[] p_manifest;
+		return false;
+	}
+
+	if (zircon_csg_bake_load_u32(p_manifest + 16) != record_count ||
+		zircon_csg_bake_load_u32(p_manifest + 28) != 0u)
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[chunk_pool] load_chunks_from_pack: the manifest header "
+			"disagrees with its size — corrupt");
+		delete[] p_manifest;
+		return false;
+	}
+
+	// ---- pass 1: per-record validation + the capacity pre-check ----
+	kotek::uint64_t sum_index_count = 0;
+	kotek::uint32_t max_bin_size = 0;
+	kotek::uint32_t max_index_count = 0;
+
+	for (kotek::uint32_t record_index = 0; record_index < record_count;
+		 ++record_index)
+	{
+		const kotek::uint8_t* p_record =
+			p_manifest + zircon_csg_bake_manifest_header_size +
+			record_index * zircon_csg_bake_manifest_record_size;
+
+		const kotek::uint32_t welded_count =
+			zircon_csg_bake_load_u32(p_record + 20);
+		const kotek::uint32_t index_count =
+			zircon_csg_bake_load_u32(p_record + 24);
+		const kotek::uint32_t triangle_count =
+			zircon_csg_bake_load_u32(p_record + 28);
+
+		if (welded_count == 0 || welded_count >
+				ZIRCON_DEF_CSG_MAX_VERTICES_PER_EVALUATION ||
+			index_count == 0 || index_count % 3 != 0 ||
+			triangle_count != index_count / 3 ||
+			triangle_count > ZIRCON_DEF_CSG_BAKE_MAX_TRIANGLES_PER_CHUNK ||
+			zircon_csg_bake_load_u16(p_record + 34) != 0u ||
+			zircon_csg_bake_load_u32(p_record + 92) != 0u)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[chunk_pool] load_chunks_from_pack: record {} fails "
+				"validation ({} welded / {} indices / {} triangles) — "
+				"corrupt",
+				record_index, welded_count, index_count, triangle_count);
+			delete[] p_manifest;
+			return false;
+		}
+
+		// the manifest/pack skew check: the record's name hash must be
+		// the hash of the entry name this record addresses
+		kotek::static_cstring_t<
+			ZIRCON_DEF_CSG_BAKE_ENTRY_NAME_MAX_LENGTH>
+			entry_name;
+		chunk_pool_build_entry_name(entry_name,
+			pack_path_prefix_relative_to_root,
+			zircon_csg_bake_load_u32(p_record + 0),
+			zircon_csg_bake_load_u32(p_record + 4));
+
+		if (kotek::core::kpack_hash_name(entry_name.c_str(),
+				std::strlen(entry_name.c_str())) !=
+			zircon_csg_bake_load_u64(p_record + 84))
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[chunk_pool] load_chunks_from_pack: record {}'s entry "
+				"name hash does not match '{}' — manifest/pack skew",
+				record_index, entry_name.c_str());
+			delete[] p_manifest;
+			return false;
+		}
+
+		const kotek::uint32_t bin_size = chunk_pool_bin_size(
+			welded_count, triangle_count, index_count);
+
+		if (bin_size > max_bin_size)
+			max_bin_size = bin_size;
+		if (index_count > max_index_count)
+			max_index_count = index_count;
+
+		sum_index_count += index_count;
+	}
+
+	// the soup expansion costs 3 pool vertices + 3 pool indices per
+	// triangle (index_count of each) — the whole set must fit BEFORE
+	// any registration (no partial state on a capacity breach)
+	if (sum_index_count >
+			this->m_vertex_allocator.get_free_total() ||
+		sum_index_count > this->m_index_allocator.get_free_total() ||
+		record_count > this->get_free_chunk_slot_count())
+	{
+		KOTEK_MESSAGE_ERROR(
+			"[chunk_pool] load_chunks_from_pack: the scene needs {} "
+			"pool vertices/indices in {} chunks, the pool has {} / {} "
+			"free in {} slots — raise the pool capacities or bake "
+			"smaller scenes",
+			static_cast<kotek::uint32_t>(sum_index_count), record_count,
+			this->m_vertex_allocator.get_free_total(),
+			this->m_index_allocator.get_free_total(),
+			this->get_free_chunk_slot_count());
+		delete[] p_manifest;
+		return false;
+	}
+
+	// ---- pass 2: per-record read + dequantize + register ----
+	kotek::uint8_t* p_bin = new kotek::uint8_t[max_bin_size + 1];
+	zircon_model_static_vertex_t* p_soup =
+		new zircon_model_static_vertex_t[max_index_count];
+	float* p_positions = new float[max_index_count * 3];
+	kotek::uint16_t* p_soup_indices = new kotek::uint16_t[max_index_count];
+
+	bool is_ok = true;
+
+	for (kotek::uint32_t record_index = 0;
+		 record_index < record_count && is_ok; ++record_index)
+	{
+		const kotek::uint8_t* p_record =
+			p_manifest + zircon_csg_bake_manifest_header_size +
+			record_index * zircon_csg_bake_manifest_record_size;
+
+		const kotek::uint32_t welded_count =
+			zircon_csg_bake_load_u32(p_record + 20);
+		const kotek::uint32_t index_count =
+			zircon_csg_bake_load_u32(p_record + 24);
+		const kotek::uint32_t triangle_count =
+			zircon_csg_bake_load_u32(p_record + 28);
+
+		double aabb_min[3];
+		double aabb_max[3];
+
+		for (int axis = 0; axis < 3; ++axis)
+		{
+			aabb_min[axis] = zircon_csg_bake_load_f64(
+				p_record + 36 + axis * 8);
+			aabb_max[axis] = zircon_csg_bake_load_f64(
+				p_record + 60 + axis * 8);
+		}
+
+		kotek::static_cstring_t<
+			ZIRCON_DEF_CSG_BAKE_ENTRY_NAME_MAX_LENGTH>
+			entry_name;
+		chunk_pool_build_entry_name(entry_name,
+			pack_path_prefix_relative_to_root,
+			zircon_csg_bake_load_u32(p_record + 0),
+			zircon_csg_bake_load_u32(p_record + 4));
+
+		kotek::static_path_t entry_path = root_path;
+		entry_path /= entry_name.c_str();
+
+		const kotek::uint32_t expected_bin_size = chunk_pool_bin_size(
+			welded_count, triangle_count, index_count);
+
+		kotek::size_t entry_size = 0;
+
+		if (p_filesystem->Get_FileSize(entry_path, entry_size) == false ||
+			entry_size != expected_bin_size)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[chunk_pool] load_chunks_from_pack: entry '{}' is "
+				"missing or sized {} (expected {}) — corrupt",
+				entry_name.c_str(), static_cast<kotek::uint32_t>(
+					entry_size), expected_bin_size);
+			is_ok = false;
+			break;
+		}
+
+		kotek::uint8_t* p_bin_cursor = p_bin;
+		kotek::size_t bin_read_size = max_bin_size + 1;
+
+		if (p_filesystem->Read_File(
+				entry_path, p_bin_cursor, bin_read_size) == false ||
+			bin_read_size != expected_bin_size)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[chunk_pool] load_chunks_from_pack: entry '{}' read "
+				"failed",
+				entry_name.c_str());
+			is_ok = false;
+			break;
+		}
+
+		if (std::memcmp(p_bin, zircon_csg_bake_chunk_magic, 4) != 0 ||
+			zircon_csg_bake_load_u32(p_bin + 4) != welded_count ||
+			zircon_csg_bake_load_u32(p_bin + 8) != index_count ||
+			zircon_csg_bake_load_u32(p_bin + 12) != triangle_count)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[chunk_pool] load_chunks_from_pack: entry '{}' fails "
+				"its header check — corrupt",
+				entry_name.c_str());
+			is_ok = false;
+			break;
+		}
+
+		// dequantize the welded positions (double against the
+		// manifest's f64 bounds, float at the pool boundary)
+		const kotek::uint8_t* p_quant =
+			p_bin + zircon_csg_bake_chunk_header_size;
+
+		for (kotek::uint32_t welded = 0; welded < welded_count; ++welded)
+		{
+			for (int axis = 0; axis < 3; ++axis)
+			{
+				zircon_csg_bake_position_quant_t quantized{};
+
+				if constexpr (sizeof(
+								  zircon_csg_bake_position_quant_t) ==
+					2)
+				{
+					quantized = static_cast<
+						zircon_csg_bake_position_quant_t>(
+						zircon_csg_bake_load_u16(p_quant));
+					p_quant += 2;
+				}
+				else
+				{
+					quantized = static_cast<
+						zircon_csg_bake_position_quant_t>(*p_quant);
+					p_quant += 1;
+				}
+
+				const double extent = aabb_max[axis] - aabb_min[axis];
+
+				p_positions[welded * 3 + axis] = static_cast<float>(
+					zircon_csg_bake_dequantize_position(
+						quantized, aabb_min[axis], extent));
+			}
+		}
+
+		// the per-triangle octahedral normals
+		const kotek::uint8_t* p_oct = p_quant;
+		p_quant += triangle_count * 2;
+
+		// the chunk-local indices
+		const kotek::uint8_t* p_indices_u32 = p_quant;
+		p_quant += index_count * static_cast<kotek::uint32_t>(
+			sizeof(kotek::uint32_t));
+
+		// the triangle-soup expansion (the A2 editor pool's contract):
+		// every corner is its own pool vertex carrying the triangle's
+		// flat normal; the color is the neutral modulator until the
+		// material system lands (the editor pool's white)
+		for (kotek::uint32_t triangle = 0; triangle < triangle_count;
+			 ++triangle)
+		{
+			float normal[3];
+			zircon_csg_bake_decode_normal_oct_u8(
+				p_oct + triangle * 2, normal);
+
+			for (kotek::uint8_t corner = 0; corner < 3; ++corner)
+			{
+				const kotek::uint32_t soup_vertex = triangle * 3 + corner;
+				const kotek::uint32_t local_index =
+					zircon_csg_bake_load_u32(
+						p_indices_u32 + soup_vertex * 4);
+
+				if (local_index >= welded_count)
+				{
+					KOTEK_MESSAGE_ERROR(
+						"[chunk_pool] load_chunks_from_pack: entry "
+						"'{}' index {} addresses welded vertex {} of "
+						"{} — corrupt",
+						entry_name.c_str(), soup_vertex, local_index,
+						welded_count);
+					is_ok = false;
+					break;
+				}
+
+				zircon_model_static_vertex_t& vertex =
+					p_soup[soup_vertex];
+
+				vertex.m_position[0] =
+					p_positions[local_index * 3 + 0];
+				vertex.m_position[1] =
+					p_positions[local_index * 3 + 1];
+				vertex.m_position[2] =
+					p_positions[local_index * 3 + 2];
+				vertex.m_normal[0] = normal[0];
+				vertex.m_normal[1] = normal[1];
+				vertex.m_normal[2] = normal[2];
+				vertex.m_color_abgr = 0xffffffffu;
+
+				p_soup_indices[soup_vertex] =
+					static_cast<kotek::uint16_t>(soup_vertex);
+			}
+
+			if (is_ok == false)
+				break;
+		}
+
+		if (is_ok == false)
+			break;
+
+		// the per-triangle materials ride the entry; the pool's
+		// per-chunk slot takes the manifest's first-material record
+		// (the full table is the future material stream's)
+		const kotek::uint16_t material_id =
+			zircon_csg_bake_load_u16(p_record + 32);
+
+		kotek::uint32_t chunk_id = kInvalidChunkId;
+
+		if (this->register_chunk(p_soup,
+				static_cast<kotek::uint16_t>(index_count),
+				p_soup_indices,
+				static_cast<kotek::uint16_t>(index_count), nullptr,
+				material_id, chunk_id) == false)
+		{
+			// the pre-check makes this unreachable (defensive: a
+			// rollback is register_chunk's own contract)
+			is_ok = false;
+			break;
+		}
+
+		++out_loaded_chunk_count;
+	}
+
+	delete[] p_soup_indices;
+	delete[] p_positions;
+	delete[] p_soup;
+	delete[] p_bin;
+	delete[] p_manifest;
+
+	return is_ok;
 }
