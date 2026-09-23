@@ -181,6 +181,13 @@ bool ShutdownModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 #endif
 	}
 
+	// task Z24 B3b: the NRI frame passes hold geometry-seam handles into
+	// the NRI device — destroy them (through the passlib, the cross-CRT
+	// rule) BEFORE the render module shutdown takes the device + the
+	// geometry manager down (the zircon game manager's own teardown runs
+	// after that invoke — too late for GPU-owning passes)
+	g_main_manager.Destroy_Nri_Frame_Passes();
+
 	KOTEK_INVOKE_MODULE(SHUTDOWN, RENDER, ShutdownModule_Render, p_main_manager);
 
 	g_main_manager.Shutdown(p_main_manager);

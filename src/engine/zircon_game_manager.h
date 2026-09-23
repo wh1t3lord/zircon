@@ -167,6 +167,15 @@ public:
 	bool
 	is_render_graph_initialized(kotek::uint8_t render_graph_id);
 
+	/// \~english destroys the NRI frame passes (through the passlib, the
+	/// cross-CRT rule) — MUST run BEFORE the kotek render module
+	/// shutdown: the passes hold geometry-seam handles into the NRI
+	/// device (task Z24 B3b), and the render module shutdown destroys
+	/// the device + the geometry manager. Called from
+	/// ShutdownModule_Game ahead of the render shutdown invoke; the
+	/// later teardown sites stay as harmless no-ops on the cleared list
+	void Destroy_Nri_Frame_Passes(void) noexcept;
+
 private:
 	void initialize_factory() noexcept;
 	void destroy_factory() noexcept;

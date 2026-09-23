@@ -335,6 +335,22 @@ zircon_add_slang_shader(editor_csg
 		"u_cameraPos:vec4:48:1"
 )
 
+# NRI meshlet cluster draw (task Z24 B3b): the first real NRI draw — one
+# baked LOD0 cluster of the B3a pack format through the kotek geometry
+# seam. The VS cbuffer is the PUSH-CONSTANT block (the NRI pipeline's
+# root-constant range at register(b0), both stages — no [[vk::binding]]
+# in the source; the NRI route is the live consumer, the bgfx routes
+# build the same pair for pipeline uniformity, nothing bgfx binds them).
+# The FS binds nothing (hardcoded lambert — the descriptor seam lands
+# with the material phase)
+zircon_add_slang_shader(meshlet_cluster
+	VS_IN "a_position,a_normal"
+	VS_OUT "v_normal"
+	VS_UNIFORMS
+		"u_viewProj:mat4:0:4"
+	FS_IN "v_normal"
+)
+
 # compute shaders (task Z24 B1, the GPU-driven path): a new stage for the
 # pipeline — same three routes as vs/fs with -entry cs_main (fxc profile
 # cs_5_0, packer --type c). CS_UNIFORMS carries the cbuffer members (both

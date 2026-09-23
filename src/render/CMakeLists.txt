@@ -418,19 +418,23 @@ source_group("BGFX/Passes/Embedded" FILES ${to_include_bgfx_passes_embedded_file
 source_group("BGFX/Passes/ImGuizmo (vendored)" FILES ${to_include_bgfx_passes_imguizmo_files})
 source_group("BGFX/Passes/Library" FILES ${to_include_bgfx_passes_library_files})
 
-### NRI passes (task Z5 phase 2 / P4): the concrete NRI frame passes     ###
-### (present/clear today) + the hand-written registry (zircon_nri_passlib).###
-### STATIC only — the hot-swappable DLL duality of the bgfx passes arrives ###
-### with the NRI graphics-development split (deferred); the C-ABI-shaped   ###
-### seam already matches it so the split adds only the export macro. No    ###
-### NRI types inside (the module-boundary rule): passes talk only to the   ###
-### narrow ktkIRenderFramePassContext surface.                             ###
+### NRI passes (task Z5 phase 2 / P4): the concrete NRI frame passes      ###
+### (present/clear + the meshlet cluster draw of task Z24 B3b) + the       ###
+### hand-written registry (zircon_nri_passlib). STATIC only — the          ###
+### hot-swappable DLL duality of the bgfx passes arrives with the NRI      ###
+### graphics-development split (deferred); the C-ABI-shaped seam already   ###
+### matches it so the split adds only the export macro. No NRI types       ###
+### inside (the module-boundary rule): passes talk only to the narrow      ###
+### ktkIRenderFramePassContext + ktkIRenderGeometryManager surfaces.       ###
 set(to_include_nri_passes_no_streaming_files
 	"nri/passes/no_streaming/zircon_render_graph_pass_present_nri.h"
 	"nri/passes/no_streaming/zircon_render_graph_pass_present_nri.cpp"
+	"nri/passes/no_streaming/zircon_render_graph_pass_meshlet_cluster_nri.h"
+	"nri/passes/no_streaming/zircon_render_graph_pass_meshlet_cluster_nri.cpp"
 )
 
 set(to_include_nri_passes_library_files
+	"nri/passes/zircon_render_graph_pass_nri.h"
 	"nri/passes/zircon_nri_passlib.h"
 	"nri/passes/zircon_nri_passlib.cpp"
 )

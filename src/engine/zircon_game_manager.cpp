@@ -192,14 +192,19 @@ namespace
 namespace
 {
 	/// builds the NRI frame-pass list from a comma-separated pass-name
-	/// list through the NRI passlib seam (task Z5 phase 2 / P4) — the
-	/// NRI counterpart of zircon_create_render_passes_from_config above,
-	/// with the same token walk. The game manager OWNS the created
-	/// passes (out_passes is its member; destroyed via
-	/// zircon_nri_passlib_destroy once the NRI renderer is deleted) and
-	/// the renderer only views them. Unknown names are skipped loudly
-	/// (a nullptr never reaches the renderer).
+	/// list through the NRI passlib seam (task Z5 phase 2 / P4, the
+	/// initialize hook added in task Z24 B3b) — the NRI counterpart of
+	/// zircon_create_render_passes_from_config above, with the same token
+	/// walk. The game manager OWNS the created passes (out_passes is its
+	/// member; destroyed via zircon_nri_passlib_destroy once the NRI
+	/// renderer is deleted) and the renderer only views them. Every
+	/// created pass receives the main manager ONCE through the passlib's
+	/// initialize hook BEFORE the list reaches the renderer (the meshlet
+	/// pass loads its cluster + creates its GPU resources there — before
+	/// the first frame records). Unknown names are skipped loudly (a
+	/// nullptr never reaches the renderer).
 	void zircon_create_nri_frame_passes_from_names(
+		kotek::core::ktkMainManager* p_main_manager,
 		const char* p_comma_separated_names,
 		kotek::static_vector_t<kotek::core::ktkIRenderFramePass*,
 			ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT>& out_passes)
@@ -251,6 +256,13 @@ namespace
 
 				if (p_pass)
 				{
+					// task Z24 B3b: the post-create lifecycle hook —
+					// loads content + creates the GPU resources through
+					// the geometry seam BEFORE the first frame; a
+					// missing content file leaves the pass inert (loud
+					// log, never a failure here)
+					zircon_nri_passlib_initialize(p_pass, p_main_manager);
+
 					KOTEK_ASSERT(
 						out_passes.size() < out_passes.capacity(),
 						"too many NRI frame passes configured, raise "
@@ -863,7 +875,8 @@ void zircon_game_manager::Initialize(
 					resolved_pass_names);
 
 				zircon_create_nri_frame_passes_from_names(
-					resolved_pass_names.c_str(), this->m_frame_passes_nri);
+					this->m_p_main_manager, resolved_pass_names.c_str(),
+					this->m_frame_passes_nri);
 
 				KOTEK_ASSERT(this->m_frame_passes_nri.empty() == false,
 					"the NRI built-in pass set must always yield the "
@@ -1985,16 +1998,13 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 		this->m_renderers.p_nri = nullptr;
 
 		// task Z5 phase 2 (P4): the game manager owns the NRI frame
-		// passes — destroy them inside the passlib (the cross-CRT rule)
-		// only after the renderer that drove them is gone
-		for (kotek::ktk::size_t pass_index = 0;
-			 pass_index < this->m_frame_passes_nri.size(); ++pass_index)
-		{
-			zircon_nri_passlib_destroy(
-				this->m_frame_passes_nri[pass_index]);
-		}
-
-		this->m_frame_passes_nri.clear();
+		// passes — destroyed inside the passlib (the cross-CRT rule).
+		// Since task Z24 B3b the passes hold geometry-seam handles into
+		// the NRI device, so the EARLY teardown (Destroy_Nri_Frame_Passes,
+		// invoked from ShutdownModule_Game before the render module
+		// shutdown) is the live path — this loop stays as the harmless
+		// no-op on the already-cleared list
+		this->Destroy_Nri_Frame_Passes();
 #else
 		KOTEK_ASSERT(false, "not implemented yet");
 #endif
@@ -2063,6 +2073,44 @@ void zircon_game_manager::Destroy_Renderer(void) noexcept
 	}
 
 	this->m_p_current_renderer = nullptr;
+}
+
+void zircon_game_manager::Destroy_Nri_Frame_Passes(void) noexcept
+{
+#ifdef KOTEK_USE_RENDER_NRI
+	// the passes hold geometry-seam handles into the NRI device — this
+	// MUST run before the kotek render module shutdown (the device + the
+	// geometry manager die there); called from ShutdownModule_Game ahead
+	// of the render shutdown invoke. Idempotent: the later teardown
+	// sites re-enter on the cleared list harmlessly.
+
+	// flush the GPU idle BEFORE releasing the pass resources: a frame
+	// that references the buffers/pipeline may still be in flight
+	// (KOTEK_DEF_RENDER_NRI_QUEUED_FRAMES), and destroying in-flight
+	// resources upstream of the module shutdown's DeviceWaitIdle wedged
+	// the fence wait (the 2026-09-23 B3b bring-up) — the flush here is
+	// the documented-safe order
+	if (this->m_p_main_manager &&
+		this->m_p_main_manager->getRenderDevice())
+	{
+		this->m_p_main_manager->getRenderDevice()->GPUFlush();
+	}
+
+	for (kotek::ktk::size_t pass_index = 0;
+		 pass_index < this->m_frame_passes_nri.size(); ++pass_index)
+	{
+		zircon_nri_passlib_destroy(this->m_frame_passes_nri[pass_index]);
+	}
+
+	this->m_frame_passes_nri.clear();
+
+	if (this->m_renderers.p_nri)
+	{
+		// the renderer only VIEWS the passes — unseat the (dangling)
+		// views so nothing records through them after this point
+		this->m_renderers.p_nri->Set_Frame_Passes(nullptr, 0);
+	}
+#endif
 }
 
 void zircon_game_manager::Initialize_ResourceManager(void

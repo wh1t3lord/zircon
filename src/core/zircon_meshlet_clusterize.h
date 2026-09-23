@@ -267,14 +267,14 @@ inline constexpr kotek::uint32_t zircon_meshlet_cluster_header_size = 20;
 
 // the level budgets (the pairing bounds the parents by construction —
 // the shifts stay inside u32 for the level cap of 6)
-inline kotek::uint32_t zircon_meshlet_max_tris_for_level(
+inline constexpr kotek::uint32_t zircon_meshlet_max_tris_for_level(
 	kotek::uint32_t level) noexcept
 {
 	return static_cast<kotek::uint32_t>(ZIRCON_DEF_MESHLET_MAX_TRIANGLES)
 		<< level;
 }
 
-inline kotek::uint32_t zircon_meshlet_max_verts_for_level(
+inline constexpr kotek::uint32_t zircon_meshlet_max_verts_for_level(
 	kotek::uint32_t level) noexcept
 {
 	return static_cast<kotek::uint32_t>(ZIRCON_DEF_MESHLET_MAX_VERTICES)
