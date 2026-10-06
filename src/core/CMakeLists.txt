@@ -23,6 +23,7 @@ kotek_add_library(${PROJECT_NAME}
 	"zircon_meshlet_clusterize.h"
 	"zircon_meshlet_clusterize.cpp"
 	"zircon_meshlet_cluster_read.h"
+	"zircon_meshlet_cull.h"
 	"zircon_cancel_arbiter.h"
 	"zircon_cancel_arbiter.cpp"
 	"zircon_editor_ui_state_interface.h"

@@ -458,6 +458,27 @@ zircon_add_slang_compute_shader(model_static_gpu_driven_cull
 		"u_statsImage:storageimage:6:0:0:2:2:48"
 )
 
+# meshlet cluster cull (task Z24 B3c): the nanite path's GPU cluster cull +
+# the LOD cut through the kotek geometry seam's compute extension. The
+# CullParams push-constant block carries the six frustum planes
+# (vec4 x6 = 96 bytes) + the camera vec4 (offset 96) + the meta vec4
+# (offset 112: x = cluster count, y = kernel mode, z = the projection
+# scale, w = the error threshold); the storage table binds the cluster
+# table (binding 1, read-write byte-address) + the compacted indirect
+# commands (binding 2) + the visible counter (binding 3). The NRI route
+# consumes the raw DXIL; the bgfx containers build for pipeline
+# uniformity only (nothing bgfx binds this kernel)
+zircon_add_slang_compute_shader(meshlet_cluster_cull
+	CS_UNIFORMS
+		"u_cullPlanes:vec4:0:6:6"
+		"u_cullCamera:vec4:96:1"
+		"u_cullMeta:vec4:112:1"
+	CS_UNIFORMS_VULKAN
+		"u_clusterTable:storagebuffer_ro:1:0"
+		"u_indirectCommands:storagebuffer:2:0"
+		"u_visibleCount:storagebuffer:3:0"
+)
+
 add_custom_target(zircon_shaders DEPENDS ${ZIRCON_SHADER_OUTPUTS})
 set_target_properties(zircon_shaders PROPERTIES FOLDER "engine/render/shaders")
 

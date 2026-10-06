@@ -332,6 +332,49 @@ void zircon_game_manager::Initialize(
 		this->m_p_main_manager->GetFileSystem()
 	);
 
+	// task Z24 B3c: the persisted classic/nanite geometry-path
+	// selection applies HERE — the zircon config loads BEFORE the
+	// render device is created (InitializeModule_Render runs after this
+	// Initialize), so flipping the engine-config renderer slot now
+	// routes the kotek.render dispatcher exactly like the
+	// --render_nri_dx12 CLI flag does at parse time. The CLI wins when
+	// both are present (the explicit user choice beats the persisted
+	// one)
+	if (this->m_p_config &&
+		std::strcmp(this->m_p_config->get_render_geometry_path(),
+			kZirconConfig_RenderGeometryPathNanite) == 0)
+	{
+		if (this->m_p_main_manager->Get_EngineConfig()
+				->IsContainsConsoleCommandLineArgument(
+					kotek::kConsoleCommandArg_Render_NRI_DX12))
+		{
+			// the CLI already routed the device to NRI — nothing to add
+		}
+		else
+		{
+#ifdef KOTEK_USE_RENDER_NRI
+			this->m_p_main_manager->Get_EngineConfig()->SetFeatureStatus(
+				kotek::core::eEngineFeatureRenderer::
+					kEngine_Feature_Renderer_DirectX_SpecifiedByUser,
+				true);
+			this->m_p_main_manager->Get_EngineConfig()->SetFeatureStatus(
+				kotek::core::eEngineSupportedRenderer::kDirectX_Latest,
+				true);
+
+			KOTEK_MESSAGE(
+				"[render] geometry path 'nanite': the render device "
+				"routes to NRI/dx12 + the cluster pass set (the classic "
+				"bgfx path logs its own A/B visible-counts line for "
+				"comparison — boot both ways and diff the logs)");
+#else
+			KOTEK_MESSAGE_WARNING(
+				"[render] geometry path 'nanite' persisted, but this "
+				"build has no NRI backend — keeping the classic bgfx "
+				"path (rebuild with KOTEK_NRI to honor the key)");
+#endif
+		}
+	}
+
 	// task Z22: the localization manager inits AFTER the config load —
 	// the persisted language tags (localization_editor_language /
 	// localization_game_language) select each instance's table
@@ -3390,6 +3433,55 @@ void zircon_game_manager::RegisterConsole_Commands(void
 		p_command_render_passes_game_toggle_ab,
 		static_cast<kotek::ktk::enum_base_t>(
 			eZirconConsoleCommands::render_passes_game_toggle_ab
+		)
+	);
+
+	// the classic/nanite geometry-path toggle (task Z24 B3c):
+	// flips the persisted render_geometry_path key (the value the
+	// NEXT boot's Initialize reads to route the render device + the
+	// pass-set pair — a runtime device switch is out of scope for
+	// v1, the device and the pass sets install at module init). The
+	// A/B comparison is the two paths' readback lines in the boot
+	// log ("[model_static_gpu_driven] A/B readback: ..." vs "[nri
+	// meshlet] A/B readback: ...") — boot both ways and diff
+	auto p_command_render_geometry_path = [this]() -> bool
+	{
+		if (this->m_p_config == nullptr)
+		{
+			KOTEK_MESSAGE_WARNING(
+				"render_geometry_path: the config is missing — "
+				"nothing to toggle"
+			);
+
+			return false;
+		}
+
+		const bool is_nanite_now =
+			std::strcmp(this->m_p_config->get_render_geometry_path(),
+				kZirconConfig_RenderGeometryPathNanite) == 0;
+
+		const char* p_next_path = is_nanite_now
+			? kZirconConfig_RenderGeometryPathClassic
+			: kZirconConfig_RenderGeometryPathNanite;
+
+		this->m_p_config->set_render_geometry_path(p_next_path);
+
+		KOTEK_MESSAGE(
+			"render_geometry_path: '{}' -> '{}' (persisted, takes "
+			"effect at the NEXT boot; the active path's A/B "
+			"visible-counts line is in this boot's log)",
+			is_nanite_now ? kZirconConfig_RenderGeometryPathNanite
+						  : kZirconConfig_RenderGeometryPathClassic,
+			p_next_path
+		);
+
+		return true;
+	};
+
+	this->m_p_console->Register_Command(
+		p_command_render_geometry_path,
+		static_cast<kotek::ktk::enum_base_t>(
+			eZirconConsoleCommands::render_geometry_path
 		)
 	);
 

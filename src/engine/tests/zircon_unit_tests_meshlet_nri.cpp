@@ -9,6 +9,8 @@
 		#include <cstring>
 
 		#include "../../core/zircon_meshlet_cluster_read.h"
+		#include "../../core/zircon_meshlet_cull.h"
+		#include "../../core/zircon_config.h"
 		#include "../../render/nri/passes/zircon_nri_passlib.h"
 
 		#ifndef ZIRCON_DEF_UNIT_TEST_MESHLET_NRI
@@ -18,13 +20,17 @@
 		#if ZIRCON_DEF_UNIT_TEST_MESHLET_NRI == 1
 
 // functional proofs for task Z24 B3b (the nanite path's geometry seam +
-// the first real NRI draw): the B3a-format reader (the manifest + the
-// cluster bin parse, the soup vertex-buffer layout), the shipped boot
-// fixture (loads through the REAL filesystem dispatcher — the exact data
-// flow the NRI pass runs at boot) and the NRI passlib registry/lifecycle
-// (the meshlet pass registered, the initialize seam, the inert-without-
-// content contract). Tier: lightweight (rule 8a — a two-triangle quad
-// soup + the 152-byte shipped cluster; no GPU needed).
+// the first real NRI draw) + B3c (the GPU-side finish — the cluster
+// cull + the LOD cut): the B3a-format reader (the manifest + the
+// cluster bin parse, the soup vertex-buffer layout), the cull/LOD logic
+// as pure statics (the frustum + the AABB test, the LOD-cut predicate,
+// the indirect command + the GPU record byte layouts, the CPU mirror's
+// exact cull+compact), the shipped boot fixture (loads through the REAL
+// filesystem dispatcher — the exact data flow the NRI pass runs at
+// boot) and the NRI passlib registry/lifecycle (the meshlet pass
+// registered, the initialize seam, the inert-without-content contract).
+// Tier: lightweight (rule 8a — small synthetic soups + the 152-byte
+// shipped cluster; no GPU needed).
 
 namespace
 {
@@ -524,6 +530,399 @@ namespace
 
 		zircon_nri_passlib_destroy(p_present);
 		zircon_nri_passlib_destroy(p_meshlet);
+	}
+
+	// ---- task Z24 B3c: the cull/LOD logic as pure C++ statics (the
+	// kernel's mirror — the same classification the GPU runs, pinned
+	// headlessly; tier: lightweight, rule 8a)
+
+	// the frustum plane extraction: the identity view-projection yields
+	// the exact six half-spaces (x>=-1, x<=1, y>=-1, y<=1, z>=0, z<=1
+	// in world space)
+	TEST(Zircon_NriMeshlet, CullPlaneExtractionPins)
+	{
+		const float identity_vp[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+
+		float planes[24]{};
+		zircon_meshlet_cull_extract_frustum_planes(identity_vp, planes);
+
+		// left = (1,0,0,1), right = (-1,0,0,1), bottom = (0,1,0,1),
+		// top = (0,-1,0,1), near = (0,0,1,0), far = (0,0,-1,1) —
+		// every plane is already unit length
+		const float expected[24] = {1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f};
+
+		for (int index = 0; index < 24; ++index)
+		{
+			EXPECT_FLOAT_EQ(planes[index], expected[index])
+				<< "plane component " << index;
+		}
+	}
+
+	// the AABB-vs-frustum test on the identity-clip planes: inside,
+	// outside per plane, straddling, a degenerate point box
+	TEST(Zircon_NriMeshlet, CullAabbTestPins)
+	{
+		float planes[24]{};
+		zircon_meshlet_cull_extract_frustum_planes(
+			nullptr, planes); // the null guard: no write, no crash
+
+		const float identity_vp[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+			1.0f};
+		zircon_meshlet_cull_extract_frustum_planes(identity_vp, planes);
+
+		// fully inside
+		{
+			const float mn[3] = {-0.5f, -0.5f, 0.25f};
+			const float mx[3] = {0.5f, 0.5f, 0.75f};
+			EXPECT_TRUE(zircon_meshlet_cull_test_aabb(planes, mn, mx));
+		}
+
+		// outside the left plane (x >= 2)
+		{
+			const float mn[3] = {2.0f, -0.5f, 0.25f};
+			const float mx[3] = {3.0f, 0.5f, 0.75f};
+			EXPECT_FALSE(zircon_meshlet_cull_test_aabb(planes, mn, mx));
+		}
+
+		// straddling the left plane but the p-vertex inside -> visible
+		{
+			const float mn[3] = {-2.0f, -0.5f, 0.25f};
+			const float mx[3] = {0.5f, 0.5f, 0.75f};
+			EXPECT_TRUE(zircon_meshlet_cull_test_aabb(planes, mn, mx));
+		}
+
+		// behind the near plane (z < 0)
+		{
+			const float mn[3] = {-0.5f, -0.5f, -2.0f};
+			const float mx[3] = {0.5f, 0.5f, -0.5f};
+			EXPECT_FALSE(zircon_meshlet_cull_test_aabb(planes, mn, mx));
+		}
+
+		// beyond the far plane (z > 1)
+		{
+			const float mn[3] = {-0.5f, -0.5f, 2.0f};
+			const float mx[3] = {0.5f, 0.5f, 3.0f};
+			EXPECT_FALSE(zircon_meshlet_cull_test_aabb(planes, mn, mx));
+		}
+
+		// a degenerate point box on the near plane boundary
+		{
+			const float mn[3] = {0.0f, 0.0f, 0.0f};
+			const float mx[3] = {0.0f, 0.0f, 0.0f};
+			EXPECT_TRUE(zircon_meshlet_cull_test_aabb(planes, mn, mx));
+		}
+	}
+
+	// the LOD cut: the projected-error math (the distance floor, the
+	// scale), the parent halves, the exact cut predicate
+	TEST(Zircon_NriMeshlet, LodCutSelectionPins)
+	{
+		const float scale = 540.0f; // ~1080p, 60 deg fov
+		const float threshold = ZIRCON_DEF_NRI_MESHLET_LOD_ERROR_THRESHOLD;
+
+		// the projection: 1 world unit at 10 m on a 540px scale
+		EXPECT_FLOAT_EQ(zircon_meshlet_cull_projected_error(1.0f, 10.0f,
+							  scale),
+			54.0f);
+
+		// zero error projects to zero — the B3a placeholder's shape
+		EXPECT_FLOAT_EQ(
+			zircon_meshlet_cull_projected_error(0.0f, 10.0f, scale),
+			0.0f);
+
+		// the distance floor: a zero-distance cluster saturates, never
+		// divides by zero
+		EXPECT_FLOAT_EQ(zircon_meshlet_cull_projected_error(1.0f, 0.0f,
+							  scale),
+			1.0f * scale / ZIRCON_DEF_MESHLET_CULL_MIN_DISTANCE);
+
+		// the FLT_MAX parent sentinel is never acceptable (the natural
+		// +inf arithmetic — a root is decided by its own error alone)
+		EXPECT_FALSE(zircon_meshlet_cull_parent_acceptable(
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR, 10.0f, scale,
+			threshold));
+
+		// the exact predicate: own pass + parent fail = on the cut
+		EXPECT_TRUE(zircon_meshlet_cull_is_on_cut(0.0f,
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR, 10.0f, scale,
+			threshold));
+
+		// own pass + parent pass = NOT on the cut (the parent represents
+		// it) — the B3a placeholder's degenerate shape: error 0
+		// everywhere means only the coarsest level draws
+		EXPECT_FALSE(zircon_meshlet_cull_is_on_cut(0.0f, 0.0f, 10.0f,
+			scale, threshold));
+
+		// own fail (a real simplifier's error past the threshold at
+		// this distance) = NOT on the cut — the children must draw
+		EXPECT_FALSE(zircon_meshlet_cull_is_on_cut(1.0f,
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR, 10.0f, scale,
+			threshold));
+
+		// ...but the same error closer passes (the distance scaling)
+		EXPECT_TRUE(zircon_meshlet_cull_is_on_cut(1.0f,
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR, 1000.0f, scale,
+			threshold));
+	}
+
+	// the indirect command's byte layout: the 20-byte NRI
+	// DrawIndexedDesc / D3D12_DRAW_INDEXED_ARGUMENTS field order, pinned
+	// against a written byte stream
+	TEST(Zircon_NriMeshlet, IndirectCommandLayoutPins)
+	{
+		zircon_meshlet_cull_layout::indirect_command_t command{};
+		command.m_index_count = 372u;
+		command.m_instance_count = 1u;
+		command.m_start_index = 108u;
+		command.m_base_vertex = -7; // the int32 lane, negative legal
+		command.m_start_instance = 42u;
+
+		kotek::uint8_t bytes[20]{};
+		std::memcpy(bytes, &command, sizeof(command));
+
+		// the five u32 lanes, little-endian
+		const kotek::uint32_t expected[5] = {372u, 1u, 108u,
+			static_cast<kotek::uint32_t>(-7), 42u};
+
+		for (int lane = 0; lane < 5; ++lane)
+		{
+			kotek::uint32_t value = 0;
+			std::memcpy(&value, bytes + lane * 4, 4);
+			EXPECT_EQ(value, expected[lane]) << "command lane " << lane;
+		}
+	}
+
+	// the GPU cluster record's byte layout: the 64-byte table, the w
+	// lanes carrying the cull operands
+	TEST(Zircon_NriMeshlet, GpuRecordLayoutPins)
+	{
+		zircon_meshlet_cull_layout::gpu_record_t record{};
+		record.m_aabb_min[0] = -1.0f;
+		record.m_aabb_min[1] = -2.0f;
+		record.m_aabb_min[2] = -3.0f;
+		record.m_aabb_min[3] = 2.0f; // the never-cull cone sentinel
+		record.m_aabb_max[0] = 1.0f;
+		record.m_aabb_max[1] = 2.0f;
+		record.m_aabb_max[2] = 3.0f;
+		record.m_aabb_max[3] = 0.0f; // the error slot
+		record.m_cone_axis[0] = 0.0f;
+		record.m_cone_axis[1] = 0.0f;
+		record.m_cone_axis[2] = 1.0f;
+		record.m_cone_axis[3] =
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR; // no parent
+		record.m_index_count = 36u;
+		record.m_base_vertex = 72u;
+		record.m_start_index = 72u;
+		record.m_reserved = 0u;
+
+		kotek::uint8_t bytes[64]{};
+		std::memcpy(bytes, &record, sizeof(record));
+
+		// the float lanes
+		float value = 0.0f;
+		std::memcpy(&value, bytes + 0, 4);
+		EXPECT_FLOAT_EQ(value, -1.0f); // aabb_min.x
+		std::memcpy(&value, bytes + 12, 4);
+		EXPECT_FLOAT_EQ(value, 2.0f); // cone_cutoff in the w lane
+		std::memcpy(&value, bytes + 28, 4);
+		EXPECT_FLOAT_EQ(value, 0.0f); // error_metric in the w lane
+		std::memcpy(&value, bytes + 44, 4);
+		EXPECT_FLOAT_EQ(value,
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR); // parent error
+
+		// the draw offsets
+		kotek::uint32_t word = 0;
+		std::memcpy(&word, bytes + 48, 4);
+		EXPECT_EQ(word, 36u);
+		std::memcpy(&word, bytes + 52, 4);
+		EXPECT_EQ(word, 72u);
+		std::memcpy(&word, bytes + 56, 4);
+		EXPECT_EQ(word, 72u);
+		std::memcpy(&word, bytes + 60, 4);
+		EXPECT_EQ(word, 0u);
+	}
+
+	// the CPU mirror's full cull+compact: a six-cluster fixture with a
+	// known camera, every predicate outcome represented, the exact
+	// visible set + the compacted commands byte-pinned
+	TEST(Zircon_NriMeshlet, CpuMirrorCompactPins)
+	{
+		using record_t = zircon_meshlet_cull_layout::gpu_record_t;
+
+		// the identity-clip view: inside = -1<=x,y<=1, 0<=z<=1; the
+		// camera sits at (0,0,-5) looking +z
+		zircon_meshlet_cull_view_t view{};
+		const float identity_vp[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+			1.0f};
+		zircon_meshlet_cull_extract_frustum_planes(identity_vp,
+			view.m_planes);
+		view.m_camera_position[0] = 0.0f;
+		view.m_camera_position[1] = 0.0f;
+		view.m_camera_position[2] = -5.0f;
+		view.m_proj_scale = 540.0f;
+		view.m_error_threshold =
+			ZIRCON_DEF_NRI_MESHLET_LOD_ERROR_THRESHOLD;
+
+		record_t records[6]{};
+
+		// cluster 0: on the cut (a root), inside, never-cull cone ->
+		// VISIBLE
+		records[0].m_aabb_min[0] = -0.5f;
+		records[0].m_aabb_min[1] = -0.5f;
+		records[0].m_aabb_min[2] = 0.2f;
+		records[0].m_aabb_min[3] = 2.0f; // the never-cull sentinel
+		records[0].m_aabb_max[0] = 0.5f;
+		records[0].m_aabb_max[1] = 0.5f;
+		records[0].m_aabb_max[2] = 0.8f;
+		records[0].m_aabb_max[3] = 0.0f; // own error 0
+		records[0].m_cone_axis[3] =
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR;
+		records[0].m_index_count = 36u;
+		records[0].m_base_vertex = 0u;
+		records[0].m_start_index = 0u;
+
+		// cluster 1: on the cut but OUTSIDE the left plane -> culled
+		records[1] = records[0];
+		records[1].m_aabb_min[0] = 2.0f;
+		records[1].m_aabb_max[0] = 3.0f;
+
+		// cluster 2: on the cut, inside, but the cone backfaces the
+		// camera (the flat quad's normals face +z, the cutoff admits
+		// nothing) -> culled
+		records[2] = records[0];
+		records[2].m_aabb_min[3] = 0.0f;      // cutoff sin(0) = 0
+		records[2].m_cone_axis[2] = 1.0f;     // axis +z
+		records[2].m_cone_axis[3] =
+			ZIRCON_DEF_MESHLET_CULL_NO_PARENT_ERROR;
+
+		// cluster 3: NOT on the cut — the parent's error passes (the
+		// parent draws it instead) -> culled
+		records[3] = records[0];
+		records[3].m_cone_axis[3] = 0.0f; // the parent's error
+
+		// cluster 4: on the cut, inside, never-cull, its own slice
+		// offsets -> VISIBLE
+		records[4] = records[0];
+		records[4].m_aabb_min[2] = 0.1f;
+		records[4].m_aabb_max[2] = 0.4f;
+		records[4].m_index_count = 9u;
+		records[4].m_base_vertex = 36u;
+		records[4].m_start_index = 36u;
+
+		// cluster 5: on the cut but behind the near plane -> culled
+		records[5] = records[0];
+		records[5].m_aabb_min[2] = -3.0f;
+		records[5].m_aabb_max[2] = -2.0f;
+
+		zircon_meshlet_cull_layout::indirect_command_t commands[6]{};
+
+		const kotek::uint32_t visible_count =
+			zircon_meshlet_cull_compact(records, 6u, view, commands,
+				6u);
+
+		// exactly clusters 0 and 4 survive, in table order
+		ASSERT_EQ(visible_count, 2u);
+
+		EXPECT_EQ(commands[0].m_index_count, 36u);
+		EXPECT_EQ(commands[0].m_instance_count, 1u);
+		EXPECT_EQ(commands[0].m_start_index, 0u);
+		EXPECT_EQ(commands[0].m_base_vertex, 0);
+		EXPECT_EQ(commands[0].m_start_instance, 0u); // the cluster index
+
+		EXPECT_EQ(commands[1].m_index_count, 9u);
+		EXPECT_EQ(commands[1].m_instance_count, 1u);
+		EXPECT_EQ(commands[1].m_start_index, 36u);
+		EXPECT_EQ(commands[1].m_base_vertex, 36);
+		EXPECT_EQ(commands[1].m_start_instance, 4u);
+
+		// the single-cluster classify: the distance rides out
+		float distance = 0.0f;
+		EXPECT_TRUE(zircon_meshlet_cull_classify_cluster(
+			records[0], view, distance));
+		EXPECT_NEAR(distance, 5.5f, 0.001f); // |z = 0.5 - (-5)|
+	}
+
+	// the classic/nanite toggle's persisted key (task Z24 B3c): the
+	// default is "classic", a written "nanite" survives the real
+	// game_config.json roundtrip, an absent key keeps the default — the
+	// Z22 byte backup/restore pattern (the test never drifts the user's
+	// settings)
+	TEST(Zircon_NriMeshlet, RenderGeometryPathConfigRoundtrips)
+	{
+		meshlet_nri_test_env* p_env = new meshlet_nri_test_env{};
+		p_env->initialize();
+
+		ktk_filesystem_path path_to_file;
+		p_env->filesystem.Make_Path(
+			path_to_file, kotek::core::eFolderIndex::kFolderIndex_DataUser);
+		path_to_file /= kZirconConfig_FileName;
+
+		if (p_env->filesystem.Is_Exists(path_to_file) == false)
+		{
+			p_env->shutdown();
+			delete p_env;
+			GTEST_SKIP() << "game_config.json is absent — the roundtrip "
+							"needs the real file to preserve";
+		}
+
+		kotek::array_t<unsigned char, 2048> backup{};
+		kotek::ktk::size_t backup_size = backup.size();
+		unsigned char* p_backup_data = backup.data();
+
+		ASSERT_TRUE(p_env->filesystem.Read_File(
+			path_to_file, p_backup_data, backup_size));
+		ASSERT_LT(backup_size, backup.size());
+
+		// the ctor default
+		{
+			zircon_config config_default;
+			EXPECT_STREQ(config_default.get_render_geometry_path(),
+				kZirconConfig_RenderGeometryPathClassic);
+		}
+
+		// a written "nanite" persists
+		{
+			zircon_config config_write;
+			config_write.set_render_geometry_path(
+				kZirconConfig_RenderGeometryPathNanite);
+			config_write.serialize(&p_env->filesystem);
+
+			zircon_config config_read;
+			config_read.deserialize(&p_env->filesystem);
+
+			EXPECT_STREQ(config_read.get_render_geometry_path(),
+				kZirconConfig_RenderGeometryPathNanite);
+		}
+
+		// "classic" written back -> the read value is "classic" even
+		// though the in-memory value below differs (proves the key is
+		// actually read)
+		{
+			zircon_config config_write;
+			config_write.set_render_geometry_path(
+				kZirconConfig_RenderGeometryPathClassic);
+			config_write.serialize(&p_env->filesystem);
+
+			zircon_config config_read;
+			config_read.set_render_geometry_path(
+				kZirconConfig_RenderGeometryPathNanite);
+			config_read.deserialize(&p_env->filesystem);
+
+			EXPECT_STREQ(config_read.get_render_geometry_path(),
+				kZirconConfig_RenderGeometryPathClassic);
+		}
+
+		// restore the user's bytes
+		EXPECT_TRUE(p_env->filesystem.Write_File(path_to_file,
+			reinterpret_cast<const char*>(backup.data()), backup_size));
+
+		p_env->shutdown();
+		delete p_env;
 	}
 } // namespace
 

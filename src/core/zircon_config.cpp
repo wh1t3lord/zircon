@@ -49,18 +49,19 @@ namespace
 		out_list.assign(value.data(), value.size());
 	}
 
-	/// reads a language-tag config key into a static string (task Z22);
-	/// an absent key or an empty value keeps the current (default)
-	/// content, and a wrong-typed or over-long value is user data — a
-	/// warning, never an assert
+	/// reads a string config key into a static string (task Z22 — the
+	/// localization tags; task Z24 B3c — the geometry path); an absent
+	/// key or an empty value keeps the current (default) content, and a
+	/// wrong-typed or over-long value is user data — a warning, never an
+	/// assert
 	template <kotek::ktk::uint32_t _ParserBufferSize,
 		kotek::ktk::uint32_t _JsonMemorySize, bool _Realloc,
 		kotek::ktk::size_t _Size>
-	void read_localization_language(
+	void read_config_string(
 		const kotek::core::ktkResourceText<_ParserBufferSize, _JsonMemorySize,
 			_Realloc>& file,
 		const char* p_key,
-		kotek::static_cstring_t<_Size>& out_language) noexcept
+		kotek::static_cstring_t<_Size>& out_value) noexcept
 	{
 		const auto& object = file.Get_Object();
 		auto it = object.find(p_key);
@@ -95,7 +96,7 @@ namespace
 			return;
 		}
 
-		out_language.assign(value.data(), value.size());
+		out_value.assign(value.data(), value.size());
 	}
 } // namespace
 
@@ -121,9 +122,11 @@ zircon_config::zircon_config(void) :
 	m_render_passes_game{kZirconConfig_DefaultRenderPassesGame},
 	// task Z22: default-"en" tags live in the ctor so a config file that
 	// predates the keys keeps the default — deserialize only overwrites
-	// when the key is actually present (the absent-key idiom)
+	// when the key is actually present (the absent-key idiom). Task
+	// Z24 B3c: same idiom for the geometry path (default "classic")
 	m_localization_editor_language{kZirconLocalization_DefaultLanguage},
-	m_localization_game_language{kZirconLocalization_DefaultLanguage}
+	m_localization_game_language{kZirconLocalization_DefaultLanguage},
+	m_render_geometry_path{kZirconConfig_RenderGeometryPathClassic}
 {
 }
 
@@ -302,6 +305,11 @@ void zircon_config::serialize(
 			this->m_localization_game_language.c_str()
 		);
 
+		config.Write(
+			kZirconConfig_KeyRenderGeometryPath,
+			this->m_render_geometry_path.c_str()
+		);
+
 		const bool status =
 			kotek::core::write_json(p_filesystem, path_to_file, config);
 		KOTEK_ASSERT(
@@ -386,16 +394,24 @@ void zircon_config::deserialize(
 
 			// task Z22: the localization instances' language tags —
 			// absent/empty keys keep the ctor default ("en")
-			read_localization_language(
+			read_config_string(
 				file,
 				kZirconConfig_KeyLocalizationEditorLanguage,
 				this->m_localization_editor_language
 			);
 
-			read_localization_language(
+			read_config_string(
 				file,
 				kZirconConfig_KeyLocalizationGameLanguage,
 				this->m_localization_game_language
+			);
+
+			// task Z24 B3c: the persisted geometry-path selection —
+			// absent/empty keys keep the ctor default ("classic")
+			read_config_string(
+				file,
+				kZirconConfig_KeyRenderGeometryPath,
+				this->m_render_geometry_path
 			);
 
 			// default-TRUE flag (Z3 P2a): read only when the key is
@@ -649,6 +665,35 @@ void zircon_config::set_localization_game_language(
 		);
 
 		this->m_localization_game_language.assign(p_language);
+	}
+}
+
+const char* zircon_config::get_render_geometry_path(void) const noexcept
+{
+	return this->m_render_geometry_path.c_str();
+}
+
+void zircon_config::set_render_geometry_path(const char* p_path) noexcept
+{
+	KOTEK_ASSERT(p_path, "pass a valid geometry path name (never nullptr)");
+
+	if (p_path == nullptr)
+		return;
+
+	const bool is_classic =
+		std::strcmp(p_path, kZirconConfig_RenderGeometryPathClassic) == 0;
+	const bool is_nanite =
+		std::strcmp(p_path, kZirconConfig_RenderGeometryPathNanite) == 0;
+
+	KOTEK_ASSERT(
+		is_classic || is_nanite,
+		"the geometry path must be '{}' or '{}' (got '{}')",
+		kZirconConfig_RenderGeometryPathClassic,
+		kZirconConfig_RenderGeometryPathNanite, p_path);
+
+	if (is_classic || is_nanite)
+	{
+		this->m_render_geometry_path.assign(p_path);
 	}
 }
 

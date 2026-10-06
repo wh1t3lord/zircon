@@ -103,6 +103,23 @@ constexpr const char* kZirconConfig_RenderPassEditorGizmoImguizmoName =
 constexpr const char* kZirconConfig_ConsoleArg_GraphicsDevelopment =
 	"--graphics_development";
 
+// the classic/nanite geometry-path toggle (task Z24 B3c): the persisted
+// selection of the RENDERER + pass-set pair — "classic" = the bgfx
+// chunked GPU-driven path (the house default), "nanite" = the NRI
+// cluster pipeline (the B3a/B3b/B3c arc). Applied at BOOT (the render
+// device + the pass sets install at module init — a runtime device
+// switch is out of scope for v1; the console command
+// render_geometry_path flips the persisted value). The CLI
+// --render_nri_dx12 wins over the key when both are present (the
+// explicit user choice). 19 chars — under the config Write's 32-char
+// key truncation limit
+constexpr const char* kZirconConfig_KeyRenderGeometryPath =
+	"render_geometry_path";
+constexpr const char* kZirconConfig_RenderGeometryPathClassic = "classic";
+constexpr const char* kZirconConfig_RenderGeometryPathNanite = "nanite";
+/// the value's capacity (the longest value + NUL)
+#define ZIRCON_DEF_CONFIG_RENDER_GEOMETRY_PATH_MAX_LENGTH 16
+
 // localization (task Z22): the active language tag per
 // zircon_localization_manager instance — the value names the
 // data_game/configs/locale/<editor|game>/<tag>.json file the instance
@@ -176,6 +193,18 @@ public:
 	void set_localization_editor_language(const char* p_language) noexcept;
 	void set_localization_game_language(const char* p_language) noexcept;
 
+	/// \~english the persisted geometry-path selection (task Z24 B3c) —
+	/// never empty in practice: the ctor installs
+	/// kZirconConfig_RenderGeometryPathClassic and deserialize only
+	/// overwrites on a non-empty value
+	const char* get_render_geometry_path(void) const noexcept;
+
+	/// \~english overwrites the persisted selection (the
+	/// render_geometry_path console command); the value must be
+	/// kZirconConfig_RenderGeometryPathClassic/...Nanite, a loud assert
+	/// fires otherwise
+	void set_render_geometry_path(const char* p_path) noexcept;
+
 private:
 	void initialize_default() noexcept;
 
@@ -197,6 +226,10 @@ private:
 		m_localization_editor_language;
 	kotek::static_cstring_t<ZIRCON_DEF_LOCALIZATION_LANGUAGE_NAME_MAX_LENGTH>
 		m_localization_game_language;
+
+	// the persisted geometry-path selection (task Z24 B3c)
+	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_GEOMETRY_PATH_MAX_LENGTH>
+		m_render_geometry_path;
 
 	// the variant carries every non-bool feature value; the string
 	// alternative is a static_cstring_t so no value ever allocates
