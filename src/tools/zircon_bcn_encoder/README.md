@@ -41,11 +41,11 @@ set covering the format enum with a decoder):
   vendored libs, the quality tiers (fast/default/high — fixed parameter
   sets, the determinism contract) and the test-only decode seam.
 - `zircon_bcn_bake.cpp` — the CLI (`--help`). Reads `.zraw` (the house
-  intake container), writes `<root>/textures/<scene>/<name>.bcn`;
+  intake container), writes `<root>/textures/<scene>/<name>.bcn`
+  (`data_game` by default — the folder doctrine);
   `--synthesize_boot_checker` regenerates the shipped boot probe
-  `textures/boot/boot_checker.bcn` at the engine root (the meshlets/boot
-  precedent — the pack entry namespace is root-relative). Packing into a
-  `.kpack` is zircon_kpacker's job — the tools compose.
+  `data_game/textures/boot/boot_checker.bcn`. Packing into a `.kpack`
+  is zircon_kpacker's job — the tools compose.
 - `CMakeLists.txt` — the standalone host project (the zircon_kpacker
   structural pattern): compiles the vendored sources + the engine's
   format/bake sources (`../../core/zircon_texture_bcn.cpp`) from source,

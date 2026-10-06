@@ -162,10 +162,10 @@ driver, this tool and the render-side uploader all share.
 
 ```
 zircon_bcn_bake --in <file.zraw> --scene <scene> --name <tex>
-    [--root .]
+    [--root data_game]
     [--class albedo|normal|ao|mask|hdr] [--format bc1|bc3|bc5|bc7|bc6h]
     [--quality fast|default|high] [--mips full|N]
-zircon_bcn_bake --synthesize_boot_checker [--root .] [--quality q]
+zircon_bcn_bake --synthesize_boot_checker [--root data_game] [--quality q]
 ```
 
 - **class -> default format** (the plan's mapping; `--format` overrides):
@@ -182,13 +182,12 @@ zircon_bcn_bake --synthesize_boot_checker [--root .] [--quality q]
   the bgfx upload path requires the full chain today), box-filtered 2x2
   per level with integer round-nearest (deterministic).
 - **--synthesize_boot_checker** regenerates the shipped boot probe
-  `textures/boot/boot_checker.bcn` at the engine root (the B1
-  gpu-driven pass uploads it at create as the no-decode path's live
-  proof; the root-relative entry namespace matches the meshlets/boot
-  precedent, so a pack carrying the same entry resolves identically)
-  from the recipe in `zircon_texture_bcn.h` — run it after any
-  format/encoder change (the `Zircon_TextureBcn.BootFixtureMatchesEncoder`
-  test pins the bytes).
+  `data_game/textures/boot/boot_checker.bcn` (the B1 gpu-driven pass
+  uploads it at create as the no-decode path's live proof; the loader
+  resolves content-root-relative names through `kFolderIndex_DataGame`,
+  the folder doctrine) from the recipe in `zircon_texture_bcn.h` — run
+  it after any format/encoder change (the
+  `Zircon_TextureBcn.BootFixtureMatchesEncoder` test pins the bytes).
 - Exit codes: `0` success, `1` operational failure, `2` usage error.
 
 The consumer-side guide to the whole filesystem (helpers, streaming, the

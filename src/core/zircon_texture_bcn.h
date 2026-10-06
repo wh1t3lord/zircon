@@ -113,18 +113,26 @@
 //   of RGBA8 (R first, row-major, no padding).
 //
 // ---------------------------------------------------------------------
-// THE SHIPPED BOOT PROBE: textures/boot/boot_checker.bcn AT THE ENGINE
-// ROOT (the meshlets/boot precedent — the pack entry namespace is
-// root-relative, so a pack carrying the same entry resolves identically
-// through the dispatcher): a 64x64 BC7 magenta/black checker (8 texel
-// cells — the embedded-default magenta theme,
-// zircon_embedded_defaults.h) with the FULL mip chain, synthesized by
+// THE SHIPPED BOOT PROBE: data_game/textures/boot/boot_checker.bcn (the
+// folder doctrine — game assets live under data_game/, the parent's
+// meshlet move): a 64x64 BC7 magenta/black checker (8 texel cells — the
+// embedded-default magenta theme, zircon_embedded_defaults.h) with the
+// FULL mip chain, synthesized by
 // zircon_texture_bcn_make_boot_checker_rgba (the ONE recipe home — the
 // tool, the fixture and the tests can never drift). The B1 gpu-driven
 // pass uploads it at create when present (the no-decode upload's live
 // proof). Regenerate after a format/encoder change with:
-// zircon_bcn_bake --synthesize_boot_checker --root . (the test
+// zircon_bcn_bake --synthesize_boot_checker (the test
 // BootFixtureMatchesEncoder pins the bytes).
+//
+// THE NAMESPACE RULE (the pack-resolution subtlety, the Z23 marker
+// precedent): the format's LOGICAL entry names are content-root-relative
+// ("textures/<scene>/<name>.bcn"); the filesystem dispatcher resolves
+// them via kFolderIndex_DataGame (native: <root>/data_game/textures/...),
+// and the pack backend relativizes absolute read paths against the
+// FILESYSTEM root (the repo root) — so a pack entry resolving the same
+// texture is named "data_game/textures/<scene>/<name>.bcn" (the
+// repo-root-relative form). The roundtrip test pins both shapes.
 //
 // ---------------------------------------------------------------------
 // THE DETERMINISM CONTRACT: the same RGBA input + format + quality tier

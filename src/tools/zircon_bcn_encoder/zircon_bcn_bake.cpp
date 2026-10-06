@@ -118,10 +118,10 @@ namespace
 		bool m_synthesize_boot_checker = false;
 		std::string m_input_zraw;
 		// the content root the textures/<scene>/<name>.bcn layout is
-		// written under — the repo root by default (the filesystem
-		// dispatcher's root-relative entry namespace; the meshlets/boot
-		// precedent)
-		std::string m_root = ".";
+		// written under — data_game by default (the folder doctrine: game
+		// assets live under data_game/; the render loader resolves
+		// content-root-relative names through kFolderIndex_DataGame)
+		std::string m_root = "data_game";
 		std::string m_scene;
 		std::string m_name;
 		std::string m_class_name = "albedo";
@@ -140,16 +140,16 @@ namespace
 			"mip chain, encoded offline; the runtime uploads the blocks "
 			"AS-IS — hardware decodes in the sampler):\n"
 			"  zircon_bcn_bake --in <file.zraw> --scene <scene> --name "
-			"<tex> [--root .]\n"
+			"<tex> [--root data_game]\n"
 			"      [--class albedo|normal|ao|mask|hdr] [--format "
 			"bc1|bc3|bc5|bc7|bc6h]\n"
 			"      [--quality fast|default|high] [--mips full|N]\n"
 			"\n"
 			"synthesize + bake the shipped boot probe (the documented "
 			"regeneration command for\n"
-			"textures/boot/boot_checker.bcn at the engine root):\n"
-			"  zircon_bcn_bake --synthesize_boot_checker [--root .] "
-			"[--quality fast|default|high]\n"
+			"data_game/textures/boot/boot_checker.bcn):\n"
+			"  zircon_bcn_bake --synthesize_boot_checker [--root "
+			"data_game] [--quality fast|default|high]\n"
 			"\n"
 			"class -> default format (the plan's mapping; --format "
 			"overrides): albedo=bc7, normal=bc5, ao=bc7, mask=bc1,\n"
@@ -160,10 +160,11 @@ namespace
 			"'ZRAW01' + width + height, then RGBA8) — no PNG/TGA\n"
 			"  dependency this phase; real-format intake is the recorded "
 			"later task\n"
-			"output: <root>/textures/<scene>/<name>.bcn (root-relative "
-			"entry namespace — the repo root by default, so the runtime "
-			"resolves 'textures/<scene>/<name>.bcn'; PACKING it into a "
-			".kpack is zircon_kpacker's job)\n"
+			"output: <root>/textures/<scene>/<name>.bcn (the folder "
+			"doctrine — game assets live under data_game/, the default "
+			"root; the render loader resolves content-root-relative "
+			"names through kFolderIndex_DataGame. PACKING into a .kpack "
+			"is zircon_kpacker's job — the tools compose)\n"
 			"mips: full = the chain down to 1x1 (the runtime REQUIRES "
 			"the full chain today); N caps it (pack-side experiments "
 			"only)\n"

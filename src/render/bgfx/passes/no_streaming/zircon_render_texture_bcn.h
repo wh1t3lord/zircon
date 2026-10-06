@@ -64,18 +64,19 @@ namespace no_streaming
 	bgfx::TextureFormat::Enum zircon_render_texture_bcn_map_format(
 		eZirconTextureBcnFormat format) noexcept;
 
-	// reads entry_path_relative_to_root ("textures/<scene>/<name>.bcn")
-	// through the dispatcher (the pack-first override chain —
-	// kFolderIndex_Root resolution keeps the read cwd-independent) into
-	// p_scratch, validates it through the format's parse and fills the
-	// upload view. false + a loud log on every failure: a missing entry
-	// (the read's one B0 warning + this context line), a scratch
-	// smaller than the file (the required size is logged), a corrupt
-	// payload (the parse's reason). Never an assert — user content is
-	// not a programmer error.
+	// reads entry_path_relative_to_content_root
+	// ("textures/<scene>/<name>.bcn") through the dispatcher (the
+	// pack-first override chain — kFolderIndex_DataGame resolution keeps
+	// the read cwd-independent and lands the native file under
+	// data_game/, the house folder doctrine) into p_scratch, validates
+	// it through the format's parse and fills the upload view. false +
+	// a loud log on every failure: a missing entry (the read's one B0
+	// warning + this context line), a scratch smaller than the file (the
+	// required size is logged), a corrupt payload (the parse's reason).
+	// Never an assert — user content is not a programmer error.
 	bool zircon_render_texture_bcn_prepare(
 		kotek::core::ktkIFileSystem* p_filesystem,
-		const kotek::static_path_t& entry_path_relative_to_root,
+		const kotek::static_path_t& entry_path_relative_to_content_root,
 		kotek::uint8_t* p_scratch, kotek::size_t scratch_capacity,
 		zircon_render_texture_bcn_upload_t& out_upload) noexcept;
 

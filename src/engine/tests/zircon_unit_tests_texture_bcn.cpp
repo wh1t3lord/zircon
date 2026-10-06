@@ -605,7 +605,12 @@ TEST(Zircon_TextureBcn, PackRoundtripUploadLayoutByteIdentical)
 		file_bytes, sizeof(file_bytes), file_size));
 
 	// the pack (zstd — the plan's "the pack's zstd blocks squeeze BCn
-	// another ~10-30%"): one entry, the entry-layout name
+	// another ~10-30%"): one entry. THE PACK-ENTRY NAMESPACE IS
+	// REPO-ROOT-RELATIVE (the pack backend relativizes absolute read
+	// paths against the filesystem root — the Z23 marker precedent), so
+	// the data_game-resident texture's entry name carries the
+	// "data_game/" prefix while its LOGICAL name stays
+	// content-root-relative
 	kotek::static_cstring_t<ZIRCON_DEF_TEXTURE_BCN_ENTRY_NAME_MAX_LENGTH>
 		entry_name;
 
@@ -613,8 +618,12 @@ TEST(Zircon_TextureBcn, PackRoundtripUploadLayoutByteIdentical)
 				  "roundtrip", "gradient", entry_name),
 		eZirconTextureBcnStatus::kSuccess);
 
+	char pack_entry_name[ZIRCON_DEF_TEXTURE_BCN_ENTRY_NAME_MAX_LENGTH];
+	snprintf(pack_entry_name, sizeof(pack_entry_name), "data_game/%s",
+		entry_name.c_str());
+
 	kotek::core::kpack_writer_entry_t entries[1];
-	entries[0].p_name = entry_name.c_str();
+	entries[0].p_name = pack_entry_name;
 	entries[0].p_data = file_bytes;
 	entries[0].data_size = file_size;
 	entries[0].compression = kotek::core::eKpackCompression::kZstd;
@@ -832,15 +841,15 @@ TEST(Zircon_TextureBcn, BootFixtureMatchesEncoder)
 	env.initialize();
 
 	kotek::static_path_t fixture_path;
-	env.filesystem.Make_Path(
-		fixture_path, kotek::core::eFolderIndex::kFolderIndex_Root);
+	env.filesystem.Make_Path(fixture_path,
+		kotek::core::eFolderIndex::kFolderIndex_DataGame);
 	fixture_path /= "textures/boot/boot_checker.bcn";
 
 	kotek::size_t fixture_size = 0;
 
 	ASSERT_TRUE(env.filesystem.Get_FileSize(fixture_path, fixture_size))
 		<< "the shipped boot probe is missing — regenerate it with: "
-		   "zircon_bcn_bake --synthesize_boot_checker --root .";
+		   "zircon_bcn_bake --synthesize_boot_checker";
 
 	kotek::uint8_t* p_fixture = new kotek::uint8_t[fixture_size + 1];
 	kotek::size_t read_size = fixture_size + 1;
@@ -876,8 +885,7 @@ TEST(Zircon_TextureBcn, BootFixtureMatchesEncoder)
 	ASSERT_EQ(rebuilt_size, fixture_size);
 	EXPECT_EQ(std::memcmp(rebuilt, p_fixture, fixture_size), 0)
 		<< "the shipped boot probe diverged from a fresh encode — "
-		   "regenerate it with: zircon_bcn_bake "
-		   "--synthesize_boot_checker --root .";
+		   "regenerate it with: zircon_bcn_bake --synthesize_boot_checker";
 
 	delete[] p_fixture;
 

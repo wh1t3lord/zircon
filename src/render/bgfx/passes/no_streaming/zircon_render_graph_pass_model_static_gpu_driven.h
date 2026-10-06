@@ -74,9 +74,8 @@ struct zircon_ecs_context_t;
 // probe texture, uploaded at create through the no-decode path (NOT
 // bound this phase: no material system exists; the create+log proves
 // the upload contract — binding lands with the material work). The
-// fixture lives at the engine root (the meshlets/boot precedent — the
-// pack entry namespace is root-relative) and regenerates with:
-// zircon_bcn_bake --synthesize_boot_checker --root .
+// fixture lives under data_game/ (the folder doctrine) and regenerates
+// with: zircon_bcn_bake --synthesize_boot_checker
 #define zircon_DEF_RENDER_PASS_GPU_DRIVEN_PROBE_TEXTURE_ENTRY \
 	"textures/boot/boot_checker.bcn"
 // the probe's read scratch (stack, create-time only — the shader blob

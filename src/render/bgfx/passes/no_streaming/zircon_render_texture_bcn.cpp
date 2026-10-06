@@ -32,7 +32,7 @@ namespace no_streaming
 
 	bool zircon_render_texture_bcn_prepare(
 		kotek::core::ktkIFileSystem* p_filesystem,
-		const kotek::static_path_t& entry_path_relative_to_root,
+		const kotek::static_path_t& entry_path_relative_to_content_root,
 		kotek::uint8_t* p_scratch, kotek::size_t scratch_capacity,
 		zircon_render_texture_bcn_upload_t& out_upload) noexcept
 	{
@@ -43,12 +43,12 @@ namespace no_streaming
 			return false;
 		}
 
-		// the root resolution (cwd-independent) — the chunk-pool pack
-		// load's idiom
+		// the content-root resolution (cwd-independent, the folder
+		// doctrine — game assets live under data_game/)
 		kotek::static_path_t entry_path;
-		p_filesystem->Make_Path(
-			entry_path, kotek::core::eFolderIndex::kFolderIndex_Root);
-		entry_path /= entry_path_relative_to_root;
+		p_filesystem->Make_Path(entry_path,
+			kotek::core::eFolderIndex::kFolderIndex_DataGame);
+		entry_path /= entry_path_relative_to_content_root;
 
 		kotek::size_t file_size = 0;
 
@@ -57,7 +57,7 @@ namespace no_streaming
 			KOTEK_MESSAGE_WARNING(
 				"[texture_bcn] prepare: '{}' does not resolve through the "
 				"dispatcher (no pack entry, no native file)",
-				entry_path_relative_to_root.c_str());
+				entry_path_relative_to_content_root.c_str());
 			return false;
 		}
 
@@ -70,7 +70,7 @@ namespace no_streaming
 			KOTEK_MESSAGE_ERROR(
 				"[texture_bcn] prepare: '{}' size {} breaks the format's "
 				"bounds",
-				entry_path_relative_to_root.c_str(),
+				entry_path_relative_to_content_root.c_str(),
 				static_cast<kotek::uint32_t>(file_size));
 			return false;
 		}
@@ -80,7 +80,7 @@ namespace no_streaming
 			KOTEK_MESSAGE_ERROR(
 				"[texture_bcn] prepare: the scratch is too small for '{}' "
 				"({} < {} bytes)",
-				entry_path_relative_to_root.c_str(),
+				entry_path_relative_to_content_root.c_str(),
 				static_cast<kotek::uint32_t>(scratch_capacity),
 				static_cast<kotek::uint32_t>(file_size));
 			return false;
@@ -95,7 +95,7 @@ namespace no_streaming
 			KOTEK_MESSAGE_ERROR(
 				"[texture_bcn] prepare: the dispatcher read of '{}' "
 				"failed ({} of {} bytes)",
-				entry_path_relative_to_root.c_str(),
+				entry_path_relative_to_content_root.c_str(),
 				static_cast<kotek::uint32_t>(read_size),
 				static_cast<kotek::uint32_t>(file_size));
 			return false;
@@ -110,7 +110,7 @@ namespace no_streaming
 			KOTEK_MESSAGE_ERROR(
 				"[texture_bcn] prepare: '{}' failed the format parse "
 				"(status {} — the parse's line above names the rule)",
-				entry_path_relative_to_root.c_str(),
+				entry_path_relative_to_content_root.c_str(),
 				static_cast<kotek::uint32_t>(parsed));
 			return false;
 		}
