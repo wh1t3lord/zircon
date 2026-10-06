@@ -5,6 +5,13 @@ supported languages: ru
 - Solution architecture
 - Building requirements
 
+## Documents
+
+- [configuration.md](configuration.md) — CMake options, runtime arguments, `game_config.json` keys, host tools
+- [filesystem.md](filesystem.md) — the kotek filesystem usage guide (helpers, streaming, .kpack, embedded defaults)
+- [render_passes.md](render_passes.md) — the render-pass executor/library split, pass sets, hot-reload protocol
+- [plugins.md](plugins.md) — the plugin override system (replace any kotek module in any linkage mode)
+
 
 ## Solution architecture
 

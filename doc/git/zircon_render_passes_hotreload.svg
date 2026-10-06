@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 260" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="800" height="260" fill="#ffffff"/>
+  <text x="400" y="26" text-anchor="middle" font-size="17" font-weight="600" fill="#0f172a">hot-reloading render passes — the frame-boundary swap</text>
+  <text x="400" y="44" text-anchor="middle" font-size="11" fill="#64748b">graphics-development mode: edit a pass, rebuild one library, the running editor swaps it in — no restart</text>
+
+  <!-- the five stages of the reload loop -->
+  <g font-size="9">
+    <rect x="18" y="58" width="140" height="76" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+    <text x="88" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">1 · watch</text>
+    <text x="88" y="92" text-anchor="middle" fill="#64748b">polls the real DLL's</text>
+    <text x="88" y="105" text-anchor="middle" fill="#64748b">(mtime, size) — 2 stable</text>
+    <text x="88" y="118" text-anchor="middle" fill="#64748b">reads · 500 ms cadence</text>
+
+    <rect x="174" y="58" width="140" height="76" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+    <text x="244" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">2 · shadow copy</text>
+    <text x="244" y="92" text-anchor="middle" fill="#64748b">copy to passes/</text>
+    <text x="244" y="105" text-anchor="middle" fill="#64748b">.shadow_&lt;pid&gt;_&lt;n&gt;.dll,</text>
+    <text x="244" y="118" text-anchor="middle" fill="#64748b">load + resolve 4 exports</text>
+
+    <rect x="330" y="58" width="140" height="76" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+    <text x="400" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">3 · frame boundary</text>
+    <text x="400" y="92" text-anchor="middle" fill="#64748b">GPU idle: every pass</text>
+    <text x="400" y="105" text-anchor="middle" fill="#64748b">destroyed through the</text>
+    <text x="400" y="118" text-anchor="middle" fill="#64748b">OLD library first</text>
+
+    <rect x="486" y="58" width="140" height="76" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+    <text x="556" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">4 · swap</text>
+    <text x="556" y="92" text-anchor="middle" fill="#64748b">candidate becomes active</text>
+    <text x="556" y="105" text-anchor="middle" fill="#64748b">— any earlier failure</text>
+    <text x="556" y="118" text-anchor="middle" fill="#64748b">kept the old library</text>
+
+    <rect x="642" y="58" width="140" height="76" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+    <text x="712" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">5 · recreate</text>
+    <text x="712" y="92" text-anchor="middle" fill="#64748b">pass sets rebuilt by</text>
+    <text x="712" y="105" text-anchor="middle" fill="#64748b">name; the window's</text>
+    <text x="712" y="118" text-anchor="middle" fill="#64748b">registry refreshes</text>
+  </g>
+  <line x1="158" y1="96" x2="170" y2="96" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="314" y1="96" x2="326" y2="96" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="470" y1="96" x2="482" y2="96" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="626" y1="96" x2="638" y2="96" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- what stays true across the loop -->
+  <rect x="18" y="150" width="376" height="66" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+  <text x="34" y="172" font-size="11.5" font-weight="700" fill="#065f46">the editor never stops rendering</text>
+  <text x="34" y="189" font-size="9.5" fill="#047857">the old library draws every frame while you compile — the real</text>
+  <text x="34" y="202" font-size="9.5" fill="#047857">DLL is never locked (the engine maps its shadow copy), so the link</text>
+  <text x="34" y="215" font-size="9.5" fill="#047857">always succeeds; a failed candidate is rejected — never pass-less</text>
+
+  <rect x="406" y="150" width="376" height="66" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="422" y="172" font-size="11.5" font-weight="700" fill="#334155">what a reload is — and is not</text>
+  <text x="422" y="189" font-size="9.5" fill="#64748b">passes are destroyed and recreated, not migrated — pass state lives</text>
+  <text x="422" y="202" font-size="9.5" fill="#64748b">outside the library (POD + handles only); manual override: the</text>
+  <text x="422" y="215" font-size="9.5" fill="#64748b">reload_render_passes() command; the Render Passes window shows status</text>
+
+  <text x="400" y="240" text-anchor="middle" font-size="10" fill="#94a3b8">watch → shadow → swap → recreate — the whole cycle lands in ~0.5 s of a finished build</text>
+</svg>
