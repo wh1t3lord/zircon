@@ -70,7 +70,28 @@ else()
 		"tests/zircon_unit_tests_csg_bake.cpp"
 		"tests/zircon_unit_tests_meshlet.cpp"
 	"tests/zircon_unit_tests_meshlet_nri.cpp"
+		"tests/zircon_unit_tests_texture_bcn.cpp"
 	)
+
+	# task Z24 B4: the vendored single-file BCn encoder/decoder — the
+	# texture tests' TOOL-side seam (the owner's rule: never engine/
+	# runtime code). Compiled as SEPARATE Debug-only TUs (the genex keeps
+	# them out of Release game.ktk): bc7enc.h has NO include guard
+	# upstream, so the byte-pristine files cannot share one TU with
+	# their own headers — one TU per vendored source is what leaves them
+	# unmodified. /W0: upstream's warning surface stays upstream's (the
+	# byte-pristine policy)
+	set(to_include_unit_tests_vendored_bcn
+		"${CMAKE_SOURCE_DIR}/src/tools/zircon_bcn_encoder/rgbcx.cpp"
+		"${CMAKE_SOURCE_DIR}/src/tools/zircon_bcn_encoder/bc7enc.cpp"
+		"${CMAKE_SOURCE_DIR}/src/tools/zircon_bcn_encoder/bc7decomp.cpp"
+	)
+	set_source_files_properties(${to_include_unit_tests_vendored_bcn}
+		PROPERTIES COMPILE_OPTIONS "/W0")
+	foreach(vendored_bcn_source ${to_include_unit_tests_vendored_bcn})
+		list(APPEND to_include_unit_tests
+			"$<$<CONFIG:Debug>:${vendored_bcn_source}>")
+	endforeach()
 endif()
 
 add_library(${PROJECT_NAME} ${KOTEK_DEVELOPMENT_TYPE}

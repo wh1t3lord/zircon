@@ -366,7 +366,7 @@ namespace
 
 		kotek::static_path_t root_path;
 		p_env->filesystem.Make_Path(
-			root_path, kotek::core::eFolderIndex::kFolderIndex_Root);
+			root_path, kotek::core::eFolderIndex::kFolderIndex_DataGame);
 
 		kotek::static_path_t manifest_path = root_path;
 		manifest_path /= "meshlets/boot/manifest.bin";

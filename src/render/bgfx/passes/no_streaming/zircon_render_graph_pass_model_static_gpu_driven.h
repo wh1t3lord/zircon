@@ -56,6 +56,7 @@
 
 #include "../../../../core/zircon_gltf_loader.h"
 #include "zircon_render_chunk_pool.h"
+#include "zircon_render_texture_bcn.h"
 
 class zircon_factory;
 struct zircon_ecs_context_t;
@@ -69,6 +70,18 @@ struct zircon_ecs_context_t;
 // pool's headroom absorbs them + the world chunks). Named per rule 9;
 // the tests use their own smaller sides
 #define zircon_DEF_RENDER_PASS_GPU_DRIVEN_SYNTHETIC_GRID_SIDE 8
+// task Z24 B4: the BCn texture upload's live proof — the shipped boot
+// probe texture, uploaded at create through the no-decode path (NOT
+// bound this phase: no material system exists; the create+log proves
+// the upload contract — binding lands with the material work). The
+// fixture lives at the engine root (the meshlets/boot precedent — the
+// pack entry namespace is root-relative) and regenerates with:
+// zircon_bcn_bake --synthesize_boot_checker --root .
+#define zircon_DEF_RENDER_PASS_GPU_DRIVEN_PROBE_TEXTURE_ENTRY \
+	"textures/boot/boot_checker.bcn"
+// the probe's read scratch (stack, create-time only — the shader blob
+// loader's 64 KB precedent; the shipped fixture is ~5.6 KB)
+#define zircon_DEF_RENDER_PASS_GPU_DRIVEN_PROBE_TEXTURE_SCRATCH_SIZE 65536
 
 namespace no_streaming
 {
@@ -171,6 +184,10 @@ namespace no_streaming
 		bgfx::TextureHandle m_stats_readback_texture;
 		bgfx::ProgramHandle m_program_draw;
 		bgfx::ProgramHandle m_program_cull;
+		// the B4 boot probe texture (the no-decode upload's live proof —
+		// created at OnCreateResources when the shipped fixture resolves,
+		// destroyed here; never bound this phase)
+		bgfx::TextureHandle m_probe_texture;
 		// the cull cbuffer: the six planes (vec4 x6) + the meta vec4
 		bgfx::UniformHandle m_uniform_cull_planes;
 		bgfx::UniformHandle m_uniform_cull_meta;

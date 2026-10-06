@@ -156,6 +156,10 @@ add_subdirectory("src/world")
 # compiles kotek's kotek.core.filesystem.pack module sources, so it sits
 # below the kotek add_subdirectory (the generated headers must exist)
 include("cmake/zircon_kpacker.cmake")
+# the BCn texture baker (renderer plan B4) — same nested-standalone shape:
+# it compiles the engine's texture format/bake sources from source +
+# the vendored single-file BCn encoders (tool-side only, never runtime)
+include("cmake/zircon_bcn_bake.cmake")
 
 # PLUGIN mode: finalize erased-edge usage for the zircon layer too (kotek's
 # own pass already ran at the end of kotek/CMakeLists.txt)

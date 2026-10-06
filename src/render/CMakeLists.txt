@@ -134,6 +134,11 @@ set(to_include_bgfx_game_passes_no_streaming_files
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_model_static_gpu_driven.cpp"
 	"bgfx/passes/no_streaming/zircon_render_chunk_pool.h"
 	"bgfx/passes/no_streaming/zircon_render_chunk_pool.cpp"
+	# task Z24 B4: the BCn texture upload path (the no-decode contract —
+	# prepare reads + validates through the dispatcher, create uploads
+	# the blocks AS-IS); bgfx-free parse reused from zircon.core
+	"bgfx/passes/no_streaming/zircon_render_texture_bcn.h"
+	"bgfx/passes/no_streaming/zircon_render_texture_bcn.cpp"
 )
 
 set(to_include_bgfx_editor_passes_no_streaming_files

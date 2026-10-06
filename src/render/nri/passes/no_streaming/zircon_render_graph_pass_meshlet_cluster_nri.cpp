@@ -101,11 +101,11 @@ namespace no_streaming
 		}
 
 		// ---- the manifest read through the filesystem dispatcher (the
-		// chunk-pool load's shape: root-relative paths, packs-first,
-		// cwd-independent)
+		// chunk-pool load's shape: content lives under data_game (the
+		// house folder doctrine), packs-first, cwd-independent)
 		kotek::static_path_t root_path;
 		this->m_p_filesystem->Make_Path(
-			root_path, kotek::core::eFolderIndex::kFolderIndex_Root);
+			root_path, kotek::core::eFolderIndex::kFolderIndex_DataGame);
 
 		kotek::static_cstring_t<64> manifest_relative;
 		manifest_relative = "meshlets/";

@@ -145,6 +145,52 @@ override native dirs; a miss falls through to native silently), so packed
 and unpacked content coexist and `data_user/` overrides still win when the
 user orders them first.
 
+### zircon_bcn_bake (the BCn texture baker, renderer plan B4)
+
+Bakes raw RGBA8 images into `.bcn` block-compressed textures OFFLINE (the
+plan's texture pipeline: encode at bake time, pack as `.kpack` entries,
+and the runtime uploads the BCn blocks **as-is** — the hardware decodes in
+the sampler, zero CPU; the runtime never transcodes or decodes). The
+encoders are vendored single-file open-source libraries compiled into the
+tool only — never engine/runtime code (`rgbcx` for BC1/BC3/BC5, `bc7enc`
+for BC7; the tests decode with `bc7decomp`/`bcdec` for the quality pins;
+see `src/tools/zircon_bcn_encoder/README.md` for provenance + licenses).
+The `.bcn` format (32-byte header + mip table + the block payload in
+bgfx's exact `hasMips` memory layout) is specified in
+`src/core/zircon_texture_bcn.h` — the single source of truth the bake
+driver, this tool and the render-side uploader all share.
+
+```
+zircon_bcn_bake --in <file.zraw> --scene <scene> --name <tex>
+    [--root .]
+    [--class albedo|normal|ao|mask|hdr] [--format bc1|bc3|bc5|bc7|bc6h]
+    [--quality fast|default|high] [--mips full|N]
+zircon_bcn_bake --synthesize_boot_checker [--root .] [--quality q]
+```
+
+- **class -> default format** (the plan's mapping; `--format` overrides):
+  `albedo=bc7`, `normal=bc5`, `ao=bc7`, `mask=bc1`, `hdr=bc6h` — **BC6H
+  encode is DEFERRED this phase** (no license-clean single-file BC6H
+  encoder exists; the plan's HDR use is skies — a later intake task).
+- **input**: `.zraw` = the house intake container (16-byte header
+  `'ZRAW01'` + width + height, then RGBA8) — no PNG/TGA dependency this
+  phase; real-format intake is the recorded later task. Dimensions must
+  be multiples of 4 within [4, 4096] (the v1 dimension rule).
+- **output**: `<root>/textures/<scene>/<name>.bcn` — PACKING it into a
+  `.kpack` is `zircon_kpacker`'s job (the tools compose; the dispatcher
+  reads both shapes). The mip chain defaults to `full` (down to 1x1 —
+  the bgfx upload path requires the full chain today), box-filtered 2x2
+  per level with integer round-nearest (deterministic).
+- **--synthesize_boot_checker** regenerates the shipped boot probe
+  `textures/boot/boot_checker.bcn` at the engine root (the B1
+  gpu-driven pass uploads it at create as the no-decode path's live
+  proof; the root-relative entry namespace matches the meshlets/boot
+  precedent, so a pack carrying the same entry resolves identically)
+  from the recipe in `zircon_texture_bcn.h` — run it after any
+  format/encoder change (the `Zircon_TextureBcn.BootFixtureMatchesEncoder`
+  test pins the bytes).
+- Exit codes: `0` success, `1` operational failure, `2` usage error.
+
 The consumer-side guide to the whole filesystem (helpers, streaming, the
 override chain, embedded defaults) is
 [filesystem.md](filesystem.md).

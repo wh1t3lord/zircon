@@ -25,6 +25,7 @@ namespace no_streaming
 		m_stats_readback_texture{BGFX_INVALID_HANDLE},
 		m_program_draw{BGFX_INVALID_HANDLE},
 		m_program_cull{BGFX_INVALID_HANDLE},
+		m_probe_texture{BGFX_INVALID_HANDLE},
 		m_uniform_cull_planes{BGFX_INVALID_HANDLE},
 		m_uniform_cull_meta{BGFX_INVALID_HANDLE},
 		m_uniform_light_dir{BGFX_INVALID_HANDLE},
@@ -194,11 +195,68 @@ namespace no_streaming
 				this->m_is_warned_about_missing_program = true;
 			}
 		}
+
+		// task Z24 B4: the BCn texture upload's live proof — the shipped
+		// boot probe uploads with the blocks AS-IS through the no-decode
+		// path (prepare reads + validates through the dispatcher, create
+		// hands the blocks to bgfx untouched). A fixture the bake tool
+		// has not produced yet is user-content posture: the prepare's
+		// one warning, the pass stays texture-less. NOT bound this
+		// phase — no material system exists; the create+log proves the
+		// upload contract (binding lands with the material work)
+		{
+			kotek::core::ktkIFileSystem* p_filesystem =
+				p_manager_main->GetFileSystem();
+
+			if (p_filesystem)
+			{
+				kotek::uint8_t probe_scratch
+					[zircon_DEF_RENDER_PASS_GPU_DRIVEN_PROBE_TEXTURE_SCRATCH_SIZE];
+
+				zircon_render_texture_bcn_upload_t probe_upload;
+
+				const bool prepared = zircon_render_texture_bcn_prepare(
+					p_filesystem,
+					kotek::static_path_t(
+						zircon_DEF_RENDER_PASS_GPU_DRIVEN_PROBE_TEXTURE_ENTRY),
+					probe_scratch, sizeof(probe_scratch), probe_upload);
+
+				if (prepared)
+				{
+					this->m_probe_texture =
+						zircon_render_texture_bcn_create(probe_upload);
+
+					if (bgfx::isValid(this->m_probe_texture))
+					{
+						KOTEK_MESSAGE(
+							"[model_static_gpu_driven] B4 texture probe: "
+							"'{}' uploaded as-is — {}x{} format {} mips "
+							"{}, {} block bytes (no decode on this path)",
+							zircon_DEF_RENDER_PASS_GPU_DRIVEN_PROBE_TEXTURE_ENTRY,
+							static_cast<kotek::uint32_t>(
+								probe_upload.m_width),
+							static_cast<kotek::uint32_t>(
+								probe_upload.m_height),
+							static_cast<kotek::uint32_t>(
+								probe_upload.m_desc.m_format),
+							static_cast<kotek::uint32_t>(
+								probe_upload.m_mip_count),
+							probe_upload.m_payload_size);
+					}
+				}
+			}
+		}
 	}
 
 	void zircon_render_graph_pass_model_static_gpu_driven_bgfx::
 		OnDestroyResources()
 	{
+		if (bgfx::isValid(this->m_probe_texture))
+		{
+			bgfx::destroy(this->m_probe_texture);
+			this->m_probe_texture = BGFX_INVALID_HANDLE;
+		}
+
 		if (bgfx::isValid(this->m_program_draw))
 		{
 			bgfx::destroy(this->m_program_draw);
