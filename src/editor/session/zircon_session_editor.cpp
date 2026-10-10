@@ -81,7 +81,12 @@ namespace
 			return false;
 		}
 
-		p_wrapper->CloseCurrentPopup();
+		// the scope-free close (task Z17's UI-press proof): the consumer
+		// runs OUTSIDE any BeginPopup scope (the pass's OnUpdate), where
+		// CloseCurrentPopup silently no-ops (it indexes the empty
+		// g.BeginPopupStack) — CloseTopmostPopup closes the open stack's
+		// top instead
+		p_wrapper->CloseTopmostPopup();
 		return true;
 	}
 
@@ -543,6 +548,29 @@ const zircon_csg_editor_rebuild_scheduler*
 zircon_session_editor::get_csg_scheduler(void) const noexcept
 {
 	return &this->m_csg_scheduler;
+}
+
+zircon_ui_test_harness* zircon_session_editor::get_ui_test_harness(
+	void) noexcept
+{
+	return &this->m_ui_test_harness;
+}
+
+const zircon_ui_test_harness* zircon_session_editor::get_ui_test_harness(
+	void) const noexcept
+{
+	return &this->m_ui_test_harness;
+}
+
+zircon_config* zircon_session_editor::get_config(void) noexcept
+{
+	return this->m_p_config;
+}
+
+const zircon_config* zircon_session_editor::get_config(
+	void) const noexcept
+{
+	return this->m_p_config;
 }
 
 void zircon_session_editor::register_cancel_arbiter_consumers(

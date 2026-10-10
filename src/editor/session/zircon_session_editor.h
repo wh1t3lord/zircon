@@ -4,6 +4,7 @@
 #include "../../core/zircon_session.h"
 #include "../../core/zircon_cancel_arbiter.h"
 #include "../ui/zircon_editor_ui_state.h"
+#include "../ui/zircon_ui_test_harness.h"
 #include "../commands\zircon_command_history.h"
 #include "zircon_csg_editor_rebuild_scheduler.h"
 
@@ -96,6 +97,19 @@ public:
 	const zircon_csg_editor_rebuild_scheduler* get_csg_scheduler(
 		void) const noexcept;
 
+	/// the UI-press test harness (task Z17) — one per session like the
+	/// arbiter/history; inert unless --ui_test=<name|all> activated it
+	/// (the editor imgui pass drives its tick between NewFrame and the
+	/// window draws)
+	zircon_ui_test_harness* get_ui_test_harness(void) noexcept;
+	const zircon_ui_test_harness* get_ui_test_harness(void
+	) const noexcept;
+
+	/// the session's config pointer (the game manager owns it) — the UI
+	/// harness's probes read feature flags through it
+	zircon_config* get_config(void) noexcept;
+	const zircon_config* get_config(void) const noexcept;
+
 	zircon_world* get_world(void) const noexcept;
 
 	void set_imgui_ui_elements(
@@ -144,4 +158,8 @@ private:
 	/// one CSG rebuild scheduler per session (task Z25 A2) — owns the
 	/// rebuild worker thread; the editor CSG pass drains it
 	zircon_csg_editor_rebuild_scheduler m_csg_scheduler;
+	/// the UI-press test harness (task Z17) — one per session; inert
+	/// (zero per-frame cost past one branch) unless --ui_test activated
+	/// it at session creation
+	zircon_ui_test_harness m_ui_test_harness;
 };

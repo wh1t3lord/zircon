@@ -431,6 +431,23 @@ namespace no_streaming
 				}
 			}
 
+			// the UI-press test harness (task Z17): the frame is open and
+			// no window has drawn yet — injected input (queued through the
+			// wrapper's backend-callback seam, so it lands in the REAL
+			// imgui context exe-side) is processed by the NEXT NewFrame,
+			// and the probes read the engine state the previous frame's
+			// draws settled. Inert (one branch) unless --ui_test activated
+			// the session's harness at boot
+			zircon_ui_test_harness* p_ui_test_harness =
+				p_session->get_ui_test_harness();
+
+			if (p_ui_test_harness && p_ui_test_harness->is_active())
+			{
+				p_ui_test_harness->on_frame_pre_draw(
+					this->m_p_imgui_wrapper, p_session,
+					this->m_p_manager_main);
+			}
+
 			auto& imgui_ui_elements = p_session->get_imgui_ui_elements();
 
 			for (auto* p_element : imgui_ui_elements)

@@ -5,14 +5,17 @@
 #include "../session/zircon_session_editor.h"
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
+#include "zircon_ui_test_harness.h"
 
 zircon_editor_ui_window_object_list::zircon_editor_ui_window_object_list(
 	zircon_session_editor_manager* p_manager_session_editor,
 	kotek::core::ktkConsole* p_console,
-	zircon_factory* p_factory) :
+	zircon_factory* p_factory,
+	zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_show_window{}, m_amount_of_entites{}, m_selected_entity_id{kotek::ktk::kInvalidECSEntity},
 	m_p_manager_session_editor{p_manager_session_editor},
-	m_p_console{p_console}, m_p_factory{p_factory}
+	m_p_console{p_console}, m_p_factory{p_factory},
+	m_p_widget_registry{p_widget_registry}
 {
 	KOTEK_ASSERT(
 		p_manager_session_editor, "valid pointer is expected"
@@ -79,7 +82,14 @@ void zircon_editor_ui_window_object_list::Draw(
 
 	if (p_wrapper_imgui)
 	{
-		p_wrapper_imgui->ShowDemoWindow();
+		// task Z17: the always-on demo window intercepts the harness's
+		// injected clicks (hit-testing picks the topmost window) — suppress
+		// it while a UI-test run is active; normal boots are untouched
+		if (this->m_p_widget_registry == nullptr ||
+			this->m_p_widget_registry->is_active() == false)
+		{
+			p_wrapper_imgui->ShowDemoWindow();
+		}
 
 		if (!this->m_is_show_window)
 			return;
@@ -96,6 +106,10 @@ void zircon_editor_ui_window_object_list::Draw(
 								kConsoleCommand_SDK_CreateEntity));
 				}
 			}
+
+			zircon_ui_test_track_widget(p_wrapper_imgui,
+				this->m_p_widget_registry,
+				zircon_ui_test_window_names::kEntityList, "Add");
 
 			p_wrapper_imgui->SameLine();
 
@@ -121,6 +135,10 @@ void zircon_editor_ui_window_object_list::Draw(
 					}
 				}
 			}
+
+			zircon_ui_test_track_widget(p_wrapper_imgui,
+				this->m_p_widget_registry,
+				zircon_ui_test_window_names::kEntityList, "Delete");
 
 			if (p_wrapper_imgui->BeginTable("", 1))
 			{
@@ -180,6 +198,23 @@ void zircon_editor_ui_window_object_list::Draw(
 							p_session->get_ui_state(), "must be valid!");
 						p_session->get_ui_state()->set_selected_entity(
 							this->m_selected_entity_id);
+					}
+
+					// task Z17: the row's tracked label is the entity id
+					// ("row:<id>") — the harness formats it from a captured
+					// id, so the tests never hardcode an entity number
+					if (this->m_p_widget_registry &&
+						this->m_p_widget_registry->is_active())
+					{
+						kotek::array_t<char, 32> row_label{};
+						kotek::ktk::sprintf(row_label.data(),
+							row_label.size(), "row:%u",
+							static_cast<kotek::uint32_t>(id.id));
+
+						zircon_ui_test_track_widget(p_wrapper_imgui,
+							this->m_p_widget_registry,
+							zircon_ui_test_window_names::kEntityList,
+							row_label.data());
 					}
 
 					if (has_sdk_name)

@@ -3,10 +3,13 @@
 #include "zircon_editor_ui_state.h"
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_ui_window_debug_input.h"
+#include "zircon_ui_test_harness.h"
 
 zircon_editor_ui_window_top_bar::zircon_editor_ui_window_top_bar(
-	zircon_session_editor_manager* p_manager_session_editor) :
-	m_is_show_window(true), m_p_manager_session_editor{p_manager_session_editor}
+	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_ui_test_widget_registry* p_widget_registry) :
+	m_is_show_window(true), m_p_manager_session_editor{p_manager_session_editor},
+	m_p_widget_registry{p_widget_registry}
 {
 	KOTEK_ASSERT(p_manager_session_editor,
 		"must be valid session editor manager pointer");
@@ -32,7 +35,17 @@ void zircon_editor_ui_window_top_bar::Draw(
 		{
 			if (p_wrapper_imgui->BeginMainMenuBar())
 			{
-				if (p_wrapper_imgui->BeginMenu("File"))
+				// task Z17: BeginMenu leaves g.LastItemData on the menu
+				// TITLE in both states (imgui restores it around the
+				// popup Begin — the documented IsItemHovered-after-
+				// BeginMenu pattern), so the track below always records
+				// the clickable title rect
+				bool is_file_menu_open = p_wrapper_imgui->BeginMenu("File");
+				zircon_ui_test_track_widget(p_wrapper_imgui,
+					this->m_p_widget_registry,
+					zircon_ui_test_window_names::kTopBar, "File");
+
+				if (is_file_menu_open)
 				{
 					if (p_wrapper_imgui->MenuItem("Open"))
 					{
@@ -75,6 +88,10 @@ void zircon_editor_ui_window_top_bar::Draw(
 #endif
 					}
 
+					zircon_ui_test_track_widget(p_wrapper_imgui,
+						this->m_p_widget_registry,
+						zircon_ui_test_window_names::kTopBar, "Open");
+
 					if (p_wrapper_imgui->MenuItem("Save"))
 					{
 						p_main_manager->GetGameManager()
@@ -84,6 +101,10 @@ void zircon_editor_ui_window_top_bar::Draw(
 									kotek::core::eConsoleCommandIndex::
 										kConsoleCommand_SDK_SaveScene));
 					}
+
+					zircon_ui_test_track_widget(p_wrapper_imgui,
+						this->m_p_widget_registry,
+						zircon_ui_test_window_names::kTopBar, "Save");
 
 					if (p_wrapper_imgui->MenuItem("Close Current Project"))
 					{
@@ -106,7 +127,12 @@ void zircon_editor_ui_window_top_bar::Draw(
 					p_wrapper_imgui->EndMenu();
 				}
 
-				if (p_wrapper_imgui->BeginMenu("Edit"))
+				bool is_edit_menu_open = p_wrapper_imgui->BeginMenu("Edit");
+				zircon_ui_test_track_widget(p_wrapper_imgui,
+					this->m_p_widget_registry,
+					zircon_ui_test_window_names::kTopBar, "Edit");
+
+				if (is_edit_menu_open)
 				{
 					if (p_wrapper_imgui->MenuItem("Undo"))
 					{
@@ -117,6 +143,10 @@ void zircon_editor_ui_window_top_bar::Draw(
 									kConsoleCommand_SDK_Undo));
 					}
 
+					zircon_ui_test_track_widget(p_wrapper_imgui,
+						this->m_p_widget_registry,
+						zircon_ui_test_window_names::kTopBar, "Undo");
+
 					if (p_wrapper_imgui->MenuItem("Redo"))
 					{
 						p_main_manager->GetGameManager()
@@ -126,11 +156,21 @@ void zircon_editor_ui_window_top_bar::Draw(
 									kConsoleCommand_SDK_Redo));
 					}
 
+					zircon_ui_test_track_widget(p_wrapper_imgui,
+						this->m_p_widget_registry,
+						zircon_ui_test_window_names::kTopBar, "Redo");
+
 					p_wrapper_imgui->EndMenu();
 				}
 
-				if (p_wrapper_imgui->BeginMenu(
-						"Tools##ZirconImGuiSDK_MainBar_Tools"))
+				bool is_tools_menu_open = p_wrapper_imgui->BeginMenu(
+					"Tools##ZirconImGuiSDK_MainBar_Tools");
+				zircon_ui_test_track_widget(p_wrapper_imgui,
+					this->m_p_widget_registry,
+					zircon_ui_test_window_names::kTopBar,
+					"Tools##ZirconImGuiSDK_MainBar_Tools");
+
+				if (is_tools_menu_open)
 				{
 					if (p_wrapper_imgui->BeginMenu(
 							"Debug##ZirconImGuiSDK_MainBar_Tools_Debug"))
@@ -145,10 +185,23 @@ void zircon_editor_ui_window_top_bar::Draw(
 					p_wrapper_imgui->EndMenu();
 				}
 
-				if (p_wrapper_imgui->BeginMenu(
-						"View##ZirconImGuiSDK_MainBar_View"))
+				bool is_view_menu_open = p_wrapper_imgui->BeginMenu(
+					"View##ZirconImGuiSDK_MainBar_View");
+				zircon_ui_test_track_widget(p_wrapper_imgui,
+					this->m_p_widget_registry,
+					zircon_ui_test_window_names::kTopBar,
+					"View##ZirconImGuiSDK_MainBar_View");
+
+				if (is_view_menu_open)
 				{
-					if (p_wrapper_imgui->BeginMenu("Show windows All"))
+					bool is_show_windows_menu_open =
+						p_wrapper_imgui->BeginMenu("Show windows All");
+					zircon_ui_test_track_widget(p_wrapper_imgui,
+						this->m_p_widget_registry,
+						zircon_ui_test_window_names::kTopBar,
+						"Show windows All");
+
+					if (is_show_windows_menu_open)
 					{
 						auto* p_renderer =
 							p_main_manager->GetGameManager()->GetRenderer();
@@ -218,6 +271,14 @@ void zircon_editor_ui_window_top_bar::Draw(
 													{p_element->Get_ID()});
 										}
 									}
+
+									// task Z17: the window's show-toggle
+									// ("<window-name>##ViewImGui")
+									zircon_ui_test_track_widget(
+										p_wrapper_imgui,
+										this->m_p_widget_registry,
+										zircon_ui_test_window_names::kTopBar,
+										build_window_name.data());
 								}
 							}
 						}

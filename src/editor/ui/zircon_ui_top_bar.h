@@ -1,11 +1,13 @@
 #pragma once
 
 class zircon_session_editor_manager;
+class zircon_ui_test_widget_registry;
 
 class zircon_editor_ui_window_top_bar : public kotek::core::ktkISDKUIElement
 {
 public:
-	zircon_editor_ui_window_top_bar(zircon_session_editor_manager* p_manager_session_editor);
+	zircon_editor_ui_window_top_bar(zircon_session_editor_manager* p_manager_session_editor,
+		zircon_ui_test_widget_registry* p_widget_registry = nullptr);
 	~zircon_editor_ui_window_top_bar(void);
 
 	void Initialize(void) override;
@@ -25,4 +27,7 @@ private:
 private:
 	bool m_is_show_window;
 	zircon_session_editor_manager* m_p_manager_session_editor;
+	/// task Z17: the UI harness's widget rect sink (nullptr / inactive =
+	/// the tracking calls are no-op branches)
+	zircon_ui_test_widget_registry* m_p_widget_registry;
 };

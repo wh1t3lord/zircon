@@ -2,12 +2,14 @@
 
 class zircon_config;
 class zircon_localization_manager;
+class zircon_ui_test_widget_registry;
 
 class zircon_editor_ui_window_settings : public kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_editor_ui_window_settings(zircon_config* p_config,
-		zircon_localization_manager* p_localization);
+		zircon_localization_manager* p_localization,
+		zircon_ui_test_widget_registry* p_widget_registry = nullptr);
 	~zircon_editor_ui_window_settings(void);
 
 	void Initialize(void) override;
@@ -31,4 +33,7 @@ private:
 	bool m_is_window_show;
 	zircon_config* m_p_config;
 	zircon_localization_manager* m_p_localization;
+	/// task Z17: the UI harness's widget rect sink (nullptr / inactive =
+	/// the tracking calls are no-op branches)
+	zircon_ui_test_widget_registry* m_p_widget_registry;
 };

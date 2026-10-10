@@ -3,12 +3,15 @@
 #include "../session/zircon_session_editor.h"
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
+#include "zircon_ui_test_harness.h"
 
 zircon_editor_ui_window_history_command_log::zircon_editor_ui_window_history_command_log(
 	zircon_editor_command_history* p_manager_history,
-	zircon_session_editor_manager* p_manager_session_editor) :
+	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_show_window(false), m_p_manager_history{p_manager_history},
-	m_p_manager_session_editor{p_manager_session_editor}
+	m_p_manager_session_editor{p_manager_session_editor},
+	m_p_widget_registry{p_widget_registry}
 {
 	KOTEK_ASSERT(this->m_p_manager_history,
 		"you can't pass an invalid pointer to instance "
@@ -91,6 +94,23 @@ void zircon_editor_ui_window_history_command_log::Draw(
 
 							if (i > current_index)
 								p_wrapper_imgui->EndDisabled();
+
+							// task Z17: rows are tracked as "row:<slot
+							// index>" so the harness can pin the shown
+							// count against the live command pool
+							if (this->m_p_widget_registry &&
+								this->m_p_widget_registry->is_active())
+							{
+								kotek::array_t<char, 24> row_label{};
+								kotek::ktk::sprintf(row_label.data(),
+									row_label.size(), "row:%d", i);
+
+								zircon_ui_test_track_widget(p_wrapper_imgui,
+									this->m_p_widget_registry,
+									zircon_ui_test_window_names::
+										kHistoryCommandLog,
+									row_label.data());
+							}
 						}
 					}
 				}

@@ -5,6 +5,7 @@
 class zircon_factory;
 class zircon_editor_ui_state_interface;
 class zircon_session_editor_manager;
+class zircon_ui_test_widget_registry;
 
 class zircon_editor_ui_window_component_inspector
 	: public kotek::core::ktkISDKUIElement
@@ -13,7 +14,8 @@ public:
 	zircon_editor_ui_window_component_inspector(
 		zircon_session_editor_manager* p_manager_session_editor,
 		zircon_editor_ui_state_interface* p_sdk_ui,
-		zircon_factory* p_factory
+		zircon_factory* p_factory,
+		zircon_ui_test_widget_registry* p_widget_registry = nullptr
 	);
 	~zircon_editor_ui_window_component_inspector();
 
@@ -44,4 +46,7 @@ private:
 	zircon_factory* m_p_factory;
 	zircon_session_editor_manager* m_p_manager_session_editor;
 	const char* m_p_list_selected_item_allocator;
+	/// task Z17: the UI harness's widget rect sink (nullptr / inactive =
+	/// the tracking calls are no-op branches)
+	zircon_ui_test_widget_registry* m_p_widget_registry;
 };

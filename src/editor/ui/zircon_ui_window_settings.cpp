@@ -2,13 +2,16 @@
 #include "../../core/zircon_config.h"
 #include "../../core/zircon_localization_manager.h"
 #include "zircon_editor_ui_state.h"
+#include "zircon_ui_test_harness.h"
 
 zircon_editor_ui_window_settings::
 	zircon_editor_ui_window_settings(zircon_config* p_config,
-		zircon_localization_manager* p_localization) :
+		zircon_localization_manager* p_localization,
+		zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_window_show(false),
 	m_p_config{p_config},
-	m_p_localization{p_localization}
+	m_p_localization{p_localization},
+	m_p_widget_registry{p_widget_registry}
 {
 }
 
@@ -59,10 +62,26 @@ void zircon_editor_ui_window_settings::Draw(
 		// language simply opens its own ini section (imgui keys layout
 		// by the title string — that is inherent to string-table
 		// localization and applies to every migrated window)
+		// task Z17's UI-press proof: the window's first-use auto-size
+		// (97x64 from the collapsed Features header) can never show a
+		// single checkbox — the user always had to resize by hand. A sane
+		// first-use default (the ini's own size wins after the first run)
+		p_wrapper_imgui->SetNextWindowSize(
+			ImVec2(380.0f, 260.0f), ImGuiCond_FirstUseEver);
+
 		if (p_wrapper_imgui->Begin(this->translate("settings.window_title")))
 		{
-			if (p_wrapper_imgui->CollapsingHeader(
-					this->translate("settings.header.features")))
+			// task Z17: the harness tracks by the localization KEY (stable
+			// across languages), not the translated display string
+			bool is_features_open = p_wrapper_imgui->CollapsingHeader(
+				this->translate("settings.header.features"));
+
+			zircon_ui_test_track_widget(p_wrapper_imgui,
+				this->m_p_widget_registry,
+				zircon_ui_test_window_names::kSettings,
+				"settings.header.features");
+
+			if (is_features_open)
 			{
 				if (p_main_manager->GetGameManager())
 				{
@@ -91,6 +110,11 @@ void zircon_editor_ui_window_settings::Draw(
 							);
 						}
 
+						zircon_ui_test_track_widget(p_wrapper_imgui,
+							this->m_p_widget_registry,
+							zircon_ui_test_window_names::kSettings,
+							"settings.feature.add_required_components");
+
 						// quality for sphere bounding box
 						// generation
 						status = p_config->is_feature_enabled(
@@ -111,6 +135,11 @@ void zircon_editor_ui_window_settings::Draw(
 								status
 							);
 						}
+
+						zircon_ui_test_track_widget(p_wrapper_imgui,
+							this->m_p_widget_registry,
+							zircon_ui_test_window_names::kSettings,
+							"settings.feature.sphere_bounding_box_quality");
 
 						if (status)
 						{
@@ -149,6 +178,15 @@ void zircon_editor_ui_window_settings::Draw(
 									quality
 								);
 							}
+
+							// tracked for the conditional-appearance
+							// proof (dragging a DragInt headlessly is a
+							// value-precision trap — the harness clicks
+							// it only to prove presence)
+							zircon_ui_test_track_widget(p_wrapper_imgui,
+								this->m_p_widget_registry,
+								zircon_ui_test_window_names::kSettings,
+								"settings.feature.sbb_quality");
 						}
 
 						// editor camera rotation representation (task
@@ -175,6 +213,11 @@ void zircon_editor_ui_window_settings::Draw(
 							);
 						}
 
+						zircon_ui_test_track_widget(p_wrapper_imgui,
+							this->m_p_widget_registry,
+							zircon_ui_test_window_names::kSettings,
+							"settings.feature.sdk_camera_rotation_quaternion");
+
 						// the editor camera bootstrap entity (task
 						// Z20, owner clarification: opt-out) —
 						// auto-create the sdk_camera+sdk_input+
@@ -200,6 +243,11 @@ void zircon_editor_ui_window_settings::Draw(
 								status
 							);
 						}
+
+						zircon_ui_test_track_widget(p_wrapper_imgui,
+							this->m_p_widget_registry,
+							zircon_ui_test_window_names::kSettings,
+							"settings.feature.sdk_camera_input_bootstrap");
 					}
 				}
 			}

@@ -5,6 +5,7 @@
 #include "../session/zircon_session_editor.h"
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_editor_ui_state.h"
+#include "zircon_ui_test_harness.h"
 
 constexpr const char* _kSDKModalWindowFailedToAddComponent =
 	"Warning##ComponentInspectorFailedToAddComponent";
@@ -12,11 +13,13 @@ constexpr const char* _kSDKModalWindowFailedToAddComponent =
 zircon_editor_ui_window_component_inspector::
 	zircon_editor_ui_window_component_inspector(
 		zircon_session_editor_manager* p_manager_session_editor,
-		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory) :
+		zircon_editor_ui_state_interface* p_sdk_ui, zircon_factory* p_factory,
+		zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_show_window{}, m_current_item_name{},
 	m_p_manager_sdk_ui{p_sdk_ui}, m_p_factory{p_factory},
 	m_p_manager_session_editor{p_manager_session_editor},
-	m_p_list_selected_item_allocator{}
+	m_p_list_selected_item_allocator{},
+	m_p_widget_registry{p_widget_registry}
 {
 	KOTEK_ASSERT(
 		p_factory, "you can't pass an invalid pointer to zircon_GameFactory");
@@ -88,8 +91,18 @@ void zircon_editor_ui_window_component_inspector::Draw(
 	{
 		if (p_wrapper_imgui->Begin("Component Inspector"))
 		{
-			if (p_wrapper_imgui->BeginCombo(
-					"Add Component", this->m_p_list_selected_item_allocator))
+			bool is_add_combo_open = p_wrapper_imgui->BeginCombo(
+				"Add Component", this->m_p_list_selected_item_allocator);
+
+			// task Z17: after BeginCombo g.LastItemData is still the
+			// preview button's rect (Begin doesn't reset it), so the
+			// track records the clickable preview in both states
+			zircon_ui_test_track_widget(p_wrapper_imgui,
+				this->m_p_widget_registry,
+				zircon_ui_test_window_names::kComponentInspector,
+				"Add Component");
+
+			if (is_add_combo_open)
 			{
 				for (int component_index = 0;
 					 component_index <
@@ -117,6 +130,27 @@ void zircon_editor_ui_window_component_inspector::Draw(
 								component_name;
 							this->m_current_item_name =
 								static_cast<kotek::uint32_t>(component_type);
+						}
+
+						// task Z17: the combo rows are tracked as
+						// "comboitem:<component name>" (the entity's
+						// present-components list box below reuses the
+						// same display names — the prefix disambiguates)
+						if (this->m_p_widget_registry &&
+							this->m_p_widget_registry->is_active())
+						{
+							kotek::array_t<char,
+								ZIRCON_DEF_UI_TEST_WIDGET_LABEL_MAX_LENGTH>
+								combo_item_label{};
+							kotek::ktk::sprintf(combo_item_label.data(),
+								combo_item_label.size(), "comboitem:%s",
+								component_name);
+
+							zircon_ui_test_track_widget(p_wrapper_imgui,
+								this->m_p_widget_registry,
+								zircon_ui_test_window_names::
+									kComponentInspector,
+								combo_item_label.data());
 						}
 					}
 				}
@@ -264,6 +298,11 @@ void zircon_editor_ui_window_component_inspector::Draw(
 					}
 				}
 
+				zircon_ui_test_track_widget(p_wrapper_imgui,
+					this->m_p_widget_registry,
+					zircon_ui_test_window_names::kComponentInspector,
+					"Add component");
+
 				if (p_wrapper_imgui->Button("Delete component from list box"))
 				{
 					if (this->m_p_list_selected_item_allocator)
@@ -277,6 +316,11 @@ void zircon_editor_ui_window_component_inspector::Draw(
 									selected_entity.id)}});
 					}
 				}
+
+				zircon_ui_test_track_widget(p_wrapper_imgui,
+					this->m_p_widget_registry,
+					zircon_ui_test_window_names::kComponentInspector,
+					"Delete component from list box");
 
 				p_wrapper_imgui->Text(kotek::ktk::format("Selected entity: {}",
 					static_cast<kotek::uint32_t>(selected_entity.id))

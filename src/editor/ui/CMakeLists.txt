@@ -47,6 +47,13 @@ set(to_include_windows_files
 set(to_include_manager_files
 	"zircon_editor_ui_state.h"
 	"zircon_editor_ui_state.cpp"
+	# task Z17: the UI-press test harness (the frame-stepping injector +
+	# the widget rect registry) and the test catalog (the constexpr step
+	# tables + the engine-contract probes)
+	"zircon_ui_test_harness.h"
+	"zircon_ui_test_harness.cpp"
+	"zircon_ui_test_catalog.h"
+	"zircon_ui_test_catalog.cpp"
 )
 
 kotek_add_library(${PROJECT_NAME}

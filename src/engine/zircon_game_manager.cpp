@@ -1,5 +1,6 @@
 #include "zircon_game_manager.h"
 #include <cstdio>
+#include <cstring>
 
 #include "../core/zircon_localization_manager.h"
 #include "../ecs/zircon_factory.h"
@@ -287,7 +288,8 @@ namespace
 #endif
 
 zircon_game_manager::zircon_game_manager(void) :
-	m_is_use_sdk{}, m_is_use_sdk_imgui{}, m_world_id{},
+	m_is_use_sdk{}, m_is_use_sdk_imgui{}, m_is_ui_test_requested{},
+	m_world_id{},
 	m_p_profiler{}, m_p_console{}, m_p_main_manager{},
 	m_p_current_renderer{}, m_p_window_console{},
 	m_p_current_session{}, m_renderers{}, m_p_world_manager{},
@@ -312,6 +314,55 @@ void zircon_game_manager::Initialize(
 #endif
 
 	this->m_p_main_manager = p_main_manager;
+
+#ifdef KOTEK_USE_SDK_IMGUI
+	// --ui_test=<name|all> (task Z17): the UI-press harness runs in the
+	// frame loop of an editor-imgui boot AFTER the gtest suites below;
+	// parse + validate the flag here, activate when the editor session
+	// exists (below, after its initialize)
+	{
+		kotek::core::ktkIFrameworkConfig* p_engine_config =
+			p_main_manager->Get_EngineConfig();
+
+		if (p_engine_config)
+		{
+			constexpr kotek::ktk::size_t _kArgPrefixLength =
+				std::char_traits<char>::length(kZirconConfig_ConsoleArg_UiTest);
+
+			const int argc = p_engine_config->GetARGC();
+			char** p_argv = p_engine_config->GetARGV();
+
+			for (int arg_index = 0; arg_index < argc; ++arg_index)
+			{
+				const char* p_argument = p_argv[arg_index];
+
+				if (p_argument &&
+					std::strncmp(p_argument, kZirconConfig_ConsoleArg_UiTest,
+						_kArgPrefixLength) == 0)
+				{
+					const char* p_value = p_argument + _kArgPrefixLength;
+
+					KOTEK_ASSERT(
+						std::strlen(p_value) < this->m_ui_test_arg.capacity(),
+						"--ui_test value '{}' is too long (max {} chars)",
+						p_value, this->m_ui_test_arg.capacity() - 1);
+
+					this->m_ui_test_arg = p_value;
+					this->m_is_ui_test_requested = true;
+				}
+			}
+
+			if (this->m_is_ui_test_requested &&
+				p_engine_config->IsContainsConsoleCommandLineArgument(
+					kotek::kConsoleCommandArg_Editor_ImGui) == false)
+			{
+				KOTEK_ASSERT(false,
+					"--ui_test requires --editor_imgui (the harness drives "
+					"the editor's imgui frame) — add the flag");
+			}
+		}
+	}
+#endif
 
 #ifdef KOTEK_USE_TESTS_RUNTIME
 	#ifdef KOTEK_DEBUG
@@ -520,7 +571,10 @@ void zircon_game_manager::Initialize(
 						// (after this window is constructed) — the
 						// window reads it lazily per Draw
 						this
-							->get_render_passes_game_resolved_baseline()
+							->get_render_passes_game_resolved_baseline(),
+						// task Z17: the UI harness's widget sink
+						p_session->get_ui_test_harness()
+							->get_widget_registry()
 					);
 
 				// the ImGuizmo gizmo variant's host (task Z3 P2f): an
@@ -545,6 +599,13 @@ void zircon_game_manager::Initialize(
 				}
 #endif
 
+				// the UI-press harness's widget sink (task Z17): every
+				// instrumented window gets the registry pointer; its
+				// tracking helper is a no-op branch while no run is
+				// active, so the pointer is always safe to hand out
+				zircon_ui_test_widget_registry* p_ui_test_widget_registry =
+					p_session->get_ui_test_harness()->get_widget_registry();
+
 				zircon_imgui_elements_t
 					ui_elements = {
 #ifdef KOTEK_USE_BGFX
@@ -559,27 +620,32 @@ void zircon_game_manager::Initialize(
 						new zircon_editor_ui_window_object_list(
 							this->m_p_session_editor_manager,
 							this->m_p_console,
-							this->m_p_factory
+							this->m_p_factory,
+							p_ui_test_widget_registry
 						),
 						new zircon_editor_ui_window_top_bar(
-							this->m_p_session_editor_manager
+							this->m_p_session_editor_manager,
+							p_ui_test_widget_registry
 						),
 						new zircon_editor_ui_window_prefab(),
 						new zircon_editor_ui_window_component_inspector(
 							this->m_p_session_editor_manager,
 							p_session->get_ui_state(),
-							this->m_p_factory
+							this->m_p_factory,
+							p_ui_test_widget_registry
 						),
 						new zircon_editor_ui_window_log(),
 						new zircon_editor_ui_window_history_command_log(
 							p_session->get_command_history(),
-							this->m_p_session_editor_manager
+							this->m_p_session_editor_manager,
+							p_ui_test_widget_registry
 						),
 						new zircon_editor_ui_window_render_stats(
 						),
 						new zircon_editor_ui_window_settings(
 							this->m_p_config,
-							this->m_p_localization_manager
+							this->m_p_localization_manager,
+							p_ui_test_widget_registry
 						),
 #ifdef KOTEK_USE_BGFX
 						p_window_render_passes,
@@ -729,6 +795,18 @@ void zircon_game_manager::Initialize(
 								set_current_editor_session_for_engine
 						),
 						{session_editor_id}
+					);
+				}
+
+				// task Z17: activate the session's UI-press harness (the
+				// session, the world, the render graph and the imgui
+				// wrapper all exist by now — the harness drives the
+				// editor imgui pass's OnUpdate from the first frame)
+				if (this->m_is_ui_test_requested)
+				{
+					p_session->get_ui_test_harness()->activate(
+						this->m_ui_test_arg.c_str(), this->m_p_main_manager,
+						p_session
 					);
 				}
 			}
@@ -1002,6 +1080,23 @@ void zircon_game_manager::Shutdown(
 	kotek::core::ktkMainManager* p_main_manager
 )
 {
+#ifdef KOTEK_USE_SDK_IMGUI
+	// task Z17: a requested UI-test run that never finished (the frame
+	// budget cut it short or a wait stalled) must not exit green — the
+	// harness asserts here, before the sessions are torn down
+	if (this->m_is_ui_test_requested && this->m_p_session_editor_manager)
+	{
+		zircon_session_editor* p_session =
+			this->m_p_session_editor_manager->get_session(
+				this->m_p_session_editor_manager->get_current_session_id());
+
+		if (p_session && p_session->get_ui_test_harness())
+		{
+			p_session->get_ui_test_harness()->on_module_shutdown();
+		}
+	}
+#endif
+
 	this->Destroy_UI();
 	//	this->Destroy_HistoryCommandManager();
 
@@ -3993,6 +4088,14 @@ void zircon_game_manager::RegisterConsole_Commands_SDK(void
 
 				if (p_session)
 				{
+					// task Z17's UI-press proof (the Delete button through
+					// the real imgui click): p_history_manager was never
+					// assigned here (the PICO migration dropped it), so
+					// the assert below aborted EVERY DeleteEntity console
+					// command — the Z20 marshaling test only registers a
+					// test lambda and never reaches this body
+					p_history_manager = p_session->get_command_history();
+
 					if (p_session->get_world())
 					{
 						if (p_session->get_world()

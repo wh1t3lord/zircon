@@ -103,6 +103,13 @@ constexpr const char* kZirconConfig_RenderPassEditorGizmoImguizmoName =
 constexpr const char* kZirconConfig_ConsoleArg_GraphicsDevelopment =
 	"--graphics_development";
 
+// the UI-press test harness (task Z17): "--ui_test=<name|all>" — runs the
+// named UI test (or the whole catalog) in the frame loop of an
+// --editor_imgui boot, after the regular gtest suites; pair with
+// --kotek_frames=N as the safety cap (the harness stops the application
+// itself when the run finishes)
+constexpr const char* kZirconConfig_ConsoleArg_UiTest = "--ui_test=";
+
 // the classic/nanite geometry-path toggle (task Z24 B3c): the persisted
 // selection of the RENDERER + pass-set pair — "classic" = the bgfx
 // chunked GPU-driven path (the house default), "nanite" = the NRI

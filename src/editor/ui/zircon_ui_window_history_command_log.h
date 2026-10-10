@@ -2,13 +2,15 @@
 
 class zircon_editor_command_history;
 class zircon_session_editor_manager;
+class zircon_ui_test_widget_registry;
 
 class zircon_editor_ui_window_history_command_log
 	: public kotek::Core::ktkISDKUIElement
 {
 public:
 	zircon_editor_ui_window_history_command_log(
-		zircon_editor_command_history* p_manager_history, zircon_session_editor_manager* p_manager_session_editor);
+		zircon_editor_command_history* p_manager_history, zircon_session_editor_manager* p_manager_session_editor,
+		zircon_ui_test_widget_registry* p_widget_registry = nullptr);
 	~zircon_editor_ui_window_history_command_log();
 
 	void Initialize(void) override;
@@ -24,4 +26,7 @@ private:
 	bool m_is_show_window;
 	zircon_editor_command_history* m_p_manager_history;
 	zircon_session_editor_manager* m_p_manager_session_editor;
+	/// task Z17: the UI harness's widget rect sink (nullptr / inactive =
+	/// the tracking calls are no-op branches)
+	zircon_ui_test_widget_registry* m_p_widget_registry;
 };

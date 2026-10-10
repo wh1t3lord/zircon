@@ -45,6 +45,7 @@ applies. The arguments zircon itself consumes:
 | `--editor_imgui` | run the ImGui editor session (editor + game render graphs, tool windows, command history) |
 | `--editor` | run the wxWidgets SDK path (only in `KOTEK_USE_SDK` builds) |
 | `--graphics_development` | force the `graphics_development` feature on for this run (session-scoped): render passes are created through `passes/zircon.render.passes.bgfx.dll` instead of the statically-linked passlib — only in `ZIRCON_GRAPHICS_DEVELOPMENT=ON` builds; other builds warn and keep the static passes |
+| `--ui_test=<name\|all>` | run the UI-press test harness (task Z17) in the frame loop of an `--editor_imgui` boot, after the regular gtest suites: the named UI test or the whole catalog, one step per frame, input injected through the imgui wrapper's backend-callback seam (no OS event synthesis), assertions on engine contracts. The harness stops the application when the run finishes (per-test `[       OK ] Zircon_UI.<name>` / `[  FAILED ]` lines in the boot log); pair with `--kotek_frames=N` as a safety cap (a cut-short run fails loudly at module shutdown). bgfx-renderer editor boots only |
 
 Useful combinations:
 
@@ -52,6 +53,7 @@ Useful combinations:
 kotek.exe --no_splash --kotek_frames=30    # boot, run 30 frames, exit — the smoke test
 kotek.exe --editor_imgui                    # the editor
 kotek.exe --render_nri_dx12                 # boot on the NRI (DirectX 12) renderer
+kotek.exe --no_splash --editor_imgui --ui_test=all --kotek_frames=2000  # the UI-press suites
 ```
 
 ## Configuration files (all under `data_user/` — never the repo root)

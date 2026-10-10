@@ -4,6 +4,7 @@
 
 #include "../../core/zircon_config.h"
 #include "../../render/bgfx/zircon_renderer.h"
+#include "zircon_ui_test_harness.h"
 
 // eZirconWindowIDs (generated) arrives through this include chain,
 // same as the other editor windows
@@ -129,6 +130,25 @@ namespace
 
 		return p_result;
 	}
+	/// builds the tracked label "<verb>:<session>:<full pass name>" the
+	/// harness's tables spell (task Z17)
+	void zircon_render_pass_track_widget(
+		kotek::core::ktkIImguiWrapper* p_wrapper_imgui,
+		zircon_ui_test_widget_registry* p_registry, const char* p_verb,
+		bool is_game_session, const char* p_pass_name) noexcept
+	{
+		if (p_registry == nullptr || p_registry->is_active() == false)
+			return;
+
+		kotek::array_t<char, ZIRCON_DEF_UI_TEST_WIDGET_LABEL_MAX_LENGTH>
+			label{};
+
+		kotek::ktk::sprintf(label.data(), label.size(), "%s:%s:%s", p_verb,
+			is_game_session ? "game" : "editor", p_pass_name);
+
+		zircon_ui_test_track_widget(p_wrapper_imgui, p_registry,
+			zircon_ui_test_window_names::kRenderPasses, label.data());
+	}
 } // namespace
 
 zircon_editor_ui_window_render_passes::
@@ -140,7 +160,8 @@ zircon_editor_ui_window_render_passes::
 		kotek::uint8_t registry_game_pass_count,
 		kotek::static_cstring_t<
 			ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
-			p_render_passes_game_resolved_baseline) :
+			p_render_passes_game_resolved_baseline,
+		zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_window_show(false), m_dont_show_on_start(false),
 	m_need_initial_focus(false), m_p_config{p_config},
 	m_p_renderer_bgfx{p_renderer_bgfx},
@@ -149,7 +170,8 @@ zircon_editor_ui_window_render_passes::
 	m_p_registry_game_pass_names{p_registry_game_pass_names},
 	m_registry_game_pass_count{registry_game_pass_count},
 	m_p_render_passes_game_resolved_baseline{
-		p_render_passes_game_resolved_baseline}
+		p_render_passes_game_resolved_baseline},
+	m_p_widget_registry{p_widget_registry}
 {
 	KOTEK_ASSERT(p_config, "you must pass a valid zircon_config instance!");
 
@@ -270,6 +292,12 @@ void zircon_editor_ui_window_render_passes::Draw(
 			// intentionally NOT persisted here — the choice lands in
 			// game_config.json through Save, same as the pass sets
 		}
+
+		zircon_ui_test_track_widget(p_wrapper_imgui,
+			this->m_p_widget_registry,
+			zircon_ui_test_window_names::kRenderPasses,
+			"checkbox:dont_show_on_start");
+
 		p_wrapper_imgui->TextDisabled("(applies on Save)");
 
 		bool is_any_dirty =
@@ -285,6 +313,10 @@ void zircon_editor_ui_window_render_passes::Draw(
 		{
 			this->save(p_main_manager);
 		}
+
+		zircon_ui_test_track_widget(p_wrapper_imgui,
+			this->m_p_widget_registry,
+			zircon_ui_test_window_names::kRenderPasses, "button:Save");
 	}
 
 	p_wrapper_imgui->End();
@@ -412,6 +444,12 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 			}
 		}
 
+		// task Z17: the per-pass widgets are tracked as
+		// "<verb>:<session>:<full pass name>"
+		zircon_render_pass_track_widget(p_wrapper_imgui,
+			this->m_p_widget_registry, "enabled", is_game_session,
+			info.pass_names[i].c_str());
+
 		p_wrapper_imgui->SameLine();
 		p_wrapper_imgui->TextUnformatted(zircon_render_pass_display_name(
 			info.pass_names[i].c_str()));
@@ -441,6 +479,10 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 					render_graph_id, i, true);
 				is_structure_changed = true;
 			}
+
+			zircon_render_pass_track_widget(p_wrapper_imgui,
+				this->m_p_widget_registry, "move_up", is_game_session,
+				info.pass_names[i].c_str());
 		}
 
 		if (!is_structure_changed && i + 1 < pass_count)
@@ -453,6 +495,10 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 					render_graph_id, i, false);
 				is_structure_changed = true;
 			}
+
+			zircon_render_pass_track_widget(p_wrapper_imgui,
+				this->m_p_widget_registry, "move_down", is_game_session,
+				info.pass_names[i].c_str());
 		}
 
 		if (!is_structure_changed)
@@ -465,6 +511,10 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 					render_graph_id, i);
 				is_structure_changed = true;
 			}
+
+			zircon_render_pass_track_widget(p_wrapper_imgui,
+				this->m_p_widget_registry, "remove", is_game_session,
+				info.pass_names[i].c_str());
 		}
 
 		p_wrapper_imgui->PopID();
@@ -540,6 +590,10 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 			// above), the section redraws next frame
 			break;
 		}
+
+		zircon_render_pass_track_widget(p_wrapper_imgui,
+			this->m_p_widget_registry, "add", is_game_session,
+			p_pass_name);
 
 		p_wrapper_imgui->PopID();
 	}

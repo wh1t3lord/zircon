@@ -235,6 +235,10 @@ private:
 private:
 	bool m_is_use_sdk;
 	bool m_is_use_sdk_imgui;
+	/// task Z17: --ui_test=<name|all> was on the command line (the
+	/// harness activates when the editor session is created; the module
+	/// shutdown asserts if a requested run never finished)
+	bool m_is_ui_test_requested;
 	kotek::uint8_t m_world_id;
 	kotek::core::ktkProfiler* m_p_profiler;
 	kotek::core::ktkConsole* m_p_console;
@@ -271,6 +275,9 @@ private:
 	/// until the game render graph is created
 	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>
 		m_render_passes_game_resolved_baseline;
+	/// task Z17: the --ui_test=<name|all> value (the harness's activation
+	/// argument); empty when the flag is absent
+	kotek::static_cstring_t<64> m_ui_test_arg;
 #ifdef KOTEK_USE_RENDER_NRI
 	/// @brief \~english the NRI frame passes (task Z5 phase 2 / P4):
 	/// created through the NRI passlib seam at renderer init and OWNED

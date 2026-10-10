@@ -300,6 +300,14 @@ void zircon_editor_ui_window_gizmo_imguizmo::Draw(
 		return;
 	}
 
+	// ImGuizmo's inline ImGui calls resolve to THIS module's own imgui
+	// copy, whose current-context pointer (GImGui) is never set by the
+	// exe-side wrapper — hand it the real context across the module
+	// boundary before any ImGuizmo call (the two-imgui-copies rule,
+	// zircon §5; ImGuizmo::SetImGuiContext is the seam ImGuizmo provides
+	// for exactly this)
+	ImGuizmo::SetImGuiContext(p_wrapper_imgui->GetCurrentContext());
+
 	ImGuizmo::BeginFrame();
 	ImGuizmo::SetRect(0.0f, 0.0f, io.DisplaySize.x, io.DisplaySize.y);
 

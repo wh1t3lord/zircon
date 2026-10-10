@@ -4,6 +4,7 @@
 
 class zircon_config;
 class zircon_renderer_bgfx;
+class zircon_ui_test_widget_registry;
 struct zircon_render_graph_simplified_bgfx_info_t;
 
 /// @brief \~english Render Passes window (task Z3 P2a — the "wizard"
@@ -50,7 +51,10 @@ public:
 		/// baseline keeps the legacy compare-against-config behavior
 		kotek::static_cstring_t<
 			ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
-			p_render_passes_game_resolved_baseline = nullptr);
+			p_render_passes_game_resolved_baseline = nullptr,
+		/// task Z17: the UI harness's widget rect sink (nullptr /
+		/// inactive = the tracking calls are no-op branches)
+		zircon_ui_test_widget_registry* p_widget_registry = nullptr);
 	~zircon_editor_ui_window_render_passes(void);
 
 	void Initialize(void) override;
@@ -140,4 +144,7 @@ private:
 	/// against the config default (legacy behavior)
 	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
 		m_p_render_passes_game_resolved_baseline;
+
+	/// task Z17: the UI harness's widget rect sink
+	zircon_ui_test_widget_registry* m_p_widget_registry;
 };
