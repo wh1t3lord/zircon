@@ -115,6 +115,15 @@
    a class/module PROMISES (§7 test philosophy), not per-method formalities.
    Coverage bar (task Z14): every class and every public function in zircon
    gets one; cover behavior and edge cases, not happy paths only.
+   **UI behavior is covered by the Z17 harness (owner directive 2026-10-06):**
+   any new editor window/widget/interaction ships WITH a UI test in the
+   same commit — events inject at the ImGuiIO seam through the wrapper's
+   backend callbacks (exe-side — never from game.ktk, the two-copies
+   rule), assertions read ENGINE CONTRACTS (entity counts, journal nodes,
+   selection, config bits, pass skip flags), never pixels; the suites run
+   in the same boot flow via `--ui_test=<name|all>` +
+   `--kotek_frames=N`. The catalog lives in
+   `src/editor/ui/zircon_ui_test_catalog.{h,cpp}` (static step tables).
 8a. **Test tiers: heavy suites are flag-gated (owner directive 2026-09-02,
    tier sizes settled 2026-09-03).** Heavy stress suites run ONLY under
    `ZIRCON_USE_TESTS_HEAVY` (CMake `-DZIRCON_TESTS_HEAVY=ON`, OFF by
@@ -269,6 +278,15 @@ Outputs: `build/bin` (`kotek.exe`, `game.ktk`), `build/lib`.
 Requires kotek deps (vcpkg minimal set auto-fetched on first configure — slow first run).
 Gotcha: root `CMakeLists.txt:66` has `add_dependencies(kotek zircon)` referencing a
 non-existent target name in some configs — verify when touching root CMake (task Z1).
+
+**Pre-push validation gate (owner directive 2026-10-06, hard rule):** before
+pushing to either repository, run `validate_all_configs.bat` from the repo
+root — it builds every CI-mirroring local config that exists (default
+Debug+Release, gfxdev Debug; absent trees are SKIPPED — GitHub CI covers
+those legs on push) and boots the boot-capable ones, exiting non-zero on
+any leg's failure. A push without a green gate run is a defect in the
+process, not a judgment call. Keep the gate's leg list in sync with the
+workflows' matrix when either changes.
 
 ## 5. Known issues / debts (verified 2026-07-21)
 
