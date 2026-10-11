@@ -6,6 +6,9 @@
 #include "../../../../game/session/zircon_session_game.h"
 #include "../../../../game/session/zircon_session_game_manager.h"
 #include "../../../../world/zircon_world.h"
+// task Z24 B5b: the binning classification's frustum planes extract
+// through the chunk pool's shared static (never forked)
+#include "zircon_render_chunk_pool.h"
 
 #include <cmath>
 #include <cstring>
@@ -177,10 +180,40 @@ namespace no_streaming
 				this->m_is_warned_about_missing_program = true;
 			}
 		}
+
+		// task Z24 B5b: the light cluster rig (buffers + uniforms are
+		// created unconditionally; the binning program is optional — a
+		// shader cache predating the pipeline keeps the rig binning-inert
+		// and the frames fall back to the directional)
+		this->m_light_rig.create("[model_static]");
+
+		{
+			bgfx::ShaderHandle shader_light_bin =
+				this->load_shader_blob("light_cluster_bin.cs.bin");
+
+			if (bgfx::isValid(shader_light_bin))
+			{
+				bgfx::ProgramHandle program_bin =
+					bgfx::createProgram(shader_light_bin, true);
+
+				if (bgfx::isValid(program_bin))
+				{
+					this->m_light_rig.set_binning_program(program_bin);
+				}
+				else
+				{
+					KOTEK_MESSAGE_WARNING(
+						"[model_static] the light binning program failed "
+						"to link — the clustered path stays inactive");
+				}
+			}
+		}
 	}
 
 	void zircon_render_graph_pass_model_static_bgfx::OnDestroyResources()
 	{
+		this->m_light_rig.destroy();
+
 		if (bgfx::isValid(this->m_program))
 		{
 			bgfx::destroy(this->m_program);
@@ -401,8 +434,76 @@ namespace no_streaming
 
 						bgfx::setViewTransform(pass_id, view, projection);
 
-						// the fixed scene light (P2g — defines until
-						// light components land, a later task) + the
+						// ---- task Z24 B5b: the per-frame light collection
+						// ---- + the clustered binning drive. Zero collected
+						// ---- lights keeps the clustered branch off (the
+						// ---- fallback directional answers — the pre-B5b
+						// ---- behavior, never regressed)
+						{
+							this->m_light_buffer.collect_from_world(p_factory,
+								p_context,
+								p_world->get_entity_count_max_limit());
+
+							// the binning classification's inputs: the same
+							// view-projection the draw uses + its frustum
+							// planes (the chunk pool's shared static)
+							float light_view_projection[16];
+
+							bx::mtxMul(light_view_projection, view,
+								projection);
+
+							float light_planes[24];
+
+							zircon_render_chunk_pool::extract_frustum_planes(
+								light_view_projection, light_planes);
+
+							kotek::uint32_t screen_width = 0;
+							kotek::uint32_t screen_height = 0;
+
+							if (this->m_p_manager_main &&
+								this->m_p_manager_main->Get_WindowManager())
+							{
+								const int window_width =
+									this->m_p_manager_main
+										->Get_WindowManager()
+										->ActiveWindow_GetWidth();
+								const int window_height =
+									this->m_p_manager_main
+										->Get_WindowManager()
+										->ActiveWindow_GetHeight();
+
+								if (window_width > 0 && window_height > 0)
+								{
+									screen_width = static_cast<kotek::uint32_t>(
+										window_width);
+									screen_height =
+										static_cast<kotek::uint32_t>(
+											window_height);
+								}
+							}
+
+							this->m_light_rig.drive(pass_id,
+								this->m_light_buffer, light_planes,
+								light_view_projection, screen_width,
+								screen_height);
+
+							// the binning dispatches must reach the GPU
+							// before the draws that read their lists —
+							// submission order, never sort-reordered (only
+							// when the clustered path runs: the fallback
+							// frame keeps the pre-B5b view configuration
+							// byte-identical)
+							if (this->m_light_rig.is_clustered_active())
+							{
+								bgfx::setViewMode(
+									pass_id, bgfx::ViewMode::Sequential);
+							}
+						}
+
+						// the fixed scene light (P2g — the FALLBACK
+						// contract since task Z24 B5b: it answers when
+						// the frame collected zero enabled light
+						// components) + the
 						// per-frame camera position for the specular
 						// view vector; uniforms are bgfx frame state
 						// captured at submit, so one fill covers every
@@ -458,6 +559,14 @@ namespace no_streaming
 						{
 							const zircon_render_pass_model_static_draw_item_t&
 								item = this->m_draw_items[draw_index];
+
+							// task Z24 B5b: the fragment stage's light
+							// table + tile lists — RE-BOUND per draw: the
+							// submit's BGFX_DISCARD_ALL drops the binding
+							// table after every item (the always-bound
+							// rule keeps the d3d11 SRV validation quiet in
+							// the fallback mode too)
+							this->m_light_rig.bind_for_draw(pass_id);
 
 							// no culling: the fallback cube reads
 							// double-sided, the pass does not care

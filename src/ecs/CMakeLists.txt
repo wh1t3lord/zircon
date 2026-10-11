@@ -52,6 +52,13 @@ set(to_include_game_ecs_files
 	"zircon_component_csg_primitive.cpp"
 	"zircon_component_csg.h"
 	"zircon_component_csg.cpp"
+	# task Z24 B5b (clustered forward+ lighting): the light component —
+	# appended LAST of the game list (the same append-only rule; the enum
+	# values are runtime-only — scenes AND journaled commands serialize
+	# components by NAME — the sdk trio shifting by one is the CSG
+	# precedent's accepted cost)
+	"zircon_component_light.h"
+	"zircon_component_light.cpp"
 )
 
 set(to_include_game_factory_files 

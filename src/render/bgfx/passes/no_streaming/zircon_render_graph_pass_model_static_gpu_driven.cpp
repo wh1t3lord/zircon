@@ -43,7 +43,9 @@ namespace no_streaming
 		m_first_submit_logged{false},
 		m_first_readback_logged{false},
 		m_last_logged_gpu_count{0xffffffffu},
-		m_last_logged_cpu_count{0xffffffffu}
+		m_last_logged_cpu_count{0xffffffffu},
+		m_synthetic_fixture_active{false},
+		m_fixture_lights_logged{false}
 	{
 	}
 
@@ -131,7 +133,9 @@ namespace no_streaming
 
 		// the cull cbuffer (the six planes as one vec4 array + the meta
 		// vec4) and the LightParams contract (filled identically to
-		// model_static's — the same defines until light components land)
+		// model_static's — the same defines; since task Z24 B5b they are
+		// the FALLBACK light, answering when the frame collects zero
+		// enabled light components)
 		this->m_uniform_cull_planes = bgfx::createUniform("u_cullPlanes",
 			bgfx::UniformType::Vec4, 6);
 		this->m_uniform_cull_meta =
@@ -196,6 +200,35 @@ namespace no_streaming
 			}
 		}
 
+		// task Z24 B5b: the light cluster rig (buffers + uniforms are
+		// created unconditionally; the binning program is optional — a
+		// shader cache predating the pipeline keeps the rig binning-inert
+		// and the frames fall back to the directional)
+		this->m_light_rig.create("[model_static_gpu_driven]");
+
+		{
+			bgfx::ShaderHandle shader_light_bin =
+				this->load_shader_blob("light_cluster_bin.cs.bin");
+
+			if (bgfx::isValid(shader_light_bin))
+			{
+				bgfx::ProgramHandle program_bin =
+					bgfx::createProgram(shader_light_bin, true);
+
+				if (bgfx::isValid(program_bin))
+				{
+					this->m_light_rig.set_binning_program(program_bin);
+				}
+				else
+				{
+					KOTEK_MESSAGE_WARNING(
+						"[model_static_gpu_driven] the light binning "
+						"program failed to link — the clustered path stays "
+						"inactive");
+				}
+			}
+		}
+
 		// task Z24 B4: the BCn texture upload's live proof — the shipped
 		// boot probe uploads with the blocks AS-IS through the no-decode
 		// path (prepare reads + validates through the dispatcher, create
@@ -251,6 +284,8 @@ namespace no_streaming
 	void zircon_render_graph_pass_model_static_gpu_driven_bgfx::
 		OnDestroyResources()
 	{
+		this->m_light_rig.destroy();
+
 		if (bgfx::isValid(this->m_probe_texture))
 		{
 			bgfx::destroy(this->m_probe_texture);
@@ -394,6 +429,11 @@ namespace no_streaming
 						build_synthetic_grid(this->m_chunk_pool,
 							zircon_DEF_RENDER_PASS_GPU_DRIVEN_SYNTHETIC_GRID_SIDE);
 
+					// task Z24 B5b: the fixture boot also collects two
+					// fixture lights per frame (the world has none) so the
+					// GPU binning + the clustered FS run in the A/B boot
+					this->m_synthetic_fixture_active = true;
+
 					KOTEK_MESSAGE(
 						"[model_static_gpu_driven] empty world — the "
 						"synthetic grid fixture fills the pool ({} chunks)",
@@ -463,6 +503,81 @@ namespace no_streaming
 			this->m_chunk_pool.cull_chunks_against_frustum(
 				this->m_cull_planes, this->m_visible_ids,
 				zircon_DEF_RENDER_CHUNK_POOL_MAX_CHUNKS);
+
+		// ---- task Z24 B5b: the per-frame light collection + the binning
+		// ---- drive. Zero collected lights keeps the clustered branch off
+		// ---- (the fallback directional answers — never regressed)
+		{
+			zircon_factory* p_lights_factory = nullptr;
+			zircon_ecs_context_t* p_lights_context = nullptr;
+			kotek::uint32_t lights_scan_limit = 0;
+
+			if (p_world && p_world->is_initialized())
+			{
+				p_lights_factory = p_world->get_factory();
+				p_lights_context = p_world->get_ecs_context();
+				lights_scan_limit = p_world->get_entity_count_max_limit();
+			}
+
+			const kotek::uint32_t light_count =
+				this->m_light_buffer.collect_from_world(p_lights_factory,
+					p_lights_context, lights_scan_limit);
+
+			if (light_count == 0 && this->m_synthetic_fixture_active)
+			{
+				// the fixture boot's two lights: the fallback's own
+				// directional (visual continuity with the zero-light
+				// contract) + one cool point light above the grid — so
+				// the binning dispatch + the clustered FS visibly run
+				const float sun_dir[3] = {0.4969f, -0.7951f, 0.3481f};
+				const float sun_color[3] = {1.0f, 0.95f, 0.85f};
+				const float point_position[3] = {0.0f, 12.0f, 0.0f};
+				const float point_color[3] = {0.35f, 0.55f, 1.0f};
+
+				this->m_light_buffer.append_light(
+					eZirconLightType::kDirectional, nullptr, sun_dir,
+					sun_color, 1.0f, 0.0f, 0.0f, 0.0f);
+				this->m_light_buffer.append_light(eZirconLightType::kPoint,
+					point_position, nullptr, point_color, 4.0f, 45.0f,
+					0.0f, 0.0f);
+
+				if (this->m_fixture_lights_logged == false)
+				{
+					KOTEK_MESSAGE(
+						"[model_static_gpu_driven] the synthetic fixture "
+						"boot collects 2 fixture lights (a directional + a "
+						"point over the grid) — the clustered path runs");
+
+					this->m_fixture_lights_logged = true;
+				}
+			}
+
+			kotek::uint32_t screen_width = 0;
+			kotek::uint32_t screen_height = 0;
+
+			if (this->m_p_manager_main &&
+				this->m_p_manager_main->Get_WindowManager())
+			{
+				const int window_width = this->m_p_manager_main
+											 ->Get_WindowManager()
+											 ->ActiveWindow_GetWidth();
+				const int window_height = this->m_p_manager_main
+											  ->Get_WindowManager()
+											  ->ActiveWindow_GetHeight();
+
+				if (window_width > 0 && window_height > 0)
+				{
+					screen_width =
+						static_cast<kotek::uint32_t>(window_width);
+					screen_height =
+						static_cast<kotek::uint32_t>(window_height);
+				}
+			}
+
+			this->m_light_rig.drive(pass_id, this->m_light_buffer,
+				this->m_cull_planes, view_projection, screen_width,
+				screen_height);
+		}
 
 		// the fixed scene light (the model_static defines) + the camera
 		// position — uniforms are bgfx frame state captured at submit,
@@ -549,6 +664,10 @@ namespace no_streaming
 		// bound whole, the commands carry the ranges
 		bgfx::setVertexBuffer(0, this->m_vertex_pool);
 		bgfx::setIndexBuffer(this->m_index_pool);
+
+		// task Z24 B5b: the fragment stage's light table + tile lists
+		// (bound every frame the pass draws — the always-bound rule)
+		this->m_light_rig.bind_for_draw(pass_id);
 
 		constexpr kotek::uint64_t _kState = BGFX_STATE_WRITE_RGB |
 			BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z |

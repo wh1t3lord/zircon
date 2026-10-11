@@ -145,7 +145,12 @@ add_custom_command(
 #     VS_OUT <csv varyings>
 #     VS_UNIFORMS <spec>...
 #     FS_IN <csv varyings>
-#     FS_UNIFORMS <spec>...)
+#     FS_UNIFORMS <spec>...
+#     FS_UNIFORMS_VULKAN <spec>...)  # storage entries — the vulkan FS pack
+#                                    # only (the d3d11 reader binds SRVs
+#                                    # from the DXBC registers; the compute
+#                                    # function's CS_UNIFORMS_VULKAN is the
+#                                    # precedent, task Z24 B5b)
 set(ZIRCON_SLANG_SHADER_DIR "${CMAKE_SOURCE_DIR}/data_game/shaders/slang")
 set(ZIRCON_SHADER_CACHE_DIR "${CMAKE_SOURCE_DIR}/data_user/shader_cache")
 set(ZIRCON_SHADER_SPV_DIR "${CMAKE_BINARY_DIR}/generated/shaders")
@@ -158,7 +163,7 @@ file(MAKE_DIRECTORY
 set(ZIRCON_SHADER_OUTPUTS "")
 
 function(zircon_add_slang_shader name)
-	cmake_parse_arguments(ZS "" "VS_IN;VS_OUT;FS_IN" "VS_UNIFORMS;FS_UNIFORMS" ${ARGN})
+	cmake_parse_arguments(ZS "" "VS_IN;VS_OUT;FS_IN" "VS_UNIFORMS;FS_UNIFORMS;FS_UNIFORMS_VULKAN" ${ARGN})
 
 	foreach(stage vs fs)
 		string(TOUPPER "${stage}" STAGE)
@@ -193,6 +198,15 @@ function(zircon_add_slang_shader name)
 			list(APPEND pack_uniforms --uniform "${spec}")
 		endforeach()
 
+		# the vulkan pack additionally carries the storage table (the
+		# vulkan descriptor layout is built from it — renderer_vk.cpp's
+		# UniformType::End branch); the d3d11 pack omits it exactly like
+		# shaderc's hlsl route does
+		set(pack_uniforms_vulkan ${pack_uniforms})
+		foreach(spec IN LISTS ZS_${STAGE}_UNIFORMS_VULKAN)
+			list(APPEND pack_uniforms_vulkan --uniform "${spec}")
+		endforeach()
+
 		add_custom_command(
 			OUTPUT "${bgfx_bin}" "${nri_dxil}"
 			# bgfx (vulkan): SPIR-V blob -> bgfx .bin container
@@ -201,7 +215,7 @@ function(zircon_add_slang_shader name)
 				-o "${spv_file}"
 			COMMAND "${ZIRCON_SHADERPACK_EXE}"
 				--type ${pack_type} --input "${spv_file}" --output "${bgfx_bin}"
-				${pack_names} ${pack_uniforms}
+				${pack_names} ${pack_uniforms_vulkan}
 			# NRI (dx12): raw DXIL blob, no container
 			COMMAND "${ZIRCON_SLANGC}" "${slang_file}"
 				-entry ${stage}_main -target dxil -profile sm_6_0
@@ -258,7 +272,10 @@ endfunction()
 
 # registry: one call per shader (metadata mirrors the .slang sources)
 # model_static: forward-Phong lit static geometry (task Z3 P2g) — the FS
-# LightParams cbuffer holds the four pass-written light uniforms
+# LightParams cbuffer holds the four pass-written light uniforms + the B5b
+# cluster meta vec4; the FS reads the frame's light table + tile lists
+# through 6 SRVs (task Z24 B5b — vulkan storage table entries at bindings
+# 2..7 = stages 0..5)
 zircon_add_slang_shader(model_static
 	VS_IN "a_position,a_normal,a_color0"
 	VS_OUT "v_worldPos,v_normal,v_color0"
@@ -271,12 +288,21 @@ zircon_add_slang_shader(model_static
 		"u_lightColor:vec4:16:1"
 		"u_ambient:vec4:32:1"
 		"u_cameraPos:vec4:48:1"
+		"u_lightClusterInfo:vec4:64:1"
+	FS_UNIFORMS_VULKAN
+		"u_lightPositions:storagebuffer_ro:2:0"
+		"u_lightDirections:storagebuffer_ro:3:0"
+		"u_lightColors:storagebuffer_ro:4:0"
+		"u_lightParams:storagebuffer_ro:5:0"
+		"u_lightTileCounts:storagebuffer_ro:6:0"
+		"u_lightTileIndices:storagebuffer_ro:7:0"
 )
 # model_static_gpu_driven (task Z24 B1): the GPU-driven chunked path's
 # draw pair. The VS carries no model matrix (chunk transforms are baked
 # into the shared pool at registration) — only u_viewProj; the FS is the
 # model_static forward-Phong contract verbatim (shared lighting code,
-# same LightParams layout/binding discipline)
+# same LightParams layout/binding discipline) + the same B5b clustered
+# extension
 zircon_add_slang_shader(model_static_gpu_driven
 	VS_IN "a_position,a_normal,a_color0"
 	VS_OUT "v_worldPos,v_normal,v_color0"
@@ -288,6 +314,14 @@ zircon_add_slang_shader(model_static_gpu_driven
 		"u_lightColor:vec4:16:1"
 		"u_ambient:vec4:32:1"
 		"u_cameraPos:vec4:48:1"
+		"u_lightClusterInfo:vec4:64:1"
+	FS_UNIFORMS_VULKAN
+		"u_lightPositions:storagebuffer_ro:2:0"
+		"u_lightDirections:storagebuffer_ro:3:0"
+		"u_lightColors:storagebuffer_ro:4:0"
+		"u_lightParams:storagebuffer_ro:5:0"
+		"u_lightTileCounts:storagebuffer_ro:6:0"
+		"u_lightTileIndices:storagebuffer_ro:7:0"
 )
 
 # editor infinite grid (task Z3 P2d): vertex-id fullscreen triangle (no
@@ -477,6 +511,32 @@ zircon_add_slang_compute_shader(meshlet_cluster_cull
 		"u_clusterTable:storagebuffer_ro:1:0"
 		"u_indirectCommands:storagebuffer:2:0"
 		"u_visibleCount:storagebuffer:3:0"
+)
+
+# light cluster binning (task Z24 B5b): the clustered forward+ light-to-
+# tile assignment of the game passes. The LightBinParams cbuffer carries
+# the six frustum planes (vec4 x6 = 96 bytes) + the view-projection (the 4
+# float4 groups at offset 96) + the screen meta vec4 (offset 160: x/y =
+# the backbuffer size in px, z/w = tiles_x/tiles_y bits) + the bin meta
+# vec4 (offset 176: x = light count, y = kernel mode, z = tile pixels, w =
+# per-tile cap); the vulkan storage table binds the three light streams
+# (bindings 2-4, read-only), the tile counts + compacted index lists +
+# the bin counters (bindings 5-7, read-write) and the 2x1 R32U stats image
+# (binding 8; tex component Uint=2, dimension 2D=2, format R32U=48)
+zircon_add_slang_compute_shader(light_cluster_bin
+	CS_UNIFORMS
+		"u_cullPlanes:vec4:0:6:6"
+		"u_lightViewProj:vec4:96:4:4"
+		"u_screenMeta:vec4:160:1"
+		"u_binMeta:vec4:176:1"
+	CS_UNIFORMS_VULKAN
+		"u_lightPositions:storagebuffer_ro:2:0"
+		"u_lightDirections:storagebuffer_ro:3:0"
+		"u_lightParams:storagebuffer_ro:4:0"
+		"u_lightTileCounts:storagebuffer:5:0"
+		"u_lightTileIndices:storagebuffer:6:0"
+		"u_binCounters:storagebuffer:7:0"
+		"u_statsImage:storageimage:8:0:0:2:2:48"
 )
 
 add_custom_target(zircon_shaders DEPENDS ${ZIRCON_SHADER_OUTPUTS})

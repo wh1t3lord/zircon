@@ -17,6 +17,9 @@
 #include "zircon_component_csg_primitive.h"
 #include "zircon_component_csg.h"
 
+// light (task Z24 B5b)
+#include "zircon_component_light.h"
+
 // render
 #include "zircon_component_bounding_sphere.h"
 

@@ -4,6 +4,12 @@
 
 #include "../../../../core/zircon_gltf_loader.h"
 #include "../../../../ecs/zircon_component_geometry.h"
+// task Z24 B5b: the clustered forward+ lighting — the per-frame light
+// table + this pass's GPU rig (the binning dispatch + the fragment-stage
+// light lists); zero collected lights = the fallback directional below,
+// never regressed
+#include "zircon_render_light_buffer.h"
+#include "zircon_render_light_cluster_rig.h"
 
 class zircon_factory;
 struct zircon_ecs_context_t;
@@ -26,8 +32,10 @@ struct zircon_ecs_context_t;
 
 // the fixed scene light of the forward-Phong shading (P2g): ONE
 // directional light + ambient, uploaded to the FS cbuffer (LightParams)
-// every frame from these defines until light components land (a later
-// task — the pass is the only consumer, so the swap is local). The
+// every frame from these defines — since task Z24 B5b this is the
+// FALLBACK contract: it answers exactly when the frame collected zero
+// enabled light components (the clustered path replaces it otherwise),
+// so the pre-B5b behavior never regresses. The
 // direction points FROM the light (the way the light travels; the pass
 // normalizes it on upload), the color is a warm white, the ambient a
 // 0.15 neutral floor so backfaces stay readable
@@ -195,6 +203,11 @@ namespace no_streaming
 		bgfx::UniformHandle m_uniform_light_color;
 		bgfx::UniformHandle m_uniform_ambient;
 		bgfx::UniformHandle m_uniform_camera_pos;
+		// task Z24 B5b: the clustered forward+ lighting — the frame's
+		// light table + the GPU rig (the binning dispatches + the
+		// fragment-stage light lists)
+		zircon_render_light_buffer m_light_buffer;
+		zircon_render_light_cluster_rig m_light_rig;
 		// the pass is inert (renders nothing) until its compiled program
 		// exists (e.g. the shader pipeline has not produced the blobs
 		// yet) — tracks the one-time warning so the log is not spammed

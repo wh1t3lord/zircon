@@ -145,6 +145,16 @@ set(to_include_bgfx_game_passes_no_streaming_files
 	# the shared B1 pool (consumed by the gpu-driven pass's collect)
 	"bgfx/passes/no_streaming/zircon_render_terrain_chunks.h"
 	"bgfx/passes/no_streaming/zircon_render_terrain_chunks.cpp"
+	# task Z24 B5b: the clustered forward+ lighting — the bgfx-free
+	# per-frame light table (the AoSoA streams + the classification +
+	# the serial binning mirror, the tests' seam) and the bgfx-side GPU
+	# rig (the light-table buffers, the binning dispatches, the
+	# fragment-stage list bindings, the A/B stats readback hop) — both
+	# game passes own one of each
+	"bgfx/passes/no_streaming/zircon_render_light_buffer.h"
+	"bgfx/passes/no_streaming/zircon_render_light_buffer.cpp"
+	"bgfx/passes/no_streaming/zircon_render_light_cluster_rig.h"
+	"bgfx/passes/no_streaming/zircon_render_light_cluster_rig.cpp"
 )
 
 set(to_include_bgfx_editor_passes_no_streaming_files

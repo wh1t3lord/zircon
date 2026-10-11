@@ -58,6 +58,11 @@
 #include "zircon_render_chunk_pool.h"
 #include "zircon_render_terrain_chunks.h"
 #include "zircon_render_texture_bcn.h"
+// task Z24 B5b: the clustered forward+ lighting — the per-frame light
+// table (bgfx-free) + this pass's GPU rig (the binning dispatch + the
+// fragment-stage light lists)
+#include "zircon_render_light_buffer.h"
+#include "zircon_render_light_cluster_rig.h"
 
 class zircon_factory;
 struct zircon_ecs_context_t;
@@ -210,6 +215,23 @@ namespace no_streaming
 		bgfx::UniformHandle m_uniform_light_color;
 		bgfx::UniformHandle m_uniform_ambient;
 		bgfx::UniformHandle m_uniform_camera_pos;
+
+		// task Z24 B5b: the clustered forward+ lighting — the frame's
+		// light table (collected per frame from the world's enabled
+		// zircon_component_light instances; the synthetic-fixture boot
+		// fills two fixture lights instead, below) and the GPU rig (the
+		// binning dispatches + the fragment-stage lists). With ZERO
+		// collected lights the rig keeps the clustered branch off and the
+		// fragment runs the fallback directional (the pre-B5b behavior,
+		// never regressed)
+		zircon_render_light_buffer m_light_buffer;
+		zircon_render_light_cluster_rig m_light_rig;
+		// the empty-world fixture latch (the B1 scope note's synthetic
+		// grid): set when the one-shot chunk collect found no world chunks
+		// — the fixture boots then collect two fixture lights per frame so
+		// the GPU binning + the clustered FS visibly run in the A/B boot
+		bool m_synthetic_fixture_active;
+		bool m_fixture_lights_logged;
 
 		// the one-shot collection latch (B1 scope note above)
 		bool m_chunks_collected;

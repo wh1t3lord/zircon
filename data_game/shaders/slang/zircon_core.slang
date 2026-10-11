@@ -76,6 +76,71 @@ float3 zircon_evaluate_phong(float3 normal, float3 light_dir_from,
 	return saturate(ambient_rgb + light_color_rgb * (ndotl + specular));
 }
 
+// ---------------------------------------------------------------------------
+// task Z24 B5b — the clustered forward+ per-light evaluators. The game
+// fragment stages (model_static.fs.slang, model_static_gpu_driven.fs.slang)
+// call these while iterating their screen-tile's light list; the CPU mirrors
+// live in zircon_render_light_buffer (evaluate_*_diffuse — the unit tests pin
+// them, keep all four in sync). The clamping discipline: saturate per factor
+// per light (ndotl, the range window, the cone window); the caller saturates
+// ambient + the accumulated sum. All directions are normalized by the caller
+// (the collection normalizes the light direction; the fragment normalizes the
+// interpolated normal). light_dir_from points the way the light travels (FROM
+// the light), the zircon_evaluate_phong convention.
+//
+// the light type values mirror eZirconLightType
+// (src/ecs/zircon_component_light.h) — the GPU table carries them as the
+// params stream's z lane u32 bit pattern; keep the two in sync
+static const uint kZirconLightType_Directional = 0;
+static const uint kZirconLightType_Point = 1;
+static const uint kZirconLightType_Spot = 2;
+
+// the directional list light: Lambert only — diffuse per light (the
+// fallback path's specular stays the fallback's alone this phase)
+float3 zircon_evaluate_directional_light_diffuse(float3 normal,
+	float3 light_dir_from, float3 light_color_rgb)
+{
+	return light_color_rgb * saturate(dot(normal, -light_dir_from));
+}
+
+// the point light: Lambert x the linear-saturated range window
+// (1 - dist/range). The direction is singular at the light's exact
+// position — the max() guard makes the degenerate overlap contribute 0
+// (deterministic, documented in the mirror)
+float3 zircon_evaluate_point_light_diffuse(float3 normal, float3 world_pos,
+	float3 light_pos, float3 light_color_rgb, float range)
+{
+	float3 to_light = light_pos - world_pos;
+	float dist = length(to_light);
+	float3 dir_to = to_light * (1.0 / max(dist, 1e-6));
+
+	float ndotl = saturate(dot(normal, dir_to));
+	float attenuation = saturate(1.0 - dist / range);
+
+	return light_color_rgb * (ndotl * attenuation);
+}
+
+// the spot light: the point term x the cone window saturate((cos_angle -
+// cos_outer) / (cos_inner - cos_outer)) where cos_angle is the angle between
+// the apex->fragment direction and the cone axis
+float3 zircon_evaluate_spot_light_diffuse(float3 normal, float3 world_pos,
+	float3 light_pos, float3 light_dir_from, float3 light_color_rgb,
+	float range, float cos_inner, float cos_outer)
+{
+	float3 to_light = light_pos - world_pos;
+	float dist = length(to_light);
+	float3 dir_to = to_light * (1.0 / max(dist, 1e-6));
+
+	float ndotl = saturate(dot(normal, dir_to));
+	float attenuation = saturate(1.0 - dist / range);
+
+	float cos_angle = dot(-dir_to, light_dir_from);
+	float cone = saturate(
+		(cos_angle - cos_outer) / max(cos_inner - cos_outer, 1e-5));
+
+	return light_color_rgb * (ndotl * attenuation * cone);
+}
+
 // model_static: forward-Phong static geometry, per-vertex normal + color
 // (game pass "model_static", task Z3 P2b unlit -> P2g lit — Slang port of
 // data_game/shaders/bgfx/model_static, with explicit u_model/u_viewProj
