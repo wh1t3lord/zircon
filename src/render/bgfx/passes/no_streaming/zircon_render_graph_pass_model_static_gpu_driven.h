@@ -56,6 +56,7 @@
 
 #include "../../../../core/zircon_gltf_loader.h"
 #include "zircon_render_chunk_pool.h"
+#include "zircon_render_terrain_chunks.h"
 #include "zircon_render_texture_bcn.h"
 
 class zircon_factory;
@@ -140,6 +141,19 @@ namespace no_streaming
 		// entity's model matrix and baked). Returns the registered count
 		kotek::uint32_t collect_chunks_from_world(zircon_factory* p_factory,
 			zircon_ecs_context_t* p_context,
+			kotek::uint32_t entity_count_max_limit) noexcept;
+
+		// the terrain branch of the one-shot collect (task Z24 B5a):
+		// every live entity with an ENABLED zircon_component_terrain_static
+		// loads its heightmap through the dispatcher and builds its chunk
+		// grid into the SAME pool (zircon_render_terrain_chunks — see its
+		// header for the intake format and the no-cracks seam policy); the
+		// entity transform bakes when present (terrain without a transform
+		// is identity). A missing/invalid heightmap or an over-budget
+		// terrain is loud-absent, never a boot failure. Returns the
+		// registered chunk count
+		kotek::uint32_t collect_terrain_chunks_from_world(
+			zircon_factory* p_factory, zircon_ecs_context_t* p_context,
 			kotek::uint32_t entity_count_max_limit) noexcept;
 
 		// the camera resolution, mirrored from model_static's OnRender:
@@ -230,6 +244,16 @@ namespace no_streaming
 		zircon_gltf_mesh_t m_mesh_scratch;
 		kotek::uint8_t m_mesh_file_buffer
 			[zircon_DEF_RENDER_PASS_MODEL_STATIC_MESH_FILE_MAX_SIZE];
+		// the terrain collect scratch (task Z24 B5a): the heightfield
+		// intake buffer (the format's byte cap) + the per-chunk build
+		// scratch the builder reuses per cell — member storage per the
+		// fixture rule (the pass is heap-created by the pass factory)
+		kotek::uint8_t m_terrain_file_buffer
+			[zircon_DEF_TERRAIN_HEIGHTFIELD_MAX_BYTES];
+		zircon_model_static_vertex_t m_terrain_vertex_scratch
+			[zircon_DEF_TERRAIN_CHUNK_MAX_VERTICES];
+		kotek::uint16_t m_terrain_index_scratch
+			[zircon_DEF_TERRAIN_CHUNK_MAX_INDICES];
 		// the per-chunk registration scratch (one submesh's worth — the
 		// loader's caps bound it)
 		zircon_model_static_vertex_t m_chunk_vertex_scratch

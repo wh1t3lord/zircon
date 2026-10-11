@@ -139,6 +139,12 @@ set(to_include_bgfx_game_passes_no_streaming_files
 	# the blocks AS-IS); bgfx-free parse reused from zircon.core
 	"bgfx/passes/no_streaming/zircon_render_texture_bcn.h"
 	"bgfx/passes/no_streaming/zircon_render_texture_bcn.cpp"
+	# task Z24 B5a: the static heightfield terrain's chunk builder —
+	# bgfx-free (the chunk pool's discipline): the RAW heightmap intake
+	# through the dispatcher + the no-cracks grid-mesh chunk build into
+	# the shared B1 pool (consumed by the gpu-driven pass's collect)
+	"bgfx/passes/no_streaming/zircon_render_terrain_chunks.h"
+	"bgfx/passes/no_streaming/zircon_render_terrain_chunks.cpp"
 )
 
 set(to_include_bgfx_editor_passes_no_streaming_files

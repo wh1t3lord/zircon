@@ -6,7 +6,11 @@
 
 #include "zircon_component_interface.h"
 
-// this component defines the fact that entity is about terrain
+// STUB (task Z24): the GCM terrain — geometry clipmaps — is the planned
+// CPU-side fallback tessellation of the same era as the CBT upgrade
+// (B5b+). The correctness/proof floor that actually renders today is
+// zircon_component_terrain_static (the static heightfield chunked into
+// the B1 GPU-driven pool — see its header). Do NOT implement GCM here.
 class zircon_component_terrain_gcm : public zircon_component_interface
 {
 public:

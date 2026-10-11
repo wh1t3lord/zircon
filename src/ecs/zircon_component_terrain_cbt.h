@@ -6,7 +6,13 @@
 
 #include "zircon_component_interface.h"
 
-// this component defines the fact that entity is about terrain
+// STUB (task Z24): the CBT terrain — GPU concurrent-binary-tree
+// tessellation, the modern open-world answer — is the PLANNED
+// tessellation upgrade (B5b+) over the static chunk grid. The
+// correctness/proof floor that actually renders today is
+// zircon_component_terrain_static (the static heightfield chunked into
+// the B1 GPU-driven pool — see its header for the format and the build
+// path). Do NOT implement CBT here until B5b.
 class zircon_component_terrain_cbt : public zircon_component_interface
 {
 public:

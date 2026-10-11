@@ -976,6 +976,147 @@ namespace no_streaming
 			}
 		}
 
+		// task Z24 B5a: the terrain branch — the static heightfield
+		// terrain is chunk content like everything else (a separate scan:
+		// a terrain entity needs no geometry component)
+		registered_count += this->collect_terrain_chunks_from_world(
+			p_factory, p_context, entity_count_max_limit);
+
+		return registered_count;
+	}
+
+	kotek::uint32_t zircon_render_graph_pass_model_static_gpu_driven_bgfx::
+		collect_terrain_chunks_from_world(zircon_factory* p_factory,
+			zircon_ecs_context_t* p_context,
+			kotek::uint32_t entity_count_max_limit) noexcept
+	{
+		kotek::core::ktkIFileSystem* p_filesystem =
+			this->m_p_manager_main ? this->m_p_manager_main->GetFileSystem()
+								   : nullptr;
+
+		if (p_filesystem == nullptr)
+			return 0;
+
+		kotek::entity_t entity_ids
+			[zircon_DEF_RENDER_PASS_GPU_DRIVEN_MAX_ENTITY_SCAN];
+
+		const kotek::uint32_t entity_count = p_factory->get_all_entities(
+			p_context, entity_count_max_limit, entity_ids,
+			zircon_DEF_RENDER_PASS_GPU_DRIVEN_MAX_ENTITY_SCAN);
+
+		kotek::uint32_t registered_count = 0;
+
+		for (kotek::uint32_t entity_index = 0;
+			 entity_index < entity_count; ++entity_index)
+		{
+			const kotek::entity_t& entity = entity_ids[entity_index];
+
+			if (p_factory->has_component(p_context, entity,
+					eZirconComponentType::kzircon_component_terrain_static) ==
+				false)
+			{
+				continue;
+			}
+
+			zircon_component_terrain_static* p_terrain =
+				static_cast<zircon_component_terrain_static*>(
+					p_factory->get_component_by_enum(p_context, entity,
+						eZirconComponentType::
+							kzircon_component_terrain_static));
+
+			if (p_terrain == nullptr || p_terrain->is_enabled() == false)
+				continue;
+
+			// an unconfigured terrain (no heightmap source) is a silent
+			// skip, not a warning — the descriptor simply names nothing
+			if (p_terrain->get_heightmap_path()[0] == '\0')
+				continue;
+
+			// the entity transform bakes when present (terrain without a
+			// transform is identity — the grid centers on the local XZ
+			// origin, so the transform places the center)
+			float terrain_model[16];
+			const float* p_terrain_model = nullptr;
+
+			if (p_factory->has_component(p_context, entity,
+					eZirconComponentType::kzircon_component_transform))
+			{
+				zircon_component_transform* p_transform =
+					static_cast<zircon_component_transform*>(
+						p_factory->get_component_by_enum(p_context, entity,
+							eZirconComponentType::kzircon_component_transform));
+
+				if (p_transform && p_transform->is_enabled())
+				{
+					const kotek::math::vec3f_t& position =
+						p_transform->get_position();
+					const kotek::math::quatf_t& rotation =
+						p_transform->get_rotation();
+					const kotek::math::vec3f_t& scale =
+						p_transform->get_scale();
+
+					const float position_xyz[3] = {position.x(),
+						position.y(), position.z()};
+					const float rotation_xyzw[4] = {rotation.x(),
+						rotation.y(), rotation.z(), rotation.w()};
+					const float scale_xyz[3] = {
+						scale.x(), scale.y(), scale.z()};
+
+					compose_model_matrix(position_xyz, rotation_xyzw,
+						scale_xyz, terrain_model);
+
+					p_terrain_model = terrain_model;
+				}
+			}
+
+			// the content-root resolution (the folder doctrine — the
+			// component's path is relative to data_game, e.g.
+			// "terrain/heightmaps/island.r16")
+			kotek::static_path_t heightmap_path;
+
+			kotek::core::path_for(p_filesystem,
+				kotek::core::eFolderIndex::kFolderIndex_DataGame,
+				p_terrain->get_heightmap_path(), heightmap_path);
+
+			zircon_terrain_heightfield_view_t heightfield;
+
+			if (zircon_terrain_load_heightfield(p_filesystem,
+					heightmap_path, p_terrain->get_heightmap_format(),
+					p_terrain->get_resolution_x(),
+					p_terrain->get_resolution_y(), this->m_terrain_file_buffer,
+					sizeof(this->m_terrain_file_buffer), heightfield) == false)
+			{
+				// loud already (the loader's lines) — the terrain is
+				// absent, the rest of the world still collects
+				continue;
+			}
+
+			const kotek::uint32_t terrain_chunks =
+				zircon_terrain_build_chunks(this->m_chunk_pool, heightfield,
+					p_terrain->get_world_size_x(),
+					p_terrain->get_world_size_z(),
+					p_terrain->get_height_scale(), 0, p_terrain_model,
+					this->m_terrain_vertex_scratch,
+					this->m_terrain_index_scratch);
+
+			if (terrain_chunks)
+			{
+				KOTEK_MESSAGE(
+					"[model_static_gpu_driven] terrain '{}': {} chunks "
+					"({}x{} texels, {}x{} m, height scale {})",
+					p_terrain->get_heightmap_path(), terrain_chunks,
+					static_cast<kotek::uint32_t>(
+						p_terrain->get_resolution_x()),
+					static_cast<kotek::uint32_t>(
+						p_terrain->get_resolution_y()),
+					p_terrain->get_world_size_x(),
+					p_terrain->get_world_size_z(),
+					p_terrain->get_height_scale());
+
+				registered_count += terrain_chunks;
+			}
+		}
+
 		return registered_count;
 	}
 
