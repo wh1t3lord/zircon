@@ -10,6 +10,11 @@
 // never regressed
 #include "zircon_render_light_buffer.h"
 #include "zircon_render_light_cluster_rig.h"
+// task Z24 B5c: the inert CSM contract's capacity define
+// (ZIRCON_DEF_SHADOW_CASCADE_COUNT — the FS's cascade array size + the
+// dummy texture's layer count; the pass carries no shadow maps — see the
+// members' comment)
+#include "zircon_render_shadow_cascade.h"
 
 class zircon_factory;
 struct zircon_ecs_context_t;
@@ -208,6 +213,20 @@ namespace no_streaming
 		// fragment-stage light lists)
 		zircon_render_light_buffer m_light_buffer;
 		zircon_render_light_cluster_rig m_light_rig;
+		// task Z24 B5c: the FS's CSM contract satisfied INERTLY — this
+		// CPU A/B path carries no shadow maps (scope item 3 assigns the
+		// depth draw to the chunk pool of the gpu-driven sibling), so the
+		// four shadow cbuffer members are created (the shader declares
+		// them — an uncreated named uniform warns at shader load) but only
+		// u_shadowMeta is ever set (zero = the factor-1.0 path, the
+		// pre-B5c output byte-identical), and stage 6 binds a 1x1x4 R32F
+		// dummy (the always-bound rule: a declared-but-unbound
+		// Texture2DArray trips the d3d11 validation)
+		bgfx::UniformHandle m_uniform_shadow_cascade_view_proj;
+		bgfx::UniformHandle m_uniform_shadow_split_far;
+		bgfx::UniformHandle m_uniform_shadow_meta;
+		bgfx::UniformHandle m_uniform_shadow_map;
+		bgfx::TextureHandle m_shadow_dummy_texture;
 		// the pass is inert (renders nothing) until its compiled program
 		// exists (e.g. the shader pipeline has not produced the blobs
 		// yet) — tracks the one-time warning so the log is not spammed

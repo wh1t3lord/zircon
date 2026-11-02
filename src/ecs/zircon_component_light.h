@@ -91,6 +91,14 @@ public:
 	float get_spot_outer_angle_degrees(void) const noexcept;
 	void set_spot_angles_degrees(float inner_degrees, float outer_degrees) noexcept;
 
+	// task Z24 B5c: the shadow-caster flag (flags bit 0, the B5b pre-wire
+	// gone live). Only a kDirectional light with it set produces shadow
+	// cascades (the first one in the frame's collection wins; spot/point
+	// shadow atlases are the deferred B5c+ phase — the flag is stored for
+	// them but has no consumer yet). Default true (the sun's job)
+	bool is_shadow_caster(void) const noexcept;
+	void set_shadow_caster(bool status) noexcept;
+
 private:
 	bool m_is_enabled;
 	eZirconLightType m_light_type;
@@ -99,6 +107,10 @@ private:
 	float m_range;
 	float m_spot_inner_angle_degrees;
 	float m_spot_outer_angle_degrees;
+	// the u8 flag word (rule 9: smallest types); bit 0 = casts_shadow
+	// (see is_shadow_caster). Serialized; an absent json key keeps the
+	// default (the B5b-era content contract)
+	kotek::uint8_t m_flags;
 };
 
 #ifdef KOTEK_USE_NOT_CUSTOM_LIBRARY
@@ -135,6 +147,8 @@ inline void tag_invoke(const kotek::ktk::json::value_from_tag&,
 		data.get_spot_inner_angle_degrees();
 	light[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_LIGHT_FIELD_M_SPOT_OUTER_ANGLE_DEGREES] =
 		data.get_spot_outer_angle_degrees();
+	light[ZIRCON_DEF_GAME_ZIRCON_COMPONENT_LIGHT_FIELD_M_FLAGS] =
+		data.is_shadow_caster();
 
 	write_to = light;
 }
@@ -183,6 +197,14 @@ inline zircon_component_light tag_invoke(
 		light
 			.at(ZIRCON_DEF_GAME_ZIRCON_COMPONENT_LIGHT_FIELD_M_SPOT_OUTER_ANGLE_DEGREES)
 			.to_number<float>());
+
+	// task Z24 B5c: the shadow-caster flag — an absent key (content written
+	// before the flag existed) keeps the constructor default
+	if (const auto* p_flags = light.if_contains(
+			ZIRCON_DEF_GAME_ZIRCON_COMPONENT_LIGHT_FIELD_M_FLAGS))
+	{
+		result.set_shadow_caster(p_flags->as_bool());
+	}
 
 	return result;
 }

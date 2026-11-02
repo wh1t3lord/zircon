@@ -73,6 +73,7 @@ else()
 		"tests/zircon_unit_tests_texture_bcn.cpp"
 		"tests/zircon_unit_tests_terrain.cpp"
 		"tests/zircon_unit_tests_light.cpp"
+		"tests/zircon_unit_tests_shadow.cpp"
 	)
 
 	# task Z24 B4: the vendored single-file BCn encoder/decoder — the

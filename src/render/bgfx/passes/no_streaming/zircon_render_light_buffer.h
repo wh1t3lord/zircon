@@ -39,9 +39,11 @@
 //                   in/out, asuint on the shader side);
 //   types[i]/flags[i] = the narrow CPU-side semantic records (the serial
 //                   binning mirror reads types[]; flags bit 0 is the
-//                   RESERVED shadow-caster pre-wire for B5c, always 0
-//                   this phase — same posture as the chunk pool's
-//                   material-id lane in B1).
+//                   shadow-caster flag — task Z24 B5c went live: set from
+//                   the component's casts_shadow at collection, consumed
+//                   by find_shadow_caster (the first directional with it
+//                   feeds the CSM rig; the chunk-pool material-id lane
+//                   stays the posture precedent).
 
 #include "../../../../ecs/zircon_component_light.h"
 
@@ -98,6 +100,13 @@ struct zircon_light_bin_stats_t
 class zircon_render_light_buffer
 {
 public:
+	// the no-caster sentinel of find_shadow_caster (a table index is
+	// always < ZIRCON_DEF_LIGHT_MAX_COUNT)
+	static constexpr kotek::uint32_t kNoShadowCaster = 0xffffffffu;
+	// flags bit 0: the light casts shadows (task Z24 B5c — consumed for
+	// kDirectional only this phase; the spot/point atlases are deferred)
+	static constexpr kotek::uint8_t kLightFlagCastsShadow = 1 << 0;
+
 	zircon_render_light_buffer(void);
 	~zircon_render_light_buffer(void) = default;
 
@@ -119,11 +128,20 @@ public:
 	// nullptr = the identity forward (0,0,-1)), color x intensity
 	// premultiplies into the color stream, the spot angles are DEGREES
 	// clamped per the component's contract (inner <= outer, [0, 179]).
+	// flags = the narrow flag word (kLightFlag*; 0 = none).
 	// false = the table is full (the overflow latch is the collection's)
 	bool append_light(eZirconLightType type, const float* p_position_xyz,
 		const float* p_dir_from_xyz, const float* p_color_rgb,
 		float intensity, float range, float spot_inner_degrees,
-		float spot_outer_degrees) noexcept;
+		float spot_outer_degrees, kotek::uint8_t flags = 0) noexcept;
+
+	// the B5c caster resolution: the index (into the table's streams) of
+	// the FIRST directional light with kLightFlagCastsShadow — the sun's
+	// CSM source. kNoShadowCaster when none qualifies (the factor-1.0
+	// frame). More than one qualifying directional: the first wins and the
+	// rest are ignored with ONE warning (a member latch — the collection
+	// runs per frame, never log spam)
+	kotek::uint32_t find_shadow_caster(void) noexcept;
 
 	void clear(void) noexcept;
 
@@ -259,6 +277,9 @@ private:
 	bool m_is_warned_about_overflow;
 	// the unknown-type degradation's latch (same per-frame discipline)
 	bool m_is_warned_about_type;
+	// the multiple-shadow-casters latch (find_shadow_caster: the first
+	// directional caster wins, the rest are noted once)
+	bool m_is_warned_about_multi_caster;
 };
 
 // the GPU/CPU layout contract (the shaders read the streams byte-exact)

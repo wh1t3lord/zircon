@@ -273,9 +273,14 @@ endfunction()
 # registry: one call per shader (metadata mirrors the .slang sources)
 # model_static: forward-Phong lit static geometry (task Z3 P2g) — the FS
 # LightParams cbuffer holds the four pass-written light uniforms + the B5b
-# cluster meta vec4; the FS reads the frame's light table + tile lists
-# through 6 SRVs (task Z24 B5b — vulkan storage table entries at bindings
-# 2..7 = stages 0..5)
+# cluster meta vec4 + the B5c shadow extension (the four cascade VPs, the
+# split thresholds, the shadow meta, the predefined u_view); the FS reads
+# the frame's light table + tile lists through 6 SRVs (task Z24 B5b —
+# vulkan storage table entries at bindings 2..7 = stages 0..5) and the CSM
+# depth array through the stage-6 sampler (task Z24 B5c — vulkan binding
+# 8, texDimension 3 = 2D array; the d3d11 pack omits the sampler entry:
+# the d3d11 reader skips sampler uniforms and binds SRV/sampler by stage
+# from the DXBC registers)
 zircon_add_slang_shader(model_static
 	VS_IN "a_position,a_normal,a_color0"
 	VS_OUT "v_worldPos,v_normal,v_color0"
@@ -289,6 +294,10 @@ zircon_add_slang_shader(model_static
 		"u_ambient:vec4:32:1"
 		"u_cameraPos:vec4:48:1"
 		"u_lightClusterInfo:vec4:64:1"
+		"u_shadowCascadeViewProj:mat4:80:16:4"
+		"u_shadowSplitFar:vec4:336:1"
+		"u_shadowMeta:vec4:352:1"
+		"u_view:mat4:368:4"
 	FS_UNIFORMS_VULKAN
 		"u_lightPositions:storagebuffer_ro:2:0"
 		"u_lightDirections:storagebuffer_ro:3:0"
@@ -296,6 +305,7 @@ zircon_add_slang_shader(model_static
 		"u_lightParams:storagebuffer_ro:5:0"
 		"u_lightTileCounts:storagebuffer_ro:6:0"
 		"u_lightTileIndices:storagebuffer_ro:7:0"
+		"u_shadowMap:sampler:8:0:0:0:3:0"
 )
 # model_static_gpu_driven (task Z24 B1): the GPU-driven chunked path's
 # draw pair. The VS carries no model matrix (chunk transforms are baked
@@ -315,6 +325,10 @@ zircon_add_slang_shader(model_static_gpu_driven
 		"u_ambient:vec4:32:1"
 		"u_cameraPos:vec4:48:1"
 		"u_lightClusterInfo:vec4:64:1"
+		"u_shadowCascadeViewProj:mat4:80:16:4"
+		"u_shadowSplitFar:vec4:336:1"
+		"u_shadowMeta:vec4:352:1"
+		"u_view:mat4:368:4"
 	FS_UNIFORMS_VULKAN
 		"u_lightPositions:storagebuffer_ro:2:0"
 		"u_lightDirections:storagebuffer_ro:3:0"
@@ -322,6 +336,20 @@ zircon_add_slang_shader(model_static_gpu_driven
 		"u_lightParams:storagebuffer_ro:5:0"
 		"u_lightTileCounts:storagebuffer_ro:6:0"
 		"u_lightTileIndices:storagebuffer_ro:7:0"
+		"u_shadowMap:sampler:8:0:0:0:3:0"
+)
+
+# shadow depth pair (task Z24 B5c): the CSM cascade depth-only draw of the
+# GPU-driven path — position-only VS through the cascade's VP (the
+# predefined u_viewProj, filled from the cascade view's transform) + the
+# void FS (the cascade frame buffers carry no color attachment). No FS
+# uniforms at all
+zircon_add_slang_shader(shadow_depth
+	VS_IN "a_position"
+	VS_OUT ""
+	VS_UNIFORMS
+		"u_viewProj:mat4:0:4"
+	FS_IN ""
 )
 
 # editor infinite grid (task Z3 P2d): vertex-id fullscreen triangle (no

@@ -1,5 +1,11 @@
 #include "zircon_component_light.h"
 
+// task Z24 B5c: the shadow-caster bit inside the component's u8 flag word
+// (bit 0 — the B5b pre-wire gone live; the light buffer's
+// zircon_render_light_buffer::kLightFlagCastsShadow mirrors it into the
+// GPU table's flags stream)
+#define ZIRCON_DEF_COMPONENT_LIGHT_FLAG_CASTS_SHADOW (1 << 0)
+
 zircon_component_light::zircon_component_light() :
 	m_is_enabled{true},
 	m_light_type{eZirconLightType::kPoint},
@@ -7,7 +13,8 @@ zircon_component_light::zircon_component_light() :
 	m_intensity{1.0f},
 	m_range{10.0f},
 	m_spot_inner_angle_degrees{25.0f},
-	m_spot_outer_angle_degrees{45.0f}
+	m_spot_outer_angle_degrees{45.0f},
+	m_flags{ZIRCON_DEF_COMPONENT_LIGHT_FLAG_CASTS_SHADOW}
 {
 }
 
@@ -95,4 +102,24 @@ void zircon_component_light::set_spot_angles_degrees(
 {
 	this->m_spot_inner_angle_degrees = inner_degrees;
 	this->m_spot_outer_angle_degrees = outer_degrees;
+}
+
+bool zircon_component_light::is_shadow_caster(void) const noexcept
+{
+	return (this->m_flags & ZIRCON_DEF_COMPONENT_LIGHT_FLAG_CASTS_SHADOW) !=
+		0;
+}
+
+void zircon_component_light::set_shadow_caster(bool status) noexcept
+{
+	if (status)
+	{
+		this->m_flags = static_cast<kotek::uint8_t>(
+			this->m_flags | ZIRCON_DEF_COMPONENT_LIGHT_FLAG_CASTS_SHADOW);
+	}
+	else
+	{
+		this->m_flags = static_cast<kotek::uint8_t>(
+			this->m_flags & ~ZIRCON_DEF_COMPONENT_LIGHT_FLAG_CASTS_SHADOW);
+	}
 }

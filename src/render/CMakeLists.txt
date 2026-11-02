@@ -155,6 +155,10 @@ set(to_include_bgfx_game_passes_no_streaming_files
 	"bgfx/passes/no_streaming/zircon_render_light_buffer.cpp"
 	"bgfx/passes/no_streaming/zircon_render_light_cluster_rig.h"
 	"bgfx/passes/no_streaming/zircon_render_light_cluster_rig.cpp"
+	"bgfx/passes/no_streaming/zircon_render_shadow_cascade.h"
+	"bgfx/passes/no_streaming/zircon_render_shadow_cascade.cpp"
+	"bgfx/passes/no_streaming/zircon_render_shadow_rig.h"
+	"bgfx/passes/no_streaming/zircon_render_shadow_rig.cpp"
 )
 
 set(to_include_bgfx_editor_passes_no_streaming_files

@@ -81,6 +81,11 @@ namespace no_streaming
 		m_uniform_light_color{BGFX_INVALID_HANDLE},
 		m_uniform_ambient{BGFX_INVALID_HANDLE},
 		m_uniform_camera_pos{BGFX_INVALID_HANDLE},
+		m_uniform_shadow_cascade_view_proj{BGFX_INVALID_HANDLE},
+		m_uniform_shadow_split_far{BGFX_INVALID_HANDLE},
+		m_uniform_shadow_meta{BGFX_INVALID_HANDLE},
+		m_uniform_shadow_map{BGFX_INVALID_HANDLE},
+		m_shadow_dummy_texture{BGFX_INVALID_HANDLE},
 		m_is_warned_about_missing_program{false},
 		m_is_warned_about_mesh_cache_full{false},
 		m_last_submitted_draw_count{0xffffffffu}
@@ -208,6 +213,39 @@ namespace no_streaming
 				}
 			}
 		}
+
+		// task Z24 B5c: the inert CSM contract (see the header's member
+		// comment — no shadow maps on this CPU path; the FS's declared
+		// uniforms are all created, the meta is zeroed per drawn frame,
+		// and the stage-6 dummy is a 1x1 Texture2DArray of
+		// ZIRCON_DEF_SHADOW_CASCADE_COUNT R32F layers at the fully-lit
+		// depth 1.0)
+		this->m_uniform_shadow_cascade_view_proj = bgfx::createUniform(
+			"u_shadowCascadeViewProj", bgfx::UniformType::Mat4,
+			ZIRCON_DEF_SHADOW_CASCADE_COUNT);
+		this->m_uniform_shadow_split_far =
+			bgfx::createUniform("u_shadowSplitFar", bgfx::UniformType::Vec4);
+		this->m_uniform_shadow_meta =
+			bgfx::createUniform("u_shadowMeta", bgfx::UniformType::Vec4);
+		this->m_uniform_shadow_map =
+			bgfx::createUniform("u_shadowMap", bgfx::UniformType::Sampler);
+
+		{
+			const float lit_depth[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+			this->m_shadow_dummy_texture = bgfx::createTexture2D(1, 1,
+				false, ZIRCON_DEF_SHADOW_CASCADE_COUNT,
+				bgfx::TextureFormat::R32F, BGFX_TEXTURE_NONE,
+				bgfx::copy(lit_depth, sizeof(lit_depth)));
+		}
+
+		KOTEK_ASSERT(
+			bgfx::isValid(this->m_uniform_shadow_cascade_view_proj) &&
+				bgfx::isValid(this->m_uniform_shadow_split_far) &&
+				bgfx::isValid(this->m_uniform_shadow_meta) &&
+				bgfx::isValid(this->m_uniform_shadow_map) &&
+				bgfx::isValid(this->m_shadow_dummy_texture),
+			"failed to create the model_static inert shadow contract!");
 	}
 
 	void zircon_render_graph_pass_model_static_bgfx::OnDestroyResources()
@@ -220,9 +258,19 @@ namespace no_streaming
 			this->m_program = BGFX_INVALID_HANDLE;
 		}
 
+		// task Z24 B5c: the inert shadow contract's handles
+		if (bgfx::isValid(this->m_shadow_dummy_texture))
+		{
+			bgfx::destroy(this->m_shadow_dummy_texture);
+			this->m_shadow_dummy_texture = BGFX_INVALID_HANDLE;
+		}
+
 		bgfx::UniformHandle* p_uniforms[] = {&this->m_uniform_light_dir,
 			&this->m_uniform_light_color, &this->m_uniform_ambient,
-			&this->m_uniform_camera_pos};
+			&this->m_uniform_camera_pos,
+			&this->m_uniform_shadow_cascade_view_proj,
+			&this->m_uniform_shadow_split_far, &this->m_uniform_shadow_meta,
+			&this->m_uniform_shadow_map};
 
 		for (bgfx::UniformHandle* p_uniform : p_uniforms)
 		{
@@ -554,6 +602,16 @@ namespace no_streaming
 						bgfx::setUniform(
 							this->m_uniform_camera_pos, camera_pos);
 
+						// task Z24 B5c: the inert shadow contract — the
+						// meta zeroed EVERY drawn frame (the FS's factor
+						// branch key is never stale; this CPU path carries
+						// no shadow maps — see the header)
+						const float shadow_meta_off[4] = {0.0f, 0.0f, 0.0f,
+							0.0f};
+
+						bgfx::setUniform(this->m_uniform_shadow_meta,
+							shadow_meta_off);
+
 						for (kotek::uint32_t draw_index = 0;
 							 draw_index < draw_item_count; ++draw_index)
 						{
@@ -567,6 +625,14 @@ namespace no_streaming
 							// rule keeps the d3d11 SRV validation quiet in
 							// the fallback mode too)
 							this->m_light_rig.bind_for_draw(pass_id);
+
+							// task Z24 B5c: the stage-6 dummy (the same
+							// always-bound rule — the factor-1.0 branch
+							// never samples it)
+							bgfx::setTexture(
+								ZIRCON_DEF_SHADOW_FS_TEXTURE_STAGE,
+								this->m_uniform_shadow_map,
+								this->m_shadow_dummy_texture);
 
 							// no culling: the fallback cube reads
 							// double-sided, the pass does not care

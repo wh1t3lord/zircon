@@ -34,6 +34,7 @@ namespace no_streaming
 		m_uniform_camera_pos{BGFX_INVALID_HANDLE},
 		m_chunks_collected{false},
 		m_is_warned_about_missing_program{false},
+		m_is_warned_about_shadow_math{false},
 		m_stats_readback_value{0},
 		m_stats_ready_frame{0},
 		m_stats_readback_pending{false},
@@ -229,6 +230,44 @@ namespace no_streaming
 			}
 		}
 
+		// task Z24 B5c: the shadow rig (the depth array + frame buffers +
+		// the FS uniforms are created unconditionally; the depth program
+		// is optional — a shader cache predating the pipeline keeps the
+		// rig shadow-inert and the frames take the factor-1.0 path)
+		this->m_shadow_rig.create("[model_static_gpu_driven]");
+
+		{
+			bgfx::ShaderHandle shader_shadow_vs =
+				this->load_shader_blob("shadow_depth.vs.bin");
+			bgfx::ShaderHandle shader_shadow_fs =
+				this->load_shader_blob("shadow_depth.fs.bin");
+
+			if (bgfx::isValid(shader_shadow_vs) &&
+				bgfx::isValid(shader_shadow_fs))
+			{
+				bgfx::ProgramHandle program_depth = bgfx::createProgram(
+					shader_shadow_vs, shader_shadow_fs, true);
+
+				if (bgfx::isValid(program_depth))
+				{
+					this->m_shadow_rig.set_depth_program(program_depth);
+				}
+				else
+				{
+					KOTEK_MESSAGE_WARNING(
+						"[model_static_gpu_driven] the shadow depth program "
+						"failed to link — the CSM path stays inactive");
+				}
+			}
+			else
+			{
+				if (bgfx::isValid(shader_shadow_vs))
+					bgfx::destroy(shader_shadow_vs);
+				if (bgfx::isValid(shader_shadow_fs))
+					bgfx::destroy(shader_shadow_fs);
+			}
+		}
+
 		// task Z24 B4: the BCn texture upload's live proof — the shipped
 		// boot probe uploads with the blocks AS-IS through the no-decode
 		// path (prepare reads + validates through the dispatcher, create
@@ -284,6 +323,7 @@ namespace no_streaming
 	void zircon_render_graph_pass_model_static_gpu_driven_bgfx::
 		OnDestroyResources()
 	{
+		this->m_shadow_rig.destroy();
 		this->m_light_rig.destroy();
 
 		if (bgfx::isValid(this->m_probe_texture))
@@ -527,8 +567,10 @@ namespace no_streaming
 			{
 				// the fixture boot's two lights: the fallback's own
 				// directional (visual continuity with the zero-light
-				// contract) + one cool point light above the grid — so
-				// the binning dispatch + the clustered FS visibly run
+				// contract — task Z24 B5c: WITH the shadow-caster flag so
+				// the CSM path visibly runs in the A/B boot) + one cool
+				// point light above the grid — so the binning dispatch +
+				// the clustered FS visibly run in the A/B boot
 				const float sun_dir[3] = {0.4969f, -0.7951f, 0.3481f};
 				const float sun_color[3] = {1.0f, 0.95f, 0.85f};
 				const float point_position[3] = {0.0f, 12.0f, 0.0f};
@@ -536,7 +578,8 @@ namespace no_streaming
 
 				this->m_light_buffer.append_light(
 					eZirconLightType::kDirectional, nullptr, sun_dir,
-					sun_color, 1.0f, 0.0f, 0.0f, 0.0f);
+					sun_color, 1.0f, 0.0f, 0.0f, 0.0f,
+					zircon_render_light_buffer::kLightFlagCastsShadow);
 				this->m_light_buffer.append_light(eZirconLightType::kPoint,
 					point_position, nullptr, point_color, 4.0f, 45.0f,
 					0.0f, 0.0f);
@@ -545,8 +588,9 @@ namespace no_streaming
 				{
 					KOTEK_MESSAGE(
 						"[model_static_gpu_driven] the synthetic fixture "
-						"boot collects 2 fixture lights (a directional + a "
-						"point over the grid) — the clustered path runs");
+						"boot collects 2 fixture lights (a shadow-casting "
+						"directional + a point over the grid) — the "
+						"clustered path runs");
 
 					this->m_fixture_lights_logged = true;
 				}
@@ -577,6 +621,62 @@ namespace no_streaming
 			this->m_light_rig.drive(pass_id, this->m_light_buffer,
 				this->m_cull_planes, view_projection, screen_width,
 				screen_height);
+
+			// ---- task Z24 B5c: the CSM sun shadows. The caster = the
+			// ---- first directional with casts_shadow (the buffer's
+			// ---- resolution); its travel direction + the frame's camera
+			// ---- feed the cascade math; the rig renders the pool
+			// ---- depth-only per cascade and feeds the FS. No caster /
+			// ---- an inert rig / an unsupported projection = the
+			// ---- factor-1.0 path (the pre-B5c output, never regressed)
+			{
+				const kotek::uint32_t caster_index =
+					this->m_light_buffer.find_shadow_caster();
+
+				bool shadow_rendered = false;
+
+				if (caster_index !=
+						zircon_render_light_buffer::kNoShadowCaster &&
+					this->m_shadow_rig.is_shadow_ready())
+				{
+					// the caster's normalized travel direction from the
+					// collected table (the collection normalizes)
+					const zircon_light_stream_record_t* p_directions =
+						this->m_light_buffer.get_directions();
+
+					if (zircon_render_shadow_cascade::compute_cascades(view,
+							projection,
+							p_directions[caster_index].m_v,
+							ZIRCON_DEF_SHADOW_MAP_SIZE,
+							ZIRCON_DEF_SHADOW_CASCADE_COUNT,
+							ZIRCON_DEF_SHADOW_CASCADE_SPLIT_LAMBDA,
+							ZIRCON_DEF_SHADOW_CASTER_DEPTH_MARGIN,
+							this->m_shadow_cascades))
+					{
+						this->m_shadow_rig.render_cascades(
+							this->m_shadow_cascades, this->m_chunk_pool,
+							this->m_vertex_pool, this->m_index_pool,
+							caster_index);
+
+						shadow_rendered = true;
+					}
+					else if (this->m_is_warned_about_shadow_math == false)
+					{
+						KOTEK_MESSAGE_WARNING(
+							"[model_static_gpu_driven] the shadow cascade "
+							"math rejected the frame's camera (a "
+							"non-perspective/degenerate projection) — "
+							"shadows stay off while it persists");
+
+						this->m_is_warned_about_shadow_math = true;
+					}
+				}
+
+				if (shadow_rendered == false)
+				{
+					this->m_shadow_rig.set_inactive();
+				}
+			}
 		}
 
 		// the fixed scene light (the model_static defines) + the camera
@@ -668,6 +768,10 @@ namespace no_streaming
 		// task Z24 B5b: the fragment stage's light table + tile lists
 		// (bound every frame the pass draws — the always-bound rule)
 		this->m_light_rig.bind_for_draw(pass_id);
+
+		// task Z24 B5c: the cascade depth array at stage 6 (the same
+		// always-bound rule — the factor-1.0 branches never sample it)
+		this->m_shadow_rig.bind_for_draw(pass_id);
 
 		constexpr kotek::uint64_t _kState = BGFX_STATE_WRITE_RGB |
 			BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z |
@@ -864,6 +968,13 @@ namespace no_streaming
 		void) noexcept
 	{
 		return this->m_chunk_pool;
+	}
+
+	const zircon_render_shadow_rig&
+	zircon_render_graph_pass_model_static_gpu_driven_bgfx::get_shadow_rig(
+		void) const noexcept
+	{
+		return this->m_shadow_rig;
 	}
 
 	kotek::uint32_t

@@ -367,8 +367,13 @@ TEST(Zircon_Game, LightCollectionFromWorld)
 	EXPECT_FLOAT_EQ(p_positions[3].m_v[1], 0.0f);
 	EXPECT_FLOAT_EQ(p_positions[3].m_v[2], 0.0f);
 
-	// the flags are the zeroed B5c pre-wire
-	EXPECT_EQ(lights.get_flags()[0], 0);
+	// the flags mirror the component's casts_shadow — since task Z24 B5c
+	// the pre-wire is LIVE and the component default is ON, so all four
+	// collected lights carry bit 0 (the fixture sets none explicitly)
+	EXPECT_EQ(lights.get_flags()[0],
+		zircon_render_light_buffer::kLightFlagCastsShadow);
+	EXPECT_EQ(lights.get_flags()[2],
+		zircon_render_light_buffer::kLightFlagCastsShadow);
 
 	// the empty world: zero lights = the fallback frame (the FS contract)
 	{

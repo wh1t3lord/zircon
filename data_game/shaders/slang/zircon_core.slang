@@ -141,6 +141,44 @@ float3 zircon_evaluate_spot_light_diffuse(float3 normal, float3 world_pos,
 	return light_color_rgb * (ndotl * attenuation * cone);
 }
 
+// ---------------------------------------------------------------------------
+// task Z24 B5c — the CSM sun shadows' shared, resource-free math. The
+// sampling loop itself lives in the two model_static* FS shaders (the
+// Texture2DArray + cbuffer bindings are per-file by necessity, the same
+// posture as the B5b clustered block). The CPU mirrors live in
+// zircon_render_shadow_cascade.{h,cpp} (select_cascade /
+// compare_shadow_depth / sample_shadow_pcf_3x3) — the unit tests pin
+// them, keep all three in sync.
+
+// mirrors ZIRCON_DEF_SHADOW_CASCADE_COUNT
+// (src/render/bgfx/passes/no_streaming/zircon_render_shadow_cascade.h) —
+// the FS cbuffer's cascade-VP array is sized by a compile-time constant;
+// the RUNTIME active count arrives in u_shadowMeta.x
+static const int kZirconShadowCascadeCount = 4;
+
+// the cascade of a fragment by its camera view-space z: the FIRST cascade
+// whose far boundary is >= view_z (the split-far lanes past the active
+// count are FLT_MAX, so a fragment past the last cascade answers
+// kZirconShadowCascadeCount — the caller lights it, factor 1.0)
+uint zircon_shadow_select_cascade(float view_z, float4 split_far)
+{
+	for (uint cascade = 0; cascade < kZirconShadowCascadeCount; ++cascade)
+	{
+		if (view_z <= split_far[cascade])
+			return cascade;
+	}
+
+	return kZirconShadowCascadeCount;
+}
+
+// one PCF tap's compare: lit iff receiver - bias <= stored (the [0,1]
+// depth convention, the LESS depth test, clear value 1.0)
+float zircon_shadow_compare_depth(float stored_depth, float receiver_depth,
+	float bias)
+{
+	return (receiver_depth - bias) <= stored_depth ? 1.0 : 0.0;
+}
+
 // model_static: forward-Phong static geometry, per-vertex normal + color
 // (game pass "model_static", task Z3 P2b unlit -> P2g lit — Slang port of
 // data_game/shaders/bgfx/model_static, with explicit u_model/u_viewProj

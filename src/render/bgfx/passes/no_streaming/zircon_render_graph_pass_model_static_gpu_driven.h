@@ -63,6 +63,11 @@
 // fragment-stage light lists)
 #include "zircon_render_light_buffer.h"
 #include "zircon_render_light_cluster_rig.h"
+// task Z24 B5c: the CSM sun shadows — the cascade math (bgfx-free, the
+// unit tests pin it) + this pass's shadow rig (the depth-array render +
+// the FS cbuffer feed)
+#include "zircon_render_shadow_cascade.h"
+#include "zircon_render_shadow_rig.h"
 
 class zircon_factory;
 struct zircon_ecs_context_t;
@@ -130,6 +135,10 @@ namespace no_streaming
 
 		// ---- test/A-B seams (headless: no bgfx state touched) --------
 		zircon_render_chunk_pool& get_chunk_pool(void) noexcept;
+
+		// the B5c shadow rig (the tests read the meta/active state; never
+		// drive it headless — bgfx state)
+		const zircon_render_shadow_rig& get_shadow_rig(void) const noexcept;
 
 		// the A/B stats: the GPU-visible count from the stats-texture
 		// readback (valid a few frames after the first submit; 0 until
@@ -226,6 +235,18 @@ namespace no_streaming
 		// never regressed)
 		zircon_render_light_buffer m_light_buffer;
 		zircon_render_light_cluster_rig m_light_rig;
+		// task Z24 B5c: the CSM sun shadows — the rig (the depth array +
+		// the per-cascade depth draws of the chunk pool, the FS cbuffer
+		// feed) and the frame's cascade set (the math is
+		// zircon_render_shadow_cascade's statics). With no shadow-casting
+		// directional the rig stays inactive and the FS takes the
+		// factor-1.0 path (the pre-B5c output, never regressed). The CPU
+		// A/B sibling (model_static) carries NO shadow rig this phase —
+		// scope item 3 assigns the depth draw to the chunk pool (the B1
+		// path); model_static keeps the factor-1.0 contract with the
+		// inert binding (see its cpp)
+		zircon_render_shadow_rig m_shadow_rig;
+		zircon_shadow_cascade_set_t m_shadow_cascades;
 		// the empty-world fixture latch (the B1 scope note's synthetic
 		// grid): set when the one-shot chunk collect found no world chunks
 		// — the fixture boots then collect two fixture lights per frame so
@@ -236,6 +257,10 @@ namespace no_streaming
 		// the one-shot collection latch (B1 scope note above)
 		bool m_chunks_collected;
 		bool m_is_warned_about_missing_program;
+		// the B5c cascade-math failure latch (a degenerate/unsupported
+		// camera projection disables shadows for the frame — loud once,
+		// never a fault: user content)
+		bool m_is_warned_about_shadow_math;
 
 		// the A/B stats: the readback hop state (one readTexture in
 		// flight at a time) and the two counts; the first completed read

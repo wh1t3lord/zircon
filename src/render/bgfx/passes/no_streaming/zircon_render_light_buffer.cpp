@@ -7,7 +7,9 @@
 #include <cstring>
 
 zircon_render_light_buffer::zircon_render_light_buffer(void) :
-	m_is_warned_about_overflow{false}, m_is_warned_about_type{false}
+	m_is_warned_about_overflow{false},
+	m_is_warned_about_type{false},
+	m_is_warned_about_multi_caster{false}
 {
 }
 
@@ -132,7 +134,10 @@ kotek::uint32_t zircon_render_light_buffer::collect_from_world(
 				type == eZirconLightType::kPoint ? nullptr : direction_xyz,
 				color_rgb, p_light->get_intensity(), p_light->get_range(),
 				p_light->get_spot_inner_angle_degrees(),
-				p_light->get_spot_outer_angle_degrees()) == false)
+				p_light->get_spot_outer_angle_degrees(),
+				p_light->is_shadow_caster() ? kLightFlagCastsShadow
+											: static_cast<kotek::uint8_t>(
+												  0)) == false)
 		{
 			break;
 		}
@@ -149,7 +154,8 @@ kotek::uint32_t zircon_render_light_buffer::collect_from_world(
 bool zircon_render_light_buffer::append_light(eZirconLightType type,
 	const float* p_position_xyz, const float* p_dir_from_xyz,
 	const float* p_color_rgb, float intensity, float range,
-	float spot_inner_degrees, float spot_outer_degrees) noexcept
+	float spot_inner_degrees, float spot_outer_degrees,
+	kotek::uint8_t flags) noexcept
 {
 	KOTEK_ASSERT(p_color_rgb, "must be valid");
 
@@ -244,11 +250,56 @@ bool zircon_render_light_buffer::append_light(eZirconLightType type,
 	this->m_colors.push_back(color_record);
 	this->m_params.push_back(params_record);
 	this->m_types.push_back(static_cast<kotek::uint8_t>(type));
-	// flags: bit 0 = the RESERVED shadow-caster pre-wire (B5c), always 0
-	// this phase
-	this->m_flags.push_back(0);
+	// flags: bit 0 = casts_shadow (task Z24 B5c — live; consumed for
+	// directionals by find_shadow_caster)
+	this->m_flags.push_back(flags);
 
 	return true;
+}
+
+kotek::uint32_t zircon_render_light_buffer::find_shadow_caster(void) noexcept
+{
+	kotek::uint32_t first = kNoShadowCaster;
+	bool multiple = false;
+
+	const kotek::uint32_t count =
+		static_cast<kotek::uint32_t>(this->m_types.size());
+
+	for (kotek::uint32_t light_index = 0; light_index < count;
+		 ++light_index)
+	{
+		if (this->m_types[light_index] !=
+				static_cast<kotek::uint8_t>(eZirconLightType::kDirectional) ||
+			(this->m_flags[light_index] & kLightFlagCastsShadow) == 0)
+		{
+			continue;
+		}
+
+		if (first == kNoShadowCaster)
+		{
+			first = light_index;
+		}
+		else
+		{
+			multiple = true;
+		}
+	}
+
+	// the multi-caster note fires once per light-buffer instance (the
+	// collection runs per frame — never log spam); the first caster wins
+	if (multiple && this->m_is_warned_about_multi_caster == false)
+	{
+		KOTEK_MESSAGE_WARNING(
+			"[light_buffer] more than one directional light has "
+			"casts_shadow set — the first one (table index {}) produces the "
+			"shadow cascades, the rest stay unshadowed (the B5c single-sun "
+			"contract)",
+			first);
+
+		this->m_is_warned_about_multi_caster = true;
+	}
+
+	return first;
 }
 
 void zircon_render_light_buffer::clear(void) noexcept
