@@ -22,17 +22,18 @@ struct zircon_ecs_context_t;
 // constant screen size: the gizmo's unit length (arrow length, ring
 // radius) always maps to this many screen pixels, whatever the camera
 // distance (scale = distance * world-per-pixel * this)
-#define zircon_DEF_RENDER_PASS_GIZMO_SCREEN_EXTENT_PIXELS 96.0f
+#define zircon_DEF_RENDER_PASS_GIZMO_SCREEN_EXTENT_PIXELS 110.0f
 
 // handle dimensions in unit gizmo space (the whole gizmo is scaled by the
 // screen-size factor at draw/pick time)
 #define zircon_DEF_RENDER_PASS_GIZMO_ARROW_SHAFT_LENGTH 0.75f
-#define zircon_DEF_RENDER_PASS_GIZMO_ARROW_SHAFT_RADIUS 0.025f
-#define zircon_DEF_RENDER_PASS_GIZMO_ARROW_TIP_RADIUS 0.07f
+#define zircon_DEF_RENDER_PASS_GIZMO_ARROW_SHAFT_RADIUS 0.035f
+#define zircon_DEF_RENDER_PASS_GIZMO_ARROW_TIP_RADIUS 0.09f
 #define zircon_DEF_RENDER_PASS_GIZMO_CENTER_HALF_SIZE 0.07f
 #define zircon_DEF_RENDER_PASS_GIZMO_QUAD_MIN 0.35f
 #define zircon_DEF_RENDER_PASS_GIZMO_QUAD_MAX 0.65f
-#define zircon_DEF_RENDER_PASS_GIZMO_RING_TUBE_RADIUS 0.02f
+#define zircon_DEF_RENDER_PASS_GIZMO_QUAD_ALPHA 0.35f
+	#define zircon_DEF_RENDER_PASS_GIZMO_RING_TUBE_RADIUS 0.025f
 
 // pick tolerances in unit gizmo space (deliberately generous over the
 // visual dimensions — a gizmo handle must be easy to catch)

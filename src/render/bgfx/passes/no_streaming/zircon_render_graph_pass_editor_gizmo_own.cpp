@@ -1049,7 +1049,9 @@ namespace no_streaming
 				p_base_color[2] * boost > 1.0f
 					? 1.0f
 					: p_base_color[2] * boost,
-				1.0f};
+				handle.m_class == eZirconRenderPassGizmoHandleClass::kPlane
+					? zircon_DEF_RENDER_PASS_GIZMO_QUAD_ALPHA
+					: 1.0f};
 
 			const mesh_section_range_t& section =
 				this->m_mesh_sections[static_cast<kotek::uint8_t>(
