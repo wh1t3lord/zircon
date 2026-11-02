@@ -170,7 +170,7 @@ foreach (filename IN LISTS filenames_list)
 
 			${filename}& component = static_cast<${filename}&>(*p_interface);
 
-			component = kotek::ktk::json::value_to<${filename}>(serialized_component);
+			this->DeserializeComponent(&component, serialized_component);
 
 			result = true;
 

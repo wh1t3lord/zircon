@@ -20,6 +20,9 @@
 		#include "../../editor/session/zircon_scene_metadata.h"
 		#include "../../ecs/zircon_factory.h"
 		#include "../../ecs/zircon_component_transform.h"
+			#include "../../ecs/zircon_component_sdk_input.h"
+			#include "../../ecs/zircon_component_sdk_camera.h"
+			#include "../../editor/session/zircon_editor_sdk_camera.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
 		#include "../../world/zircon_world.h"
 		#include "../../core/zircon_config.h"
@@ -2109,6 +2112,114 @@ TEST(Zircon_Editor, CommandHistory_SdkCameraComponentAddDeleteUndoRedo)
 
 	EXPECT_TRUE(env.factory.has_component(env.ecs_context(), entity,
 		eZirconComponentType::kzircon_component_sdk_camera));
+
+	env.shutdown();
+	delete &env;
+}
+
+// 2026-11-02 regression (owner repro): on the bootstrap entity (sdk_camera
+// + sdk_input + transform), deleting sdk_input through the journaled
+// delete-component command and then undo/redo-ing it crashed the game.
+// The re-created component must have the engine input manager wired
+// again — calling the driver path here would crash on a null inner
+// input if the recreation skipped it
+TEST(Zircon_Editor, SdkInputComponentDeleteUndoRedoRecreationIsWired)
+{
+	constexpr const char* _k_test_folder = "z6_sdk_input_repro_test";
+
+	{
+		auto* p_config = new kotek::core::ktkFrameworkConfig();
+		auto* p_filesystem = new kotek::core::ktkFileSystem();
+
+		p_filesystem->Initialize(p_config);
+
+		zircon_test_remove_streaming_folder(p_filesystem, _k_test_folder);
+
+		p_filesystem->Shutdown();
+
+		delete p_filesystem;
+		delete p_config;
+	}
+
+	zircon_test_history_env& env = *new zircon_test_history_env();
+	env.initialize(_k_test_folder);
+
+	// mirror the app's boot: initialize the engine input manager
+	// (zircon_game_manager::initialize_input does exactly this)
+	env.input.Initialize(
+		kotek::core::eInputPlatformBackend::kPlatformBackend_GLFW3);
+
+	zircon_editor_command_history* p_history = env.history();
+
+	ASSERT_NE(p_history, nullptr);
+	ASSERT_EQ(p_history->get_total_recorded_commands(), 0);
+
+	kotek::entity_t id = zircon_editor_ensure_sdk_bootstrap_entity(
+		&env.factory, env.ecs_context(),
+		env.world.get_entity_count_max_limit());
+
+	ASSERT_FALSE(ecs_is_invalid_entity(id));
+
+	// sanity: the freshly created sdk_input has a LIVE inner input (the
+	// driver path the session calls per frame)
+	auto* p_sdk_input = static_cast<zircon_component_sdk_input*>(
+		env.factory.get_component_by_enum(env.ecs_context(), id,
+			eZirconComponentType::kzircon_component_sdk_input));
+
+	ASSERT_NE(p_sdk_input, nullptr);
+	EXPECT_FALSE(p_sdk_input->get_input().is_key_holding(
+		kotek::core::eInputAllKeys::kCM_KEY_RIGHT));
+
+	// delete sdk_input through the journaled command, then undo it back
+	{
+		unsigned char* p_memory =
+			p_history->allocate_memory_for_command(
+				sizeof(zircon_command_delete_component_from_entity),
+				"zircon_command_delete_component_from_entity");
+
+		zircon_command_delete_component_from_entity* p_command =
+			new (p_memory) zircon_command_delete_component_from_entity(
+				&env.session_manager, &env.factory, id,
+				"zircon_component_sdk_input");
+
+		p_history->ExecuteCommand(p_command);
+	}
+
+	EXPECT_FALSE(env.factory.has_component(env.ecs_context(), id,
+		eZirconComponentType::kzircon_component_sdk_input));
+
+	p_history->Undo();
+
+	ASSERT_TRUE(env.factory.has_component(env.ecs_context(), id,
+		eZirconComponentType::kzircon_component_sdk_input));
+
+	// the re-created component must have the engine input manager wired
+	// again — calling the driver path here would crash on a null inner
+	// input if the recreation skipped it
+	p_sdk_input = static_cast<zircon_component_sdk_input*>(
+		env.factory.get_component_by_enum(env.ecs_context(), id,
+			eZirconComponentType::kzircon_component_sdk_input));
+
+	ASSERT_NE(p_sdk_input, nullptr);
+	EXPECT_FALSE(p_sdk_input->get_input().is_key_holding(
+		kotek::core::eInputAllKeys::kCM_KEY_RIGHT));
+
+	// redo deletes it again, undo recreates it once more — the contract
+	// must hold on EVERY recreation, not only the first
+	p_history->Redo();
+
+	EXPECT_FALSE(env.factory.has_component(env.ecs_context(), id,
+		eZirconComponentType::kzircon_component_sdk_input));
+
+	p_history->Undo();
+
+	p_sdk_input = static_cast<zircon_component_sdk_input*>(
+		env.factory.get_component_by_enum(env.ecs_context(), id,
+			eZirconComponentType::kzircon_component_sdk_input));
+
+	ASSERT_NE(p_sdk_input, nullptr);
+	EXPECT_FALSE(p_sdk_input->get_input().is_key_holding(
+		kotek::core::eInputAllKeys::kCM_KEY_RIGHT));
 
 	env.shutdown();
 	delete &env;

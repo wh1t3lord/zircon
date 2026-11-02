@@ -604,6 +604,9 @@ public:
 			"must pass a component created from storage!"
 		);
 
+		if (!p_raw_data)
+			return;
+
 		zircon_component_interface* p_component =
 			static_cast<zircon_component_interface*>(p_raw_data
 		    );
@@ -611,6 +614,23 @@ public:
 		zircon_deserialize_component(
 			serialized_data, p_component
 		);
+
+		// Deserialization replaces the complete value, including runtime
+		// references that are intentionally absent from serialized data.
+		switch (p_component->get_component_type())
+		{
+		case eZirconComponentType::kzircon_component_input:
+			static_cast<zircon_component_input*>(p_component)
+				->register_input(this->m_p_input);
+			break;
+		case eZirconComponentType::kzircon_component_sdk_input:
+			static_cast<zircon_component_sdk_input*>(p_component)
+				->get_input()
+				.register_input(this->m_p_input);
+			break;
+		default:
+			break;
+		}
 	}
 
 #ifdef KOTEK_USE_ECS_BACKEND_ENTT
