@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "../../core/zircon_config.h"
+
 // pass bases (complete types for the dynamic_casts in
 // initialize_render_graph); concrete passes live in the
 // zircon.render.passes.bgfx project and reach the graphs through
@@ -62,6 +64,35 @@ void zircon_renderer_bgfx::Shutdown(void)
 
 void zircon_renderer_bgfx::draw()
 {
+	// This path lives outside every pass: ESC must still recover the UI
+	// after the UI pass itself was disabled through the Render Passes window.
+	if (this->m_p_main_manager)
+	{
+		kotek::core::ktkIInput* p_input = this->m_p_main_manager->Get_Input();
+
+		if (p_input)
+		{
+			constexpr auto key = kotek::core::eInputAllKeys::kCK_KEY_ESCAPE;
+
+			if (p_input->Is_KeyPressed(
+					p_input->Get_ControllerTypeByKey(key), key))
+			{
+				const kotek::uint8_t restored_count =
+					zircon_restore_essential_render_passes(
+						this->m_render_graphs.data(),
+						static_cast<kotek::uint8_t>(
+							this->m_render_graphs.size()));
+
+				if (restored_count)
+				{
+					KOTEK_MESSAGE(
+						"[render]: ESC restored {} essential pass(es)",
+						restored_count);
+				}
+			}
+		}
+	}
+
 	this->Begin();
 
 #ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
@@ -267,6 +298,7 @@ kotek::uint8_t zircon_renderer_bgfx::create_render_graph(
 	// every pass starts enabled (the window's checkboxes flip these
 	// skip flags at runtime)
 	info.pass_enabled.assign(pass_names.size(), true);
+	info.pass_restore_on_escape.assign(pass_names.size(), false);
 
 	info.graph.Add_Passes(passes);
 
@@ -540,6 +572,75 @@ kotek::uint8_t zircon_renderer_bgfx::get_render_graph_id_for_session_kind(
 	return kotek::uint8_t(-1);
 }
 
+bool zircon_is_render_pass_essential(const char* p_pass_name) noexcept
+{
+	if (!p_pass_name)
+		return false;
+
+	return std::strcmp(
+			   p_pass_name, kZirconConfig_RenderPassEditorPresentName) == 0 ||
+		std::strcmp(p_pass_name, kZirconConfig_RenderPassEditorImguiName) ==
+			0 ||
+		std::strcmp(p_pass_name, kZirconConfig_RenderPassGamePresentName) == 0;
+}
+
+void zircon_set_render_pass_enabled_with_recovery(
+	zircon_render_graph_simplified_bgfx_info_t& info,
+	kotek::uint8_t pass_index, bool enabled) noexcept
+{
+	KOTEK_ASSERT(pass_index < info.pass_enabled.size() &&
+			pass_index < info.pass_restore_on_escape.size() &&
+			pass_index < info.pass_names.size(),
+		"pass enable/recovery/name arrays must stay aligned");
+
+	if (pass_index >= info.pass_enabled.size() ||
+		pass_index >= info.pass_restore_on_escape.size() ||
+		pass_index >= info.pass_names.size())
+	{
+		return;
+	}
+
+	info.pass_enabled[pass_index] = enabled;
+	info.pass_restore_on_escape[pass_index] =
+		!enabled && zircon_is_render_pass_essential(
+						info.pass_names[pass_index].c_str());
+}
+
+kotek::uint8_t zircon_restore_essential_render_passes(
+	zircon_render_graph_simplified_bgfx_info_t* p_infos,
+	kotek::uint8_t info_count) noexcept
+{
+	if (!p_infos)
+		return 0;
+
+	kotek::uint8_t restored_count = 0;
+
+	for (kotek::uint8_t info_index = 0; info_index < info_count; ++info_index)
+	{
+		auto& info = p_infos[info_index];
+
+		KOTEK_ASSERT(info.pass_enabled.size() ==
+				info.pass_restore_on_escape.size(),
+			"pass enable/recovery arrays must stay aligned");
+
+		if (info.pass_enabled.size() != info.pass_restore_on_escape.size())
+			continue;
+
+		for (kotek::ktk::size_t pass_index = 0;
+			 pass_index < info.pass_enabled.size(); ++pass_index)
+		{
+			if (!info.pass_restore_on_escape[pass_index])
+				continue;
+
+			info.pass_enabled[pass_index] = true;
+			info.pass_restore_on_escape[pass_index] = false;
+			++restored_count;
+		}
+	}
+
+	return restored_count;
+}
+
 void zircon_renderer_bgfx::set_render_pass_enabled(
 	kotek::uint8_t render_graph_id, kotek::uint8_t pass_index,
 	bool enabled) noexcept
@@ -563,9 +664,9 @@ void zircon_renderer_bgfx::set_render_pass_enabled(
 		return;
 	}
 
-	// pass_names and pass_enabled stay aligned even across a queued
-	// structural edit, so the flip rides into the rebuild unchanged
-	info.pass_enabled[pass_index] = enabled;
+	// pass_names, pass_enabled and recovery flags stay aligned even across
+	// a queued structural edit, so the flip rides into the rebuild unchanged
+	zircon_set_render_pass_enabled_with_recovery(info, pass_index, enabled);
 }
 
 void zircon_renderer_bgfx::request_render_pass_add(
@@ -624,10 +725,10 @@ void zircon_renderer_bgfx::request_render_pass_add(
 		name;
 	name.assign(p_pass_name);
 	info.pass_names.push_back(name);
-	// pass_names and pass_enabled keep the same size at ALL times (the
-	// graph's pass array catches up at the rebuild) — the window reads
-	// both in the same Draw call that issued this request
+	// all per-pass arrays keep the same size at ALL times (the graph's
+	// pass array catches up at the rebuild)
 	info.pass_enabled.push_back(true);
+	info.pass_restore_on_escape.push_back(false);
 	info.rebuild_pending = true;
 }
 
@@ -656,6 +757,8 @@ void zircon_renderer_bgfx::request_render_pass_remove(
 
 	info.pass_names.erase(info.pass_names.begin() + pass_index);
 	info.pass_enabled.erase(info.pass_enabled.begin() + pass_index);
+	info.pass_restore_on_escape.erase(
+		info.pass_restore_on_escape.begin() + pass_index);
 	info.rebuild_pending = true;
 }
 
@@ -699,8 +802,8 @@ void zircon_renderer_bgfx::request_render_pass_move(
 		move_up ? pass_index - 1 : pass_index + 1;
 
 	// manual swaps: no dependency question (etl strings move fine, but
-	// a named temp is the dumbest correct form); names and skip flags
-	// stay aligned at all times
+	// a named temp is the dumbest correct form); all per-pass arrays stay
+	// aligned at all times
 	auto moved_name = info.pass_names[pass_index];
 	info.pass_names[pass_index] = info.pass_names[swap_index];
 	info.pass_names[swap_index] = moved_name;
@@ -708,6 +811,11 @@ void zircon_renderer_bgfx::request_render_pass_move(
 	bool moved_enabled = info.pass_enabled[pass_index];
 	info.pass_enabled[pass_index] = info.pass_enabled[swap_index];
 	info.pass_enabled[swap_index] = moved_enabled;
+
+	bool moved_recovery = info.pass_restore_on_escape[pass_index];
+	info.pass_restore_on_escape[pass_index] =
+		info.pass_restore_on_escape[swap_index];
+	info.pass_restore_on_escape[swap_index] = moved_recovery;
 
 	info.rebuild_pending = true;
 }
@@ -853,8 +961,8 @@ void zircon_renderer_bgfx::rebuild_render_graph(
 		return;
 	}
 
-	// names + skip flags move together (kept aligned by the request_*
-	// edits), so a disabled pass stays disabled across the rebuild
+	// names + skip/recovery flags move together (kept aligned by the
+	// request_* edits), so both survive the rebuild
 	const kotek::static_vector_t<
 		kotek::static_cstring_t<
 			ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
@@ -864,6 +972,9 @@ void zircon_renderer_bgfx::rebuild_render_graph(
 	const kotek::static_vector_t<bool,
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 		enabled_to_restore = info.pass_enabled;
+	const kotek::static_vector_t<bool,
+		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+		recovery_to_restore = info.pass_restore_on_escape;
 
 	// destroys every pass of this graph (the passes hold POD/handles
 	// only, all GPU resources stay on the executor side) — the same
@@ -875,6 +986,7 @@ void zircon_renderer_bgfx::rebuild_render_graph(
 
 	info.pass_names.clear();
 	info.pass_enabled.clear();
+	info.pass_restore_on_escape.clear();
 
 	kotek::static_vector_t<
 		kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
@@ -901,6 +1013,7 @@ void zircon_renderer_bgfx::rebuild_render_graph(
 		passes.push_back(p_pass);
 		info.pass_names.push_back(names_to_create[i]);
 		info.pass_enabled.push_back(enabled_to_restore[i]);
+		info.pass_restore_on_escape.push_back(recovery_to_restore[i]);
 	}
 
 	info.graph.Add_Passes(passes);
@@ -1044,9 +1157,13 @@ void zircon_renderer_bgfx::process_pending_pass_library_reload(
 		const kotek::static_vector_t<bool,
 			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 			enabled_to_restore = info.pass_enabled;
+		const kotek::static_vector_t<bool,
+			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+			recovery_to_restore = info.pass_restore_on_escape;
 
 		info.pass_names.clear();
 		info.pass_enabled.clear();
+		info.pass_restore_on_escape.clear();
 
 		kotek::static_vector_t<
 			kotek::render::bgfx::ktkRenderGraphSimplifiedRenderPass*,
@@ -1073,6 +1190,8 @@ void zircon_renderer_bgfx::process_pending_pass_library_reload(
 			passes.push_back(p_pass);
 			info.pass_names.push_back(names_to_create[pass_index]);
 			info.pass_enabled.push_back(enabled_to_restore[pass_index]);
+			info.pass_restore_on_escape.push_back(
+				recovery_to_restore[pass_index]);
 
 			if (info.is_game_session)
 			{

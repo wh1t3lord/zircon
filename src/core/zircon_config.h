@@ -72,6 +72,15 @@ constexpr const char* kZirconConfig_DefaultRenderPassesGame =
 	"no_streaming::zircon_render_graph_pass_present_bgfx,"
 	"no_streaming::zircon_render_graph_pass_model_static_bgfx";
 
+// passes whose interactive disable can remove the user's only way back to
+// the editor: ESC restores them through the renderer's recovery flags
+constexpr const char* kZirconConfig_RenderPassEditorPresentName =
+	"no_streaming::zircon_render_graph_pass_editor_present_bgfx";
+constexpr const char* kZirconConfig_RenderPassEditorImguiName =
+	"no_streaming::zircon_render_graph_pass_editor_imgui_bgfx";
+constexpr const char* kZirconConfig_RenderPassGamePresentName =
+	"no_streaming::zircon_render_graph_pass_present_bgfx";
+
 // the game pass pair of the GPU-driven A/B (task Z24 B1): the per-item
 // CPU path (model_static, the house default above) and the GPU-driven
 // chunked path are ALTERNATE members of the game pass set — the

@@ -16,6 +16,7 @@
 		#include "../../core/zircon_config.h"
 		#include "../../editor/ui/zircon_ui_render_passes.h"
 		#include "../../editor/ui/zircon_ui_gizmo_imguizmo.h"
+		#include "../../render/bgfx/zircon_renderer.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_model_static.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
 		#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_own.h"
@@ -1599,6 +1600,59 @@ TEST(Zircon_Game, RenderPassSetResolutionOrder)
 	}
 
 	filesystem.Shutdown();
+}
+
+TEST(Zircon_Editor, RenderPassEssentialClassification)
+{
+	EXPECT_TRUE(zircon_is_render_pass_essential(
+		kZirconConfig_RenderPassEditorPresentName));
+	EXPECT_TRUE(zircon_is_render_pass_essential(
+		kZirconConfig_RenderPassEditorImguiName));
+	EXPECT_TRUE(zircon_is_render_pass_essential(
+		kZirconConfig_RenderPassGamePresentName));
+
+	EXPECT_FALSE(zircon_is_render_pass_essential(
+		kZirconConfig_RenderPassEditorGizmoOwnName));
+	EXPECT_FALSE(zircon_is_render_pass_essential(
+		"no_streaming::zircon_render_graph_pass_editor_grid_bgfx"));
+	EXPECT_FALSE(zircon_is_render_pass_essential(nullptr));
+}
+
+TEST(Zircon_Editor, RenderPassEssentialDisableIsRestoredByEscape)
+{
+	zircon_render_graph_simplified_bgfx_info_t info;
+	info.pass_names.resize(3);
+	info.pass_names[0].assign(kZirconConfig_RenderPassEditorPresentName);
+	info.pass_names[1].assign(
+		"no_streaming::zircon_render_graph_pass_editor_grid_bgfx");
+	info.pass_names[2].assign(kZirconConfig_RenderPassEditorImguiName);
+	info.pass_enabled.assign(3, true);
+	info.pass_restore_on_escape.assign(3, false);
+
+	zircon_set_render_pass_enabled_with_recovery(info, 0, false);
+	zircon_set_render_pass_enabled_with_recovery(info, 1, false);
+	zircon_set_render_pass_enabled_with_recovery(info, 2, false);
+
+	EXPECT_TRUE(info.pass_restore_on_escape[0]);
+	EXPECT_FALSE(info.pass_restore_on_escape[1]);
+	EXPECT_TRUE(info.pass_restore_on_escape[2]);
+
+	// One ESC restores every essential disable, but deliberately leaves a
+	// non-essential pass alone.
+	EXPECT_EQ(zircon_restore_essential_render_passes(&info, 1), 2);
+	EXPECT_TRUE(info.pass_enabled[0]);
+	EXPECT_FALSE(info.pass_enabled[1]);
+	EXPECT_TRUE(info.pass_enabled[2]);
+	EXPECT_EQ(zircon_restore_essential_render_passes(&info, 1), 0);
+
+	// Re-enabling before ESC cancels the pending recovery instead of
+	// resurrecting an unrelated later disable.
+	zircon_set_render_pass_enabled_with_recovery(info, 2, false);
+	EXPECT_TRUE(info.pass_restore_on_escape[2]);
+	zircon_set_render_pass_enabled_with_recovery(info, 2, true);
+	EXPECT_FALSE(info.pass_restore_on_escape[2]);
+	EXPECT_EQ(zircon_restore_essential_render_passes(&info, 1), 0);
+	EXPECT_EQ(zircon_restore_essential_render_passes(nullptr, 1), 0);
 }
 
 		#endif

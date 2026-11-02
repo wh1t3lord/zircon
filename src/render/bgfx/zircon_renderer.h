@@ -64,7 +64,21 @@ struct zircon_render_graph_simplified_bgfx_info_t
 	kotek::static_vector_t<bool,
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 		pass_enabled;
+
+	/// aligned with pass_names: an essential pass disabled through the
+	/// editor is restored by ESC, even when the disabled pass owns the UI
+	kotek::static_vector_t<bool,
+		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
+		pass_restore_on_escape;
 };
+
+bool zircon_is_render_pass_essential(const char* p_pass_name) noexcept;
+void zircon_set_render_pass_enabled_with_recovery(
+	zircon_render_graph_simplified_bgfx_info_t& info,
+	kotek::uint8_t pass_index, bool enabled) noexcept;
+kotek::uint8_t zircon_restore_essential_render_passes(
+	zircon_render_graph_simplified_bgfx_info_t* p_infos,
+	kotek::uint8_t info_count) noexcept;
 
 class zircon_renderer_bgfx : public kotek::core::ktkIRenderer
 {
