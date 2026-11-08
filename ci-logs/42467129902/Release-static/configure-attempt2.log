@@ -1,0 +1,155 @@
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+-- applying D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake
+-- [kotek]: C++ standard is C++20 (KOTEK_WINDOWS_XP=OFF)
+-- D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake is applied!
+[zircon]: build type is 'Release'
+[zircon]: CMAKE_SYSTEM_VERSION='10.0.20348'
+[zircon]: ZIRCON_CSG_PRECISION=F32
+[zircon]: output dir is 'D:/a/zircon/zircon/build'
+[zircon]: full-static game module, functions file: "zircon_game.h"
+-- applying D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake
+[kotek.engine]: CMAKE_SOURCE_DIR=D:/a/zircon/zircon
+[kotek.engine]: CMAKE_CURRENT_SOURCE_DIR=D:/a/zircon/zircon/kotek
+[kotek.engine]: vcpkg triplet is 'x64-windows-static'
+-- applying D:/a/zircon/zircon/kotek/cmake/library.cmake
+-- [kotek]: linkage scenario is 'STATIC' (force static: '', force shared: '')
+-- D:/a/zircon/zircon/kotek/cmake/library.cmake is applied!
+[kotek.engine]: Your overriden kotek.exe [kotek]
+[kotek.engine]: build type is 'Release'
+[kotek.engine]: filename for generating preprocessors: 'D:/a/zircon/zircon/build/generated/kotek_std_preprocessors.h'
+[kotek.engine]: using nuget packages
+KOTEK_CONFIGURATION_TYPE=minimal
+KOTEK_VCPKG_FILENAME=vcpkg_nuget_minimal.cmake using this for installing packages from vcpkg
+-- Downloading vcpkg for downloading big packages because of nuget limitations...
+-- [kotek]: patched vcpkg tracy port (TRACY_DELAYED_INIT + TRACY_MANUAL_LIFETIME forwarded)
+Downloading https://github.com/microsoft/vcpkg-tool/releases/download/2026-04-08/vcpkg.exe -> D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe... done.
+Validating signature... done.
+
+vcpkg package management program version 2026-04-08-e0612b42ce44e55a0e630f2ee9d3c533a63d8bc1
+
+See LICENSE.txt for license information.
+Telemetry
+---------
+vcpkg collects usage data in order to help us improve your experience.
+The data collected by Microsoft is anonymous.
+You can opt-out of telemetry by re-running the bootstrap-vcpkg script with -disableMetrics,
+passing --disable-metrics to vcpkg on the command line,
+or by setting the VCPKG_DISABLE_METRICS environment variable.
+
+Read more about vcpkg telemetry at docs/about/privacy.md
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+A suitable version of cmake was not found (required v4.3.2).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip -> cmake-4.3.2-windows-x86_64.zip
+Attempt 1 of 3, retrying download.
+Attempt 2 of 3, retrying download.
+error: curl operation failed with response code 504.
+error: curl operation failed with response code 504.
+error: Reached maximum number of attempts, won't retry download from https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip.
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+The following packages are already installed:
+    zstd:x64-windows-static@1.5.7
+Total install time: 1.06 ms
+All requested installations completed successfully in: 1.06 ms
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+The following packages are already installed:
+    rmlui[core,freetype]:x64-windows-static@6.2
+Total install time: 1.08 ms
+All requested installations completed successfully in: 1.08 ms
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+The following packages are already installed:
+    freetype[core,zlib,png,bzip2,brotli]:x64-windows-static@2.14.3
+Total install time: 1.05 ms
+All requested installations completed successfully in: 1.05 ms
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+The following packages are already installed:
+    gtest:x64-windows-static@1.17.0#2
+Total install time: 1.53 ms
+All requested installations completed successfully in: 1.53 ms
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+A suitable version of cmake was not found (required v4.3.2).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip -> cmake-4.3.2-windows-x86_64.zip
+Attempt 1 of 3, retrying download.
+Attempt 2 of 3, retrying download.
+error: curl operation failed with response code 504.
+error: curl operation failed with response code 504.
+error: Reached maximum number of attempts, won't retry download from https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip.
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+The following packages are already installed:
+    cgltf:x64-windows-static@1.15
+Total install time: 1.01 ms
+All requested installations completed successfully in: 1.01 ms
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+A suitable version of cmake was not found (required v4.3.2).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip -> cmake-4.3.2-windows-x86_64.zip
+Attempt 1 of 3, retrying download.
+Attempt 2 of 3, retrying download.
+error: curl operation failed with response code 504.
+error: curl operation failed with response code 504.
+error: Reached maximum number of attempts, won't retry download from https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip.
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+The following packages are already installed:
+    glfw3:x64-windows-static@3.4#1
+Total install time: 1.11 ms
+All requested installations completed successfully in: 1.11 ms
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+A suitable version of cmake was not found (required v4.3.2).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip -> cmake-4.3.2-windows-x86_64.zip
+Attempt 1 of 3, retrying download.
+Attempt 2 of 3, retrying download.
+error: curl operation failed with response code 504.
+error: curl operation failed with response code 504.
+error: Reached maximum number of attempts, won't retry download from https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip.
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+A suitable version of cmake was not found (required v4.3.2).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip -> cmake-4.3.2-windows-x86_64.zip
+Attempt 1 of 3, retrying download.
+Attempt 2 of 3, retrying download.
+error: curl operation failed with response code 504.
+error: curl operation failed with response code 504.
+error: Reached maximum number of attempts, won't retry download from https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip.
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+A suitable version of cmake was not found (required v4.3.2).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip -> cmake-4.3.2-windows-x86_64.zip
+Attempt 1 of 3, retrying download.
+Attempt 2 of 3, retrying download.
+error: curl operation failed with response code 504.
+error: curl operation failed with response code 504.
+error: Reached maximum number of attempts, won't retry download from https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip.
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+The following packages are already installed:
+    spdlog[core,tz-offset,fmt]:x64-windows-static@1.17.0
+Total install time: 1.04 ms
+All requested installations completed successfully in: 1.04 ms
+-- [kotek]: rebuilding tracy with the manual-lifetime patch (one-time)...
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+The following packages are not installed:
+    tracy:x64-windows-static
+warning: The vcpkg D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe is using detected vcpkg root D:\a\zircon\zircon\kotek\vcpkg and ignoring mismatched VCPKG_ROOT environment value C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\vcpkg. To suppress this message, unset the environment variable or use the --vcpkg-root command line switch.
+Computing installation plan...
+A suitable version of cmake was not found (required v4.3.2).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip -> cmake-4.3.2-windows-x86_64.zip
+Attempt 1 of 3, retrying download.
+Attempt 2 of 3, retrying download.
+error: curl operation failed with response code 504.
+error: curl operation failed with response code 504.
+error: Reached maximum number of attempts, won't retry download from https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip.
+CMake Error at kotek/cmake/windows/vcpkg_nuget_minimal.cmake:93 (message):
+  [kotek]: tracy rebuild after the port patch failed (1)
+Call Stack (most recent call first):
+  kotek/CMakeLists.txt:129 (include)
+
+
+-- Configuring incomplete, errors occurred!
