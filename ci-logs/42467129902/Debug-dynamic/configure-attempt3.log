@@ -1,0 +1,49 @@
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+-- applying D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake
+-- [kotek]: C++ standard is C++20 (KOTEK_WINDOWS_XP=OFF)
+-- D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake is applied!
+[zircon]: build type is 'Debug'
+[zircon]: CMAKE_SYSTEM_VERSION='10.0.20348'
+[zircon]: ZIRCON_CSG_PRECISION=F32
+[zircon]: output dir is 'D:/a/zircon/zircon/build'
+-- applying D:/a/zircon/zircon/kotek/cmake/windows/compiler_globals.cmake
+[kotek.engine]: CMAKE_SOURCE_DIR=D:/a/zircon/zircon
+[kotek.engine]: CMAKE_CURRENT_SOURCE_DIR=D:/a/zircon/zircon/kotek
+[kotek.engine]: vcpkg triplet is 'x64-windows-static'
+-- applying D:/a/zircon/zircon/kotek/cmake/library.cmake
+-- [kotek]: linkage scenario is 'SHARED' (force static: '', force shared: '')
+-- D:/a/zircon/zircon/kotek/cmake/library.cmake is applied!
+[kotek.engine]: Your overriden kotek.exe [kotek]
+[kotek.engine]: build type is 'Debug'
+[kotek.engine]: filename for generating preprocessors: 'D:/a/zircon/zircon/build/generated/kotek_std_preprocessors.h'
+[kotek.engine]: using nuget packages
+KOTEK_CONFIGURATION_TYPE=minimal
+KOTEK_VCPKG_FILENAME=vcpkg_nuget_minimal.cmake using this for installing packages from vcpkg
+-- Downloading vcpkg for downloading big packages because of nuget limitations...
+-- [kotek]: patched vcpkg tracy port (TRACY_DELAYED_INIT + TRACY_MANUAL_LIFETIME forwarded)
+Downloading https://github.com/microsoft/vcpkg-tool/releases/download/2026-04-08/vcpkg.exe -> D:\a\zircon\zircon\kotek\vcpkg\vcpkg.exe...Download failed, server returned HTTP status: 504
+
+D:\a\zircon\zircon\kotek\vcpkg\scripts\bootstrap.ps1 : Downloading vcpkg.exe failed. Please check your internet 
+connection, or consider downloading a recent vcpkg.exe from https://github.com/microsoft/vcpkg-tool with a browser.
+At line:1 char:4
++ & {& "D:\a\zircon\zircon\kotek\vcpkg\scripts\bootstrap.ps1" }
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,bootstrap.ps1
+ 
+ScriptHalted
+At D:\a\zircon\zircon\kotek\vcpkg\scripts\bootstrap.ps1:63 char:5
++     throw
++     ~~~~~
+    + CategoryInfo          : OperationStopped: (:) [], RuntimeException
+    + FullyQualifiedErrorId : ScriptHalted
+ 
+-- [kotek]: rebuilding tracy with the manual-lifetime patch (one-time)...
+CMake Error at kotek/cmake/windows/vcpkg_nuget_minimal.cmake:93 (message):
+  [kotek]: tracy rebuild after the port patch failed (no such file or
+  directory)
+Call Stack (most recent call first):
+  kotek/CMakeLists.txt:129 (include)
+
+
+-- Configuring incomplete, errors occurred!
