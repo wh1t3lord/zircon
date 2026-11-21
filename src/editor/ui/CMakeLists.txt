@@ -28,6 +28,8 @@ set(to_include_windows_files
 	"zircon_ui_window_prefab_browser.cpp"
 	"zircon_ui_component_inspector.h"
 	"zircon_ui_component_inspector.cpp"
+	"zircon_ui_csg.h"
+	"zircon_ui_csg.cpp"
 	"zircon_ui_window_history_command_log.h"
 	"zircon_ui_window_history_command_log.cpp"
 	"zircon_ui_window_render_stats.h"

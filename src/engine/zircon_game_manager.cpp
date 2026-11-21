@@ -15,6 +15,7 @@
 	#include "../editor/session/zircon_session_editor_manager.h"
 	#include "../editor/session/zircon_editor_sdk_camera.h"
 	#include "../editor/ui/zircon_ui_component_inspector.h"
+	#include "../editor/ui/zircon_ui_csg.h"
 	#include "../editor/ui/zircon_ui_object_list.h"
 	#include "../editor/ui/zircon_ui_top_bar.h"
 	#include "../editor/ui/zircon_ui_window_prefab.h"
@@ -634,7 +635,11 @@ void zircon_game_manager::Initialize(
 							this->m_p_factory,
 							p_ui_test_widget_registry
 						),
-						new zircon_editor_ui_window_log(),
+						new zircon_editor_ui_window_csg(
+								this->m_p_session_editor_manager,
+								this->m_p_console, this->m_p_factory,
+								p_ui_test_widget_registry),
+							new zircon_editor_ui_window_log(),
 						new zircon_editor_ui_window_history_command_log(
 							p_session->get_command_history(),
 							this->m_p_session_editor_manager,

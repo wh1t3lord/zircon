@@ -117,6 +117,7 @@ namespace zircon_ui_test_window_names
 	constexpr const char* kHistoryCommandLog = "History Command Log";
 	constexpr const char* kRenderPasses = "Render Passes";
 	constexpr const char* kSettings = "Settings";
+	constexpr const char* kCsg = "CSG";
 } // namespace zircon_ui_test_window_names
 
 struct zircon_ui_test_widget_t

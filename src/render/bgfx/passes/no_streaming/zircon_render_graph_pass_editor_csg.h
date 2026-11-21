@@ -13,6 +13,10 @@
 // record whose compound died through a NON-csg command — e.g. the
 // generic delete-entity — is freed here)
 #define zircon_DEF_RENDER_PASS_EDITOR_CSG_MAX_ENTITY_SCAN_COUNT 256
+	// three directed line indices per triangle edge (two triangle indices
+	// become six line indices): v0-v1-v2-v0 = 6
+	#define zircon_DEF_RENDER_CSG_EDITOR_POOL_MAX_LINE_INDICES \
+		(zircon_DEF_RENDER_CSG_EDITOR_POOL_MAX_INDICES * 2)
 
 namespace no_streaming
 {
@@ -77,7 +81,11 @@ namespace no_streaming
 		bgfx::VertexLayout m_layout;
 		bgfx::DynamicVertexBufferHandle m_vertex_buffer;
 		bgfx::DynamicIndexBufferHandle m_index_buffer;
+		bgfx::DynamicIndexBufferHandle m_line_index_buffer;
 		bgfx::ProgramHandle m_program;
+		// unlit wireframe overlay (the gizmo shader contract)
+		bgfx::ProgramHandle m_program_unlit;
+		bgfx::UniformHandle m_uniform_unlit_color;
 		// the LightParams cbuffer members of the fragment stage (the
 		// model_static contract — the fixed scene light until light
 		// components land)
@@ -96,6 +104,9 @@ namespace no_streaming
 			float,
 			ZIRCON_DEF_CSG_MAX_TRIANGLES_PER_EVALUATION * 3>
 			m_normal_scratch;
+		kotek::static_vector_t<kotek::uint32_t,
+			zircon_DEF_RENDER_CSG_EDITOR_POOL_MAX_LINE_INDICES>
+			m_line_indices;
 		// the pass is inert (renders nothing) until its compiled
 		// program exists — tracks the one-time warning so the log is
 		// not spammed

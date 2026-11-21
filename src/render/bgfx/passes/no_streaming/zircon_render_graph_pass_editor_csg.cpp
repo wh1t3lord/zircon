@@ -19,7 +19,10 @@ namespace no_streaming
 		m_layout{},
 		m_vertex_buffer{BGFX_INVALID_HANDLE},
 		m_index_buffer{BGFX_INVALID_HANDLE},
+		m_line_index_buffer{BGFX_INVALID_HANDLE},
 		m_program{BGFX_INVALID_HANDLE},
+		m_program_unlit{BGFX_INVALID_HANDLE},
+		m_uniform_unlit_color{BGFX_INVALID_HANDLE},
 		m_uniform_light_dir{BGFX_INVALID_HANDLE},
 		m_uniform_light_color{BGFX_INVALID_HANDLE},
 		m_uniform_ambient{BGFX_INVALID_HANDLE},
@@ -66,11 +69,16 @@ namespace no_streaming
 		this->m_index_buffer = bgfx::createDynamicIndexBuffer(
 			zircon_DEF_RENDER_CSG_EDITOR_POOL_MAX_INDICES,
 			BGFX_BUFFER_INDEX32);
+		this->m_line_index_buffer = bgfx::createDynamicIndexBuffer(
+			zircon_DEF_RENDER_CSG_EDITOR_POOL_MAX_LINE_INDICES,
+			BGFX_BUFFER_INDEX32);
 
 		KOTEK_ASSERT(bgfx::isValid(this->m_vertex_buffer),
 			"failed to create the editor_csg dynamic vertex pool!");
 		KOTEK_ASSERT(bgfx::isValid(this->m_index_buffer),
 			"failed to create the editor_csg dynamic index pool!");
+		KOTEK_ASSERT(bgfx::isValid(this->m_line_index_buffer),
+			"failed to create the editor_csg line index pool!");
 
 		// the LightParams cbuffer members of the fragment stage (the
 		// model_static fixed-scene-light contract — defines until
@@ -105,6 +113,27 @@ namespace no_streaming
 
 			KOTEK_ASSERT(bgfx::isValid(this->m_program),
 				"failed to link the editor_csg program!");
+
+			this->m_uniform_unlit_color =
+				bgfx::createUniform("u_color", bgfx::UniformType::Vec4);
+
+			bgfx::ShaderHandle unlit_vertex =
+				this->load_shader_blob("gizmo.vs.bin");
+			bgfx::ShaderHandle unlit_fragment =
+				this->load_shader_blob("gizmo.fs.bin");
+
+			if (bgfx::isValid(unlit_vertex) && bgfx::isValid(unlit_fragment))
+			{
+				this->m_program_unlit =
+					bgfx::createProgram(unlit_vertex, unlit_fragment, true);
+			}
+			else
+			{
+				if (bgfx::isValid(unlit_vertex))
+					bgfx::destroy(unlit_vertex);
+				if (bgfx::isValid(unlit_fragment))
+					bgfx::destroy(unlit_fragment);
+			}
 
 			KOTEK_MESSAGE(
 				"[editor_csg] pass created: one dynamic pool "
@@ -141,6 +170,18 @@ namespace no_streaming
 			this->m_program = BGFX_INVALID_HANDLE;
 		}
 
+		if (bgfx::isValid(this->m_program_unlit))
+		{
+			bgfx::destroy(this->m_program_unlit);
+			this->m_program_unlit = BGFX_INVALID_HANDLE;
+		}
+
+		if (bgfx::isValid(this->m_uniform_unlit_color))
+		{
+			bgfx::destroy(this->m_uniform_unlit_color);
+			this->m_uniform_unlit_color = BGFX_INVALID_HANDLE;
+		}
+
 		if (bgfx::isValid(this->m_uniform_light_dir))
 		{
 			bgfx::destroy(this->m_uniform_light_dir);
@@ -175,6 +216,12 @@ namespace no_streaming
 		{
 			bgfx::destroy(this->m_index_buffer);
 			this->m_index_buffer = BGFX_INVALID_HANDLE;
+		}
+
+		if (bgfx::isValid(this->m_line_index_buffer))
+		{
+			bgfx::destroy(this->m_line_index_buffer);
+			this->m_line_index_buffer = BGFX_INVALID_HANDLE;
 		}
 
 		this->m_pool.clear();
@@ -314,6 +361,28 @@ namespace no_streaming
 		bgfx::setIndexBuffer(this->m_index_buffer, 0, index_count);
 		bgfx::setState(_kState);
 		bgfx::submit(pass_id, this->m_program);
+
+		if (bgfx::isValid(this->m_program_unlit) &&
+			!this->m_line_indices.empty())
+		{
+			constexpr float identity[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+				1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f};
+			constexpr float wire_color[4] = {0.20f, 0.85f, 1.0f, 0.45f};
+			constexpr kotek::uint64_t wire_state = BGFX_STATE_PT_LINES |
+				BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A |
+				BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA,
+					BGFX_STATE_BLEND_INV_SRC_ALPHA);
+
+			bgfx::setTransform(identity);
+			bgfx::setUniform(this->m_uniform_unlit_color, wire_color);
+			bgfx::setVertexBuffer(0, this->m_vertex_buffer, 0,
+				this->m_pool.get_vertex_high_water());
+			bgfx::setIndexBuffer(this->m_line_index_buffer, 0,
+				this->m_line_indices.size());
+			bgfx::setState(wire_state);
+			bgfx::submit(pass_id, this->m_program_unlit);
+		}
 
 		if (this->m_is_first_draw_logged == false)
 		{
@@ -509,6 +578,39 @@ namespace no_streaming
 							span.m_offset,
 						span.m_count *
 							sizeof(zircon_model_static_vertex_t)));
+			}
+		}
+
+		if (span_count)
+		{
+			this->m_line_indices.clear();
+
+			const kotek::uint32_t* p_indices = this->m_pool.get_index_shadow();
+			const kotek::uint32_t index_count =
+				this->m_pool.get_index_high_water();
+
+			this->m_line_indices.reserve(index_count * 2);
+
+			for (kotek::uint32_t triangle = 0; triangle + 2 < index_count;
+				 triangle += 3)
+			{
+				const kotek::uint32_t a = p_indices[triangle];
+				const kotek::uint32_t b = p_indices[triangle + 1];
+				const kotek::uint32_t c = p_indices[triangle + 2];
+
+				this->m_line_indices.push_back(a);
+				this->m_line_indices.push_back(b);
+				this->m_line_indices.push_back(b);
+				this->m_line_indices.push_back(c);
+				this->m_line_indices.push_back(c);
+				this->m_line_indices.push_back(a);
+			}
+
+			if (!this->m_line_indices.empty())
+			{
+				bgfx::update(this->m_line_index_buffer, 0,
+					bgfx::copy(this->m_line_indices.data(),
+						this->m_line_indices.size() * sizeof(kotek::uint32_t)));
 			}
 		}
 	}

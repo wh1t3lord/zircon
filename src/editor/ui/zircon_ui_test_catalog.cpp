@@ -3,6 +3,8 @@
 #include "../../core/zircon_config.h"
 #include "../../core/zircon_editor_enums.h"
 #include "../../ecs/zircon_factory.h"
+#include "../../ecs/zircon_component_csg.h"
+#include "../../ecs/zircon_component_csg_primitive.h"
 #include "../../render/bgfx/zircon_renderer.h"
 #include "../../world/zircon_world.h"
 #include "../commands/zircon_command_history.h"
@@ -391,6 +393,125 @@ namespace
 			return false;
 		}
 
+		return true;
+	}
+
+	zircon_component_csg* zircon_ui_test_selected_csg_compound(
+		zircon_ui_test_context_t& ctx) noexcept
+	{
+		if (!ctx.p_factory || !ctx.p_world || !ctx.p_ui_state)
+			return nullptr;
+
+		return static_cast<zircon_component_csg*>(
+			ctx.p_factory->get_component_by_enum(ctx.p_world->get_ecs_context(),
+				ctx.p_ui_state->get_selected_entity(),
+				eZirconComponentType::kzircon_component_csg));
+	}
+
+	zircon_component_csg_primitive* zircon_ui_test_csg_primitive_at(
+		zircon_ui_test_context_t& ctx, kotek::uint32_t index) noexcept
+	{
+		zircon_component_csg* p_compound =
+			zircon_ui_test_selected_csg_compound(ctx);
+
+		if (!p_compound || index >= p_compound->get_primitive_count())
+			return nullptr;
+
+		const kotek::entity_t id = p_compound->get_primitive_entities()[index];
+		return static_cast<zircon_component_csg_primitive*>(
+			ctx.p_factory->get_component_by_enum(ctx.p_world->get_ecs_context(), id,
+				eZirconComponentType::kzircon_component_csg_primitive));
+	}
+
+	bool probe_assert_csg_compound_count(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		if (!ctx.p_factory || !ctx.p_world)
+			return false;
+
+		kotek::uint32_t count = 0;
+
+		for (kotek::uint32_t raw_id = 0;
+			 raw_id < ctx.p_world->get_entity_count_max_limit(); ++raw_id)
+		{
+			if (ctx.p_factory->has_component(ctx.p_world->get_ecs_context(),
+					kotek::entity_t{raw_id},
+					eZirconComponentType::kzircon_component_csg))
+			{
+				++count;
+			}
+		}
+
+		if (count == static_cast<kotek::uint32_t>(step.m_params[1]))
+			return true;
+
+		KOTEK_MESSAGE("[ui-test]:     CSG compounds {} (expected {})", count,
+			step.m_params[1]);
+		return false;
+	}
+
+	bool probe_assert_csg_primitive_count(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		zircon_component_csg* p_compound =
+			zircon_ui_test_selected_csg_compound(ctx);
+		const kotek::uint32_t actual =
+			p_compound ? p_compound->get_primitive_count() : 0;
+
+		if (p_compound && actual == static_cast<kotek::uint32_t>(step.m_params[1]))
+			return true;
+
+		KOTEK_MESSAGE("[ui-test]:     CSG primitives {} (expected {})", actual,
+			step.m_params[1]);
+		return false;
+	}
+
+	bool probe_assert_csg_primitive_type(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		auto* p_primitive = zircon_ui_test_csg_primitive_at(
+			ctx, static_cast<kotek::uint32_t>(step.m_params[0]));
+
+		if (p_primitive && static_cast<kotek::uint32_t>(
+				p_primitive->get_primitive_type()) ==
+			static_cast<kotek::uint32_t>(step.m_params[1]))
+		{
+			return true;
+		}
+
+		KOTEK_MESSAGE("[ui-test]:     CSG primitive type mismatch at index {}",
+			step.m_params[0]);
+		return false;
+	}
+
+	bool probe_assert_csg_primitive_subtractive(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		auto* p_primitive = zircon_ui_test_csg_primitive_at(
+			ctx, static_cast<kotek::uint32_t>(step.m_params[0]));
+		const bool expected = step.m_params[1] != 0;
+
+		if (p_primitive && p_primitive->is_subtractive() == expected)
+			return true;
+
+		KOTEK_MESSAGE("[ui-test]:     CSG subtractive mismatch at index {}",
+			step.m_params[0]);
+		return false;
+	}
+
+	bool probe_capture_csg_primitive_id(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		zircon_component_csg* p_compound =
+			zircon_ui_test_selected_csg_compound(ctx);
+		const kotek::uint32_t index =
+			static_cast<kotek::uint32_t>(step.m_params[0]);
+
+		if (!p_compound || index >= p_compound->get_primitive_count())
+			return false;
+
+		ctx.scratch[step.m_params[1]] =
+			p_compound->get_primitive_entities()[index].id;
 		return true;
 	}
 
@@ -1296,6 +1417,91 @@ namespace
 	// dialog, Save = the Z8 session-serialize trap, Exit = the
 	// save-scene modal) are deliberately not clicked — the test pins the
 	// menu opening and the ESC dismiss
+	// CSG: open the window, create a compound and every primitive type, flip
+	// the first brush subtractive, then delete it — every mutation checked
+	// through undo AND redo against the live ECS, never against UI text.
+	constexpr zircon_ui_test_step_t _kSteps_csg_lifecycle[] = {
+		ZIRCON_UI_TEST_STEPS_VIEW_TOGGLE("kWindow_SDK_Csg",
+			eZirconWindowIDs::kWindow_SDK_Csg, 1),
+		st_click(16, zircon_ui_test_window_names::kCsg, "button:New compound",
+			"create a compound entity"),
+		st_probe(22, &probe_assert_csg_compound_count,
+			"one compound exists", 0, 1),
+		st_probe(22, &probe_assert_csg_primitive_count,
+			"the new compound starts empty", 0, 0),
+		st_focus(23, zircon_ui_test_window_names::kCsg,
+			"raise CSG before adding brushes"),
+		st_click(24, zircon_ui_test_window_names::kCsg, "button:Add box",
+			"add a box brush"),
+		st_probe(43, &probe_capture_csg_primitive_id,
+			"capture the new box before checking it", 0, 2),
+		st_wait_fmt(43, zircon_ui_test_window_names::kCsg, "row:%u", 0, 2,
+			"wait for the box row before checking it"),
+		st_probe(44, &probe_assert_csg_primitive_count,
+			"the box joined the compound", 0, 1),
+		st_probe(44, &probe_assert_csg_primitive_type,
+			"member 0 is a box", 0,
+			static_cast<kotek::int32_t>(eZirconCsgPrimitiveType::kBox)),
+		st_click(45, zircon_ui_test_window_names::kCsg, "button:Add wedge",
+			"add a wedge brush"),
+		st_probe(65, &probe_capture_csg_primitive_id,
+			"capture the new wedge before checking it", 1, 2),
+		st_wait_fmt(65, zircon_ui_test_window_names::kCsg, "row:%u", 0, 2,
+			"wait for the wedge row before checking it"),
+		st_probe(66, &probe_assert_csg_primitive_count,
+			"the wedge joined", 0, 2),
+		st_probe(66, &probe_assert_csg_primitive_type,
+			"member 1 is a wedge", 1,
+			static_cast<kotek::int32_t>(eZirconCsgPrimitiveType::kWedge)),
+		st_click(67, zircon_ui_test_window_names::kCsg, "button:Add cylinder",
+			"add a cylinder brush"),
+		st_probe(87, &probe_capture_csg_primitive_id,
+			"capture the new cylinder before checking it", 2, 2),
+		st_wait_fmt(87, zircon_ui_test_window_names::kCsg, "row:%u", 0, 2,
+			"wait for the cylinder row before checking it"),
+		st_probe(88, &probe_assert_csg_primitive_count,
+			"the cylinder joined", 0, 3),
+		st_probe(88, &probe_assert_csg_primitive_type,
+			"member 2 is a cylinder", 2,
+			static_cast<kotek::int32_t>(eZirconCsgPrimitiveType::kCylinder)),
+		st_probe(89, &probe_capture_csg_primitive_id,
+			"capture the box's runtime entity id", 0, 2),
+		st_wait_fmt(90, zircon_ui_test_window_names::kCsg, "row:%u", 0, 2,
+			"the box row is listed"),
+		st_focus(90, zircon_ui_test_window_names::kCsg,
+			"raise CSG before selecting the box"),
+		st_click_fmt(91, zircon_ui_test_window_names::kCsg, "row:%u", 2,
+			"select the box"),
+		st_click(97, zircon_ui_test_window_names::kCsg, "checkbox:Subtractive",
+			"make the box subtractive"),
+		st_probe(103, &probe_assert_csg_primitive_subtractive,
+			"the box is subtractive", 0, 1),
+		st_click(108, kTopBar, _kTopBarMenuEdit, "open Edit"),
+		st_wait(112, kTopBar, "Undo", 0, "Undo is visible"),
+		st_click(113, kTopBar, "Undo", "undo the subtractive edit"),
+		st_probe(119, &probe_assert_csg_primitive_subtractive,
+			"undo restored additive", 0, 0),
+		st_click(120, kTopBar, _kTopBarMenuEdit, "open Edit again"),
+		st_wait(124, kTopBar, "Redo", 0, "Redo is visible"),
+		st_click(125, kTopBar, "Redo", "redo the subtractive edit"),
+		st_probe(131, &probe_assert_csg_primitive_subtractive,
+			"redo restored subtractive", 0, 1),
+		st_click(132, zircon_ui_test_window_names::kCsg,
+			"button:Delete selected brush", "delete the box"),
+		st_probe(138, &probe_assert_csg_primitive_count,
+			"the box was removed", 0, 2),
+		st_click(139, kTopBar, _kTopBarMenuEdit, "open Edit for delete undo"),
+		st_wait(143, kTopBar, "Undo", 0, "Undo is visible again"),
+		st_click(144, kTopBar, "Undo", "undo the brush delete"),
+		st_probe(150, &probe_assert_csg_primitive_count,
+			"undo restored the box", 0, 3),
+		st_click(151, kTopBar, _kTopBarMenuEdit, "open Edit for delete redo"),
+		st_wait(155, kTopBar, "Redo", 0, "Redo is visible again"),
+		st_click(156, kTopBar, "Redo", "redo the brush delete"),
+		st_probe(162, &probe_assert_csg_primitive_count,
+			"redo removed the box again", 0, 2),
+	};
+
 	// Play uses the shared editor/game world, then ESC returns to the editor.
 	// The click at F+1 fires at F+4 and flushes at F+5; the ESC injected at
 	// F+4 is therefore already visible to the game manager at F+5, where the
@@ -1415,6 +1621,10 @@ namespace
 			static_cast<kotek::uint16_t>(sizeof(_kSteps_history_window_rows) /
 				sizeof(zircon_ui_test_step_t)),
 			8},
+		{"csg_compound_primitive_lifecycle", _kSteps_csg_lifecycle,
+			static_cast<kotek::uint16_t>(sizeof(_kSteps_csg_lifecycle) /
+				sizeof(zircon_ui_test_step_t)),
+			200},
 		{"play_esc_returns_to_editor", _kSteps_play_click,
 			static_cast<kotek::uint16_t>(sizeof(_kSteps_play_click) /
 				sizeof(zircon_ui_test_step_t)),
