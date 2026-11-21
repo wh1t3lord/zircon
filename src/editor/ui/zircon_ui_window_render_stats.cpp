@@ -1,5 +1,6 @@
 #include "zircon_ui_window_render_stats.h"
 #include "zircon_editor_ui_state.h"
+#include "../../render/bgfx/zircon_renderer.h"
 
 zircon_editor_ui_window_render_stats::zircon_editor_ui_window_render_stats() :
 	m_is_show_window(false)
@@ -28,6 +29,39 @@ void zircon_editor_ui_window_render_stats::Draw(
 			{
 				if (p_wrapper_imgui->CollapsingHeader("Stats"))
 				{
+					if (p_wrapper_imgui->CollapsingHeader("GPU (bgfx)"))
+					{
+						const bgfx::Stats* p_stats = bgfx::getStats();
+
+						if (p_stats)
+						{
+							constexpr float bytes_to_mib = 1.0f / (1024.0f * 1024.0f);
+
+							p_wrapper_imgui->Text("Texture memory: %.2f MiB",
+								static_cast<float>(p_stats->textureMemoryUsed) * bytes_to_mib);
+							p_wrapper_imgui->Text("Render-target memory: %.2f MiB",
+								static_cast<float>(p_stats->rtMemoryUsed) * bytes_to_mib);
+							p_wrapper_imgui->Text("Transient vertex: %.2f MiB",
+								static_cast<float>(p_stats->transientVbUsed) * bytes_to_mib);
+							p_wrapper_imgui->Text("Transient index: %.2f MiB",
+								static_cast<float>(p_stats->transientIbUsed) * bytes_to_mib);
+							p_wrapper_imgui->Text("Dynamic VB/IB: %u / %u",
+								p_stats->numDynamicVertexBuffers,
+								p_stats->numDynamicIndexBuffers);
+							p_wrapper_imgui->Text("Vertex/index buffers: %u / %u",
+								p_stats->numVertexBuffers, p_stats->numIndexBuffers);
+							p_wrapper_imgui->Text("Textures: %u | frame buffers: %u",
+								p_stats->numTextures, p_stats->numFrameBuffers);
+							p_wrapper_imgui->Text("Programs: %u | shaders: %u | uniforms: %u",
+								p_stats->numPrograms, p_stats->numShaders,
+								p_stats->numUniforms);
+						}
+						else
+						{
+							p_wrapper_imgui->TextDisabled("bgfx stats are unavailable");
+						}
+					}
+
 					if (p_wrapper_imgui->CollapsingHeader("Memory Management"))
 					{
 						auto* p_render_resource_manager =

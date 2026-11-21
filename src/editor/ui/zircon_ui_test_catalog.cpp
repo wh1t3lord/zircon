@@ -515,6 +515,26 @@ namespace
 		return true;
 	}
 
+	bool probe_assert_bgfx_gpu_stats_available(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		(void)ctx;
+		(void)step;
+
+		const bgfx::Stats* p_stats = bgfx::getStats();
+
+		if (p_stats && p_stats->numPrograms > 0 && p_stats->numShaders > 0 &&
+			p_stats->numVertexBuffers > 0 && p_stats->numDynamicVertexBuffers > 0 &&
+			p_stats->numDynamicIndexBuffers > 0)
+		{
+			return true;
+		}
+
+		KOTEK_MESSAGE_WARNING(
+			"[ui-test]: bgfx GPU memory counters are unavailable or empty");
+		return false;
+	}
+
 	bool probe_assert_window_shown(zircon_ui_test_context_t& ctx,
 		const zircon_ui_test_step_t& step)
 	{
@@ -1413,6 +1433,14 @@ namespace
 			"the listed rows match the live command pool"),
 	};
 
+	// GPU counters: open the Render System window and prove the live bgfx
+	// memory/buffer statistics feeding it are populated after graph creation
+	constexpr zircon_ui_test_step_t _kSteps_render_stats_gpu[] = {
+		st_focus(0, "Render System", "raise the Render System window"),
+		st_probe(16, &probe_assert_bgfx_gpu_stats_available,
+			"bgfx programs, shaders and buffer counters are populated"),
+	};
+
 	// the File menu opens; the destructive items (Open = a blocking OS
 	// dialog, Save = the Z8 session-serialize trap, Exit = the
 	// save-scene modal) are deliberately not clicked — the test pins the
@@ -1621,6 +1649,10 @@ namespace
 			static_cast<kotek::uint16_t>(sizeof(_kSteps_history_window_rows) /
 				sizeof(zircon_ui_test_step_t)),
 			8},
+		{"render_stats_gpu_counters", _kSteps_render_stats_gpu,
+			static_cast<kotek::uint16_t>(sizeof(_kSteps_render_stats_gpu) /
+				sizeof(zircon_ui_test_step_t)),
+			24},
 		{"csg_compound_primitive_lifecycle", _kSteps_csg_lifecycle,
 			static_cast<kotek::uint16_t>(sizeof(_kSteps_csg_lifecycle) /
 				sizeof(zircon_ui_test_step_t)),
