@@ -63,8 +63,29 @@ public:
 	const zircon_gizmo_overlay_state_t& get_gizmo_overlay_state(
 		void) const noexcept;
 
+	// Play-in-editor diagnostics shared with the UI-press harness without a
+	// UI -> game-manager dependency (the session owns this POD state)
+	bool is_simulation_active(void) const noexcept
+	{
+		return this->m_is_simulation_active;
+	}
+	kotek::uint32_t get_simulation_start_count(void) const noexcept
+	{
+		return this->m_simulation_start_count;
+	}
+	void set_simulation_active(bool status) noexcept
+	{
+		this->m_is_simulation_active = status;
+	}
+	void increment_simulation_start_count(void) noexcept
+	{
+		++this->m_simulation_start_count;
+	}
+
 private:
 	bool m_is_imgui_show_modal_save_scene;
+	bool m_is_simulation_active{};
+	kotek::uint32_t m_simulation_start_count{};
 	kotek::entity_t m_selected_entity;
 	zircon_gizmo_overlay_state_t m_gizmo_overlay_state;
 	kotek::static_unordered_map_t<const char*, bool, 64>

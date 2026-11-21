@@ -6,6 +6,7 @@
 #include "../session/zircon_session_editor.h"
 
 #include <kotek.core.filesystem/include/kotek_filesystem_helpers.h>
+#include <kotek.core.input/include/kotek_input.h>
 
 #include <cstring>
 
@@ -17,6 +18,28 @@ namespace
 	// build fails the harness's waits loudly, never silently)
 	constexpr kotek::int32_t _kGlfwActionRelease = 0;
 	constexpr kotek::int32_t _kGlfwActionPress = 1;
+
+	void zircon_ui_test_inject_key_input(zircon_ui_test_context_t& context,
+		kotek::int32_t key, kotek::int32_t action) noexcept
+	{
+		if (!context.p_main_manager)
+			return;
+
+		kotek::core::ktkIInput* p_input =
+			context.p_main_manager->Get_Input();
+
+		if (!p_input)
+			return;
+
+		kotek::core::ktkInputPlatformBackendArgs_GLFW3 args;
+		args.controller = kotek::core::eInputControllerType::kControllerKeyboard;
+		args.key = key;
+		args.action = action;
+		args.scancode = 0;
+		args.mods = 0;
+
+		p_input->Update_Controller(&args);
+	}
 
 	bool zircon_ui_test_strings_equal(
 		const char* p_left, const char* p_right) noexcept
@@ -641,6 +664,9 @@ void zircon_ui_test_harness::inject_pending_due(
 					this->m_p_native_window_handle,
 					static_cast<int>(event.m_code), 0,
 					static_cast<int>(_kGlfwActionRelease), 0);
+
+				zircon_ui_test_inject_key_input(
+					this->m_context, event.m_code, _kGlfwActionRelease);
 			}
 		}
 		else
@@ -755,6 +781,9 @@ void zircon_ui_test_harness::execute_step(
 		p_wrapper->ImGui_KeyCallback(this->m_p_native_window_handle,
 			static_cast<int>(step.m_params[0]), 0,
 			static_cast<int>(_kGlfwActionPress), 0);
+
+		zircon_ui_test_inject_key_input(
+			context, step.m_params[0], _kGlfwActionPress);
 
 		this->schedule_release(1, step.m_params[0]);
 		break;

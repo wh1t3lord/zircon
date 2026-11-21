@@ -40,6 +40,7 @@ class zircon_resource_manager;
 class zircon_config;
 class zircon_localization_manager;
 class zircon_factory;
+class zircon_world;
 class zircon_world_manager;
 class zircon_interface_session;
 class zircon_editor_ui_state_interface;
@@ -112,6 +113,18 @@ public:
 	) override;
 
 	void Update(void) noexcept;
+
+	/// Play-in-editor bake: a shared editor/game world is a zero-copy
+	/// success; a distinct destination is cleared and streamed entity by
+	/// entity through the factory's serialization/runtime-rebinding seam
+	static bool compile_world_for_simulation(
+		zircon_world* p_source, zircon_world* p_destination) noexcept;
+
+#ifdef KOTEK_USE_SDK_IMGUI
+	bool start_simulation_in_editor(void) noexcept;
+	bool stop_simulation_in_editor(void) noexcept;
+	bool is_simulation_in_editor_active(void) const noexcept;
+#endif
 
 	void UpdateAllSystems(void) noexcept;
 
@@ -239,6 +252,7 @@ private:
 	/// harness activates when the editor session is created; the module
 	/// shutdown asserts if a requested run never finished)
 	bool m_is_ui_test_requested;
+	bool m_is_simulation_in_editor_active;
 	kotek::uint8_t m_world_id;
 	kotek::core::ktkProfiler* m_p_profiler;
 	kotek::core::ktkConsole* m_p_console;

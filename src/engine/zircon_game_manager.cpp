@@ -289,7 +289,7 @@ namespace
 
 zircon_game_manager::zircon_game_manager(void) :
 	m_is_use_sdk{}, m_is_use_sdk_imgui{}, m_is_ui_test_requested{},
-	m_world_id{},
+	m_is_simulation_in_editor_active{}, m_world_id{},
 	m_p_profiler{}, m_p_console{}, m_p_main_manager{},
 	m_p_current_renderer{}, m_p_window_console{},
 	m_p_current_session{}, m_renderers{}, m_p_world_manager{},
@@ -818,6 +818,7 @@ void zircon_game_manager::Initialize(
 	// now and load startup json config
 	auto session_game_id =
 		this->m_p_session_game_manager->create_session();
+	this->m_p_session_game_manager->set_current_session_id(session_game_id);
 
 	zircon_session_game* p_session_game =
 		this->m_p_session_game_manager->get_session(
@@ -1342,8 +1343,213 @@ void* zircon_game_manager::CreateSurface(
 	return nullptr;
 }
 
+bool zircon_game_manager::compile_world_for_simulation(
+	zircon_world* p_source, zircon_world* p_destination) noexcept
+{
+	if (!p_source || !p_destination)
+		return false;
+
+	// The current engine shares one world between the editor and game
+	// sessions. Play then needs no duplicate ECS storage; a distinct
+	// destination still gets the full streaming bake below.
+	if (p_source == p_destination)
+	{
+		return p_source->is_initialized() && p_source->get_factory() &&
+			p_source->get_ecs_context();
+	}
+
+	if (!p_source->is_initialized() || !p_destination->is_initialized())
+		return false;
+
+	zircon_factory* p_source_factory = p_source->get_factory();
+	zircon_factory* p_destination_factory = p_destination->get_factory();
+	zircon_ecs_context_t* p_source_context = p_source->get_ecs_context();
+	zircon_ecs_context_t* p_destination_context =
+		p_destination->get_ecs_context();
+
+	if (!p_source_factory || !p_destination_factory || !p_source_context ||
+		!p_destination_context)
+	{
+		return false;
+	}
+
+	// Pico never recycles ids, so a forward cursor clears/copies the world
+	// without materializing an entity array of any size.
+	for (kotek::uint32_t raw_id = 0;
+		 raw_id < p_destination->get_entity_count_max_limit(); ++raw_id)
+	{
+		const kotek::entity_t id{raw_id};
+
+		if (p_destination_factory->is_valid_entity(p_destination_context, id))
+		{
+			p_destination_factory->destroy_entity(p_destination_context, id);
+		}
+	}
+
+	kotek::uint32_t copied_entity_count = 0;
+
+	for (kotek::uint32_t raw_id = 0;
+		 raw_id < p_source->get_entity_count_max_limit(); ++raw_id)
+	{
+		const kotek::entity_t source_id{raw_id};
+
+		if (!p_source_factory->is_valid_entity(p_source_context, source_id))
+			continue;
+
+		const kotek::entity_t destination_id =
+			p_destination_factory->create_entity(p_destination_context);
+
+		if (!p_destination_factory->is_valid_entity(
+				p_destination_context, destination_id))
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[play]: failed to create a game-world entity");
+			return false;
+		}
+
+		kotek::static_vector_t<eZirconComponentType,
+			zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
+			component_types;
+		p_source_factory->get_all_components_of_entity(
+			p_source_context, source_id, component_types);
+
+		for (const eZirconComponentType component_type : component_types)
+		{
+			zircon_component_interface* p_source_component =
+				p_source_factory->get_component_by_enum(
+					p_source_context, source_id, component_type);
+
+			if (!p_source_component)
+			{
+				KOTEK_MESSAGE_ERROR(
+					"[play]: source component {} disappeared during the bake",
+					static_cast<kotek::uint32_t>(component_type));
+				return false;
+			}
+
+			kotek::ktk::json::value state =
+				zircon_serialize_component(p_source_component);
+
+			if (!p_destination_factory->create_component(p_destination_context,
+					destination_id, component_type, state))
+			{
+				KOTEK_MESSAGE_ERROR(
+					"[play]: failed to bake component {} for source entity {}",
+					static_cast<kotek::uint32_t>(component_type), raw_id);
+				return false;
+			}
+		}
+
+		++copied_entity_count;
+	}
+
+	KOTEK_MESSAGE("[play]: baked {} editor entities into the game world",
+		copied_entity_count);
+	return true;
+}
+
+#ifdef KOTEK_USE_SDK_IMGUI
+bool zircon_game_manager::start_simulation_in_editor(void) noexcept
+{
+	if (this->m_is_simulation_in_editor_active)
+		return true;
+
+	if (!this->m_p_session_editor_manager ||
+		!this->m_p_session_game_manager || !this->m_p_console)
+	{
+		return false;
+	}
+
+	zircon_session_editor* p_editor =
+		this->m_p_session_editor_manager->get_session(
+			this->m_p_session_editor_manager->get_current_session_id());
+	zircon_session_game* p_game = this->m_p_session_game_manager->get_session(
+		this->m_p_session_game_manager->get_current_session_id());
+
+	if (!p_editor || !p_game ||
+		!compile_world_for_simulation(p_editor->get_world(), p_game->get_world()))
+	{
+		return false;
+	}
+
+	this->m_p_console->Execute_Command(
+		static_cast<kotek::ktk::enum_base_t>(
+			eZirconConsoleCommands::set_current_game_session_for_engine),
+		{this->m_p_session_game_manager->get_current_session_id()});
+
+	this->m_is_simulation_in_editor_active =
+		this->m_p_current_session == p_game;
+
+	if (this->m_is_simulation_in_editor_active && p_editor->get_ui_state())
+	{
+		p_editor->get_ui_state()->set_simulation_active(true);
+		p_editor->get_ui_state()->increment_simulation_start_count();
+	}
+
+	if (this->m_is_simulation_in_editor_active)
+		KOTEK_MESSAGE("[play]: simulation started");
+
+	return this->m_is_simulation_in_editor_active;
+}
+
+bool zircon_game_manager::stop_simulation_in_editor(void) noexcept
+{
+	if (!this->m_is_simulation_in_editor_active)
+		return true;
+
+	zircon_session_editor* p_editor =
+		this->m_p_session_editor_manager
+			? this->m_p_session_editor_manager->get_session(
+				  this->m_p_session_editor_manager->get_current_session_id())
+			: nullptr;
+
+	if (!p_editor || !this->m_p_console)
+		return false;
+
+	this->m_p_console->Execute_Command(
+		static_cast<kotek::ktk::enum_base_t>(
+			eZirconConsoleCommands::set_current_editor_session_for_engine),
+		{this->m_p_session_editor_manager->get_current_session_id()});
+
+	const bool is_stopped = this->m_p_current_session == p_editor;
+	this->m_is_simulation_in_editor_active = !is_stopped;
+
+	if (p_editor->get_ui_state())
+		p_editor->get_ui_state()->set_simulation_active(!is_stopped);
+
+	if (is_stopped)
+		KOTEK_MESSAGE("[play]: simulation stopped");
+
+	return is_stopped;
+}
+
+bool zircon_game_manager::is_simulation_in_editor_active(
+	void) const noexcept
+{
+	return this->m_is_simulation_in_editor_active;
+}
+#endif
+
 void zircon_game_manager::Update(void) noexcept
 {
+#ifdef KOTEK_USE_SDK_IMGUI
+	if (this->m_is_simulation_in_editor_active && this->m_p_main_manager)
+	{
+		kotek::core::ktkIInput* p_input = this->m_p_main_manager->Get_Input();
+
+		if (p_input)
+		{
+			constexpr auto key = kotek::core::eInputAllKeys::kCK_KEY_ESCAPE;
+
+			if (p_input->Is_KeyHolding(
+					p_input->Get_ControllerTypeByKey(key), key, 0))
+			{
+				this->stop_simulation_in_editor();
+			}
+		}
+	}
+#endif
+
 	if (this->m_p_current_session)
 	{
 		this->m_p_current_session->update();
@@ -3301,6 +3507,18 @@ void zircon_game_manager::RegisterConsole_Commands(void
 				set_current_editor_session_for_engine
 		)
 	);
+
+#ifdef KOTEK_USE_SDK_IMGUI
+	this->m_p_console->Register_Command(
+		[this]() -> bool { return this->start_simulation_in_editor(); },
+		static_cast<kotek::ktk::enum_base_t>(
+			eZirconConsoleCommands::sdk_startsimulate));
+
+	this->m_p_console->Register_Command(
+		[this]() -> bool { return this->stop_simulation_in_editor(); },
+		static_cast<kotek::ktk::enum_base_t>(
+			eZirconConsoleCommands::sdk_stopsimulate));
+#endif
 
 	this->m_p_console->Register_Command(
 		p_command_set_current_render_graph_for_renderer,

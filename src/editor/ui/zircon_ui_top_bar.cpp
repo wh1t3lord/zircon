@@ -4,6 +4,7 @@
 #include "../session/zircon_session_editor_manager.h"
 #include "zircon_ui_window_debug_input.h"
 #include "zircon_ui_test_harness.h"
+#include "../../core/zircon_console.h"
 
 zircon_editor_ui_window_top_bar::zircon_editor_ui_window_top_bar(
 	zircon_session_editor_manager* p_manager_session_editor,
@@ -162,6 +163,18 @@ void zircon_editor_ui_window_top_bar::Draw(
 
 					p_wrapper_imgui->EndMenu();
 				}
+
+				if (p_wrapper_imgui->Button("Play"))
+				{
+					p_main_manager->GetGameManager()
+						->GetConsole()
+						->Push_Command(static_cast<kotek::ktk::enum_base_t>(
+							eZirconConsoleCommands::sdk_startsimulate));
+				}
+
+				zircon_ui_test_track_widget(p_wrapper_imgui,
+					this->m_p_widget_registry,
+					zircon_ui_test_window_names::kTopBar, "Play");
 
 				bool is_tools_menu_open = p_wrapper_imgui->BeginMenu(
 					"Tools##ZirconImGuiSDK_MainBar_Tools");

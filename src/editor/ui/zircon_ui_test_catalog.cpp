@@ -360,6 +360,40 @@ namespace
 		return false;
 	}
 
+	bool probe_capture_simulation_start_count(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		if (!ctx.p_ui_state)
+			return false;
+
+		ctx.scratch[step.m_params[0]] =
+			ctx.p_ui_state->get_simulation_start_count();
+		return true;
+	}
+
+	bool probe_assert_play_cycle_completed(
+		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
+	{
+		if (!ctx.p_ui_state)
+			return false;
+
+		const kotek::uint64_t expected_starts =
+			ctx.scratch[step.m_params[0]] + step.m_params[1];
+		const kotek::uint32_t actual_starts =
+			ctx.p_ui_state->get_simulation_start_count();
+		const bool is_inactive = !ctx.p_ui_state->is_simulation_active();
+
+		if (actual_starts != expected_starts || !is_inactive)
+		{
+			KOTEK_MESSAGE(
+				"[ui-test]:     Play starts {} (expected {}), inactive={}",
+				actual_starts, expected_starts, is_inactive);
+			return false;
+		}
+
+		return true;
+	}
+
 	bool probe_assert_window_shown(zircon_ui_test_context_t& ctx,
 		const zircon_ui_test_step_t& step)
 	{
@@ -1262,6 +1296,19 @@ namespace
 	// dialog, Save = the Z8 session-serialize trap, Exit = the
 	// save-scene modal) are deliberately not clicked — the test pins the
 	// menu opening and the ESC dismiss
+	// Play uses the shared editor/game world, then ESC returns to the editor.
+	// The click at F+1 fires at F+4 and flushes at F+5; the ESC injected at
+	// F+4 is therefore already visible to the game manager at F+5, where the
+	// transition and the stop are both exercised before the next draw.
+	constexpr zircon_ui_test_step_t _kSteps_play_click[] = {
+		st_probe(0, &probe_capture_simulation_start_count,
+			"capture the successful Play count", 3, 0),
+		st_click(1, kTopBar, "Play", "click Play in the main menu bar"),
+		st_key(4, _kKeyCode_Escape, "ESC stops the simulation"),
+		st_probe(10, &probe_assert_play_cycle_completed,
+			"one successful Play started and ESC returned to the editor", 3, 1),
+	};
+
 	constexpr zircon_ui_test_step_t _kSteps_file_menu[] = {
 		st_click(0, kTopBar, _kTopBarMenuFile, "open the File menu"),
 		st_wait(4, kTopBar, "Save", 0, "the File menu popup opened"),
@@ -1368,6 +1415,10 @@ namespace
 			static_cast<kotek::uint16_t>(sizeof(_kSteps_history_window_rows) /
 				sizeof(zircon_ui_test_step_t)),
 			8},
+		{"play_esc_returns_to_editor", _kSteps_play_click,
+			static_cast<kotek::uint16_t>(sizeof(_kSteps_play_click) /
+				sizeof(zircon_ui_test_step_t)),
+			16},
 		{"file_menu_opens_esc_closes", _kSteps_file_menu,
 			static_cast<kotek::uint16_t>(sizeof(_kSteps_file_menu) /
 				sizeof(zircon_ui_test_step_t)),
