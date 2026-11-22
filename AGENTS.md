@@ -3,8 +3,8 @@
 > Living document. Every agent working in this repo MUST read this first and MUST
 > update the Task Registry (status + date + notes) when it advances or finishes a task.
 > Also read `kotek/AGENTS.md` — zircon is built on kotek and must not violate its rules.
-> Last updated: 2026-11-22 (Z31: meshlets are canonical under
-> `data_game/models/meshlets`; modern Visual Studio solutions use CMake only).
+> Last updated: 2026-11-22 (Z32: native assertion/debugger defaults are
+> separated from the `build_cli` automation configuration).
 
 ## 1. What zircon is
 
@@ -288,20 +288,24 @@ src/
 ## 4. Build
 
 ```bash
-mkdir build && cd build
-cmake ..            # VS generator on owner machine; configures kotek too (subdirectory)
-cmake --build .
+cmake -S . -B build       # native default: stock assert dialogs + debugger breakpoints
+cmake --build build --config Debug --parallel 4
+
+cmake -S . -B build_cli -DKOTEK_ASSERT_STDERR_ROUTING=ON  # agent/CI: stderr fail-fast
+cmake --build build_cli --config Debug --parallel 4
 ```
-Outputs: `build/bin` (`kotek.exe`, `game.ktk`), `build/lib`.
+Outputs: `{build,build_cli}/bin` (`kotek.exe`, `game.ktk`), `{build,build_cli}/lib`.
+The native default never overrides CRT assertion presentation; CLI additionally
+suppresses debugger-triggered breaks and the unsound multi-CRT exit leak dump.
 Requires kotek deps (vcpkg minimal set auto-fetched on first configure — slow first run).
 Gotcha: root `CMakeLists.txt:66` has `add_dependencies(kotek zircon)` referencing a
 non-existent target name in some configs — verify when touching root CMake (task Z1).
 
 **Pre-push validation gate (owner directive 2026-10-06, hard rule):** before
 pushing to either repository, run `validate_all_configs.bat` from the repo
-root — it builds every CI-mirroring local config that exists (default
-Debug+Release, gfxdev Debug; absent trees are SKIPPED — GitHub CI covers
-those legs on push) and boots the boot-capable ones, exiting non-zero on
+root — it builds every CI-mirroring local config that exists (native Debug,
+CLI Debug+Release, gfxdev Debug; absent trees are SKIPPED — GitHub CI covers
+those legs on push) and boots only the CLI-capable trees, exiting non-zero on
 any leg's failure. A push without a green gate run is a defect in the
 process, not a judgment call. Keep the gate's leg list in sync with the
 workflows' matrix when either changes.
@@ -400,11 +404,14 @@ workflows' matrix when either changes.
   static: `-DKOTEK_LINKAGE_FORCE_STATIC="zircon.editor.commands;zircon.editor.session;zircon.editor.ui"`.
 - ECS: `zircon_factory.cpp` has `#error todo: provide impl` branches; broken comment
   at `zircon_component_geometry.cpp:198`.
-- **Console assert-dialog handling**: `_CrtSetReportMode/_CrtSetReportFile/
-  _set_error_mode(_OUT_TO_STDERR)` now set at `kotek.exe` entry in Debug —
-  CRT asserts print to stderr and abort (code 3) instead of hanging on a
-  modal dialog. For stuck dialogs from any other tool, `taskkill //F //IM
-  kotek.exe` clears them; UI-automation clicking is possible but avoided.
+- **Assert presentation (owner directive 2026-11-22)**: the native `build`
+  tree keeps stock CRT assertion dialogs and debugger breakpoints with no
+  overrides. The separate `build_cli` tree is configured with
+  `-DKOTEK_ASSERT_STDERR_ROUTING=ON`: `_CrtSetReportMode/_CrtSetReportFile/
+  _set_error_mode(_OUT_TO_STDERR)` print CRT asserts to stderr and fail fast
+  without a modal or debugger-triggered break; gtest's `break_on_failure` is
+  false and the unsound multi-CRT exit leak dump is suppressed. Ordinary
+  console logging stays enabled in BOTH trees.
   **Hard-crash dialogs (WER) suppressed machine-user-wide (2026-08-01)**:
   `HKCU\Software\Microsoft\Windows\Windows Error Reporting\DontShowUI=1`
   (owner asked agents to handle lingering modals; crashes still log, no
@@ -412,14 +419,14 @@ workflows' matrix when either changes.
   modal is suspected, verify before killing: enumerate visible
   `#32770` dialog windows via user32 EnumWindows (powershell Add-Type)
   and check `tasklist //FI "IMAGENAME eq WerFault.exe"`.
-  **Exe-run modal discipline (mandatory, 2026-08-01)**: before running ANY
-  built .exe (boot, test runner, tool, from ANY build tree incl. agent
-  scratch trees) verify the tree's `CMakeCache.txt` has
-  `KOTEK_ASSERT_STDERR_ROUTING=ON`; keep captures bounded (`timeout` +
-  size cap); after the run sweep for stuck modals (EnumWindows `#32770` +
-  WerFault, clear via `taskkill //F //IM <exe>`). A modal an agent cannot
-  click blocks all automation — the WER switch above is the last line of
-  defense, not a substitute for the routing flag.
+  **Exe-run modal discipline (mandatory)**: automated runs use `build_cli`
+  (or another tree explicitly configured with the routing flag), never the
+  native `build` whose dialogs are intentional. Before ANY run verify the
+  tree's `CMakeCache.txt` has `KOTEK_ASSERT_STDERR_ROUTING=ON`; keep captures
+  bounded (`timeout` + size cap); after the run sweep for stuck modals
+  (EnumWindows `#32770` + WerFault, clear via `taskkill //F //IM <exe>`).
+  A modal an agent cannot click blocks all automation — the WER switch above
+  is the last line of defense, not a substitute for the routing flag.
 - **Static libraries carry per-module state (the input bug, root-caused
   2026-09-02)**: static third-party libs (GLFW is the case in point) give
   EVERY module its own copy of the library's global state — the window
@@ -562,10 +569,11 @@ workflows' matrix when either changes.
   `_CRTDBG_ALLOC_MEM_DF|_CRTDBG_LEAK_CHECK_DF`
   (`main_core_memory_cpu_dll.cpp:23`), and the **exit leak dump** then
   walked the poisoned lists into a multi-minute, multi-million-line
-  assert flood (exit 1/139). Containment landed: the dump is disabled
+  assert flood (exit 1/139). CLI containment landed: the dump is disabled
   again at each module's shutdown (`kotek.exe` main after
   ShutdownEngine, zircon `ShutdownModule_Game`) — allocation tracking
-  itself stays on. Verified 2026-07-23: full boot + tests + frame loop
+  itself stays on; native `build` leaves the CRT configuration untouched.
+  Verified 2026-07-23: full boot + tests + frame loop
   + shutdown reach **exit 0** with only ~4-6 discrete residual markers
   of the same cross-CRT class. The proper fix is kotek-side: stop
   passing heap-owning objects across module boundaries or share one
@@ -627,6 +635,8 @@ workflows' matrix when either changes.
 | Z30 | Release JSON short keys (configurable 3-4 chars, all configs) | done (2026-11-22) | kotek's shared `kotek_json_key_codec.h` implements stable FNV-1a base32 encoding (NOT truncation) with constexpr hash/character seams and fixed-capacity strings. `KOTEK_JSON_SHORT_KEYS=AUTO` keeps full keys in Debug and emits 4-character keys in every other configuration; ON/OFF force the mode and `KOTEK_JSON_KEY_SHORT_LENGTH=3|4` selects the length. `ktkJson`/`ktkJsonView` writes encode, while every read uses encoded-first/full-second fallback so old and new files interoperate. zircon_config, scene metadata and the locale schema use the same fallback; arbitrary gltf/localization text ids are deliberately untouched. New `JsonKeyCodec` suite proves stable bounded encoding, read/fallback and no collisions across the current config-key matrix; `cmake -DKOTEK_HELP=ON` and both configuration guides carry the options (the registry's semicolon-format issue was fixed). VERIFIED: fresh-link Debug boot with 206/206 zircon + 269/269 kotek and all 27 UI suites; an actual Release boot emits 4-character keys and exits 0 (the user's config backup was restored afterward). The /INCREMENTAL stale-test trap was root-caused and fixed by deleting game.ktk/game.lib/game.exp before relinking. FULL PRE-PUSH GATE: `validate_all_configs.bat` = `VALIDATION: PASS` (default Debug+Release, graphics-development Debug, and both available boots; absent optional trees skipped) |
 
 | Z31 | Canonical meshlet asset layout + minimal committed root folders | done (2026-11-22) | the root `meshlets/` tree was a stale tracked duplicate left by the early B3b fixture; `data_game/meshlets/` moved to `data_game/models/meshlets/`, and both root-relative duplicates were removed only after both files compared byte-identical. Runtime content names stay `models/meshlets/...` beneath DATA_GAME; the kpack writer emits repo-root-relative `data_game/models/meshlets/...`, so native and packed dispatcher lookups resolve the same absolute path. Reader/writer code, NRI comments, both meshlet test suites and Z24's historical notes are aligned. Both AGENTS.md files now forbid new committed top-level asset/output directories and assign game assets to `data_game/<semantic>` and runtime/test output to `data_user`. VERIFIED: Debug build 0 errors, 21/21 meshlet tests + 269/269 kotek tests, 40-frame NRI boot exit 0 with the hierarchy creation line and both culling/light A/B matches. FULL PRE-PUSH GATE: `validate_all_configs.bat` = `VALIDATION: PASS` (default Debug+Release, graphics-development Debug and both available boots; absent optional trees skipped; both boots 208/208 zircon + 269/269 kotek) |
+
+| Z32 | Separate native assertion/debugging from CLI automation | done (2026-11-22) | the old `build` tree became `build_cli`; both trees are now generated from source. Native `cmake -S . -B build` has `KOTEK_ASSERT_STDERR_ROUTING=OFF` and keeps stock CRT assertion dialogs, debugger breakpoints and CRT leak configuration. Agent/CI `cmake -S . -B build_cli -DKOTEK_ASSERT_STDERR_ROUTING=ON` prints CRT assertions to stderr, disables gtest `break_on_failure`, avoids debugger-triggered breaks and suppresses only the unsound multi-CRT exit leak dump. Every CRT suppression path is now guarded by `KOTEK_USE_ASSERT_STDERR_ROUTING`; ordinary console logging stays enabled in both modes. `validate_all_configs.bat` compiles native Debug plus CLI Debug/Release and boots only `build_cli`. Both configuration guides and §4/§5 carry the commands. VERIFIED: clean native build 0 errors; clean CLI Debug+Release builds 0 errors and no relocated-object warnings; CLI boot 208/208 zircon + 269/269 kotek; `validate_all_configs.bat` = `VALIDATION: PASS` (native Debug, CLI Debug+Release, graphics-development Debug and both boots; absent optional trees skipped). SUPERPROJECT HELP FIX: after kotek's K6 early return, zircon's root now returns too, so `cmake -S . -B build-help-cli -DKOTEK_HELP=ON` prints the registry and exits 0 instead of reaching an undefined `kotek_add_library` |
 
 ## 7. Design verdicts (2026-07-21 analysis — basis for Z3/Z6)
 

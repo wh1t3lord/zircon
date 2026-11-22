@@ -5674,13 +5674,14 @@ zircon_game_manager::get_ui_imgui_elements()
 
 void zircon_game_manager::run_unit_tests()
 {
-	// route CRT asserts (KOTEK_ASSERT, pico ECS_ASSERT) to stderr
-	// instead of the modal CRT dialog, otherwise a failed assert
-	// hangs the whole test run waiting for a user click
+	#ifdef KOTEK_USE_ASSERT_STDERR_ROUTING
+	// CLI/CI tests route CRT asserts to stderr instead of the modal dialog;
+	// native test runs keep the stock dialog and debugger breakpoints.
 	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+	#endif
 
 	// test output must survive an abort: block-buffered pipes lose
 	// everything that was not flushed
@@ -5705,7 +5706,11 @@ void zircon_game_manager::run_unit_tests()
 	int argc =
 		this->m_p_main_manager->Get_EngineConfig()->GetARGC();
 	testing::FLAGS_gtest_catch_exceptions = true;
+#ifdef KOTEK_USE_ASSERT_STDERR_ROUTING
+	testing::FLAGS_gtest_break_on_failure = false;
+#else
 	testing::FLAGS_gtest_break_on_failure = true;
+#endif
 	testing::FLAGS_gtest_print_time = true;
 	testing::FLAGS_gtest_throw_on_failure = true;
 	testing::InitGoogleTest(

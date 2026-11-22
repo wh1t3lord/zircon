@@ -18,6 +18,23 @@ kotek's options — see
 | `ZIRCON_TESTS_HEAVY` | `OFF` | the heavy stress test tiers (rule §2.8a): heavy suites run only with `-DZIRCON_TESTS_HEAVY=ON`; the default lightweight tier of the same proofs is what boots and CI run |
 | `ZIRCON_CSG_PRECISION` | `F32` | the CSG scalar precision (task Z25) — one scalar drives both the component storage and the evaluation integration: `F32` (the editor/PC path, float with the documented epsilon policy), `U32F` (16.16 fixed-point in a u32 lane — the deterministic bake path: identical input produces byte-identical output on every IEEE-754 platform), `F64` (robustness-debug; validates that the f32/u32f paths do not diverge). The evaluation core stays templated on the scalar and the unit proofs instantiate all three modes in every build |
 
+Native debugging is the default and needs no extra flag:
+
+```bash
+cmake -S . -B build
+```
+
+It keeps the stock CRT assertion dialogs and debugger breakpoints. Agents and
+CI use the separate CLI tree instead:
+
+```bash
+cmake -S . -B build_cli -DKOTEK_ASSERT_STDERR_ROUTING=ON
+```
+
+CLI mode routes CRT assertions/errors to stderr and fails fast without a modal
+dialog or debugger-triggered break; ordinary console logging stays enabled.
+`validate_all_configs.bat` compiles the native tree but boots only `build_cli`.
+
 kotek's `KOTEK_JSON_SHORT_KEYS=AUTO` keeps human-readable JSON keys in
 Debug and emits stable 4-character base32 keys in the other configurations
 (`KOTEK_JSON_KEY_SHORT_LENGTH=3` selects 3 characters). The key names below are

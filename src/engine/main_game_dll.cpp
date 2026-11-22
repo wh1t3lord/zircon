@@ -149,17 +149,14 @@ bool InitializeModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 bool ShutdownModule_Game(kotek::Core::ktkMainManager* p_main_manager)
 {
 #if defined(KOTEK_DEBUG) && defined(KOTEK_PLATFORM_WINDOWS)
-	// kotek.core.memory.cpu enabled the CRT exit leak dump
-	// (_CRTDBG_LEAK_CHECK_DF) at core init; in this multi-CRT
-	// process the debug block lists are cross-poisoned by shutdown
-	// time and the dump floods the log with
-	// __acrt_first_block asserts before dying, so the dump is
-	// disabled for this module before it unloads (allocation
-	// tracking itself stays on, see zircon/AGENTS.md §5)
+#ifdef KOTEK_USE_ASSERT_STDERR_ROUTING
+	// Only CLI runs suppress the unsound multi-CRT exit leak dump;
+	// native debugging keeps the CRT leak-reporting configuration intact.
 	_CrtSetDbgFlag(
 		_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) &
 		~_CRTDBG_LEAK_CHECK_DF
 	);
+#endif
 #endif
 
 	SerializeModule_Game(p_main_manager);

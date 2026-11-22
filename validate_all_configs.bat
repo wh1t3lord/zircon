@@ -11,8 +11,9 @@ set "RESULTS="
 
 echo === validation: builds (incremental, both repos' code through the submodule) ===
 
-call :build_leg build       Debug   "default Debug"
-call :build_leg build       Release "default Release"
+call :build_leg build       Debug   "native Debug"
+call :build_leg build_cli   Debug   "CLI Debug"
+call :build_leg build_cli   Release "CLI Release"
 call :build_leg build-gfxdev Debug  "graphics-development Debug"
 call :build_leg build-math-own Debug "math KOTEK_OWN Debug"
 call :build_leg build-math   Debug  "math DXM Debug"
@@ -22,7 +23,7 @@ call :build_leg build-static-leg Debug "static Debug"
 
 echo === validation: boots (the headless-capable configs) ===
 
-call :boot_leg build       Debug "default Debug boot"
+call :boot_leg build_cli   Debug "CLI Debug boot"
 call :boot_leg build-gfxdev Debug "graphics-development Debug boot"
 call :boot_leg build-test-off Debug "tests-off Debug boot"
 

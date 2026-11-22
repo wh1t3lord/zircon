@@ -91,6 +91,13 @@ endif()
 
 add_subdirectory("${KOTEK_ENGINE_ROOT_FOLDER_NAME}")
 
+# kotek's K6 help returns before its own dependency/module setup, which also
+# leaves kotek_add_library undefined. Stop the superproject too instead of
+# falling through to zircon's targets after the registry has printed.
+if ("${KOTEK_HELP}" STREQUAL "ON")
+	return()
+endif()
+
 # the linkage-scenario define (KOTEK_USE_LINKAGE_STATIC/SHARED/PLUGIN) is
 # applied by kotek/cmake/library.cmake in kotek's own directory scope only;
 # zircon targets need it too (they use the KOTEK_INVOKE_MODULE_* macros and
