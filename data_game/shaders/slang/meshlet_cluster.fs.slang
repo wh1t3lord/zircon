@@ -1,18 +1,17 @@
-// meshlet_cluster.fs.slang — the NRI meshlet cluster draw, fragment stage
-// (task Z24 B3b). Conventions: see zircon_core.slang. The cluster bins
-// carry no albedo (positions + flat normals + materials only), and the v1
-// seam binds no descriptor tables — so the light is a HARDCODED
-// directional lambert (the shared zircon_evaluate_phong contract needs
-// bound LightParams cbuffers; it lands with the material/lighting phase,
-// and the descriptor seam grows additively then). The albedo is a fixed
-// neutral — this draw proves the geometry path, not the material system.
+// meshlet_cluster.fs.slang — the NRI visibility-buffered forward stage.
+// The visibility prepass writes a nonzero cluster ID and depth; this stage
+// shades only fragments whose ID won that depth test. One VS and two FS
+// programs serve the whole path — there is no per-material shader family.
 
 import zircon_core;
+
+[[vk::binding(0, 0)]] Texture2D<uint> u_visibility : register(t0, space0);
 
 struct ZirconVsToFs_meshlet_cluster
 {
 	float4 position : SV_Position;
 	float3 v_normal : NORMAL;
+	nointerpolation uint v_cluster_id : TEXCOORD1;
 };
 
 // the hardcoded directional light (FROM the light, the phong convention)
@@ -24,6 +23,11 @@ static const float3 kMeshletAlbedo = float3(0.62, 0.66, 0.72);
 [shader("fragment")]
 float4 fs_main(ZirconVsToFs_meshlet_cluster input) : SV_Target
 {
+	const uint visible_id = u_visibility.Load(
+		int3(int2(input.position.xy), 0));
+	if (visible_id == 0 || visible_id != input.v_cluster_id)
+		discard;
+
 	float3 normal = normalize(input.v_normal);
 	float3 light_dir = normalize(kMeshletLightDir);
 

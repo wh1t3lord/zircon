@@ -18,6 +18,49 @@ namespace no_streaming
 		this->release_resources();
 	}
 
+	void zircon_render_graph_pass_meshlet_cluster_nri::release_render_targets(
+		void) noexcept
+	{
+		if (this->m_p_geometry_manager)
+		{
+			const kotek::core::ktkRenderGeometryTextureViewHandle views[] = {
+				this->m_visibility_shader_view, this->m_visibility_rt_view,
+				this->m_depth_view};
+			for (kotek::uint32_t index = 0; index < 3u; ++index)
+			{
+				if (views[index] !=
+					kotek::core::kInvalidRenderGeometryTextureViewHandle)
+				{
+					this->m_p_geometry_manager->Destroy_Texture_View(views[index]);
+				}
+			}
+
+			if (this->m_visibility_texture !=
+				kotek::core::kInvalidRenderGeometryTextureHandle)
+			{
+				this->m_p_geometry_manager->Destroy_Texture(
+					this->m_visibility_texture);
+			}
+			if (this->m_depth_texture !=
+				kotek::core::kInvalidRenderGeometryTextureHandle)
+			{
+				this->m_p_geometry_manager->Destroy_Texture(this->m_depth_texture);
+			}
+		}
+
+		this->m_visibility_texture =
+			kotek::core::kInvalidRenderGeometryTextureHandle;
+		this->m_depth_texture = kotek::core::kInvalidRenderGeometryTextureHandle;
+		this->m_visibility_rt_view =
+			kotek::core::kInvalidRenderGeometryTextureViewHandle;
+		this->m_visibility_shader_view =
+			kotek::core::kInvalidRenderGeometryTextureViewHandle;
+		this->m_depth_view = kotek::core::kInvalidRenderGeometryTextureViewHandle;
+		this->m_target_width = 0;
+		this->m_target_height = 0;
+		this->m_targets_need_initial_transition = false;
+	}
+
 	void zircon_render_graph_pass_meshlet_cluster_nri::release_resources(
 		void) noexcept
 	{
@@ -54,6 +97,15 @@ namespace no_streaming
 			this->m_pipeline = kotek::core::kInvalidRenderGeometryPipelineHandle;
 		}
 
+		if (this->m_visibility_pipeline !=
+			kotek::core::kInvalidRenderGeometryPipelineHandle)
+		{
+			this->m_p_geometry_manager->Destroy_Pipeline(
+				this->m_visibility_pipeline);
+			this->m_visibility_pipeline =
+				kotek::core::kInvalidRenderGeometryPipelineHandle;
+		}
+
 		if (this->m_cull_pipeline !=
 			kotek::core::kInvalidRenderGeometryPipelineHandle)
 		{
@@ -63,6 +115,7 @@ namespace no_streaming
 				kotek::core::kInvalidRenderGeometryPipelineHandle;
 		}
 
+		this->release_render_targets();
 		this->m_index_count = 0;
 		this->m_cluster_count = 0;
 		this->m_cpu_visible_count = 0;
@@ -74,6 +127,95 @@ namespace no_streaming
 
 		delete[] this->m_p_records;
 		this->m_p_records = nullptr;
+	}
+
+	bool zircon_render_graph_pass_meshlet_cluster_nri::ensure_render_targets(
+		kotek::uint32_t width, kotek::uint32_t height) noexcept
+	{
+		if (width == 0 || height == 0)
+			return false;
+
+		if (this->m_target_width == width &&
+			this->m_target_height == height &&
+			this->m_visibility_shader_view !=
+				kotek::core::kInvalidRenderGeometryTextureViewHandle)
+		{
+			return true;
+		}
+
+		this->release_render_targets();
+
+		kotek::core::ktkRenderGeometryTextureDesc visibility_desc{};
+		visibility_desc.m_width = width;
+		visibility_desc.m_height = height;
+		visibility_desc.m_color_format =
+			kotek::core::eRenderGeometryColorFormat::kR32Uint;
+		this->m_visibility_texture =
+			this->m_p_geometry_manager->Create_Texture(visibility_desc);
+
+		kotek::core::ktkRenderGeometryTextureDesc depth_desc{};
+		depth_desc.m_width = width;
+		depth_desc.m_height = height;
+		depth_desc.m_depth_format =
+			kotek::core::eRenderGeometryDepthFormat::kD32Float;
+		this->m_depth_texture =
+			this->m_p_geometry_manager->Create_Texture(depth_desc);
+
+		if (this->m_visibility_texture ==
+				kotek::core::kInvalidRenderGeometryTextureHandle ||
+			this->m_depth_texture ==
+				kotek::core::kInvalidRenderGeometryTextureHandle)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[nri meshlet] visibility/depth texture creation failed");
+			this->release_render_targets();
+			return false;
+		}
+
+		kotek::core::ktkRenderGeometryTextureViewDesc visibility_view{};
+		visibility_view.m_texture = this->m_visibility_texture;
+		visibility_view.m_type =
+			kotek::core::eRenderGeometryTextureViewType::kRenderTarget;
+		visibility_view.m_color_format =
+			kotek::core::eRenderGeometryColorFormat::kR32Uint;
+		this->m_visibility_rt_view =
+			this->m_p_geometry_manager->Create_Texture_View(visibility_view);
+
+		visibility_view.m_type =
+			kotek::core::eRenderGeometryTextureViewType::kShaderResource;
+		this->m_visibility_shader_view =
+			this->m_p_geometry_manager->Create_Texture_View(visibility_view);
+
+		kotek::core::ktkRenderGeometryTextureViewDesc depth_view{};
+		depth_view.m_texture = this->m_depth_texture;
+		depth_view.m_type =
+			kotek::core::eRenderGeometryTextureViewType::kDepthStencil;
+		depth_view.m_depth_format =
+			kotek::core::eRenderGeometryDepthFormat::kD32Float;
+		this->m_depth_view =
+			this->m_p_geometry_manager->Create_Texture_View(depth_view);
+
+		if (this->m_visibility_rt_view ==
+				kotek::core::kInvalidRenderGeometryTextureViewHandle ||
+			this->m_visibility_shader_view ==
+				kotek::core::kInvalidRenderGeometryTextureViewHandle ||
+			this->m_depth_view ==
+				kotek::core::kInvalidRenderGeometryTextureViewHandle)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[nri meshlet] visibility/depth view creation failed");
+			this->release_render_targets();
+			return false;
+		}
+
+		this->m_target_width = width;
+		this->m_target_height = height;
+		this->m_targets_need_initial_transition = true;
+
+		KOTEK_MESSAGE(
+			"[nri meshlet] visibility targets: {}x{} R32Uint + D32Float",
+			width, height);
+		return true;
 	}
 
 	void zircon_render_graph_pass_meshlet_cluster_nri::Initialize_Nri(
@@ -264,7 +406,7 @@ namespace no_streaming
 
 		float* p_pool_vb = new (std::nothrow)
 			float[static_cast<kotek::size_t>(total_soup_vertices) *
-				ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_FLOATS]{};
+				ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_FLOATS]{};
 		kotek::uint32_t* p_pool_ib = new (std::nothrow)
 			kotek::uint32_t[static_cast<kotek::size_t>(
 				total_soup_vertices)]{};
@@ -384,7 +526,7 @@ namespace no_streaming
 				float* p_slice_vb =
 					p_pool_vb +
 					static_cast<kotek::size_t>(soup_cursor) *
-						ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_FLOATS;
+						ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_FLOATS;
 				kotek::uint32_t* p_slice_ib = p_pool_ib + soup_cursor;
 
 				zircon_meshlet_cluster_content_t content{};
@@ -408,6 +550,33 @@ namespace no_streaming
 				}
 
 				delete[] p_cluster_bin;
+
+				// Expand the reader's six-float vertices IN PLACE, back to
+				// front, and append the nonzero cluster id. The allocation
+				// already reserves the seventh float for every soup vertex.
+				const kotek::uint32_t visibility_id = cluster_index + 1u;
+				for (kotek::uint32_t cursor = content.m_soup_vertex_count;
+					 cursor > 0; --cursor)
+				{
+					const kotek::uint32_t vertex = cursor - 1u;
+					float* p_destination = p_slice_vb +
+						static_cast<kotek::size_t>(vertex) *
+							ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_FLOATS;
+					const float* p_source = p_slice_vb +
+						static_cast<kotek::size_t>(vertex) *
+							ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_FLOATS;
+					// destination > source: copying components backwards is
+					// the overlap-safe memmove discipline without a std call
+					for (int component =
+							 ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_FLOATS - 1;
+						 component >= 0; --component)
+					{
+						p_destination[component] = p_source[component];
+					}
+					kotek::ktk::memory::memcpy(p_destination +
+							ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_FLOATS,
+						&visibility_id, sizeof(visibility_id));
+				}
 
 				// the GPU table record (the 64-byte layout — the w lanes
 				// carry the cull operands)
@@ -537,7 +706,7 @@ namespace no_streaming
 		// ---- the buffers through the geometry seam (uploads are
 		// immediate — readable from the first submitted frame)
 		const kotek::uint32_t vb_size_bytes =
-			soup_vertex_count * ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_BYTES;
+			soup_vertex_count * ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_BYTES;
 		const kotek::uint32_t ib_size_bytes =
 			soup_vertex_count * sizeof(kotek::uint32_t);
 		const kotek::uint32_t table_size_bytes =
@@ -632,18 +801,24 @@ namespace no_streaming
 		// release_resources
 		this->m_p_records = p_records;
 
-		// ---- the pipelines (the Slang dxil route's raw blobs)
+		// ---- three pipelines over TWO graphics fragment stages: visibility,
+		// forward shading, and the existing cull compute. Both graphics
+		// pipelines share the same vertex blob and vertex layout.
 		kotek::uint8_t* p_vertex_blob = nullptr;
 		kotek::uint8_t* p_pixel_blob = nullptr;
+		kotek::uint8_t* p_visibility_blob = nullptr;
 		kotek::uint8_t* p_cull_blob = nullptr;
 		kotek::uint32_t vertex_blob_size = 0;
 		kotek::uint32_t pixel_blob_size = 0;
+		kotek::uint32_t visibility_blob_size = 0;
 		kotek::uint32_t cull_blob_size = 0;
 
 		if (this->load_shader_blob("meshlet_cluster.vs.dxil",
 				p_vertex_blob, vertex_blob_size) == false ||
 			this->load_shader_blob("meshlet_cluster.fs.dxil",
 				p_pixel_blob, pixel_blob_size) == false ||
+			this->load_shader_blob("meshlet_cluster_visibility.fs.dxil",
+				p_visibility_blob, visibility_blob_size) == false ||
 			this->load_shader_blob("meshlet_cluster_cull.cs.dxil",
 				p_cull_blob, cull_blob_size) == false)
 		{
@@ -655,6 +830,7 @@ namespace no_streaming
 
 			delete[] p_vertex_blob;
 			delete[] p_pixel_blob;
+			delete[] p_visibility_blob;
 			delete[] p_cull_blob;
 
 			this->release_resources();
@@ -662,11 +838,14 @@ namespace no_streaming
 		}
 
 		const kotek::core::ktkRenderGeometryVertexAttributeDesc
-			attributes[2] = {
+			attributes[3] = {
 				{"POSITION", 0u,
 					kotek::core::eRenderGeometryVertexFormat::kFloat3, 0u},
 				{"NORMAL", 0u,
 					kotek::core::eRenderGeometryVertexFormat::kFloat3, 12u},
+				{"TEXCOORD", 0u,
+					kotek::core::eRenderGeometryVertexFormat::kUint1,
+					ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_BYTES},
 			};
 
 		kotek::core::ktkRenderGeometryPipelineDesc pipeline_desc{};
@@ -677,15 +856,36 @@ namespace no_streaming
 		pipeline_desc.m_pixel_shader.m_size_bytes = pixel_blob_size;
 		pipeline_desc.m_pixel_shader.m_p_entry_point = "fs_main";
 		pipeline_desc.m_p_attributes = attributes;
-		pipeline_desc.m_attribute_count = 2;
+		pipeline_desc.m_attribute_count = 3;
 		pipeline_desc.m_vertex_stride_bytes =
-			ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_BYTES;
+			ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_BYTES;
 		pipeline_desc.m_color_format =
 			kotek::core::eRenderGeometryColorFormat::kRGBA8Unorm;
+		pipeline_desc.m_depth_format =
+			kotek::core::eRenderGeometryDepthFormat::kD32Float;
+		pipeline_desc.m_depth_compare =
+			kotek::core::eRenderGeometryDepthCompareOp::kEqual;
+		pipeline_desc.m_depth_write = false;
+		pipeline_desc.m_shader_resource_count = 1u; // visibility at t0
 		pipeline_desc.m_push_constant_bytes = 64u; // u_viewProj
 
 		this->m_pipeline = this->m_p_geometry_manager->Create_Pipeline(
 			pipeline_desc);
+
+		kotek::core::ktkRenderGeometryPipelineDesc visibility_desc =
+			pipeline_desc;
+		visibility_desc.m_pixel_shader.m_p_bytecode = p_visibility_blob;
+		visibility_desc.m_pixel_shader.m_size_bytes = visibility_blob_size;
+		visibility_desc.m_color_format =
+			kotek::core::eRenderGeometryColorFormat::kR32Uint;
+		visibility_desc.m_depth_format =
+			kotek::core::eRenderGeometryDepthFormat::kD32Float;
+		visibility_desc.m_depth_compare =
+			kotek::core::eRenderGeometryDepthCompareOp::kLess;
+		visibility_desc.m_depth_write = true;
+		visibility_desc.m_shader_resource_count = 0u;
+		this->m_visibility_pipeline =
+			this->m_p_geometry_manager->Create_Pipeline(visibility_desc);
 
 		kotek::core::ktkRenderGeometryComputePipelineDesc cull_desc{};
 		cull_desc.m_compute_shader.m_p_bytecode = p_cull_blob;
@@ -702,9 +902,12 @@ namespace no_streaming
 		// the backend copied what it needed during creation
 		delete[] p_vertex_blob;
 		delete[] p_pixel_blob;
+		delete[] p_visibility_blob;
 		delete[] p_cull_blob;
 
 		if (this->m_pipeline ==
+				kotek::core::kInvalidRenderGeometryPipelineHandle ||
+			this->m_visibility_pipeline ==
 				kotek::core::kInvalidRenderGeometryPipelineHandle ||
 			this->m_cull_pipeline ==
 				kotek::core::kInvalidRenderGeometryPipelineHandle)
@@ -724,8 +927,8 @@ namespace no_streaming
 		KOTEK_MESSAGE(
 			"[nri meshlet] pass created: hierarchy '{}' = {} clusters "
 			"across {} LOD levels ({} soup vertices), VB {} B + IB {} B "
-			"+ table {} B uploaded, pipelines created (vs+ps DXIL 64 B "
-			"push, cull cs DXIL {} B push + 3 storage bindings)",
+			"+ table {} B uploaded; shared VS + visibility/forward FS + "
+			"cull CS ({} B push)",
 			ZIRCON_DEF_RENDER_PASS_MESHLET_CLUSTER_NRI_SCENE,
 			cluster_count, manifest_header.m_lod_level_count,
 			soup_vertex_count, vb_size_bytes, ib_size_bytes,
@@ -775,8 +978,15 @@ namespace no_streaming
 		kotek::uint32_t width = p_context->Get_Back_Buffer_Width();
 		kotek::uint32_t height = p_context->Get_Back_Buffer_Height();
 
-		if (height == 0)
-			height = 1;
+		if (width == 0 || height == 0)
+			return;
+		if (this->ensure_render_targets(width, height) == false)
+		{
+			// creation already logged the precise failure; do not retry and
+			// flood every subsequent frame
+			this->m_is_ready = false;
+			return;
+		}
 
 		const float aspect =
 			static_cast<float>(width) / static_cast<float>(height);
@@ -893,19 +1103,60 @@ namespace no_streaming
 			kotek::core::eRenderGeometryBarrierStage::kCompute,
 			kotek::core::eRenderGeometryBarrierStage::kIndirect);
 
-		p_context->Begin_Render_Pass();
+		// The visibility texture returns from SRV to color attachment every
+		// frame; depth stays in its attachment layout after initial creation.
+		const bool is_initial_target_transition =
+			this->m_targets_need_initial_transition;
+		p_context->Barrier_Texture(this->m_visibility_texture,
+			is_initial_target_transition
+				? kotek::core::eRenderGeometryTextureBarrierLayout::kUndefined
+				: kotek::core::eRenderGeometryTextureBarrierLayout::kShaderResource,
+			kotek::core::eRenderGeometryTextureBarrierLayout::kColorAttachment);
+		if (is_initial_target_transition)
+		{
+			p_context->Barrier_Texture(this->m_depth_texture,
+				kotek::core::eRenderGeometryTextureBarrierLayout::kUndefined,
+				kotek::core::eRenderGeometryTextureBarrierLayout::kDepthAttachment);
+			this->m_targets_need_initial_transition = false;
+		}
+
+		auto record_indirect_draw = [&](void)
+		{
+			p_context->Set_Push_Constants(
+				kotek::ktk::math::value_ptr(view_projection), 64u);
+			p_context->Set_Vertex_Buffer(this->m_vertex_buffer, 0u,
+				ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_BYTES, 0u);
+			p_context->Set_Index_Buffer(this->m_index_buffer, 0u,
+				kotek::core::eRenderGeometryIndexFormat::kUint32);
+			p_context->Draw_Indexed_Indirect(this->m_indirect_buffer, 0u,
+				this->m_cluster_count,
+				static_cast<kotek::uint32_t>(
+					sizeof(zircon_meshlet_cull_layout::indirect_command_t)),
+				this->m_counter_buffer, 0u);
+		};
+
+		// 1. R32Uint cluster IDs + D32 depth. The clear value's bits are all
+		// zero, reserving zero for the background on every integer target.
+		const float clear_visibility[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+		p_context->Begin_Render_Pass_With_Attachments(
+			this->m_visibility_rt_view, this->m_depth_view, clear_visibility);
+		p_context->Set_Pipeline(this->m_visibility_pipeline);
+		record_indirect_draw();
+		p_context->End_Render_Pass();
+
+		// 2. Resolve visibility to a shader resource, then shade the same
+		// compacted draw list. The ID test rejects other clusters; the SAME
+		// D32 surface is also bound read-only with an EQUAL test, which
+		// rejects overlapping fragments from the same cluster that an id-only
+		// visibility buffer cannot distinguish.
+		p_context->Barrier_Texture(this->m_visibility_texture,
+			kotek::core::eRenderGeometryTextureBarrierLayout::kColorAttachment,
+			kotek::core::eRenderGeometryTextureBarrierLayout::kShaderResource);
+		p_context->Begin_Render_Pass_With_Back_Buffer_Depth(this->m_depth_view);
 		p_context->Set_Pipeline(this->m_pipeline);
-		p_context->Set_Push_Constants(
-			kotek::ktk::math::value_ptr(view_projection), 64u);
-		p_context->Set_Vertex_Buffer(this->m_vertex_buffer, 0u,
-			ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_BYTES, 0u);
-		p_context->Set_Index_Buffer(this->m_index_buffer, 0u,
-			kotek::core::eRenderGeometryIndexFormat::kUint32);
-		p_context->Draw_Indexed_Indirect(this->m_indirect_buffer, 0u,
-			this->m_cluster_count,
-			static_cast<kotek::uint32_t>(
-				sizeof(zircon_meshlet_cull_layout::indirect_command_t)),
-			this->m_counter_buffer, 0u);
+		p_context->Set_Graphics_Shader_Resource(
+			0u, this->m_visibility_shader_view);
+		record_indirect_draw();
 		p_context->End_Render_Pass();
 
 		// ---- restore the storage state for the next frame's dispatches
@@ -1114,6 +1365,13 @@ namespace no_streaming
 			void) const noexcept
 	{
 		return this->m_pipeline;
+	}
+
+	kotek::core::ktkRenderGeometryPipelineHandle
+		zircon_render_graph_pass_meshlet_cluster_nri::get_visibility_pipeline(
+			void) const noexcept
+	{
+		return this->m_visibility_pipeline;
 	}
 
 	kotek::core::ktkRenderGeometryPipelineHandle

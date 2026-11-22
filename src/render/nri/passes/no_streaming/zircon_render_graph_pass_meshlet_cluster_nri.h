@@ -22,10 +22,13 @@
 /// mirror zircon_meshlet_cull.h) classifies every cluster — the LOD cut
 /// by the projected error vs ZIRCON_DEF_NRI_MESHLET_LOD_ERROR_THRESHOLD,
 /// the frustum, the cone — and compacts 20-byte indirect commands
-/// (the NRI DrawIndexedDesc layout) into the argument buffer; ONE
-/// Draw_Indexed_Indirect consumes them. Everything GPU-side is an OPAQUE
-/// HANDLE (the Z5 boundary rule: no NRI types in zircon); the pass holds
-/// non-owning service pointers + handles only (the reload-safety laws).
+/// (the NRI DrawIndexedDesc layout) into the argument buffer. TWO indirect
+/// submits consume the same list: an R32Uint+D32 visibility pass writes the
+/// nearest nonzero cluster id, then the forward pass shades only ids that
+/// match the visibility SRV. One shared VS, two FS, one cull CS — no shader
+/// permutation family. Everything GPU-side is an OPAQUE HANDLE (the Z5
+/// boundary rule: no NRI types in zircon); the pass holds non-owning service
+/// pointers + handles only (the reload-safety laws).
 ///
 /// THE PIPELINE CHOICE (the documented B3b decision): the vendored NRI
 /// v180 implements mesh shaders internally but its PUBLIC CoreInterface
@@ -38,8 +41,8 @@
 /// frames the hierarchy with a FIXED debug orbit built from the whole
 /// scene AABB (logged once) — the draw proves the cull/LOD path, not the
 /// camera chain. THE LIGHT: the fragment stage hardcodes a directional
-/// lambert (the shared Phong contract needs the descriptor seam — the
-/// material/lighting phase).
+/// lambert (the shared Phong contract needs material/light bindings — the
+/// visibility SRV is already present; clustered lighting is the next phase).
 ///
 /// THE A/B EVIDENCE (the B1 readback discipline, NRI form): NRI/D3D12
 /// HAS buffer readback — no texture hop. Frame 0 copies the 4-byte
@@ -71,10 +74,17 @@
 #define ZIRCON_DEF_NRI_MESHLET_PASS_MAX_CLUSTERS 256u
 
 /// the pooled soup-vertex residency cap (the identity IB carries the same
-/// count of u32 elements): 1M soup vertices = 24 MB of pooled VB — the
+/// count of u32 elements): 1M soup vertices = 28 MB of pooled VB — the
 /// triangle-soup expansion of ~139k LOD0-budget triangles across all
 /// levels at the 256-cluster cap; sized for the v1, raised by measurement
 #define ZIRCON_DEF_NRI_MESHLET_PASS_MAX_SOUP_VERTICES (1u << 20)
+
+/// position + normal + one nonzero cluster id (four bytes per vertex, no
+/// per-draw push constants and no second vertex stream)
+#define ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_FLOATS \
+	(ZIRCON_DEF_MESHLET_READ_VERTEX_STRIDE_FLOATS + 1u)
+#define ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_BYTES \
+	(ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_FLOATS * sizeof(float))
 
 /// the push-constant block (the kernel's CullParams cbuffer): 6 planes +
 /// the camera vec4 + the meta vec4 = 128 bytes
@@ -132,10 +142,17 @@ namespace no_streaming
 			void) const noexcept;
 		kotek::core::ktkRenderGeometryPipelineHandle get_pipeline(
 			void) const noexcept;
+		kotek::core::ktkRenderGeometryPipelineHandle get_visibility_pipeline(
+			void) const noexcept;
 		kotek::core::ktkRenderGeometryPipelineHandle get_cull_pipeline(
 			void) const noexcept;
 
 	private:
+		/// creates/resizes the R32Uint visibility surface and its D32 depth;
+		/// all three views are owned by this pass, never by the pipelines
+		bool ensure_render_targets(kotek::uint32_t width,
+			kotek::uint32_t height) noexcept;
+		void release_render_targets(void) noexcept;
 		/// \~english releases the created handles (dtor + re-init guard);
 		/// safe when the manager never arrived (the seam-less construction)
 		void release_resources(void) noexcept;
@@ -163,7 +180,19 @@ namespace no_streaming
 			kotek::core::kInvalidRenderGeometryBufferHandle};
 		kotek::core::ktkRenderGeometryBufferHandle m_readback_buffer{
 			kotek::core::kInvalidRenderGeometryBufferHandle};
+		kotek::core::ktkRenderGeometryTextureHandle m_visibility_texture{
+			kotek::core::kInvalidRenderGeometryTextureHandle};
+		kotek::core::ktkRenderGeometryTextureHandle m_depth_texture{
+			kotek::core::kInvalidRenderGeometryTextureHandle};
+		kotek::core::ktkRenderGeometryTextureViewHandle m_visibility_rt_view{
+			kotek::core::kInvalidRenderGeometryTextureViewHandle};
+		kotek::core::ktkRenderGeometryTextureViewHandle m_visibility_shader_view{
+			kotek::core::kInvalidRenderGeometryTextureViewHandle};
+		kotek::core::ktkRenderGeometryTextureViewHandle m_depth_view{
+			kotek::core::kInvalidRenderGeometryTextureViewHandle};
 		kotek::core::ktkRenderGeometryPipelineHandle m_pipeline{
+			kotek::core::kInvalidRenderGeometryPipelineHandle};
+		kotek::core::ktkRenderGeometryPipelineHandle m_visibility_pipeline{
 			kotek::core::kInvalidRenderGeometryPipelineHandle};
 		kotek::core::ktkRenderGeometryPipelineHandle m_cull_pipeline{
 			kotek::core::kInvalidRenderGeometryPipelineHandle};
@@ -174,6 +203,8 @@ namespace no_streaming
 		kotek::uint32_t m_cpu_visible_count{};
 		kotek::uint32_t m_gpu_visible_count{};
 		kotek::uint32_t m_frame_counter{};
+		kotek::uint32_t m_target_width{};
+		kotek::uint32_t m_target_height{};
 		/// the hierarchy AABB (floats — the debug-orbit camera's frame)
 		float m_aabb_min[3]{};
 		float m_aabb_max[3]{};
@@ -184,5 +215,6 @@ namespace no_streaming
 		bool m_is_ready{};
 		bool m_readback_copied{};
 		bool m_ab_logged{};
+		bool m_targets_need_initial_transition{};
 	};
 } // namespace no_streaming

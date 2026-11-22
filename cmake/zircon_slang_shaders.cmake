@@ -163,9 +163,15 @@ file(MAKE_DIRECTORY
 set(ZIRCON_SHADER_OUTPUTS "")
 
 function(zircon_add_slang_shader name)
-	cmake_parse_arguments(ZS "" "VS_IN;VS_OUT;FS_IN" "VS_UNIFORMS;FS_UNIFORMS;FS_UNIFORMS_VULKAN" ${ARGN})
+	# FS_ONLY reuses an existing vertex stage (the visibility prepass shares
+	# meshlet_cluster.vs) instead of generating a redundant shader family.
+	cmake_parse_arguments(ZS "FS_ONLY" "VS_IN;VS_OUT;FS_IN" "VS_UNIFORMS;FS_UNIFORMS;FS_UNIFORMS_VULKAN" ${ARGN})
+	set(ZS_STAGES vs fs)
+	if (ZS_FS_ONLY)
+		set(ZS_STAGES fs)
+	endif()
 
-	foreach(stage vs fs)
+	foreach(stage IN LISTS ZS_STAGES)
 		string(TOUPPER "${stage}" STAGE)
 		set(slang_file "${ZIRCON_SLANG_SHADER_DIR}/${name}.${stage}.slang")
 		set(spv_file "${ZIRCON_SHADER_SPV_DIR}/${name}.${stage}.spv")
@@ -397,20 +403,19 @@ zircon_add_slang_shader(editor_csg
 		"u_cameraPos:vec4:48:1"
 )
 
-# NRI meshlet cluster draw (task Z24 B3b): the first real NRI draw — one
-# baked LOD0 cluster of the B3a pack format through the kotek geometry
-# seam. The VS cbuffer is the PUSH-CONSTANT block (the NRI pipeline's
-# root-constant range at register(b0), both stages — no [[vk::binding]]
-# in the source; the NRI route is the live consumer, the bgfx routes
-# build the same pair for pipeline uniformity, nothing bgfx binds them).
-# The FS binds nothing (hardcoded lambert — the descriptor seam lands
-# with the material phase)
+# NRI meshlet visibility-buffered forward+ path (task Z29): ONE vertex stage
+# feeds the R32Uint visibility FS and the forward FS. The interleaved soup's
+# third attribute is a nonzero cluster id, flat across each triangle. The
+# forward FS reads the visibility texture at t0 and shades only its winner.
 zircon_add_slang_shader(meshlet_cluster
-	VS_IN "a_position,a_normal"
-	VS_OUT "v_normal"
+	VS_IN "a_position,a_normal,a_texcoord0"
+	VS_OUT "v_normal,v_cluster_id"
 	VS_UNIFORMS
 		"u_viewProj:mat4:0:4"
-	FS_IN "v_normal"
+	FS_IN "v_normal,v_cluster_id"
+)
+zircon_add_slang_shader(meshlet_cluster_visibility FS_ONLY
+	FS_IN "v_normal,v_cluster_id"
 )
 
 # compute shaders (task Z24 B1, the GPU-driven path): a new stage for the
