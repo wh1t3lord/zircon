@@ -224,7 +224,7 @@ function(zircon_add_slang_shader name)
 				${pack_names} ${pack_uniforms_vulkan}
 			# NRI (dx12): raw DXIL blob, no container
 			COMMAND "${ZIRCON_SLANGC}" "${slang_file}"
-				-entry ${stage}_main -target dxil -profile sm_6_0
+				-entry ${stage}_main -target dxil -profile sm_6_0 -DZIRCON_NRI
 				-o "${nri_dxil}"
 			DEPENDS
 				"${slang_file}"
@@ -409,13 +409,14 @@ zircon_add_slang_shader(editor_csg
 # forward FS reads the visibility texture at t0 and shades only its winner.
 zircon_add_slang_shader(meshlet_cluster
 	VS_IN "a_position,a_normal,a_texcoord0"
-	VS_OUT "v_normal,v_cluster_id"
+	VS_OUT "v_normal,v_cluster_id,v_worldPos"
 	VS_UNIFORMS
 		"u_viewProj:mat4:0:4"
-	FS_IN "v_normal,v_cluster_id"
+		"u_lightClusterInfo:vec4:64:1"
+	FS_IN "v_normal,v_cluster_id,v_worldPos"
 )
 zircon_add_slang_shader(meshlet_cluster_visibility FS_ONLY
-	FS_IN "v_normal,v_cluster_id"
+	FS_IN "v_normal,v_cluster_id,v_worldPos"
 )
 
 # compute shaders (task Z24 B1, the GPU-driven path): a new stage for the
@@ -460,7 +461,7 @@ function(zircon_add_slang_compute_shader name)
 			${pack_uniforms}
 		# NRI (dx12): raw DXIL blob, no container
 		COMMAND "${ZIRCON_SLANGC}" "${slang_file}"
-			-entry cs_main -target dxil -profile sm_6_0
+			-entry cs_main -target dxil -profile sm_6_0 -DZIRCON_NRI
 			-o "${nri_dxil}"
 		DEPENDS
 			"${slang_file}"

@@ -2,6 +2,7 @@
 
 #include "../../../../core/zircon_meshlet_cluster_read.h"
 #include "../../../../core/zircon_meshlet_cull.h"
+#include "../../../bgfx/passes/no_streaming/zircon_render_light_buffer.h"
 #include "../zircon_render_graph_pass_nri.h"
 
 /// \file zircon_render_graph_pass_meshlet_cluster_nri.h
@@ -24,8 +25,9 @@
 /// the frustum, the cone — and compacts 20-byte indirect commands
 /// (the NRI DrawIndexedDesc layout) into the argument buffer. TWO indirect
 /// submits consume the same list: an R32Uint+D32 visibility pass writes the
-/// nearest nonzero cluster id, then the forward pass shades only ids that
-/// match the visibility SRV. One shared VS, two FS, one cull CS — no shader
+/// nearest nonzero cluster id, then the forward pass resolves the id and EQUAL
+/// depth before evaluating the lights binned into the fragment's 32 px tile.
+/// One shared VS, two FS, one cull CS and one light-binning CS — no shader
 /// permutation family. Everything GPU-side is an OPAQUE HANDLE (the Z5
 /// boundary rule: no NRI types in zircon); the pass holds non-owning service
 /// pointers + handles only (the reload-safety laws).
@@ -40,9 +42,9 @@
 /// THE CAMERA: no scene camera contract on the NRI path yet, so the pass
 /// frames the hierarchy with a FIXED debug orbit built from the whole
 /// scene AABB (logged once) — the draw proves the cull/LOD path, not the
-/// camera chain. THE LIGHT: the fragment stage hardcodes a directional
-/// lambert (the shared Phong contract needs material/light bindings — the
-/// visibility SRV is already present; clustered lighting is the next phase).
+/// camera chain. THE LIGHT: real world light components feed the clustered
+/// forward+ list; an empty world gets two deterministic fixture lights, and
+/// zero lights after collection keeps the original directional fallback.
 ///
 /// THE A/B EVIDENCE (the B1 readback discipline, NRI form): NRI/D3D12
 /// HAS buffer readback — no texture hop. Frame 0 copies the 4-byte
@@ -89,6 +91,13 @@
 /// the push-constant block (the kernel's CullParams cbuffer): 6 planes +
 /// the camera vec4 + the meta vec4 = 128 bytes
 #define ZIRCON_DEF_NRI_MESHLET_PASS_CULL_PARAMS_BYTES 128u
+/// the light-binning block: planes + view-projection + screen/bin metadata
+#define ZIRCON_DEF_NRI_MESHLET_PASS_LIGHT_BIN_PARAMS_BYTES 192u
+/// the draw block: view-projection + the cluster-info vec4
+#define ZIRCON_DEF_NRI_MESHLET_PASS_GRAPHICS_PARAMS_BYTES 80u
+/// the shipped empty-world boot gets two deterministic fixture lights;
+/// real scene lights always take precedence (set to 0 to disable)
+#define ZIRCON_DEF_NRI_MESHLET_PASS_ENABLE_LIGHT_FIXTURE 1u
 
 /// the one-shot counter readback: frame 0 records the copy, this frame
 /// maps it — the swapchain's frame pacing (1 queued frame: at frame N
@@ -146,6 +155,8 @@ namespace no_streaming
 			void) const noexcept;
 		kotek::core::ktkRenderGeometryPipelineHandle get_cull_pipeline(
 			void) const noexcept;
+		kotek::core::ktkRenderGeometryPipelineHandle get_light_bin_pipeline(
+			void) const noexcept;
 
 	private:
 		/// creates/resizes the R32Uint visibility surface and its D32 depth;
@@ -156,6 +167,14 @@ namespace no_streaming
 		/// \~english releases the created handles (dtor + re-init guard);
 		/// safe when the manager never arrived (the seam-less construction)
 		void release_resources(void) noexcept;
+		/// world collection (or the deterministic empty-world fixture) then
+		/// clear+bin dispatches and the direct counter readback hop
+		void drive_light_binning(
+			kotek::core::ktkIRenderFramePassContext* p_context,
+			const zircon_meshlet_cull_view_t& cull_view,
+			const kotek::ktk::math::matrix4x4f& view_projection,
+			kotek::uint32_t width, kotek::uint32_t height,
+			float out_cluster_info[4]) noexcept;
 
 		/// \~english reads one compiled shader blob from
 		/// shader_cache/nri/dx12/ into a FRESH heap buffer (the caller
@@ -166,6 +185,7 @@ namespace no_streaming
 			kotek::uint32_t& out_size) noexcept;
 
 	private:
+		kotek::core::ktkMainManager* m_p_main_manager{};
 		kotek::core::ktkIFileSystem* m_p_filesystem{};
 		kotek::core::ktkIRenderGeometryManager* m_p_geometry_manager{};
 		kotek::core::ktkRenderGeometryBufferHandle m_vertex_buffer{
@@ -196,6 +216,32 @@ namespace no_streaming
 			kotek::core::kInvalidRenderGeometryPipelineHandle};
 		kotek::core::ktkRenderGeometryPipelineHandle m_cull_pipeline{
 			kotek::core::kInvalidRenderGeometryPipelineHandle};
+		kotek::core::ktkRenderGeometryBufferHandle m_light_streams[4]{
+			kotek::core::kInvalidRenderGeometryBufferHandle,
+			kotek::core::kInvalidRenderGeometryBufferHandle,
+			kotek::core::kInvalidRenderGeometryBufferHandle,
+			kotek::core::kInvalidRenderGeometryBufferHandle};
+		kotek::core::ktkRenderGeometryBufferHandle m_light_tile_counts{
+			kotek::core::kInvalidRenderGeometryBufferHandle};
+		kotek::core::ktkRenderGeometryBufferHandle m_light_tile_indices{
+			kotek::core::kInvalidRenderGeometryBufferHandle};
+		kotek::core::ktkRenderGeometryBufferHandle m_light_bin_counters{
+			kotek::core::kInvalidRenderGeometryBufferHandle};
+		kotek::core::ktkRenderGeometryBufferHandle m_light_stats_readback{
+			kotek::core::kInvalidRenderGeometryBufferHandle};
+		kotek::core::ktkRenderGeometryPipelineHandle m_light_bin_pipeline{
+			kotek::core::kInvalidRenderGeometryPipelineHandle};
+		zircon_render_light_buffer m_light_buffer{};
+		kotek::uint32_t* m_p_mirror_tile_counts{};
+		kotek::uint32_t* m_p_mirror_tile_indices{};
+		kotek::uint32_t m_gpu_light_assignments{};
+		kotek::uint32_t m_gpu_light_dropped{};
+		kotek::uint32_t m_cpu_light_assignments{};
+		kotek::uint32_t m_cpu_light_dropped{};
+		bool m_light_readback_copied{};
+		bool m_light_ab_logged{};
+		bool m_light_warned_tile_cap{};
+		bool m_light_lists_are_srv{};
 		/// the pooled identity IB element count (= the soup vertex count)
 		kotek::uint32_t m_index_count{};
 		/// the loaded cluster count (the GPU table + the cull dispatch)

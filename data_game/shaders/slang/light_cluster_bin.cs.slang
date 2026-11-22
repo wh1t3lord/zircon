@@ -62,6 +62,16 @@ StructuredBuffer<float4> u_lightPositions : register(t0, space0);
 StructuredBuffer<float4> u_lightDirections : register(t1, space0);
 [[vk::binding(4, 0)]]
 StructuredBuffer<float4> u_lightParams : register(t2, space0);
+// NRI's compute layout numbers UAVs per descriptor class, so binding 3/4/5
+// become u0/u1/u2 (not the bgfx stage registers u3/u4/u5).
+#ifdef ZIRCON_NRI
+[[vk::binding(5, 0)]]
+RWStructuredBuffer<uint> u_lightTileCounts : register(u0, space0);
+[[vk::binding(6, 0)]]
+RWStructuredBuffer<uint> u_lightTileIndices : register(u1, space0);
+[[vk::binding(7, 0)]]
+RWStructuredBuffer<uint> u_binCounters : register(u2, space0);
+#else
 [[vk::binding(5, 0)]]
 RWStructuredBuffer<uint> u_lightTileCounts : register(u3, space0);
 [[vk::binding(6, 0)]]
@@ -69,11 +79,14 @@ RWStructuredBuffer<uint> u_lightTileIndices : register(u4, space0);
 [[vk::binding(7, 0)]]
 RWStructuredBuffer<uint> u_binCounters : register(u5, space0);
 #endif
+#endif
 
-// the 2x1 R32U stats image (stage 6): mode 2 stores the counters here
-// (texel (0,0) = assignments, texel (1,0) = per-tile-cap drops)
+#ifndef ZIRCON_NRI
+// the 2x1 R32U stats image (stage 6): mode 2 stores the counters here.
+// NRI reads the counter buffer directly and never dispatches mode 2.
 [[vk::binding(8, 0)]]
 RWTexture2D<uint> u_statsImage : register(u6, space0);
+#endif
 
 // cbuffer — register(b0) on every target (the compute UBO slot; vulkan
 // binding 0). Member offsets: u_cullPlanes = 0..95, u_viewProj = 96..159,
@@ -160,9 +173,10 @@ void zircon_light_project_sphere_tile_range(float3 center, float radius,
 
 	for (uint corner = 0; corner < 8; ++corner)
 	{
-		float3 corner_xyz = center + float3((corner & 1) ? radius : -radius,
-			(corner & 2) ? radius : -radius,
-			(corner & 4) ? radius : -radius);
+		float3 corner_xyz = center + float3(
+			(corner & 1) != 0u ? radius : -radius,
+			(corner & 2) != 0u ? radius : -radius,
+			(corner & 4) != 0u ? radius : -radius);
 
 		// clip[j] = dot((x,y,z,1), (vp[j], vp[4+j], vp[8+j], vp[12+j]))
 		float4 v = float4(corner_xyz, 1.0);
@@ -320,10 +334,12 @@ void cs_main(uint3 dispatch_id : SV_DispatchThreadID)
 		return;
 	}
 
+#ifndef ZIRCON_NRI
 	// kBinMode_Stats — a single thread (the pass dispatches 1x1x1)
 	if (thread_index == 0)
 	{
 		u_statsImage[uint2(0, 0)] = u_binCounters[0];
 		u_statsImage[uint2(1, 0)] = u_binCounters[1];
 	}
+#endif
 }

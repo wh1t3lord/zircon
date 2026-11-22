@@ -50,6 +50,14 @@ set(to_include_shared_os
 )
 ###
 
+### backend-free clustered light collection/classification shared by both
+### pass libraries (the bgfx and NRI rigs consume the SAME implementation)
+set(to_include_shared_lighting_files
+	"bgfx/passes/no_streaming/zircon_render_light_buffer.h"
+	"bgfx/passes/no_streaming/zircon_render_light_buffer.cpp"
+)
+###
+
 ### NRI (task K11/Z5 phase 1: minimal renderer over the kotek.render.nri
 ### backend; the passes split is the deferred Z5 work)
 set(to_include_nri
@@ -74,6 +82,7 @@ kotek_add_library(${PROJECT_NAME}
 	${to_include_bgfx}
 	${to_include_module_files}
 	${to_include_shared_os}
+	${to_include_shared_lighting_files}
 	${to_include_nri}
 )
 
@@ -145,14 +154,8 @@ set(to_include_bgfx_game_passes_no_streaming_files
 	# the shared B1 pool (consumed by the gpu-driven pass's collect)
 	"bgfx/passes/no_streaming/zircon_render_terrain_chunks.h"
 	"bgfx/passes/no_streaming/zircon_render_terrain_chunks.cpp"
-	# task Z24 B5b: the clustered forward+ lighting — the bgfx-free
-	# per-frame light table (the AoSoA streams + the classification +
-	# the serial binning mirror, the tests' seam) and the bgfx-side GPU
-	# rig (the light-table buffers, the binning dispatches, the
-	# fragment-stage list bindings, the A/B stats readback hop) — both
-	# game passes own one of each
-	"bgfx/passes/no_streaming/zircon_render_light_buffer.h"
-	"bgfx/passes/no_streaming/zircon_render_light_buffer.cpp"
+	# task Z24 B5b: the bgfx-side GPU rig (the backend-free light table
+	# above lives in this executor target and is shared with NRI)
 	"bgfx/passes/no_streaming/zircon_render_light_cluster_rig.h"
 	"bgfx/passes/no_streaming/zircon_render_light_cluster_rig.cpp"
 	"bgfx/passes/no_streaming/zircon_render_shadow_cascade.h"
@@ -309,6 +312,7 @@ if (ZIRCON_GRAPHICS_DEVELOPMENT)
 	zircon_add_passes_codegen(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}.static)
 	zircon_configure_passes_target(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}.static)
 
+	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}.static PUBLIC zircon.render)
 	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}.static PUBLIC zircon.core)
 	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}.static PUBLIC zircon.ecs)
 	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME}.static PUBLIC zircon.world)
@@ -428,6 +432,7 @@ else()
 	# the pass sources include editor session/ecs/world headers and the
 	# kotek render modules; all zircon modules are static today so this
 	# propagates include paths only (the final link happens in game.ktk)
+	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC zircon.render)
 	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC zircon.core)
 	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC zircon.ecs)
 	kotek_target_link_libraries(${ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME} PUBLIC zircon.world)
@@ -477,10 +482,14 @@ endif()
 
 kotek_target_precompile_headers(zircon.render.passes.nri PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 
-# the passes use only kotek.core.api types (the frame-pass interface) and
-# ktk aliases — all arrive through the PCH; zircon.core propagates the
-# include paths (the final link happens in game.ktk)
+# GPU objects cross only kotek.core.api; the backend-free light table lives
+# in zircon.render, and the session/world collection uses the same modules as
+# the bgfx pass library
+kotek_target_link_libraries(zircon.render.passes.nri PUBLIC zircon.render)
 kotek_target_link_libraries(zircon.render.passes.nri PUBLIC zircon.core)
+kotek_target_link_libraries(zircon.render.passes.nri PUBLIC zircon.ecs)
+kotek_target_link_libraries(zircon.render.passes.nri PUBLIC zircon.world)
+kotek_target_link_libraries(zircon.render.passes.nri PUBLIC zircon.game)
 
 source_group("NRI/Passes/No Streaming" FILES ${to_include_nri_passes_no_streaming_files})
 source_group("NRI/Passes/Library" FILES ${to_include_nri_passes_library_files})

@@ -2,6 +2,11 @@
 
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
+#include "../../../../engine/zircon_game_manager.h"
+#include "../../../../game/session/zircon_session_game.h"
+#include "../../../../game/session/zircon_session_game_manager.h"
+#include "../../../../world/zircon_world.h"
+
 #include <cmath>
 #include <cstring>
 
@@ -70,9 +75,13 @@ namespace no_streaming
 		const kotek::core::ktkRenderGeometryBufferHandle buffers[] = {
 			this->m_vertex_buffer, this->m_index_buffer,
 			this->m_cluster_table, this->m_indirect_buffer,
-			this->m_counter_buffer, this->m_readback_buffer};
+			this->m_counter_buffer, this->m_readback_buffer,
+			this->m_light_streams[0], this->m_light_streams[1],
+			this->m_light_streams[2], this->m_light_streams[3],
+			this->m_light_tile_counts, this->m_light_tile_indices,
+			this->m_light_bin_counters, this->m_light_stats_readback};
 
-		for (kotek::uint32_t index = 0; index < 6u; ++index)
+		for (kotek::uint32_t index = 0; index < 13u; ++index)
 		{
 			if (buffers[index] !=
 				kotek::core::kInvalidRenderGeometryBufferHandle)
@@ -89,6 +98,19 @@ namespace no_streaming
 		this->m_counter_buffer =
 			kotek::core::kInvalidRenderGeometryBufferHandle;
 		this->m_readback_buffer =
+			kotek::core::kInvalidRenderGeometryBufferHandle;
+		for (kotek::uint32_t index = 0; index < 4u; ++index)
+		{
+			this->m_light_streams[index] =
+				kotek::core::kInvalidRenderGeometryBufferHandle;
+		}
+		this->m_light_tile_counts =
+			kotek::core::kInvalidRenderGeometryBufferHandle;
+		this->m_light_tile_indices =
+			kotek::core::kInvalidRenderGeometryBufferHandle;
+		this->m_light_bin_counters =
+			kotek::core::kInvalidRenderGeometryBufferHandle;
+		this->m_light_stats_readback =
 			kotek::core::kInvalidRenderGeometryBufferHandle;
 
 		if (this->m_pipeline != kotek::core::kInvalidRenderGeometryPipelineHandle)
@@ -115,6 +137,15 @@ namespace no_streaming
 				kotek::core::kInvalidRenderGeometryPipelineHandle;
 		}
 
+		if (this->m_light_bin_pipeline !=
+			kotek::core::kInvalidRenderGeometryPipelineHandle)
+		{
+			this->m_p_geometry_manager->Destroy_Pipeline(
+				this->m_light_bin_pipeline);
+			this->m_light_bin_pipeline =
+				kotek::core::kInvalidRenderGeometryPipelineHandle;
+		}
+
 		this->release_render_targets();
 		this->m_index_count = 0;
 		this->m_cluster_count = 0;
@@ -124,9 +155,22 @@ namespace no_streaming
 		this->m_is_ready = false;
 		this->m_readback_copied = false;
 		this->m_ab_logged = false;
+		this->m_gpu_light_assignments = 0;
+		this->m_gpu_light_dropped = 0;
+		this->m_cpu_light_assignments = 0;
+		this->m_cpu_light_dropped = 0;
+		this->m_light_readback_copied = false;
+		this->m_light_ab_logged = false;
+		this->m_light_warned_tile_cap = false;
+		this->m_light_lists_are_srv = false;
+		this->m_light_buffer.clear();
 
 		delete[] this->m_p_records;
 		this->m_p_records = nullptr;
+		delete[] this->m_p_mirror_tile_counts;
+		this->m_p_mirror_tile_counts = nullptr;
+		delete[] this->m_p_mirror_tile_indices;
+		this->m_p_mirror_tile_indices = nullptr;
 	}
 
 	bool zircon_render_graph_pass_meshlet_cluster_nri::ensure_render_targets(
@@ -226,6 +270,7 @@ namespace no_streaming
 		if (p_main_manager == nullptr)
 			return;
 
+		this->m_p_main_manager = p_main_manager;
 		this->m_p_filesystem = p_main_manager->GetFileSystem();
 		this->m_p_geometry_manager =
 			p_main_manager->GetRenderGeometryManager();
@@ -744,6 +789,42 @@ namespace no_streaming
 		this->m_readback_buffer = this->m_p_geometry_manager->Create_Buffer(
 			4u, kotek::core::eRenderGeometryBufferUsage::kReadback);
 
+		for (kotek::uint32_t stream = 0; stream < 4u; ++stream)
+		{
+			this->m_light_streams[stream] =
+				this->m_p_geometry_manager->Create_Buffer(
+					ZIRCON_DEF_LIGHT_MAX_COUNT *
+						static_cast<kotek::uint32_t>(
+							sizeof(zircon_light_stream_record_t)),
+					kotek::core::eRenderGeometryBufferUsage::kShaderRead);
+		}
+		this->m_light_tile_counts = this->m_p_geometry_manager->Create_Buffer(
+			ZIRCON_DEF_LIGHT_CLUSTER_MAX_TILES *
+				static_cast<kotek::uint32_t>(sizeof(kotek::uint32_t)),
+			kotek::core::eRenderGeometryBufferUsage::kStorage |
+				kotek::core::eRenderGeometryBufferUsage::kShaderRead |
+				kotek::core::eRenderGeometryBufferUsage::kDevice);
+		this->m_light_tile_indices = this->m_p_geometry_manager->Create_Buffer(
+			ZIRCON_DEF_LIGHT_CLUSTER_MAX_TILES *
+				ZIRCON_DEF_LIGHT_CLUSTER_MAX_LIGHTS_PER_TILE *
+				static_cast<kotek::uint32_t>(sizeof(kotek::uint32_t)),
+			kotek::core::eRenderGeometryBufferUsage::kStorage |
+				kotek::core::eRenderGeometryBufferUsage::kShaderRead |
+				kotek::core::eRenderGeometryBufferUsage::kDevice);
+		this->m_light_bin_counters = this->m_p_geometry_manager->Create_Buffer(
+			2u * static_cast<kotek::uint32_t>(sizeof(kotek::uint32_t)),
+			kotek::core::eRenderGeometryBufferUsage::kStorage |
+				kotek::core::eRenderGeometryBufferUsage::kDevice);
+		this->m_light_stats_readback = this->m_p_geometry_manager->Create_Buffer(
+			2u * static_cast<kotek::uint32_t>(sizeof(kotek::uint32_t)),
+			kotek::core::eRenderGeometryBufferUsage::kReadback);
+
+		this->m_p_mirror_tile_counts = new (std::nothrow)
+			kotek::uint32_t[ZIRCON_DEF_LIGHT_CLUSTER_MAX_TILES]{};
+		this->m_p_mirror_tile_indices = new (std::nothrow)
+			kotek::uint32_t[ZIRCON_DEF_LIGHT_CLUSTER_MAX_TILES *
+				ZIRCON_DEF_LIGHT_CLUSTER_MAX_LIGHTS_PER_TILE]{};
+
 		if (this->m_vertex_buffer ==
 				kotek::core::kInvalidRenderGeometryBufferHandle ||
 			this->m_index_buffer ==
@@ -761,6 +842,33 @@ namespace no_streaming
 				"[nri meshlet] a buffer creation failed — the pass "
 				"records nothing");
 
+			delete[] p_pool_vb;
+			delete[] p_pool_ib;
+			delete[] p_records;
+			this->release_resources();
+			return;
+		}
+
+		bool are_light_buffers_valid =
+			this->m_p_mirror_tile_counts && this->m_p_mirror_tile_indices &&
+			this->m_light_tile_counts !=
+				kotek::core::kInvalidRenderGeometryBufferHandle &&
+			this->m_light_tile_indices !=
+				kotek::core::kInvalidRenderGeometryBufferHandle &&
+			this->m_light_bin_counters !=
+				kotek::core::kInvalidRenderGeometryBufferHandle &&
+			this->m_light_stats_readback !=
+				kotek::core::kInvalidRenderGeometryBufferHandle;
+		for (kotek::uint32_t stream = 0; stream < 4u; ++stream)
+		{
+			are_light_buffers_valid = are_light_buffers_valid &&
+				this->m_light_streams[stream] !=
+					kotek::core::kInvalidRenderGeometryBufferHandle;
+		}
+		if (are_light_buffers_valid == false)
+		{
+			KOTEK_MESSAGE_ERROR(
+				"[nri meshlet] a light buffer/allocation failed — inert");
 			delete[] p_pool_vb;
 			delete[] p_pool_ib;
 			delete[] p_records;
@@ -801,17 +909,19 @@ namespace no_streaming
 		// release_resources
 		this->m_p_records = p_records;
 
-		// ---- three pipelines over TWO graphics fragment stages: visibility,
-		// forward shading, and the existing cull compute. Both graphics
-		// pipelines share the same vertex blob and vertex layout.
+		// ---- four pipelines over THREE compute/fragment shader stages:
+		// shared VS + visibility FS + clustered forward FS, plus cull and
+		// light-binning compute. Both graphics pipelines share the VS blob.
 		kotek::uint8_t* p_vertex_blob = nullptr;
 		kotek::uint8_t* p_pixel_blob = nullptr;
 		kotek::uint8_t* p_visibility_blob = nullptr;
 		kotek::uint8_t* p_cull_blob = nullptr;
+		kotek::uint8_t* p_light_bin_blob = nullptr;
 		kotek::uint32_t vertex_blob_size = 0;
 		kotek::uint32_t pixel_blob_size = 0;
 		kotek::uint32_t visibility_blob_size = 0;
 		kotek::uint32_t cull_blob_size = 0;
+		kotek::uint32_t light_bin_blob_size = 0;
 
 		if (this->load_shader_blob("meshlet_cluster.vs.dxil",
 				p_vertex_blob, vertex_blob_size) == false ||
@@ -820,18 +930,20 @@ namespace no_streaming
 			this->load_shader_blob("meshlet_cluster_visibility.fs.dxil",
 				p_visibility_blob, visibility_blob_size) == false ||
 			this->load_shader_blob("meshlet_cluster_cull.cs.dxil",
-				p_cull_blob, cull_blob_size) == false)
+				p_cull_blob, cull_blob_size) == false ||
+			this->load_shader_blob("light_cluster_bin.cs.dxil",
+				p_light_bin_blob, light_bin_blob_size) == false)
 		{
 			KOTEK_MESSAGE_ERROR(
 				"[nri meshlet] the shader blobs (shader_cache/nri/dx12/"
-				"meshlet_cluster*.dxil) are missing or oversized — "
-				"the pass records nothing (build zircon_shaders "
-				"first)");
+				"meshlet_cluster*.dxil + light_cluster_bin.cs.dxil) are "
+				"missing or oversized — build zircon_shaders first");
 
 			delete[] p_vertex_blob;
 			delete[] p_pixel_blob;
 			delete[] p_visibility_blob;
 			delete[] p_cull_blob;
+			delete[] p_light_bin_blob;
 
 			this->release_resources();
 			return;
@@ -867,7 +979,11 @@ namespace no_streaming
 			kotek::core::eRenderGeometryDepthCompareOp::kEqual;
 		pipeline_desc.m_depth_write = false;
 		pipeline_desc.m_shader_resource_count = 1u; // visibility at t0
-		pipeline_desc.m_push_constant_bytes = 64u; // u_viewProj
+		const kotek::uint32_t light_strides[6] = {16u, 16u, 16u, 16u, 4u, 4u};
+		pipeline_desc.m_structured_buffer_count = 6u; // light streams at t1..t6
+		pipeline_desc.m_p_structured_buffer_strides = light_strides;
+		pipeline_desc.m_push_constant_bytes =
+			ZIRCON_DEF_NRI_MESHLET_PASS_GRAPHICS_PARAMS_BYTES;
 
 		this->m_pipeline = this->m_p_geometry_manager->Create_Pipeline(
 			pipeline_desc);
@@ -884,6 +1000,8 @@ namespace no_streaming
 			kotek::core::eRenderGeometryDepthCompareOp::kLess;
 		visibility_desc.m_depth_write = true;
 		visibility_desc.m_shader_resource_count = 0u;
+		visibility_desc.m_structured_buffer_count = 0u;
+		visibility_desc.m_p_structured_buffer_strides = nullptr;
 		this->m_visibility_pipeline =
 			this->m_p_geometry_manager->Create_Pipeline(visibility_desc);
 
@@ -899,17 +1017,32 @@ namespace no_streaming
 		this->m_cull_pipeline =
 			this->m_p_geometry_manager->Create_Compute_Pipeline(cull_desc);
 
+		kotek::core::ktkRenderGeometryComputePipelineDesc light_desc{};
+		light_desc.m_compute_shader.m_p_bytecode = p_light_bin_blob;
+		light_desc.m_compute_shader.m_size_bytes = light_bin_blob_size;
+		light_desc.m_compute_shader.m_p_entry_point = "cs_main";
+		light_desc.m_storage_buffer_count = 6u;
+		light_desc.m_read_only_storage_mask =
+			(1u << 0u) | (1u << 1u) | (1u << 2u);
+		light_desc.m_push_constant_bytes =
+			ZIRCON_DEF_NRI_MESHLET_PASS_LIGHT_BIN_PARAMS_BYTES;
+		this->m_light_bin_pipeline =
+			this->m_p_geometry_manager->Create_Compute_Pipeline(light_desc);
+
 		// the backend copied what it needed during creation
 		delete[] p_vertex_blob;
 		delete[] p_pixel_blob;
 		delete[] p_visibility_blob;
 		delete[] p_cull_blob;
+		delete[] p_light_bin_blob;
 
 		if (this->m_pipeline ==
 				kotek::core::kInvalidRenderGeometryPipelineHandle ||
 			this->m_visibility_pipeline ==
 				kotek::core::kInvalidRenderGeometryPipelineHandle ||
 			this->m_cull_pipeline ==
+				kotek::core::kInvalidRenderGeometryPipelineHandle ||
+			this->m_light_bin_pipeline ==
 				kotek::core::kInvalidRenderGeometryPipelineHandle)
 		{
 			KOTEK_MESSAGE_ERROR(
@@ -934,6 +1067,250 @@ namespace no_streaming
 			soup_vertex_count, vb_size_bytes, ib_size_bytes,
 			table_size_bytes,
 			ZIRCON_DEF_NRI_MESHLET_PASS_CULL_PARAMS_BYTES);
+	}
+
+	void zircon_render_graph_pass_meshlet_cluster_nri::drive_light_binning(
+		kotek::core::ktkIRenderFramePassContext* p_context,
+		const zircon_meshlet_cull_view_t& cull_view,
+		const kotek::ktk::math::matrix4x4f& view_projection,
+		kotek::uint32_t width, kotek::uint32_t height,
+		float out_cluster_info[4]) noexcept
+	{
+		for (kotek::uint32_t lane = 0; lane < 4u; ++lane)
+			out_cluster_info[lane] = 0.0f;
+
+		// The previous frame's fragment SRVs return to UAV before any early
+		// exit, so a zero-light frame cannot strand the access state.
+		if (this->m_light_lists_are_srv)
+		{
+			p_context->Barrier_Buffer(this->m_light_tile_counts,
+				kotek::core::eRenderGeometryBarrierAccess::kShaderRead,
+				kotek::core::eRenderGeometryBarrierAccess::kStorage,
+				kotek::core::eRenderGeometryBarrierStage::kAll,
+				kotek::core::eRenderGeometryBarrierStage::kCompute);
+			p_context->Barrier_Buffer(this->m_light_tile_indices,
+				kotek::core::eRenderGeometryBarrierAccess::kShaderRead,
+				kotek::core::eRenderGeometryBarrierAccess::kStorage,
+				kotek::core::eRenderGeometryBarrierStage::kAll,
+				kotek::core::eRenderGeometryBarrierStage::kCompute);
+			this->m_light_lists_are_srv = false;
+		}
+
+		zircon_world* p_world = nullptr;
+		zircon_game_manager* p_game_manager = dynamic_cast<zircon_game_manager*>(
+			this->m_p_main_manager->GetGameManager());
+		if (p_game_manager)
+		{
+			zircon_session_game_manager* p_sessions =
+				p_game_manager->get_session_game_manager();
+			if (p_sessions)
+			{
+				for (kotek::uint8_t id = 0;
+					 id < ZIRCON_DEF_SESSION_GAME_MANAGER_MAX_SESSION_COUNT; ++id)
+				{
+					zircon_session_game* p_session = p_sessions->get_session(id);
+					if (p_session)
+					{
+						p_world = p_session->get_world();
+						break;
+					}
+				}
+			}
+		}
+
+		kotek::uint32_t light_count = this->m_light_buffer.collect_from_world(
+			p_world && p_world->is_initialized() ? p_world->get_factory()
+				: nullptr,
+			p_world && p_world->is_initialized() ? p_world->get_ecs_context()
+				: nullptr,
+			p_world ? p_world->get_entity_count_max_limit() : 0u);
+
+#if ZIRCON_DEF_NRI_MESHLET_PASS_ENABLE_LIGHT_FIXTURE
+		if (light_count == 0)
+		{
+			const float sun_dir[3] = {-0.4f, -1.0f, -0.3f};
+			const float sun_color[3] = {1.0f, 0.98f, 0.95f};
+			const float point_position[3] = {0.0f, 4.0f, 0.0f};
+			const float point_color[3] = {0.35f, 0.55f, 1.0f};
+			this->m_light_buffer.append_light(eZirconLightType::kDirectional,
+				nullptr, sun_dir, sun_color, 1.0f, 0.0f, 0.0f, 0.0f,
+				zircon_render_light_buffer::kLightFlagCastsShadow);
+			this->m_light_buffer.append_light(eZirconLightType::kPoint,
+				point_position, nullptr, point_color, 3.0f, 12.0f, 0.0f, 0.0f);
+			light_count = this->m_light_buffer.get_count();
+		}
+#endif
+
+		kotek::uint32_t tiles_x = 0;
+		kotek::uint32_t tiles_y = 0;
+		const bool grid_fits = zircon_render_light_buffer::derive_tile_grid(
+			width, height, ZIRCON_DEF_LIGHT_CLUSTER_TILE_PIXELS, tiles_x, tiles_y);
+		if (grid_fits == false)
+		{
+			if (this->m_light_warned_tile_cap == false)
+			{
+				KOTEK_MESSAGE_WARNING(
+					"[nri meshlet] the backbuffer exceeds {} light tiles — "
+					"fallback directional",
+					ZIRCON_DEF_LIGHT_CLUSTER_MAX_TILES);
+				this->m_light_warned_tile_cap = true;
+			}
+			return;
+		}
+		if (light_count == 0)
+			return;
+
+		const kotek::uint32_t tile_total = tiles_x * tiles_y;
+		const kotek::uint32_t tile_pixels =
+			ZIRCON_DEF_LIGHT_CLUSTER_TILE_PIXELS;
+		const kotek::uint32_t max_per_tile =
+			ZIRCON_DEF_LIGHT_CLUSTER_MAX_LIGHTS_PER_TILE;
+		const kotek::uint32_t active = 1u;
+		kotek::ktk::memory::memcpy(out_cluster_info + 0, &tiles_x,
+			sizeof(tiles_x));
+		kotek::ktk::memory::memcpy(out_cluster_info + 1, &active,
+			sizeof(active));
+		kotek::ktk::memory::memcpy(out_cluster_info + 2, &tile_pixels,
+			sizeof(tile_pixels));
+		kotek::ktk::memory::memcpy(out_cluster_info + 3, &max_per_tile,
+			sizeof(max_per_tile));
+
+		// Upload the four read-only streams (positions/directions/colors/params).
+		const kotek::uint32_t stream_bytes = light_count *
+			static_cast<kotek::uint32_t>(sizeof(zircon_light_stream_record_t));
+		const zircon_light_stream_record_t* stream_data[4] = {
+			this->m_light_buffer.get_positions(),
+			this->m_light_buffer.get_directions(),
+			this->m_light_buffer.get_colors(), this->m_light_buffer.get_params()};
+		for (kotek::uint32_t stream = 0; stream < 4u; ++stream)
+		{
+			if (this->m_p_geometry_manager->Upload_Buffer(
+					this->m_light_streams[stream], 0, stream_data[stream],
+					stream_bytes) == false)
+			{
+				KOTEK_MESSAGE_ERROR("[nri meshlet] light stream upload failed");
+				out_cluster_info[1] = 0.0f;
+				return;
+			}
+		}
+
+		// The serial mirror proves the GPU's assignments and drops.
+		kotek::ktk::memory::memset(this->m_p_mirror_tile_counts, 0,
+			tile_total * sizeof(kotek::uint32_t));
+		zircon_light_bin_stats_t cpu_stats{};
+		zircon_render_light_buffer::bin_lights(
+			this->m_light_buffer.get_positions(),
+			this->m_light_buffer.get_directions(), this->m_light_buffer.get_params(),
+			light_count, cull_view.m_planes,
+			kotek::ktk::math::value_ptr(view_projection), width, height,
+			tile_pixels, tiles_x, tiles_y, max_per_tile,
+			this->m_p_mirror_tile_counts, this->m_p_mirror_tile_indices, cpu_stats);
+
+		struct light_bin_params_t
+		{
+			float m_planes[24];
+			float m_view_projection[16];
+			float m_screen_meta[4];
+			float m_bin_meta[4];
+		};
+		static_assert(sizeof(light_bin_params_t) ==
+				ZIRCON_DEF_NRI_MESHLET_PASS_LIGHT_BIN_PARAMS_BYTES,
+			"the light-binning push block must stay 192 bytes");
+		light_bin_params_t params{};
+		kotek::ktk::memory::memcpy(params.m_planes, cull_view.m_planes,
+			sizeof(params.m_planes));
+		kotek::ktk::memory::memcpy(params.m_view_projection,
+			kotek::ktk::math::value_ptr(view_projection),
+			sizeof(params.m_view_projection));
+		params.m_screen_meta[0] = static_cast<float>(width);
+		params.m_screen_meta[1] = static_cast<float>(height);
+		kotek::ktk::memory::memcpy(&params.m_screen_meta[2], &tiles_x,
+			sizeof(tiles_x));
+		kotek::ktk::memory::memcpy(&params.m_screen_meta[3], &tiles_y,
+			sizeof(tiles_y));
+
+		p_context->Set_Compute_Pipeline(this->m_light_bin_pipeline);
+		p_context->Set_Compute_Structured_Buffer(0u, this->m_light_streams[0], 0u,
+			stream_bytes, 16u);
+		p_context->Set_Compute_Structured_Buffer(1u, this->m_light_streams[1], 0u,
+			stream_bytes, 16u);
+		p_context->Set_Compute_Structured_Buffer(2u, this->m_light_streams[3], 0u,
+			stream_bytes, 16u);
+		p_context->Set_Compute_Structured_Buffer(3u, this->m_light_tile_counts, 0u,
+			tile_total * sizeof(kotek::uint32_t), 4u);
+		p_context->Set_Compute_Structured_Buffer(4u, this->m_light_tile_indices, 0u,
+			tile_total * max_per_tile * sizeof(kotek::uint32_t), 4u);
+		p_context->Set_Compute_Structured_Buffer(5u, this->m_light_bin_counters, 0u,
+			2u * sizeof(kotek::uint32_t), 4u);
+
+		for (kotek::uint32_t mode = 0; mode < 2u; ++mode)
+		{
+			kotek::ktk::memory::memcpy(&params.m_bin_meta[0], &light_count,
+				sizeof(light_count));
+			kotek::ktk::memory::memcpy(&params.m_bin_meta[1], &mode,
+				sizeof(mode));
+			kotek::ktk::memory::memcpy(&params.m_bin_meta[2], &tile_pixels,
+				sizeof(tile_pixels));
+			kotek::ktk::memory::memcpy(&params.m_bin_meta[3], &max_per_tile,
+				sizeof(max_per_tile));
+			p_context->Set_Compute_Push_Constants(&params, sizeof(params));
+			p_context->Dispatch(mode == 0u ? (tile_total + 63u) / 64u
+				: (light_count + 63u) / 64u, 1u, 1u);
+		}
+
+		// The forward fragment stage consumes the lists as SRVs.
+		p_context->Barrier_Buffer(this->m_light_tile_counts,
+			kotek::core::eRenderGeometryBarrierAccess::kStorage,
+			kotek::core::eRenderGeometryBarrierAccess::kShaderRead,
+			kotek::core::eRenderGeometryBarrierStage::kCompute,
+			kotek::core::eRenderGeometryBarrierStage::kAll);
+		p_context->Barrier_Buffer(this->m_light_tile_indices,
+			kotek::core::eRenderGeometryBarrierAccess::kStorage,
+			kotek::core::eRenderGeometryBarrierAccess::kShaderRead,
+			kotek::core::eRenderGeometryBarrierStage::kCompute,
+			kotek::core::eRenderGeometryBarrierStage::kAll);
+		this->m_light_lists_are_srv = true;
+
+		// Direct buffer readback — no stats image and no mode-2 permutation.
+		if (this->m_light_readback_copied == false)
+		{
+			this->m_cpu_light_assignments = cpu_stats.m_assignment_count;
+			this->m_cpu_light_dropped = cpu_stats.m_dropped_count;
+			p_context->Barrier_Buffer(this->m_light_bin_counters,
+				kotek::core::eRenderGeometryBarrierAccess::kStorage,
+				kotek::core::eRenderGeometryBarrierAccess::kCopySource,
+				kotek::core::eRenderGeometryBarrierStage::kCompute,
+				kotek::core::eRenderGeometryBarrierStage::kCopy);
+			p_context->Copy_Buffer(this->m_light_stats_readback, 0u,
+				this->m_light_bin_counters, 0u, 2u * sizeof(kotek::uint32_t));
+			p_context->Barrier_Buffer(this->m_light_bin_counters,
+				kotek::core::eRenderGeometryBarrierAccess::kCopySource,
+				kotek::core::eRenderGeometryBarrierAccess::kStorage,
+				kotek::core::eRenderGeometryBarrierStage::kCopy,
+				kotek::core::eRenderGeometryBarrierStage::kCompute);
+			this->m_light_readback_copied = true;
+		}
+		else if (this->m_light_ab_logged == false &&
+			this->m_frame_counter >= ZIRCON_DEF_NRI_MESHLET_PASS_READBACK_FRAME)
+		{
+			kotek::uint32_t values[2]{};
+			if (this->m_p_geometry_manager->Read_Buffer(
+					this->m_light_stats_readback, 0u, values, sizeof(values)))
+			{
+				this->m_gpu_light_assignments = values[0];
+				this->m_gpu_light_dropped = values[1];
+				this->m_light_ab_logged = true;
+				KOTEK_MESSAGE(
+					"[nri meshlet] light cluster A/B: gpu {} assignments "
+					"({} dropped) vs cpu-mirror {} ({} dropped) — {}",
+					this->m_gpu_light_assignments, this->m_gpu_light_dropped,
+					this->m_cpu_light_assignments, this->m_cpu_light_dropped,
+					(this->m_gpu_light_assignments == this->m_cpu_light_assignments &&
+						this->m_gpu_light_dropped == this->m_cpu_light_dropped)
+						? "match"
+						: "MISMATCH");
+			}
+		}
 	}
 
 	void zircon_render_graph_pass_meshlet_cluster_nri::Record(
@@ -1090,6 +1467,21 @@ namespace no_streaming
 
 		p_context->Dispatch(group_count, 1u, 1u);
 
+		struct graphics_params_t
+		{
+			float m_view_projection[16];
+			float m_cluster_info[4];
+		};
+		static_assert(sizeof(graphics_params_t) ==
+				ZIRCON_DEF_NRI_MESHLET_PASS_GRAPHICS_PARAMS_BYTES,
+			"the draw root block must stay 80 bytes");
+		graphics_params_t graphics_params{};
+		kotek::ktk::memory::memcpy(graphics_params.m_view_projection,
+			kotek::ktk::math::value_ptr(view_projection),
+			sizeof(graphics_params.m_view_projection));
+		this->drive_light_binning(p_context, cull_view, view_projection, width,
+			height, graphics_params.m_cluster_info);
+
 		// ---- the access-kind change: the GPU-written storage becomes
 		// the draw's indirect arguments (both buffers)
 		p_context->Barrier_Buffer(this->m_indirect_buffer,
@@ -1123,7 +1515,7 @@ namespace no_streaming
 		auto record_indirect_draw = [&](void)
 		{
 			p_context->Set_Push_Constants(
-				kotek::ktk::math::value_ptr(view_projection), 64u);
+				&graphics_params, sizeof(graphics_params));
 			p_context->Set_Vertex_Buffer(this->m_vertex_buffer, 0u,
 				ZIRCON_DEF_NRI_MESHLET_PASS_VERTEX_STRIDE_BYTES, 0u);
 			p_context->Set_Index_Buffer(this->m_index_buffer, 0u,
@@ -1156,6 +1548,29 @@ namespace no_streaming
 		p_context->Set_Pipeline(this->m_pipeline);
 		p_context->Set_Graphics_Shader_Resource(
 			0u, this->m_visibility_shader_view);
+
+		// Every declared light SRV is initialized every frame, including the
+		// zero-light fallback (the STATIC-descriptor rule).
+		constexpr kotek::uint32_t light_stream_bytes =
+			ZIRCON_DEF_LIGHT_MAX_COUNT *
+			static_cast<kotek::uint32_t>(sizeof(zircon_light_stream_record_t));
+		constexpr kotek::uint32_t tile_count_bytes =
+			ZIRCON_DEF_LIGHT_CLUSTER_MAX_TILES *
+			static_cast<kotek::uint32_t>(sizeof(kotek::uint32_t));
+		constexpr kotek::uint32_t tile_index_bytes = tile_count_bytes *
+			ZIRCON_DEF_LIGHT_CLUSTER_MAX_LIGHTS_PER_TILE;
+		p_context->Set_Graphics_Structured_Buffer(
+			0u, this->m_light_streams[0], 0u, light_stream_bytes, 16u);
+		p_context->Set_Graphics_Structured_Buffer(
+			1u, this->m_light_streams[1], 0u, light_stream_bytes, 16u);
+		p_context->Set_Graphics_Structured_Buffer(
+			2u, this->m_light_streams[2], 0u, light_stream_bytes, 16u);
+		p_context->Set_Graphics_Structured_Buffer(
+			3u, this->m_light_streams[3], 0u, light_stream_bytes, 16u);
+		p_context->Set_Graphics_Structured_Buffer(
+			4u, this->m_light_tile_counts, 0u, tile_count_bytes, 4u);
+		p_context->Set_Graphics_Structured_Buffer(
+			5u, this->m_light_tile_indices, 0u, tile_index_bytes, 4u);
 		record_indirect_draw();
 		p_context->End_Render_Pass();
 
@@ -1372,6 +1787,13 @@ namespace no_streaming
 			void) const noexcept
 	{
 		return this->m_visibility_pipeline;
+	}
+
+	kotek::core::ktkRenderGeometryPipelineHandle
+		zircon_render_graph_pass_meshlet_cluster_nri::get_light_bin_pipeline(
+			void) const noexcept
+	{
+		return this->m_light_bin_pipeline;
 	}
 
 	kotek::core::ktkRenderGeometryPipelineHandle

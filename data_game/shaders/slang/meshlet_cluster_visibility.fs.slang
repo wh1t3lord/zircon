@@ -9,6 +9,7 @@ struct ZirconVsToFs_meshlet_cluster_visibility
 	float4 position : SV_Position;
 	float3 v_normal : NORMAL;
 	nointerpolation uint v_cluster_id : TEXCOORD1;
+	float3 v_worldPos : TEXCOORD2;
 };
 
 [shader("fragment")]
