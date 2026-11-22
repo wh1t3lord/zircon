@@ -1,5 +1,7 @@
 #include "zircon_config.h"
 
+#include <kotek.core.containers.json/include/kotek_json_key_codec.h>
+
 #include <cstring>
 
 namespace
@@ -17,7 +19,7 @@ namespace
 		kotek::static_cstring_t<_Size>& out_list) noexcept
 	{
 		const auto& object = file.Get_Object();
-		auto it = object.find(p_key);
+		auto it = kotek::core::json_key_find(object, p_key);
 
 		if (it == object.end())
 		{
@@ -64,7 +66,7 @@ namespace
 		kotek::static_cstring_t<_Size>& out_value) noexcept
 	{
 		const auto& object = file.Get_Object();
-		auto it = object.find(p_key);
+		auto it = kotek::core::json_key_find(object, p_key);
 
 		if (it == object.end())
 		{
@@ -421,7 +423,7 @@ void zircon_config::deserialize(
 			{
 				const auto& object = file.Get_Object();
 
-				auto it = object.find(translate_zircon_sdk_features(
+				auto it = kotek::core::json_key_find(object, translate_zircon_sdk_features(
 					eZirconSDKFeatures::
 						kSDK_Feature_ShowPassManagerOnStart
 				));
@@ -455,7 +457,7 @@ void zircon_config::deserialize(
 			{
 				const auto& object = file.Get_Object();
 
-				auto it = object.find(translate_zircon_sdk_features(
+				auto it = kotek::core::json_key_find(object, translate_zircon_sdk_features(
 					eZirconSDKFeatures::kSDK_Feature_GraphicsDevelopment
 				));
 
@@ -485,7 +487,7 @@ void zircon_config::deserialize(
 			{
 				const auto& object = file.Get_Object();
 
-				auto it = object.find(translate_zircon_sdk_features(
+				auto it = kotek::core::json_key_find(object, translate_zircon_sdk_features(
 					eZirconSDKFeatures::
 						kSDK_Feature_SDKCamera_Rotation_Quaternion
 				));
@@ -517,7 +519,7 @@ void zircon_config::deserialize(
 			{
 				const auto& object = file.Get_Object();
 
-				auto it = object.find(translate_zircon_sdk_features(
+				auto it = kotek::core::json_key_find(object, translate_zircon_sdk_features(
 					eZirconSDKFeatures::
 						kSDK_Feature_AddSdkCameraInputBootstrap_Automatically
 				));

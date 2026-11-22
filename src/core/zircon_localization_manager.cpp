@@ -2,6 +2,7 @@
 
 #include <kotek.core.api/include/kotek_api.h>
 #include <kotek.core.containers.json/include/kotek_core_containers_json.h>
+#include <kotek.core.containers.json/include/kotek_json_key_codec.h>
 #include <kotek.core.main_manager/include/kotek_main_manager.h>
 
 #include <cstring>
@@ -486,7 +487,7 @@ zircon_localization_manager::install_table_from_text(
 	// the optional "language" field — a mismatch names a mislabeled
 	// file (the contents are still used; the file name is the truth)
 	{
-		auto it_language = root.find("language");
+		auto it_language = kotek::core::json_key_find(root, "language");
 
 		if (it_language != root.end())
 		{
@@ -527,7 +528,7 @@ zircon_localization_manager::install_table_from_text(
 		}
 	}
 
-	auto it_entries = root.find("entries");
+	auto it_entries = kotek::core::json_key_find(root, "entries");
 
 	if (it_entries == root.end())
 	{

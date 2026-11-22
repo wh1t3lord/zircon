@@ -1,5 +1,7 @@
 #include "zircon_scene_metadata.h"
 
+#include <kotek.core.containers.json/include/kotek_json_key_codec.h>
+
 bool zircon_scene_metadata::save_render_passes(
 	kotek::core::ktkIFileSystem* p_filesystem,
 	const char* p_scene_folder_path,
@@ -86,7 +88,7 @@ bool zircon_scene_metadata::load_render_passes(
 
 	const auto& object = scene_metadata.Get_Object();
 
-	auto it = object.find(kZirconSceneMetadata_KeyRenderPasses);
+	auto it = kotek::core::json_key_find(object, kZirconSceneMetadata_KeyRenderPasses);
 
 	if (it == object.end())
 	{

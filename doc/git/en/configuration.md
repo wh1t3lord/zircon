@@ -18,6 +18,12 @@ kotek's options — see
 | `ZIRCON_TESTS_HEAVY` | `OFF` | the heavy stress test tiers (rule §2.8a): heavy suites run only with `-DZIRCON_TESTS_HEAVY=ON`; the default lightweight tier of the same proofs is what boots and CI run |
 | `ZIRCON_CSG_PRECISION` | `F32` | the CSG scalar precision (task Z25) — one scalar drives both the component storage and the evaluation integration: `F32` (the editor/PC path, float with the documented epsilon policy), `U32F` (16.16 fixed-point in a u32 lane — the deterministic bake path: identical input produces byte-identical output on every IEEE-754 platform), `F64` (robustness-debug; validates that the f32/u32f paths do not diverge). The evaluation core stays templated on the scalar and the unit proofs instantiate all three modes in every build |
 
+kotek's `KOTEK_JSON_SHORT_KEYS=AUTO` keeps human-readable JSON keys in
+Debug and emits stable 4-character base32 keys in the other configurations
+(`KOTEK_JSON_KEY_SHORT_LENGTH=3` selects 3 characters). The key names below are
+the LOGICAL names; serialized Release files use their encoded form, and reads
+accept both the old full names and the new short form.
+
 Two hard requirements are enforced by zircon itself
 (`src/core/include/zircon_config_guard.h`, force-included into every zircon
 target):
