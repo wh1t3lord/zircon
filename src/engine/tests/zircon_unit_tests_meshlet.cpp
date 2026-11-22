@@ -1008,7 +1008,7 @@ TEST(Zircon_Game, MeshletPackRoundtrip)
 
 	kotek::size_t manifest_size = 0;
 	kotek::uint8_t* p_manifest = meshlet_read_through_dispatcher(reader,
-		meshlet_entry_path(reader, "meshlets/rt/manifest.bin"),
+		meshlet_entry_path(reader, "data_game/models/meshlets/rt/manifest.bin"),
 		manifest_size);
 	ASSERT_TRUE(p_manifest != nullptr);
 
@@ -1055,7 +1055,7 @@ TEST(Zircon_Game, MeshletPackRoundtrip)
 			kotek::static_cstring_t<
 				ZIRCON_DEF_MESHLET_ENTRY_NAME_MAX_LENGTH>
 				entry_name;
-			entry_name.assign("meshlets/rt/lod_");
+			entry_name.assign("data_game/models/meshlets/rt/lod_");
 			char level_digits[2] = {static_cast<char>('0' + level),
 				'\0'};
 			entry_name += level_digits;
@@ -1326,14 +1326,14 @@ TEST(Zircon_Game, MeshletPackStreamingOrder)
 		zircon_csg_bake_load_u32(p_pack + 8);
 	ASSERT_EQ(entry_count, 8u);
 
-	const char* expected_names[8] = {"meshlets/order/manifest.bin",
-		"meshlets/order/lod_2/cluster_0.bin",
-		"meshlets/order/lod_1/cluster_0.bin",
-		"meshlets/order/lod_1/cluster_1.bin",
-		"meshlets/order/lod_0/cluster_0.bin",
-		"meshlets/order/lod_0/cluster_1.bin",
-		"meshlets/order/lod_0/cluster_2.bin",
-		"meshlets/order/lod_0/cluster_3.bin"};
+	const char* expected_names[8] = {"data_game/models/meshlets/order/manifest.bin",
+		"data_game/models/meshlets/order/lod_2/cluster_0.bin",
+		"data_game/models/meshlets/order/lod_1/cluster_0.bin",
+		"data_game/models/meshlets/order/lod_1/cluster_1.bin",
+		"data_game/models/meshlets/order/lod_0/cluster_0.bin",
+		"data_game/models/meshlets/order/lod_0/cluster_1.bin",
+		"data_game/models/meshlets/order/lod_0/cluster_2.bin",
+		"data_game/models/meshlets/order/lod_0/cluster_3.bin"};
 
 	for (kotek::uint32_t index = 0; index < entry_count; ++index)
 	{

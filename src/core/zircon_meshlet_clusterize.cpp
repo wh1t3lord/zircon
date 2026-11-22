@@ -995,13 +995,13 @@ namespace
 		}
 	}
 
-	// "meshlets/<scene>/lod_<level>/cluster_<index>.bin"
+	// "data_game/models/meshlets/<scene>/lod_<level>/cluster_<index>.bin"
 	void meshlet_build_entry_name(kotek::static_cstring_t<
 			ZIRCON_DEF_MESHLET_ENTRY_NAME_MAX_LENGTH>& out_name,
 		const char* p_scene_name, kotek::uint32_t level,
 		kotek::uint32_t cluster_index) noexcept
 	{
-		out_name.assign("meshlets/");
+		out_name.assign("data_game/models/meshlets/");
 		out_name += p_scene_name;
 		out_name += "/lod_";
 		meshlet_append_u32(out_name, level);
@@ -1527,7 +1527,7 @@ bool zircon_meshlet_clusterize_pack(kotek::core::ktkIFileSystem* p_filesystem,
 		// already)
 		kotek::static_cstring_t<ZIRCON_DEF_MESHLET_ENTRY_NAME_MAX_LENGTH>
 			manifest_name;
-		manifest_name.assign("meshlets/");
+		manifest_name.assign("data_game/models/meshlets/");
 		manifest_name += p_scene_name;
 		manifest_name += "/manifest.bin";
 

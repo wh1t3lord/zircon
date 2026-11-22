@@ -295,7 +295,7 @@ namespace no_streaming
 			root_path, kotek::core::eFolderIndex::kFolderIndex_DataGame);
 
 		kotek::static_cstring_t<64> manifest_relative;
-		manifest_relative = "meshlets/";
+		manifest_relative = "models/meshlets/";
 		manifest_relative +=
 			ZIRCON_DEF_RENDER_PASS_MESHLET_CLUSTER_NRI_SCENE;
 		manifest_relative += "/manifest.bin";

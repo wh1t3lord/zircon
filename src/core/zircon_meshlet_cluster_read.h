@@ -303,9 +303,10 @@ inline bool zircon_meshlet_read_cluster_record(
 	return true;
 }
 
-/// \~english the cluster entry name of the pack layout
-/// ("meshlets/<scene>/lod_<level>/cluster_<index>.bin") — the
-/// ZIRCON_DEF_MESHLET_ENTRY_NAME_MAX_LENGTH capacity is the format's own
+/// \~english the cluster entry name of the content layout beneath DATA_GAME
+/// ("models/meshlets/<scene>/lod_<level>/cluster_<index>.bin"). The packed
+/// writer prepends `data_game/` because pack names are repo-root-relative.
+/// ZIRCON_DEF_MESHLET_ENTRY_NAME_MAX_LENGTH is the format's capacity
 inline bool zircon_meshlet_read_entry_name(char* p_out_name,
 	kotek::size_t capacity, const char* p_scene_name,
 	kotek::uint32_t level, kotek::uint32_t cluster_index) noexcept
@@ -359,7 +360,7 @@ inline bool zircon_meshlet_read_entry_name(char* p_out_name,
 		}
 	};
 
-	name = "meshlets/";
+	name = "models/meshlets/";
 	name += p_scene_name;
 	name += "/lod_";
 	append_u32(level);

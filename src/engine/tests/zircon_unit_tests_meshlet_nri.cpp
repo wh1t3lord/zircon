@@ -332,8 +332,8 @@ namespace
 			manifest, manifest_size, 1u, record));
 	}
 
-	// the entry-name builder: the pack layout's path + the scene-name
-	// validation (the path-walk rejection)
+	// the entry-name builder: the content layout's path + the scene-name
+	// validation (the path-walk rejection); packed names prepend data_game/
 	TEST(Zircon_NriMeshlet, EntryNameBuildsAndValidates)
 	{
 		char name[ZIRCON_DEF_MESHLET_ENTRY_NAME_MAX_LENGTH]{};
@@ -341,7 +341,7 @@ namespace
 		ASSERT_TRUE(zircon_meshlet_read_entry_name(name, sizeof(name),
 			"boot", 0u, 0u));
 		EXPECT_STREQ(name,
-			"meshlets/boot/lod_0/cluster_0.bin");
+			"models/meshlets/boot/lod_0/cluster_0.bin");
 
 		EXPECT_FALSE(zircon_meshlet_read_entry_name(name, sizeof(name),
 			"../boot", 0u, 0u));
@@ -369,7 +369,7 @@ namespace
 			root_path, kotek::core::eFolderIndex::kFolderIndex_DataGame);
 
 		kotek::static_path_t manifest_path = root_path;
-		manifest_path /= "meshlets/boot/manifest.bin";
+		manifest_path /= "models/meshlets/boot/manifest.bin";
 
 		kotek::size_t manifest_size = 0;
 
@@ -406,7 +406,7 @@ namespace
 		delete[] p_manifest;
 
 		kotek::static_path_t cluster_path = root_path;
-		cluster_path /= "meshlets/boot/lod_0/cluster_0.bin";
+		cluster_path /= "models/meshlets/boot/lod_0/cluster_0.bin";
 
 		kotek::size_t cluster_size = 0;
 

@@ -55,10 +55,10 @@
 /// "gpu-visible N vs cpu-mirror M — match" — the GPU/CPU cull
 /// equivalence of the fixed camera.
 
-/// the scene the pass loads ("meshlets/<scene>/...") — the shipped boot
-/// probe fixture at the ENGINE ROOT (the pack entry namespace is
-/// root-relative, the B3a writer's contract — a pack carrying the same
-/// entries resolves through the dispatcher identically)
+/// the scene the pass loads under DATA_GAME ("models/meshlets/<scene>/...").
+/// The pack entry namespace is repo-root-relative, so the writer emits
+/// "data_game/models/meshlets/<scene>/..." and the dispatcher resolves the
+/// same absolute native/packed path through either backend.
 #define ZIRCON_DEF_RENDER_PASS_MESHLET_CLUSTER_NRI_SCENE "boot"
 
 /// one compiled shader stage's blob bound (the Slang dxil route writes

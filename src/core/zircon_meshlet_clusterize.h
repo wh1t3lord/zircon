@@ -80,8 +80,8 @@
 // forked)
 //
 // entries, in WRITER (= load/streaming) order:
-//   meshlets/<scene>/manifest.bin            the metadata (below)
-//   meshlets/<scene>/lod_<l>/cluster_<i>.bin one per cluster, emitted
+//   data_game/models/meshlets/<scene>/manifest.bin            the metadata (below)
+//   data_game/models/meshlets/<scene>/lod_<l>/cluster_<i>.bin one per cluster, emitted
 //       level-DESCENDING (the coarsest level first — see the streaming
 //       order below), i = the cluster's index inside its level
 // <scene> is validated as a FILE name (1..32 of [a-zA-Z0-9_-], the
@@ -242,7 +242,7 @@ KOTEK_END_NAMESPACE_KOTEK
 // levels x ~28 bytes of quantized tables); exceeding it is a loud hard
 // failure (a content-size error the caller must see)
 #define ZIRCON_DEF_MESHLET_MAX_TOTAL_PAYLOAD (64u * 1024u * 1024u)
-// one entry name ("meshlets/<32>/lod_<l>/cluster_<4089>.bin" plus NUL)
+// one entry name ("data_game/models/meshlets/<32>/lod_<l>/cluster_<4089>.bin" plus NUL)
 #define ZIRCON_DEF_MESHLET_ENTRY_NAME_MAX_LENGTH 96
 
 // the stored position quantum type
