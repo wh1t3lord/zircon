@@ -53,17 +53,28 @@ namespace
 	#endif
 	constexpr kotek::uint32_t _k_test_max_alive_entities = 200;
 
-	// components that are cheap to create headless and have a full
-	// json roundtrip through the generated fields
+	// every registered component participates in randomized combinations;
+	// transform stays first because the edit generator specializes pool slot 0
 	constexpr eZirconComponentType _k_component_pool[] = {
 		eZirconComponentType::kzircon_component_transform,
+		eZirconComponentType::kzircon_component_camera,
+		eZirconComponentType::kzircon_component_input,
 		eZirconComponentType::kzircon_component_geometry,
 		eZirconComponentType::kzircon_component_actor,
+		eZirconComponentType::kzircon_component_terrain_cbt,
+		eZirconComponentType::kzircon_component_terrain_static,
+		eZirconComponentType::kzircon_component_terrain_gcm,
 		eZirconComponentType::kzircon_component_frustum,
 		eZirconComponentType::kzircon_component_bounding_sphere,
-		eZirconComponentType::kzircon_component_camera,
 		eZirconComponentType::kzircon_component_ui_surface,
-		eZirconComponentType::kzircon_component_sdk_scene_name};
+		eZirconComponentType::kzircon_component_ui_camera,
+		eZirconComponentType::kzircon_component_animation,
+		eZirconComponentType::kzircon_component_csg_primitive,
+		eZirconComponentType::kzircon_component_csg,
+		eZirconComponentType::kzircon_component_light,
+		eZirconComponentType::kzircon_component_sdk_scene_name,
+		eZirconComponentType::kzircon_component_sdk_camera,
+		eZirconComponentType::kzircon_component_sdk_input};
 
 	constexpr kotek::uint32_t _k_component_pool_size =
 		sizeof(_k_component_pool) / sizeof(_k_component_pool[0]);
@@ -574,7 +585,7 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 			zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID;
 
 		{
-			kotek::hybrid_vector_t<kotek::uint32_t, 8> missing;
+			kotek::hybrid_vector_t<kotek::uint32_t, _k_component_pool_size> missing;
 
 			for (kotek::uint32_t i = 0;
 			     i < _k_component_pool_size;
@@ -639,7 +650,7 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 			zircon_DEF_COMMAND_HISTORY_INVALID_ENTITY_ID;
 
 		{
-			kotek::hybrid_vector_t<kotek::uint32_t, 8> present;
+			kotek::hybrid_vector_t<kotek::uint32_t, _k_component_pool_size> present;
 
 			for (kotek::uint32_t i = 0;
 			     i < _k_component_pool_size;
@@ -2226,6 +2237,440 @@ TEST(Zircon_Editor, SdkInputComponentDeleteUndoRedoRecreationIsWired)
 }
 
 		#endif
+
+#if ZIRCON_DEF_UNIT_TEST_COMMAND_HISTORY == 1
+
+namespace
+{
+	kotek::uint16_t zircon_test_json_leaf_count(
+		const kotek::ktk::json::value& value)
+	{
+		if (value.is_object())
+		{
+			kotek::uint16_t count = 0;
+			for (const auto& entry : value.as_object())
+				count += zircon_test_json_leaf_count(entry.value());
+			return count;
+		}
+
+		if (value.is_array())
+		{
+			const auto& array = value.as_array();
+			if (array.empty())
+				return 1;
+
+			kotek::uint16_t count = 0;
+			for (const auto& child : array)
+				count += zircon_test_json_leaf_count(child);
+			return count;
+		}
+
+		return value.is_null() ? 0 : 1;
+	}
+
+	// Changes exactly one serialized scalar (or an empty array) selected by
+	// ordinal. Floats become small integers so json -> float -> json is exact;
+	// enum defaults + 1 select another valid enumerator for the current types.
+	bool zircon_test_mutate_json_leaf(kotek::ktk::json::value& value,
+		kotek::uint16_t target, kotek::uint16_t& cursor)
+	{
+		if (value.is_object())
+		{
+			for (auto& entry : value.as_object())
+			{
+				if (zircon_test_mutate_json_leaf(
+						entry.value(), target, cursor))
+					return true;
+			}
+			return false;
+		}
+
+		if (value.is_array())
+		{
+			auto& array = value.as_array();
+			if (array.empty() == false)
+			{
+				for (auto& child : array)
+				{
+					if (zircon_test_mutate_json_leaf(child, target, cursor))
+						return true;
+				}
+				return false;
+			}
+
+			if (cursor++ != target)
+				return false;
+			array.push_back(kotek::uint64_t{1});
+			return true;
+		}
+
+		if (value.is_null())
+			return false;
+
+		if (cursor++ != target)
+			return false;
+
+		if (value.is_bool())
+		{
+			value = !value.as_bool();
+			return true;
+		}
+		if (value.is_int64())
+		{
+			value = value.as_int64() + 1;
+			return true;
+		}
+		if (value.is_uint64())
+		{
+			value = value.as_uint64() + 1;
+			return true;
+		}
+		if (value.is_double())
+		{
+			value = value.as_double() == 2.0 ? 3.0 : 2.0;
+			return true;
+		}
+		if (value.is_string())
+		{
+			value = "ut";
+			return true;
+		}
+		return false;
+	}
+
+	void zircon_test_reset_history_folder(const char* p_folder_name)
+	{
+		auto* p_config = new kotek::core::ktkFrameworkConfig();
+		auto* p_filesystem = new kotek::core::ktkFileSystem();
+		p_filesystem->Initialize(p_config);
+		zircon_test_remove_streaming_folder(p_filesystem, p_folder_name);
+		p_filesystem->Shutdown();
+		delete p_filesystem;
+		delete p_config;
+	}
+
+	void zircon_test_history_add_component(zircon_test_history_env& env,
+		zircon_editor_command_history* p_history, kotek::entity_t entity,
+		eZirconComponentType component_type)
+	{
+		unsigned char* p_memory = p_history->allocate_memory_for_command(
+			sizeof(zircon_command_add_component_to_entity),
+			"zircon_command_add_component_to_entity");
+		auto* p_command = new (p_memory) zircon_command_add_component_to_entity(
+			&env.session_manager, entity,
+			zircon_translate_component_type_enum_to_string(component_type));
+		p_history->ExecuteCommand(p_command);
+	}
+
+	void zircon_test_history_delete_component(zircon_test_history_env& env,
+		zircon_editor_command_history* p_history, kotek::entity_t entity,
+		eZirconComponentType component_type)
+	{
+		unsigned char* p_memory = p_history->allocate_memory_for_command(
+			sizeof(zircon_command_delete_component_from_entity),
+			"zircon_command_delete_component_from_entity");
+		auto* p_command = new (p_memory)
+			zircon_command_delete_component_from_entity(&env.session_manager,
+				&env.factory, entity,
+				zircon_translate_component_type_enum_to_string(component_type));
+		p_history->ExecuteCommand(p_command);
+	}
+
+	void zircon_test_history_edit_component(zircon_test_history_env& env,
+		zircon_editor_command_history* p_history, kotek::entity_t entity,
+		eZirconComponentType component_type,
+		const kotek::ktk::json::value& state_after)
+	{
+		unsigned char* p_memory = p_history->allocate_memory_for_command(
+			sizeof(zircon_command_edit_component_state),
+			"zircon_command_edit_component_state");
+		auto* p_command = new (p_memory) zircon_command_edit_component_state(
+			&env.session_manager, &env.factory, entity,
+			zircon_translate_component_type_enum_to_string(component_type),
+			state_after);
+		p_history->ExecuteCommand(p_command);
+	}
+
+	void zircon_test_expect_component_state(zircon_test_history_env& env,
+		kotek::entity_t entity, eZirconComponentType component_type,
+		const kotek::ktk::json::value& expected, const char* p_stage)
+	{
+		const char* p_component_name =
+			zircon_translate_component_type_enum_to_string(component_type);
+		auto* p_component = env.factory.get_component_by_enum(
+			env.ecs_context(), entity, component_type);
+		ASSERT_NE(p_component, nullptr) << p_component_name << ": " << p_stage;
+
+		const auto actual_text = kotek::ktk::json::serialize(
+			zircon_serialize_component(p_component));
+		const auto expected_text = kotek::ktk::json::serialize(expected);
+		EXPECT_STREQ(actual_text.c_str(), expected_text.c_str())
+			<< p_component_name << ": " << p_stage;
+	}
+}
+
+// Functional proof for the Z14 matrix: every registered component executes
+// add/delete, and every serialized scalar (including nested array/object
+// leaves) executes an independent edit -> undo -> redo -> undo. Assertions
+// compare the real component's complete serialized state, not just presence.
+TEST(Zircon_Editor, CommandHistory_AllComponentsEverySerializedFieldUndoRedo)
+{
+	constexpr const char* _k_test_folder = "z6_all_component_fields_test";
+	zircon_test_reset_history_folder(_k_test_folder);
+
+	zircon_test_history_env& env = *new zircon_test_history_env();
+	env.initialize(_k_test_folder);
+	zircon_editor_command_history* p_history = env.history();
+	ASSERT_NE(p_history, nullptr);
+
+	kotek::entity_t entity = env.factory.create_entity(env.ecs_context());
+	ASSERT_TRUE(env.factory.is_valid_entity(env.ecs_context(), entity));
+
+	kotek::uint64_t field_case_count = 0;
+	constexpr int component_count =
+		static_cast<int>(eZirconComponentType::kunknown);
+
+	for (int component_index = 0; component_index < component_count;
+	     ++component_index)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		const char* p_component_name =
+			zircon_translate_component_type_enum_to_string(component_type);
+		SCOPED_TRACE(p_component_name);
+
+		ASSERT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		zircon_test_history_add_component(
+			env, p_history, entity, component_type);
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+
+		auto* p_component = env.factory.get_component_by_enum(
+			env.ecs_context(), entity, component_type);
+		ASSERT_NE(p_component, nullptr);
+		const auto default_state = zircon_serialize_component(p_component);
+		const kotek::uint16_t leaf_count =
+			zircon_test_json_leaf_count(default_state);
+		ASSERT_GT(leaf_count, 0)
+			<< "a component without serialized state can not be journaled";
+
+		for (kotek::uint16_t field_index = 0; field_index < leaf_count;
+		     ++field_index)
+		{
+			SCOPED_TRACE(field_index);
+			const auto state_before = zircon_serialize_component(p_component);
+			auto state_after = state_before;
+			kotek::uint16_t mutation_cursor = 0;
+			ASSERT_TRUE(zircon_test_mutate_json_leaf(
+				state_after, field_index, mutation_cursor));
+
+			const auto before_text =
+				kotek::ktk::json::serialize(state_before);
+			const auto after_text = kotek::ktk::json::serialize(state_after);
+			ASSERT_STRNE(before_text.c_str(), after_text.c_str())
+				<< "the field variation must be meaningful";
+
+			zircon_test_history_edit_component(
+				env, p_history, entity, component_type, state_after);
+			zircon_test_expect_component_state(
+				env, entity, component_type, state_after, "execute edit");
+
+			p_history->Undo();
+			zircon_test_expect_component_state(
+				env, entity, component_type, state_before, "undo edit");
+			p_history->Redo();
+			zircon_test_expect_component_state(
+				env, entity, component_type, state_after, "redo edit");
+			p_history->Undo();
+			zircon_test_expect_component_state(
+				env, entity, component_type, state_before, "restore baseline");
+			++field_case_count;
+		}
+
+		zircon_test_history_delete_component(
+			env, p_history, entity, component_type);
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		p_history->Undo();
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		zircon_test_expect_component_state(
+			env, entity, component_type, default_state, "undo delete");
+		p_history->Redo();
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		p_history->Undo();
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		zircon_test_expect_component_state(
+			env, entity, component_type, default_state, "restore deleted state");
+
+		// Undo/redo the add as well, then leave the cursor at the root so the
+		// next component starts an independent retained history branch.
+		p_history->Undo();
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		p_history->Redo();
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		zircon_test_expect_component_state(
+			env, entity, component_type, default_state, "redo add");
+		p_history->Undo();
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		EXPECT_EQ(p_history->get_cursor_node_id(),
+			zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID);
+	}
+
+	const kotek::uint64_t expected_command_count =
+		field_case_count + static_cast<kotek::uint64_t>(component_count) * 2;
+	EXPECT_EQ(p_history->get_total_recorded_commands(), expected_command_count);
+	EXPECT_GT(field_case_count, 0);
+
+	env.shutdown();
+	delete &env;
+
+	// The matrix also proves every component's delta survives the binary
+	// journal, not only the live command-pool path.
+	zircon_test_history_env& env_reopened = *new zircon_test_history_env();
+	env_reopened.initialize(_k_test_folder);
+	ASSERT_NE(env_reopened.history(), nullptr);
+	EXPECT_EQ(env_reopened.history()->get_total_recorded_commands(),
+		expected_command_count);
+	env_reopened.shutdown();
+	delete &env_reopened;
+}
+
+// The mixed-world contract: all 19 component types coexist, reverse-order
+// deletion is undone/redone to exact per-component states, then the complete
+// add/delete path is undone to origin and replayed to the same final world.
+TEST(Zircon_Editor, CommandHistory_AllComponentsCombinationUndoRedo)
+{
+	constexpr const char* _k_test_folder = "z6_all_component_combo_test";
+	zircon_test_reset_history_folder(_k_test_folder);
+
+	zircon_test_history_env& env = *new zircon_test_history_env();
+	env.initialize(_k_test_folder);
+	zircon_editor_command_history* p_history = env.history();
+	ASSERT_NE(p_history, nullptr);
+	kotek::entity_t entity = env.factory.create_entity(env.ecs_context());
+	ASSERT_TRUE(env.factory.is_valid_entity(env.ecs_context(), entity));
+
+	constexpr int component_count =
+		static_cast<int>(eZirconComponentType::kunknown);
+	kotek::array_t<kotek::ktk::json::value,
+		zircon_DEF_MAXIMUM_ENTITY_COMPONENTS_COUNT>
+		expected_states{};
+
+	for (int component_index = 0; component_index < component_count;
+	     ++component_index)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		zircon_test_history_add_component(
+			env, p_history, entity, component_type);
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		auto* p_component = env.factory.get_component_by_enum(
+			env.ecs_context(), entity, component_type);
+		ASSERT_NE(p_component, nullptr);
+		expected_states[component_index] = zircon_serialize_component(p_component);
+	}
+
+	for (int component_index = component_count; component_index-- > 0;)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		zircon_test_history_delete_component(
+			env, p_history, entity, component_type);
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+	}
+
+	for (int component_index = 0; component_index < component_count;
+	     ++component_index)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		p_history->Undo();
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		zircon_test_expect_component_state(env, entity, component_type,
+			expected_states[component_index], "mixed undo delete");
+	}
+
+	for (int component_index = component_count; component_index-- > 0;)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		p_history->Redo();
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+	}
+
+	for (int component_index = 0; component_index < component_count;
+	     ++component_index)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		p_history->Undo();
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		zircon_test_expect_component_state(env, entity, component_type,
+			expected_states[component_index], "mixed second undo delete");
+	}
+
+	for (int component_index = component_count; component_index-- > 0;)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		p_history->Undo();
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+	}
+	EXPECT_EQ(p_history->get_cursor_node_id(),
+		zircon_DEF_COMMAND_HISTORY_ROOT_NODE_ID);
+
+	for (int component_index = 0; component_index < component_count;
+	     ++component_index)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		p_history->Redo();
+		ASSERT_TRUE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+		zircon_test_expect_component_state(env, entity, component_type,
+			expected_states[component_index], "mixed redo add");
+	}
+
+	for (int component_index = component_count; component_index-- > 0;)
+	{
+		const eZirconComponentType component_type =
+			static_cast<eZirconComponentType>(component_index);
+		SCOPED_TRACE(component_index);
+		p_history->Redo();
+		EXPECT_FALSE(env.factory.has_component(
+			env.ecs_context(), entity, component_type));
+	}
+
+	EXPECT_EQ(p_history->get_total_recorded_commands(),
+		static_cast<kotek::uint64_t>(component_count) * 2);
+	EXPECT_EQ(p_history->get_cursor_node_id(),
+		p_history->get_total_recorded_commands());
+
+	env.shutdown();
+	delete &env;
+}
+
+#endif
 
 void zircon_register_unit_tests_command_history() {}
 
