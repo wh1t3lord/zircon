@@ -1,1 +1,1 @@
-{"message":"passing","label":"build Debug-static","color":"brightgreen","schemaVersion":1}
+{"color":"red","schemaVersion":1,"message":"failing","label":"build Debug-static"}
