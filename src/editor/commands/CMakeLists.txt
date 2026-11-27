@@ -23,6 +23,8 @@ set(to_include_manager_files
 	"zircon_command_journal.cpp"
 	"zircon_command_registry.h"
 	"zircon_command_registry.cpp"
+	"zircon_command_text_state.h"
+	"zircon_command_text_state.cpp"
 	# the gizmo drag-end commit shared by both editor gizmo variants
 	# (task Z3 P2e own gizmo + P2f ImGuizmo) — journaled edit glue, not a
 	# command class itself
@@ -73,6 +75,7 @@ kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CX
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)
 
 if ("${KOTEK_DEPS_FOLDER}" STREQUAL "vcpkg")
 	kotek_target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_static)

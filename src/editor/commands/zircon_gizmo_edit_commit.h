@@ -1,8 +1,8 @@
 #pragma once
 
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 class zircon_factory;
-class zircon_editor_command_history;
+class zircon_editor_command_history_interface;
 struct zircon_ecs_context_t;
 
 /// @brief \~english the gizmo drag-END commit shared by both editor gizmo
@@ -19,9 +19,9 @@ struct zircon_ecs_context_t;
 /// chain is missing (the caller's drag teardown has already restored the
 /// start state in that case)
 bool zircon_gizmo_commit_transform_drag_edit(
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	zircon_factory* p_factory,
-	zircon_editor_command_history* p_history,
+	zircon_editor_command_history_interface* p_history,
 	zircon_ecs_context_t* p_context, kotek::entity_t entity,
 	const float* p_start_position, const float* p_start_scale,
 	const float* p_start_rotation_quat) noexcept;

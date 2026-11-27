@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kotek.core.containers.dll/include/kotek_std_alias_dll.h>
+#include "../../core/zircon_editor_renderer_interface.h"
 
 // the watcher thread + the reload flag (task Z3 P3b): header-only kotek
 // MT aliases (std:: in this configuration), they pull no extra link edges
@@ -71,30 +72,14 @@ using zircon_render_pass_destroy_seam_pfn_t =
 #define ZIRCON_DEF_RENDER_PASS_LIBRARY_MAX_REGISTRY_PASS_COUNT 64
 
 /// one enumerated pass name inside the manager's registry copies; mirrors
-/// ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH (zircon_renderer.h —
-/// that header includes this one, so its constant is not visible here)
+/// ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH in
+/// zircon_editor_renderer_interface.h (kept independent for this C-ABI seam)
 #define ZIRCON_DEF_RENDER_PASS_LIBRARY_REGISTRY_NAME_MAX_LENGTH 96
 
 /// the fixed buffer behind the user-visible reload status line (task Z3
 /// P3b UX) — the value is the static_cstring capacity, the same
 /// convention as ZIRCON_DEF_RENDER_PASS_LIBRARY_SHADOW_PATH_MAX_LENGTH
 #define ZIRCON_DEF_RENDER_PASS_LIBRARY_STATUS_MESSAGE_MAX_LENGTH 128
-
-#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
-/// the user-visible reload status of the pass library (task Z3 P3b UX):
-/// the renderer drives it through the manager's set_status at the phase
-/// transitions of the frame-boundary swap; the Render Passes window draws
-/// one colored line for any non-kIdle value (kIdle also covers "the
-/// graphics_development feature is off" — the window then draws nothing)
-enum class eZirconRenderPassLibraryStatus : kotek::uint8_t
-{
-	kIdle,
-	kChangeDetected,
-	kReloading,
-	kReloadFailed,
-	kReloadSucceeded
-};
-#endif
 
 /// the seam between the executor and the concrete render passes (task Z3
 /// P3a). The manager OWNS the renderer's create callback in every

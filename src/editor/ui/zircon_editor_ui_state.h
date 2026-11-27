@@ -4,39 +4,6 @@
 
 class zircon_factory;
 
-/// @brief \~english the gizmo pass's published drag state (task Z3 P2e):
-/// the pass writes it every frame, the gizmo overlay window
-/// (zircon_editor_ui_window_gizmo_overlay) reads and draws it inside the
-/// imgui frame — the pass itself runs before the imgui pass's NewFrame
-/// and cannot emit imgui calls. POD only. m_mode carries the pass's
-/// eZirconRenderPassGizmoMode values: 0 = translate, 1 = rotate,
-/// 2 = scale (stored as a plain uint8_t so this header stays free of
-/// render-pass headers)
-struct zircon_gizmo_overlay_state_t
-{
-	kotek::uint8_t m_mode;
-	bool m_is_gizmo_active;
-	bool m_is_dragging;
-	bool m_is_snap_enabled;
-	// the ESC-arbitration pair (task Z19): the pass publishes
-	// m_is_drag_active while a drag is in progress; the session's cancel
-	// arbiter (its gizmo-drag consumer) sets m_cancel_drag_requested to
-	// ask the pass to abort the drag — the pass restores the pre-drag
-	// component state, journals NOTHING and clears both flags. The pair
-	// rides this existing session<->pass POD, so the consumer reaches the
-	// renderer without a session->renderer call edge (same pattern as
-	// click-select)
-	bool m_is_drag_active;
-	bool m_cancel_drag_requested;
-	// per-mode delta: translate -> world xyz delta, rotate -> the
-	// dragged axis's angle in degrees (one component), scale -> the
-	// per-component scale delta
-	float m_drag_delta[3];
-	// the absolute result: translate -> position xyz, rotate -> the
-	// quaternion (x,y,z,w), scale -> scale xyz
-	float m_result[4];
-};
-
 /// @brief class for managining global state of UI
 class zircon_editor_ui_state
 	: public zircon_editor_ui_state_interface
@@ -59,25 +26,25 @@ public:
 	bool is_imgui_show_modal_save_scene(void) const override;
 
 	zircon_gizmo_overlay_state_t& get_gizmo_overlay_state(
-		void) noexcept;
+		void) noexcept override;
 	const zircon_gizmo_overlay_state_t& get_gizmo_overlay_state(
-		void) const noexcept;
+		void) const noexcept override;
 
 	// Play-in-editor diagnostics shared with the UI-press harness without a
 	// UI -> game-manager dependency (the session owns this POD state)
-	bool is_simulation_active(void) const noexcept
+	bool is_simulation_active(void) const noexcept override
 	{
 		return this->m_is_simulation_active;
 	}
-	kotek::uint32_t get_simulation_start_count(void) const noexcept
+	kotek::uint32_t get_simulation_start_count(void) const noexcept override
 	{
 		return this->m_simulation_start_count;
 	}
-	void set_simulation_active(bool status) noexcept
+	void set_simulation_active(bool status) noexcept override
 	{
 		this->m_is_simulation_active = status;
 	}
-	void increment_simulation_start_count(void) noexcept
+	void increment_simulation_start_count(void) noexcept override
 	{
 		++this->m_simulation_start_count;
 	}

@@ -59,6 +59,22 @@ namespace
 		return static_cast<zircon_test_csg_clock*>(p_owner)->m_now;
 	}
 
+	kotek::ktk::json::value zircon_test_csg_serialize_component_json(
+		zircon_component_interface* p_component)
+	{
+		kotek::array_t<char, zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON>
+			buffer{};
+		const kotek::size_t size = zircon_serialize_component_to_buffer(
+			p_component, buffer.data(), buffer.size());
+		KOTEK_ASSERT(size != 0, "component serialization failed");
+
+		kotek::ktk::json::error_code parse_error;
+		kotek::ktk::json::value result = kotek::ktk::json::parse(
+			kotek::cstring_view_t(buffer.data(), size), parse_error);
+		KOTEK_ASSERT(!parse_error, "component JSON roundtrip failed");
+		return result;
+	}
+
 	/// @brief \~english the headless editor environment (the
 	/// command-history suite's fixture shape): a real filesystem,
 	/// factory, world, session editor manager with one session, its
@@ -485,12 +501,12 @@ TEST(Zircon_Editor, CsgEditorCommandEditPrimitiveUndoRedo)
 	// (built through a temp component — the proven
 	// serialize/deserialize seam, no in-place json mutation)
 	kotek::ktk::json::value state_after =
-		zircon_serialize_component(p_primitive);
+		zircon_test_csg_serialize_component_json(p_primitive);
 
 	zircon_component_csg_primitive edited{};
 	env.factory.DeserializeComponent(&edited, state_after);
 	edited.set_dimension(0, traits_t::from_double(2.5));
-	state_after = zircon_serialize_component(&edited);
+	state_after = zircon_test_csg_serialize_component_json(&edited);
 
 	{
 		zircon_editor_command_history* p_history = env.history();
@@ -611,7 +627,7 @@ TEST(Zircon_Editor, CsgEditorCommandJournalDeltaRoundTrips)
 		zircon_test_csg_primitive(env, second);
 
 	kotek::ktk::json::value edit_after =
-		zircon_serialize_component(p_second);
+		zircon_test_csg_serialize_component_json(p_second);
 
 	{
 		using traits_t =
@@ -620,7 +636,7 @@ TEST(Zircon_Editor, CsgEditorCommandJournalDeltaRoundTrips)
 		zircon_component_csg_primitive edited{};
 		env.factory.DeserializeComponent(&edited, edit_after);
 		edited.set_dimension(1, traits_t::from_double(3.0));
-		edit_after = zircon_serialize_component(&edited);
+		edit_after = zircon_test_csg_serialize_component_json(&edited);
 	}
 
 	{

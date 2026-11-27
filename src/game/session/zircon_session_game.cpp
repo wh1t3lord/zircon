@@ -219,21 +219,38 @@ zircon_world* zircon_session_game::get_world(void
 	return this->m_p_world;
 }
 
-void zircon_session_game::set_imgui_ui_elements(
-	const zircon_imgui_elements_t& imgui_elements
-) noexcept
+void zircon_session_game::register_imgui_ui_element(
+	kotek::core::ktkISDKUIElement* p_element) noexcept
 {
+	KOTEK_ASSERT(p_element, "must be valid");
 	KOTEK_ASSERT(
-		this->m_imgui_ui_elements.empty(),
-		"already initialized!"
-	);
-	this->m_imgui_ui_elements = imgui_elements;
+		this->m_imgui_ui_elements.size() <
+			this->m_imgui_ui_elements.capacity(),
+		"too many imgui elements, raise ZIRCON_DEF_EDITOR_IMGUI_ELEMENTS_MAX");
+
+	if (p_element == nullptr ||
+		this->m_imgui_ui_elements.size() >=
+			this->m_imgui_ui_elements.capacity())
+	{
+		return;
+	}
+
+	this->m_imgui_ui_elements.push_back(p_element);
 }
 
-const zircon_imgui_elements_t&
-zircon_session_game::get_imgui_ui_elements(void) const noexcept
+kotek::uint8_t zircon_session_game::get_imgui_ui_element_count(
+	void) const noexcept
 {
-	return this->m_imgui_ui_elements;
+	return static_cast<kotek::uint8_t>(this->m_imgui_ui_elements.size());
+}
+
+kotek::core::ktkISDKUIElement*
+zircon_session_game::get_imgui_ui_element_at(
+	kotek::uint8_t index) const noexcept
+{
+	return index < this->m_imgui_ui_elements.size()
+		? this->m_imgui_ui_elements[index]
+		: nullptr;
 }
 
 void zircon_session_game::try_to_initialize_render_graph(void

@@ -186,26 +186,8 @@ set(to_include_bgfx_editor_passes_no_streaming_files
 	"bgfx/passes/no_streaming/zircon_render_graph_pass_editor_gizmo_imguizmo.cpp"
 )
 
-# vendored third-party (task Z3 P2f, owner-sanctioned exception to the
-# no-third-party-in-engine rule — passes-project-local, never engine code):
-# ImGuizmo v1.92.5 WIP, upstream master pinned at commit 5ab7676402ace03cdf
-# 930b2d972f59c7d03c6fa8 (2026-07-29), MIT license (header intact in
-# ImGuizmo.h + LICENSE alongside). vcpkg DOES carry an imguizmo port (1.10,
-# stale vs. upstream) — vendoring chosen per the approved plan. Kept
-# byte-pristine; compiles against kotek's vendored imgui (1.91.4) through
-# the PRIVATE include dir below (its quoted "imgui.h"/"imgui_internal.h"
-# includes predate kotek's virtual-path layout)
-set(to_include_bgfx_passes_imguizmo_files
-	"bgfx/passes/imguizmo/ImGuizmo.h"
-	"bgfx/passes/imguizmo/ImGuizmo.cpp"
-	"bgfx/passes/imguizmo/LICENSE"
-)
-
-# ImGuizmo.cpp includes imgui_internal.h, which demands the math operators
-# macro before imgui.h. The macro must be TARGET-WIDE: the target PCH
-# force-includes kotek.ui (which already pulls imgui.h), so a per-TU define
-# would arrive after the PCH processed imgui.h without it (the vendored file
-# stays byte-pristine)
+# The vendored ImGuizmo implementation is compiled by zircon.editor.ui, its
+# only consumer; no concrete pass-library symbols leak back into the UI (Z9).
 
 # embedded shader/font blobs consumed by the editor imgui pass
 set(to_include_bgfx_passes_embedded_files
@@ -234,7 +216,6 @@ set(to_include_bgfx_passes_all_files
 	${to_include_bgfx_game_passes_no_streaming_files}
 	${to_include_bgfx_editor_passes_no_streaming_files}
 	${to_include_bgfx_passes_embedded_files}
-	${to_include_bgfx_passes_imguizmo_files}
 	${to_include_bgfx_passes_library_files}
 )
 
@@ -244,22 +225,6 @@ set(ZIRCON_RENDER_PASSES_BGFX_TARGET_NAME zircon.render.passes.bgfx)
 # configuration builds the same sources twice: the hot-swappable DLL +
 # a static in-build fallback twin)
 function(zircon_configure_passes_target target_name)
-	# the vendored ImGuizmo.cpp includes "imgui.h"/"imgui_internal.h"
-	# quoted (upstream layout); kotek's imgui lives behind the
-	# virtual-path root (kotek/src) — add the module's raw include dir
-	# for this target only (absolute: KOTEK_ENGINE_ROOT_FOLDER_NAME is a
-	# NAME, not a path)
-	target_include_directories(${target_name} PRIVATE
-		"${CMAKE_SOURCE_DIR}/${KOTEK_ENGINE_ROOT_FOLDER_NAME}/src/kotek.ui.imgui/include")
-
-	# ImGuizmo.cpp includes imgui_internal.h, which demands the math
-	# operators macro before imgui.h. The macro must be TARGET-WIDE: the
-	# target PCH force-includes kotek.ui (which already pulls imgui.h),
-	# so a per-TU define would arrive after the PCH processed imgui.h
-	# without it (the vendored file stays byte-pristine)
-	target_compile_definitions(${target_name} PRIVATE
-		IMGUI_DEFINE_MATH_OPERATORS)
-
 	kotek_target_precompile_headers(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:<kotek.pch/pch.h>>")
 endfunction()
 
@@ -445,7 +410,6 @@ endif()
 source_group("BGFX/Passes/Game/No Streaming" FILES ${to_include_bgfx_game_passes_no_streaming_files})
 source_group("BGFX/Passes/Editor/No Streaming" FILES ${to_include_bgfx_editor_passes_no_streaming_files})
 source_group("BGFX/Passes/Embedded" FILES ${to_include_bgfx_passes_embedded_files})
-source_group("BGFX/Passes/ImGuizmo (vendored)" FILES ${to_include_bgfx_passes_imguizmo_files})
 source_group("BGFX/Passes/Library" FILES ${to_include_bgfx_passes_library_files})
 
 ### NRI passes (task Z5 phase 2 / P4): the concrete NRI frame passes      ###

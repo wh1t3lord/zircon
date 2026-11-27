@@ -13,16 +13,15 @@
 #include "../../ecs/zircon_factory.h"
 #include "../../ecs/zircon_component_csg.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
 #include "zircon_command_history.h"
 
 /// @brief \~english resolves the current session's world +
 /// factory; false (loud) when the chain is broken — the caller
 /// then skips its mutation, exactly like the built-in commands
 inline bool zircon_command_csg_resolve_world(
-	zircon_session_editor_manager* p_manager_session_editor,
-	zircon_session_editor** p_out_session,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
+	zircon_session_editor_interface** p_out_session,
 	zircon_world** p_out_world,
 	zircon_factory** p_out_factory
 ) noexcept
@@ -33,7 +32,7 @@ inline bool zircon_command_csg_resolve_world(
 	if (p_manager_session_editor == nullptr)
 		return false;
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		p_manager_session_editor->get_session(
 			p_manager_session_editor->get_current_session_id());
 
@@ -79,7 +78,7 @@ inline bool zircon_command_csg_resolve_world(
 /// (the caller keeps its own mutation but skips the member-list and
 /// dirty steps)
 inline zircon_component_csg* zircon_command_csg_resolve_compound(
-	zircon_session_editor* p_session,
+	zircon_session_editor_interface* p_session,
 	zircon_factory* p_factory,
 	zircon_ecs_context_t* p_context,
 	kotek::entity_t compound_id

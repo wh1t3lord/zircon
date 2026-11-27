@@ -1,7 +1,7 @@
 #include "zircon_ui_window_settings.h"
 #include "../../core/zircon_config.h"
 #include "../../core/zircon_localization_manager.h"
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 #include "zircon_ui_test_harness.h"
 
 zircon_editor_ui_window_settings::

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../core/zircon_session.h"
-
-class zircon_session_editor;
+#include "zircon_session_editor.h"
 class zircon_config;
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
@@ -15,7 +13,8 @@ KOTEK_END_NAMESPACE_KOTEK
 
 #define ZIRCON_DEF_EDITOR_SESSION_MANAGER_MAX_SESSION_COUNT 1
 
-class zircon_session_editor_manager : public zircon_interface_session_manager
+class zircon_session_editor_manager
+	: public zircon_session_editor_manager_interface
 {
 public:
 	zircon_session_editor_manager();

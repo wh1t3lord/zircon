@@ -4,7 +4,7 @@
 #include "zircon_command_registry.h"
 #include "../../ecs/zircon_component_interface.h"
 
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 class zircon_factory;
 
 class zircon_command_delete_component_from_entity
@@ -13,7 +13,7 @@ class zircon_command_delete_component_from_entity
 {
 public:
 	zircon_command_delete_component_from_entity(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t id,
 		const char* p_component_name
@@ -21,7 +21,7 @@ public:
 
 	// for command history (journal reconstruction)
 	zircon_command_delete_component_from_entity(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	);
 
@@ -53,9 +53,9 @@ public:
 
 private:
 	kotek::entity_t m_id;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 	zircon_factory* m_p_factory;
 	kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>
 		m_component_name;
-	kotek::ktk::json::value m_serialized_state_of_deleted_component;
+	zircon_command_text_state m_serialized_state_of_deleted_component;
 };

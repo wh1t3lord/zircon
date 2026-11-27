@@ -1,12 +1,11 @@
 #include "zircon_command_create_entity.h"
 #include "../../ecs/zircon_factory.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
 #include "zircon_command_history.h"
 
 zircon_command_create_entity::zircon_command_create_entity(
-	zircon_session_editor_manager* p_session_manager_editor,
+	zircon_session_editor_manager_interface* p_session_manager_editor,
 	zircon_factory* p_factory
 ) :
 	m_created_entity{},
@@ -41,7 +40,7 @@ void zircon_command_create_entity::Execute()
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_editor_session_manager->get_session(
 			this->m_p_editor_session_manager
 				->get_current_session_id()
@@ -91,7 +90,7 @@ void zircon_command_create_entity::Execute()
 	{
 		// NOTE: the entity id reincarnation on re-execution is
 		// reported to the history by
-		// zircon_editor_command_history::execute_node itself (it
+		// zircon_editor_command_history_interface::execute_node itself (it
 		// observes GetEntityID before/after), the command must not
 		// call update_dependent_commands on its own: a
 		// journal-reconstructed command only knows its recorded id
@@ -118,7 +117,7 @@ void zircon_command_create_entity::Undo()
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_editor_session_manager->get_session(
 			this->m_p_editor_session_manager
 				->get_current_session_id()
@@ -168,7 +167,7 @@ void zircon_command_create_entity::Undo()
 		// reaches per-frame pico consumers (the gizmo pass, the
 		// inspector) through is_valid_entity and now reads as invalid —
 		// clearing keeps the UI honest instead of leaning on the guard
-		zircon_editor_ui_state* p_ui_state = p_session->get_ui_state();
+		zircon_editor_ui_state_interface* p_ui_state = p_session->get_ui_state();
 
 		if (p_ui_state &&
 			p_ui_state->get_selected_entity().id ==

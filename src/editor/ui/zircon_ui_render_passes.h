@@ -3,9 +3,9 @@
 #include "../../core/zircon_config.h"
 
 class zircon_config;
-class zircon_renderer_bgfx;
+class zircon_editor_renderer_interface;
+class zircon_editor_render_pass_baseline_interface;
 class zircon_ui_test_widget_registry;
-struct zircon_render_graph_simplified_bgfx_info_t;
 
 /// @brief \~english Render Passes window (task Z3 P2a — the "wizard"
 /// delivered as a normal dockable editor window whose first-run
@@ -37,7 +37,7 @@ public:
 	/// of concrete pass types and of a build-order dependency on the
 	/// passes project's codegen step
 	zircon_editor_ui_window_render_passes(zircon_config* p_config,
-		zircon_renderer_bgfx* p_renderer_bgfx,
+		zircon_editor_renderer_interface* p_renderer_bgfx,
 		const char* const* p_registry_editor_pass_names,
 		kotek::uint8_t registry_editor_pass_count,
 		const char* const* p_registry_game_pass_names,
@@ -49,8 +49,7 @@ public:
 		/// (game-session creation happens later in boot), read lazily
 		/// per Draw, refreshed by Save. Nullable: an empty/absent
 		/// baseline keeps the legacy compare-against-config behavior
-		kotek::static_cstring_t<
-			ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+		zircon_editor_render_pass_baseline_interface*
 			p_render_passes_game_resolved_baseline = nullptr,
 		/// task Z17: the UI harness's widget rect sink (nullptr /
 		/// inactive = the tracking calls are no-op branches)
@@ -102,7 +101,6 @@ private:
 	/// skip flag. Called from the enable-checkbox path and from the add
 	/// path (a freshly added pass starts enabled at the rebuild)
 	void apply_gizmo_exclusion(kotek::uint8_t render_graph_id,
-		const zircon_render_graph_simplified_bgfx_info_t& graph_info,
 		const char* p_just_enabled_pass_name) noexcept;
 
 	/// writes both live sets into the config members + the
@@ -121,7 +119,7 @@ private:
 	zircon_config* m_p_config;
 	/// nullptr when the active renderer is not bgfx (NRI) — the window
 	/// then only shows an explanatory line
-	zircon_renderer_bgfx* m_p_renderer_bgfx;
+	zircon_editor_renderer_interface* m_p_renderer_bgfx;
 
 	const char* const* m_p_registry_editor_pass_names;
 	kotek::uint8_t m_registry_editor_pass_count;
@@ -142,7 +140,7 @@ private:
 	/// resolved pass set the game session was created with — owned by
 	/// zircon_game_manager, never freed here; nullptr/empty = compare
 	/// against the config default (legacy behavior)
-	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+	zircon_editor_render_pass_baseline_interface*
 		m_p_render_passes_game_resolved_baseline;
 
 	/// task Z17: the UI harness's widget rect sink

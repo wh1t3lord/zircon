@@ -118,6 +118,22 @@ namespace
 		return hash;
 	}
 
+	kotek::ktk::json::value zircon_test_serialize_component_json(
+		zircon_component_interface* p_component)
+	{
+		kotek::array_t<char, zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON>
+			buffer{};
+		const kotek::size_t size = zircon_serialize_component_to_buffer(
+			p_component, buffer.data(), buffer.size());
+		KOTEK_ASSERT(size != 0, "component serialization failed");
+
+		kotek::ktk::json::error_code parse_error;
+		kotek::ktk::json::value result = kotek::ktk::json::parse(
+			kotek::cstring_view_t(buffer.data(), size), parse_error);
+		KOTEK_ASSERT(!parse_error, "component JSON roundtrip failed");
+		return result;
+	}
+
 	/// @brief \~english canonical (entity-id agnostic) world
 	/// serialization: per entity an ordered list of
 	/// "type:json_state" entries without the entity id, entities
@@ -179,7 +195,7 @@ namespace
 					continue;
 
 				kotek::ktk::json::value serialized_state =
-					zircon_serialize_component(p_component);
+					zircon_test_serialize_component_json(p_component);
 
 				auto state_string =
 					kotek::ktk::json::serialize(
@@ -752,7 +768,7 @@ TEST(Zircon_Editor, CommandHistory_Stress_100k_Commands)
 		);
 
 		kotek::ktk::json::value state_after =
-			zircon_serialize_component(p_transform);
+			zircon_test_serialize_component_json(p_transform);
 
 		p_transform->set_position(previous_position);
 
@@ -2402,7 +2418,7 @@ namespace
 		ASSERT_NE(p_component, nullptr) << p_component_name << ": " << p_stage;
 
 		const auto actual_text = kotek::ktk::json::serialize(
-			zircon_serialize_component(p_component));
+			zircon_test_serialize_component_json(p_component));
 		const auto expected_text = kotek::ktk::json::serialize(expected);
 		EXPECT_STREQ(actual_text.c_str(), expected_text.c_str())
 			<< p_component_name << ": " << p_stage;
@@ -2449,7 +2465,7 @@ TEST(Zircon_Editor, CommandHistory_AllComponentsEverySerializedFieldUndoRedo)
 		auto* p_component = env.factory.get_component_by_enum(
 			env.ecs_context(), entity, component_type);
 		ASSERT_NE(p_component, nullptr);
-		const auto default_state = zircon_serialize_component(p_component);
+		const auto default_state = zircon_test_serialize_component_json(p_component);
 		const kotek::uint16_t leaf_count =
 			zircon_test_json_leaf_count(default_state);
 		ASSERT_GT(leaf_count, 0)
@@ -2459,7 +2475,7 @@ TEST(Zircon_Editor, CommandHistory_AllComponentsEverySerializedFieldUndoRedo)
 		     ++field_index)
 		{
 			SCOPED_TRACE(field_index);
-			const auto state_before = zircon_serialize_component(p_component);
+			const auto state_before = zircon_test_serialize_component_json(p_component);
 			auto state_after = state_before;
 			kotek::uint16_t mutation_cursor = 0;
 			ASSERT_TRUE(zircon_test_mutate_json_leaf(
@@ -2576,7 +2592,7 @@ TEST(Zircon_Editor, CommandHistory_AllComponentsCombinationUndoRedo)
 		auto* p_component = env.factory.get_component_by_enum(
 			env.ecs_context(), entity, component_type);
 		ASSERT_NE(p_component, nullptr);
-		expected_states[component_index] = zircon_serialize_component(p_component);
+		expected_states[component_index] = zircon_test_serialize_component_json(p_component);
 	}
 
 	for (int component_index = component_count; component_index-- > 0;)

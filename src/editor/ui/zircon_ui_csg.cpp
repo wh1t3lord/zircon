@@ -4,13 +4,12 @@
 #include "../../ecs/zircon_component_csg.h"
 #include "../../ecs/zircon_component_csg_primitive.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
-#include "../commands/zircon_command_history.h"
+#include "../../core/zircon_session_editor_interface.h"
+#include "../../core/zircon_editor_command_history_interface.h"
 #include "../commands/zircon_command_csg_create_primitive.h"
 #include "../commands/zircon_command_csg_delete_primitive.h"
 #include "../commands/zircon_command_csg_edit_primitive.h"
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 #include "zircon_ui_test_harness.h"
 
 #include <cmath>
@@ -34,7 +33,7 @@ namespace
 } // namespace
 
 zircon_editor_ui_window_csg::zircon_editor_ui_window_csg(
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	kotek::core::ktkConsole* p_console, zircon_factory* p_factory,
 	zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_show_window{},
@@ -58,7 +57,7 @@ void zircon_editor_ui_window_csg::Initialize(void) {}
 
 void zircon_editor_ui_window_csg::Shutdown(void) {}
 
-zircon_session_editor* zircon_editor_ui_window_csg::get_session(
+zircon_session_editor_interface* zircon_editor_ui_window_csg::get_session(
 	void) const noexcept
 {
 	if (!this->m_p_manager_session_editor)
@@ -70,14 +69,14 @@ zircon_session_editor* zircon_editor_ui_window_csg::get_session(
 
 zircon_world* zircon_editor_ui_window_csg::get_world(void) const noexcept
 {
-	zircon_session_editor* p_session = this->get_session();
+	zircon_session_editor_interface* p_session = this->get_session();
 	return p_session ? p_session->get_world() : nullptr;
 }
 
 zircon_component_csg* zircon_editor_ui_window_csg::get_selected_compound(
 	void) const noexcept
 {
-	zircon_session_editor* p_session = this->get_session();
+	zircon_session_editor_interface* p_session = this->get_session();
 	zircon_world* p_world = this->get_world();
 
 	if (!p_session || !p_world || !p_session->get_ui_state())
@@ -116,7 +115,7 @@ zircon_editor_ui_window_csg::get_selected_primitive(void) const noexcept
 
 void zircon_editor_ui_window_csg::create_compound(void) noexcept
 {
-	zircon_session_editor* p_session = this->get_session();
+	zircon_session_editor_interface* p_session = this->get_session();
 	zircon_world* p_world = this->get_world();
 
 	if (!p_session || !p_world || !this->m_p_console)
@@ -155,12 +154,12 @@ void zircon_editor_ui_window_csg::create_primitive(
 	eZirconCsgPrimitiveType type) noexcept
 {
 	zircon_component_csg* p_compound = this->get_selected_compound();
-	zircon_session_editor* p_session = this->get_session();
+	zircon_session_editor_interface* p_session = this->get_session();
 
 	if (!p_compound || !p_session)
 		return;
 
-	zircon_editor_command_history* p_history = p_session->get_command_history();
+	zircon_editor_command_history_interface* p_history = p_session->get_command_history();
 	const kotek::entity_t compound_id =
 		p_session->get_ui_state()->get_selected_entity();
 
@@ -188,12 +187,12 @@ void zircon_editor_ui_window_csg::delete_selected_primitive(void) noexcept
 {
 	zircon_component_csg* p_compound = this->get_selected_compound();
 	zircon_component_csg_primitive* p_primitive = this->get_selected_primitive();
-	zircon_session_editor* p_session = this->get_session();
+	zircon_session_editor_interface* p_session = this->get_session();
 
 	if (!p_compound || !p_primitive || !p_session)
 		return;
 
-	zircon_editor_command_history* p_history = p_session->get_command_history();
+	zircon_editor_command_history_interface* p_history = p_session->get_command_history();
 
 	if (!p_history)
 		return;
@@ -221,12 +220,12 @@ void zircon_editor_ui_window_csg::commit_subtractive(
 void zircon_editor_ui_window_csg::commit_edit(void) noexcept
 {
 	zircon_component_csg_primitive* p_primitive = this->get_selected_primitive();
-	zircon_session_editor* p_session = this->get_session();
+	zircon_session_editor_interface* p_session = this->get_session();
 
 	if (!p_primitive || !p_session)
 		return;
 
-	zircon_editor_command_history* p_history = p_session->get_command_history();
+	zircon_editor_command_history_interface* p_history = p_session->get_command_history();
 
 	if (!p_history)
 		return;
@@ -265,7 +264,8 @@ void zircon_editor_ui_window_csg::commit_edit(void) noexcept
 	edited.set_material_id(static_cast<kotek::uint16_t>(this->m_material_id));
 	edited.set_subtractive(this->m_is_subtractive);
 
-	kotek::ktk::json::value state_after = zircon_serialize_component(&edited);
+	zircon_command_text_state state_after;
+	state_after.capture(&edited);
 	unsigned char* p_memory = p_history->allocate_memory_for_command(
 		sizeof(zircon_command_csg_edit_primitive),
 		"zircon_command_csg_edit_primitive");

@@ -5,11 +5,11 @@
 #include "../../ecs/zircon_factory.h"
 #include "../../ecs/zircon_component_csg.h"
 #include "../../ecs/zircon_component_csg_primitive.h"
-#include "../../render/bgfx/zircon_renderer.h"
+#include "../../core/zircon_editor_renderer_interface.h"
 #include "../../world/zircon_world.h"
-#include "../commands/zircon_command_history.h"
-#include "../session/zircon_session_editor.h"
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_editor_command_history_interface.h"
+#include "../../core/zircon_session_editor_interface.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 
 #include <kotek.core.filesystem/include/kotek_filesystem_helpers.h>
 
@@ -518,14 +518,15 @@ namespace
 	bool probe_assert_bgfx_gpu_stats_available(
 		zircon_ui_test_context_t& ctx, const zircon_ui_test_step_t& step)
 	{
-		(void)ctx;
 		(void)step;
 
-		const bgfx::Stats* p_stats = bgfx::getStats();
-
-		if (p_stats && p_stats->numPrograms > 0 && p_stats->numShaders > 0 &&
-			p_stats->numVertexBuffers > 0 && p_stats->numDynamicVertexBuffers > 0 &&
-			p_stats->numDynamicIndexBuffers > 0)
+		zircon_editor_gpu_stats_t stats{};
+		if (ctx.p_renderer_bgfx &&
+			ctx.p_renderer_bgfx->get_editor_gpu_stats(stats) &&
+			stats.m_program_count > 0 && stats.m_shader_count > 0 &&
+			stats.m_vertex_buffer_count > 0 &&
+			stats.m_dynamic_vertex_buffer_count > 0 &&
+			stats.m_dynamic_index_buffer_count > 0)
 		{
 			return true;
 		}
@@ -545,8 +546,14 @@ namespace
 
 		const bool expected = step.m_params[1] != 0;
 
-		for (const auto* p_element : ctx.p_session->get_imgui_ui_elements())
+		const kotek::uint8_t element_count =
+			ctx.p_session->get_imgui_ui_element_count();
+
+		for (kotek::uint8_t i = 0; i < element_count; ++i)
 		{
+			const kotek::core::ktkISDKUIElement* p_element =
+				ctx.p_session->get_imgui_ui_element_at(i);
+
 			if (p_element && p_element->Get_ID() == step.m_params[0])
 			{
 				const bool is_shown = p_element->Is_Shown();
@@ -656,34 +663,30 @@ namespace
 		return is_open == expected;
 	}
 
-	/// shared renderer reach for the pass-set probes; nullptr (the probe
-	/// fails loudly) when the session's graph is absent
-	const zircon_render_graph_simplified_bgfx_info_t* probe_graph_info(
+	/// shared renderer reach for the pass-set probes; uint8_t(-1) when the
+	/// session's graph is absent (the probe fails loudly)
+	kotek::uint8_t probe_graph_id(
 		const zircon_ui_test_context_t& ctx, bool is_game_session)
 	{
 		if (ctx.p_renderer_bgfx == nullptr)
-		{
-			return nullptr;
-		}
+			return kotek::uint8_t(-1);
 
 		const kotek::uint8_t render_graph_id =
 			ctx.p_renderer_bgfx->get_render_graph_id_for_session_kind(
 				is_game_session);
 
-		if (render_graph_id >= ctx.p_renderer_bgfx->get_render_graph_count())
-		{
-			return nullptr;
-		}
-
-		return &ctx.p_renderer_bgfx->get_render_graph_info(render_graph_id);
+		return render_graph_id < ctx.p_renderer_bgfx->get_render_graph_count()
+			? render_graph_id
+			: kotek::uint8_t(-1);
 	}
 
 	bool probe_assert_pass_enabled(zircon_ui_test_context_t& ctx,
 		const zircon_ui_test_step_t& step)
 	{
-		const auto* p_info = probe_graph_info(ctx, step.m_params[0] != 0);
+		const kotek::uint8_t graph_id =
+			probe_graph_id(ctx, step.m_params[0] != 0);
 
-		if (p_info == nullptr)
+		if (graph_id == kotek::uint8_t(-1))
 		{
 			KOTEK_MESSAGE("[ui-test]:     no render graph for the pass "
 						  "probe ('{}')",
@@ -692,12 +695,18 @@ namespace
 		}
 
 		const bool expected = step.m_params[1] != 0;
+		const kotek::uint8_t pass_count =
+			ctx.p_renderer_bgfx->get_render_graph_pass_count(graph_id);
 
-		for (kotek::ktk::size_t i = 0; i < p_info->pass_names.size(); ++i)
+		for (kotek::uint8_t i = 0; i < pass_count; ++i)
 		{
-			if (p_info->pass_names[i] == step.p_target_label)
+			const char* p_name =
+				ctx.p_renderer_bgfx->get_render_graph_pass_name(graph_id, i);
+
+			if (p_name && std::strcmp(p_name, step.p_target_label) == 0)
 			{
-				const bool is_enabled = p_info->pass_enabled[i];
+				const bool is_enabled =
+					ctx.p_renderer_bgfx->is_render_graph_pass_enabled(graph_id, i);
 
 				if (is_enabled != expected)
 				{
@@ -719,20 +728,23 @@ namespace
 	bool probe_assert_pass_in_set(zircon_ui_test_context_t& ctx,
 		const zircon_ui_test_step_t& step)
 	{
-		const auto* p_info = probe_graph_info(ctx, step.m_params[0] != 0);
+		const kotek::uint8_t graph_id =
+			probe_graph_id(ctx, step.m_params[0] != 0);
 
-		if (p_info == nullptr)
-		{
+		if (graph_id == kotek::uint8_t(-1))
 			return false;
-		}
 
 		const bool expected = step.m_params[1] != 0;
-
 		bool is_present = false;
+		const kotek::uint8_t pass_count =
+			ctx.p_renderer_bgfx->get_render_graph_pass_count(graph_id);
 
-		for (const auto& name : p_info->pass_names)
+		for (kotek::uint8_t i = 0; i < pass_count; ++i)
 		{
-			if (name == step.p_target_label)
+			const char* p_name =
+				ctx.p_renderer_bgfx->get_render_graph_pass_name(graph_id, i);
+
+			if (p_name && std::strcmp(p_name, step.p_target_label) == 0)
 			{
 				is_present = true;
 				break;
@@ -752,32 +764,34 @@ namespace
 	bool probe_assert_pass_index(zircon_ui_test_context_t& ctx,
 		const zircon_ui_test_step_t& step)
 	{
-		const auto* p_info = probe_graph_info(ctx, step.m_params[0] != 0);
+		const kotek::uint8_t graph_id =
+			probe_graph_id(ctx, step.m_params[0] != 0);
 
-		if (p_info == nullptr)
-		{
+		if (graph_id == kotek::uint8_t(-1))
 			return false;
-		}
 
-		const auto index =
-			static_cast<kotek::ktk::size_t>(step.m_params[1]);
+		const auto index = static_cast<kotek::uint8_t>(step.m_params[1]);
+		const kotek::uint8_t pass_count =
+			ctx.p_renderer_bgfx->get_render_graph_pass_count(graph_id);
 
-		if (index >= p_info->pass_names.size())
+		if (index >= pass_count)
 		{
 			KOTEK_MESSAGE("[ui-test]:     pass index {} out of the live "
 						  "set ({} passes)",
-				step.m_params[1], p_info->pass_names.size());
+				step.m_params[1], pass_count);
 			return false;
 		}
 
+		const char* p_name =
+			ctx.p_renderer_bgfx->get_render_graph_pass_name(graph_id, index);
 		const bool matches =
-			p_info->pass_names[index] == step.p_target_label;
+			p_name && std::strcmp(p_name, step.p_target_label) == 0;
 
 		if (matches == false)
 		{
 			KOTEK_MESSAGE("[ui-test]:     pass at index {} is '{}', "
 						  "expected '{}'",
-				step.m_params[1], p_info->pass_names[index].c_str(),
+				step.m_params[1], p_name ? p_name : "<invalid>",
 				step.p_target_label);
 		}
 
@@ -910,9 +924,10 @@ namespace
 
 		kotek::uint32_t pool_live = 0;
 
-		for (const auto* p_command : ctx.p_history->GetCommands())
+		for (kotek::uint8_t i = 0;
+		     i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
 		{
-			if (p_command != nullptr)
+			if (ctx.p_history->get_command_at_slot(i) != nullptr)
 			{
 				++pool_live;
 			}

@@ -571,8 +571,7 @@ void zircon_game_manager::Initialize(
 						// task Z3 P2h: filled at game-session creation
 						// (after this window is constructed) — the
 						// window reads it lazily per Draw
-						this
-							->get_render_passes_game_resolved_baseline(),
+						this,
 						// task Z17: the UI harness's widget sink
 						p_session->get_ui_test_harness()
 							->get_widget_registry()
@@ -664,7 +663,10 @@ void zircon_game_manager::Initialize(
 							this->m_p_session_editor_manager
 						)
 					};
-				p_session->set_imgui_ui_elements(ui_elements);
+				for (kotek::core::ktkISDKUIElement* p_element : ui_elements)
+				{
+					p_session->register_imgui_ui_element(p_element);
+				}
 
 				kotek::uint8_t render_graph_id(-1);
 				switch (renderer)
@@ -851,9 +853,6 @@ void zircon_game_manager::Initialize(
 			static_cast<kotek::core::eEngineSupportedRenderer>(
 				p_engine_config->GetRendererVersion()
 			);
-
-		zircon_imgui_elements_t ui_elements;
-		p_session_game->set_imgui_ui_elements(ui_elements);
 
 		switch (renderer)
 		{
@@ -1432,10 +1431,18 @@ bool zircon_game_manager::compile_world_for_simulation(
 				return false;
 			}
 
-			kotek::ktk::json::value state =
-				zircon_serialize_component(p_source_component);
+			kotek::array_t<char, zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON>
+				state_buffer{};
+			const kotek::size_t state_size =
+				zircon_serialize_component_to_buffer(p_source_component,
+					state_buffer.data(), state_buffer.size());
+			kotek::ktk::json::error_code parse_error;
+			kotek::ktk::json::value state = kotek::ktk::json::parse(
+				kotek::cstring_view_t(state_buffer.data(), state_size),
+				parse_error);
 
-			if (!p_destination_factory->create_component(p_destination_context,
+			if (state_size == 0 || parse_error ||
+				!p_destination_factory->create_component(p_destination_context,
 					destination_id, component_type, state))
 			{
 				KOTEK_MESSAGE_ERROR(
@@ -1771,19 +1778,22 @@ void zircon_game_manager::write_active_game_render_pass_set_to_scene(
 		if (render_graph_id <
 			this->m_renderers.p_bgfx->get_render_graph_count())
 		{
-			const zircon_render_graph_simplified_bgfx_info_t& info =
-				this->m_renderers.p_bgfx->get_render_graph_info(
-					render_graph_id
-				);
+			const kotek::uint8_t pass_count =
+				this->m_renderers.p_bgfx->get_render_graph_pass_count(
+					render_graph_id);
 
 			// measure first: etl::string asserts on overflow, fail
 			// loudly but gracefully instead (same discipline as the
 			// Render Passes window's Save)
 			kotek::ktk::size_t joined_length = 0;
 
-			for (const auto& name : info.pass_names)
+			for (kotek::uint8_t i = 0; i < pass_count; ++i)
 			{
-				joined_length += name.size() + 1; // +1 for ','/NUL
+				const char* p_name =
+					this->m_renderers.p_bgfx->get_render_graph_pass_name(
+						render_graph_id, i);
+				if (p_name)
+					joined_length += std::strlen(p_name) + 1; // ','/NUL
 			}
 
 			if (joined_length >
@@ -1797,18 +1807,24 @@ void zircon_game_manager::write_active_game_render_pass_set_to_scene(
 					joined_length
 				);
 			}
-			else if (info.pass_names.empty() == false)
+			else if (pass_count > 0)
 			{
 				bool is_first = true;
 
-				for (const auto& name : info.pass_names)
+				for (kotek::uint8_t i = 0; i < pass_count; ++i)
 				{
+					const char* p_name =
+						this->m_renderers.p_bgfx->get_render_graph_pass_name(
+							render_graph_id, i);
+					if (p_name == nullptr)
+						continue;
+
 					if (!is_first)
 					{
 						active_set += ',';
 					}
 
-					active_set += name.c_str();
+					active_set += p_name;
 					is_first = false;
 				}
 
@@ -1846,11 +1862,19 @@ void zircon_game_manager::write_active_game_render_pass_set_to_scene(
 	}
 }
 
-kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
-zircon_game_manager::get_render_passes_game_resolved_baseline(
-	void) noexcept
+const char*
+zircon_game_manager::get_render_passes_game_resolved_baseline_text(
+	void) const noexcept
 {
-	return &this->m_render_passes_game_resolved_baseline;
+	return this->m_render_passes_game_resolved_baseline.c_str();
+}
+
+void zircon_game_manager::set_render_passes_game_resolved_baseline_text(
+	const char* p_text) noexcept
+{
+	KOTEK_ASSERT(p_text, "must be valid");
+	if (p_text)
+		this->m_render_passes_game_resolved_baseline.assign(p_text);
 }
 
 void zircon_game_manager::Deserialize(void) noexcept
@@ -2848,44 +2872,25 @@ void zircon_game_manager::RegisterConsole_Commands(void
 		if (!p_current_renderer)
 		{
 			KOTEK_MESSAGE_WARNING(
-				"you can't call this command if renderer "
-				"wasn't initialized"
-			);
+				"you can't call this command if renderer wasn't initialized");
 			return false;
 		}
 
-		const auto& imgui_elements =
-			this->get_ui_imgui_elements();
-
-		if (imgui_elements.empty())
+		const kotek::uint8_t element_count =
+			this->get_ui_imgui_element_count();
+		if (element_count == 0)
 		{
 			KOTEK_MESSAGE_WARNING(
-				"engine didn't register any window on "
-				"renderer side... Unable to proceed..."
-			);
+				"engine didn't register any window on renderer side");
 			return false;
 		}
 
-		auto window_iter = std::find_if(
-			imgui_elements.begin(),
-			imgui_elements.end(),
-			[window_id](kotek::core::ktkISDKUIElement* p_element
-		    ) -> bool
-			{
-				KOTEK_ASSERT(
-					p_element,
-					"something is broken and window is invalid!"
-				);
-				return p_element->Get_ID() == window_id;
-			}
-		);
-
-		if (window_iter != imgui_elements.end())
+		for (kotek::uint8_t i = 0; i < element_count; ++i)
 		{
 			kotek::core::ktkISDKUIElement* p_element =
-				(*window_iter);
-
-			if (p_element->Is_Shown() == false)
+				this->get_ui_imgui_element_at(i);
+			if (p_element && p_element->Get_ID() == window_id &&
+				p_element->Is_Shown() == false)
 			{
 				p_element->Show();
 			}
@@ -2901,44 +2906,25 @@ void zircon_game_manager::RegisterConsole_Commands(void
 		if (!p_current_renderer)
 		{
 			KOTEK_MESSAGE_WARNING(
-				"you can't call this command if renderer "
-				"wasn't initialized"
-			);
+				"you can't call this command if renderer wasn't initialized");
 			return false;
 		}
 
-		const auto& imgui_elements =
-			this->get_ui_imgui_elements();
-
-		if (imgui_elements.empty())
+		const kotek::uint8_t element_count =
+			this->get_ui_imgui_element_count();
+		if (element_count == 0)
 		{
 			KOTEK_MESSAGE_WARNING(
-				"engine didn't register any window on "
-				"renderer side... Unable to proceed..."
-			);
+				"engine didn't register any window on renderer side");
 			return false;
 		}
 
-		auto window_iter = std::find_if(
-			imgui_elements.begin(),
-			imgui_elements.end(),
-			[window_id](kotek::core::ktkISDKUIElement* p_element
-		    ) -> bool
-			{
-				KOTEK_ASSERT(
-					p_element,
-					"something is broken and window is invalid!"
-				);
-				return p_element->Get_ID() == window_id;
-			}
-		);
-
-		if (window_iter != imgui_elements.end())
+		for (kotek::uint8_t i = 0; i < element_count; ++i)
 		{
 			kotek::core::ktkISDKUIElement* p_element =
-				(*window_iter);
-
-			if (p_element->Is_Shown() == true)
+				this->get_ui_imgui_element_at(i);
+			if (p_element && p_element->Get_ID() == window_id &&
+				p_element->Is_Shown())
 			{
 				p_element->Hide();
 			}
@@ -3670,26 +3656,31 @@ void zircon_game_manager::RegisterConsole_Commands(void
 			return false;
 		}
 
-		const zircon_render_graph_simplified_bgfx_info_t& info =
-			this->m_renderers.p_bgfx->get_render_graph_info(
-				game_graph_id
-			);
-
 		kotek::uint8_t index_cpu_path =
 			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT;
 		kotek::uint8_t index_gpu_path =
 			KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT;
 
+		const kotek::uint8_t pass_count =
+			this->m_renderers.p_bgfx->get_render_graph_pass_count(game_graph_id);
+
 		for (kotek::uint8_t pass_index = 0;
-			 pass_index < info.pass_names.size(); ++pass_index)
+			 pass_index < pass_count; ++pass_index)
 		{
-			if (info.pass_names[pass_index] ==
-				kZirconConfig_RenderPassGameModelStaticName)
+			const char* p_pass_name =
+				this->m_renderers.p_bgfx->get_render_graph_pass_name(
+					game_graph_id, pass_index);
+
+			if (p_pass_name == nullptr)
+				continue;
+
+			if (std::strcmp(p_pass_name,
+					kZirconConfig_RenderPassGameModelStaticName) == 0)
 			{
 				index_cpu_path = pass_index;
 			}
-			else if (info.pass_names[pass_index] ==
-				kZirconConfig_RenderPassGameModelStaticGpuDrivenName)
+			else if (std::strcmp(p_pass_name,
+					kZirconConfig_RenderPassGameModelStaticGpuDrivenName) == 0)
 			{
 				index_gpu_path = pass_index;
 			}
@@ -5589,81 +5580,59 @@ void zircon_game_manager::UpdateInput(void) noexcept {}
 // TODO: delete this
 void zircon_game_manager::UpdateCamera(void) noexcept {}
 
-const zircon_imgui_elements_t&
-zircon_game_manager::get_ui_imgui_elements()
+kotek::uint8_t zircon_game_manager::get_ui_imgui_element_count(
+	void) const noexcept
 {
-	if (!this->m_p_current_session)
+	if (this->m_p_current_session == nullptr)
+		return 0;
+
+	switch (this->m_p_current_session->get_type())
 	{
-		KOTEK_ASSERT(
-			false,
-			"early calling? Otherwise set current session!"
-		);
-		return empty_ui_elements;
-	}
-
-	if (this->m_p_current_session)
+	case eZirconSessionType::kEditor:
 	{
-		eZirconSessionType session_type =
-			this->m_p_current_session->get_type();
-
-		switch (session_type)
-		{
-		case eZirconSessionType::kEditor:
-		{
-			zircon_session_editor* p_session =
-				dynamic_cast<zircon_session_editor*>(
-					this->m_p_current_session
-				);
-
-			KOTEK_ASSERT(
-				p_session,
-				"are you sure that you didn't mistaken return "
-				"type of "
-				"::get_type method?"
-			);
-
-			if (p_session)
-			{
-				return p_session->get_imgui_ui_elements();
-			}
-
-			break;
-		}
-		case eZirconSessionType::kGame:
-		{
-			zircon_session_game* p_session =
-				dynamic_cast<zircon_session_game*>(
-					this->m_p_current_session
-				);
-
-			KOTEK_ASSERT(
-				p_session,
-				"are you sure that you didn't mistaken return "
-				"type of "
-				"::get_type method?"
-			);
-
-			if (p_session)
-			{
-				return p_session->get_imgui_ui_elements();
-			}
-
-			break;
-		}
-		default:
-		{
-			KOTEK_ASSERT(
-				false,
-				"unknown session type report to developers! "
-				"Otherwise memory "
-				"corruptuion"
-			);
-			return empty_ui_elements;
-		}
-		}
+		const zircon_session_editor* p_session =
+			dynamic_cast<const zircon_session_editor*>(
+				this->m_p_current_session);
+		return p_session ? p_session->get_imgui_ui_element_count() : 0;
 	}
+	case eZirconSessionType::kGame:
+	{
+		const zircon_session_game* p_session =
+			dynamic_cast<const zircon_session_game*>(
+				this->m_p_current_session);
+		return p_session ? p_session->get_imgui_ui_element_count() : 0;
+	}
+	default:
+		return 0;
+	}
+}
 
-	return empty_ui_elements;
+kotek::core::ktkISDKUIElement*
+zircon_game_manager::get_ui_imgui_element_at(
+	kotek::uint8_t index) const noexcept
+{
+	if (this->m_p_current_session == nullptr)
+		return nullptr;
+
+	switch (this->m_p_current_session->get_type())
+	{
+	case eZirconSessionType::kEditor:
+	{
+		const zircon_session_editor* p_session =
+			dynamic_cast<const zircon_session_editor*>(
+				this->m_p_current_session);
+		return p_session ? p_session->get_imgui_ui_element_at(index) : nullptr;
+	}
+	case eZirconSessionType::kGame:
+	{
+		const zircon_session_game* p_session =
+			dynamic_cast<const zircon_session_game*>(
+				this->m_p_current_session);
+		return p_session ? p_session->get_imgui_ui_element_at(index) : nullptr;
+	}
+	default:
+		return nullptr;
+	}
 }
 
 #ifdef KOTEK_DEBUG

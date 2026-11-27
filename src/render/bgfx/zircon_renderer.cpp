@@ -526,35 +526,28 @@ bool zircon_renderer_bgfx::get_pass_library_registry(
 #endif
 }
 
-#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
 bool zircon_renderer_bgfx::get_pass_library_status(
 	eZirconRenderPassLibraryStatus& out_status,
 	const char*& out_p_message) const noexcept
 {
+#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
 	out_status = this->m_pass_library_manager.get_status();
 	out_p_message = this->m_pass_library_manager.get_status_message();
 
 	// kIdle means the window draws nothing: the initial state, or the
 	// graphics_development feature is off and the swap never runs
 	return out_status != eZirconRenderPassLibraryStatus::kIdle;
-}
+#else
+	out_status = eZirconRenderPassLibraryStatus::kIdle;
+	out_p_message = nullptr;
+	return false;
 #endif
+}
 
 kotek::uint8_t zircon_renderer_bgfx::get_render_graph_count(
 	void) const noexcept
 {
 	return static_cast<kotek::uint8_t>(this->m_render_graphs.size());
-}
-
-const zircon_render_graph_simplified_bgfx_info_t&
-zircon_renderer_bgfx::get_render_graph_info(
-	kotek::uint8_t render_graph_id) const noexcept
-{
-	KOTEK_ASSERT(render_graph_id < this->m_render_graphs.size(),
-		"render graph by id {} is not presented in renderer!",
-		render_graph_id);
-
-	return this->m_render_graphs[render_graph_id];
 }
 
 kotek::uint8_t zircon_renderer_bgfx::get_render_graph_id_for_session_kind(
@@ -570,6 +563,76 @@ kotek::uint8_t zircon_renderer_bgfx::get_render_graph_id_for_session_kind(
 	}
 
 	return kotek::uint8_t(-1);
+}
+
+kotek::uint8_t zircon_renderer_bgfx::get_render_graph_pass_count(
+	kotek::uint8_t render_graph_id) const noexcept
+{
+	if (render_graph_id >= this->m_render_graphs.size())
+		return 0;
+
+	return static_cast<kotek::uint8_t>(
+		this->m_render_graphs[render_graph_id].pass_names.size());
+}
+
+const char* zircon_renderer_bgfx::get_render_graph_pass_name(
+	kotek::uint8_t render_graph_id, kotek::uint8_t pass_index) const noexcept
+{
+	if (render_graph_id >= this->m_render_graphs.size())
+		return nullptr;
+
+	const auto& names = this->m_render_graphs[render_graph_id].pass_names;
+	return pass_index < names.size() ? names[pass_index].c_str() : nullptr;
+}
+
+bool zircon_renderer_bgfx::is_render_graph_pass_enabled(
+	kotek::uint8_t render_graph_id, kotek::uint8_t pass_index) const noexcept
+{
+	if (render_graph_id >= this->m_render_graphs.size())
+		return false;
+
+	const auto& enabled = this->m_render_graphs[render_graph_id].pass_enabled;
+	return pass_index < enabled.size() && enabled[pass_index];
+}
+
+void zircon_build_default_orbit_view_projection(float* p_out_view,
+	float* p_out_projection, float aspect_ratio,
+	bool homogeneous_depth) noexcept
+{
+	KOTEK_ASSERT(p_out_view, "must be valid storage");
+	KOTEK_ASSERT(p_out_projection, "must be valid storage");
+	KOTEK_ASSERT(aspect_ratio > 0.0f, "must be positive");
+
+	if (p_out_view == nullptr || p_out_projection == nullptr ||
+		aspect_ratio <= 0.0f)
+	{
+		return;
+	}
+
+	bx::mtxLookAt(p_out_view, bx::Vec3(4.0f, 3.0f, 4.0f),
+		bx::Vec3(0.0f, 0.0f, 0.0f), bx::Vec3(0.0f, 1.0f, 0.0f));
+	bx::mtxProj(p_out_projection, 60.0f, aspect_ratio, 0.1f, 100.0f,
+		homogeneous_depth);
+}
+
+void zircon_renderer_bgfx::build_default_orbit_view_projection(
+	float* p_out_view, float* p_out_projection,
+	float aspect_ratio) const noexcept
+{
+	zircon_build_default_orbit_view_projection(p_out_view, p_out_projection,
+		aspect_ratio, bgfx::getCaps()->homogeneousDepth);
+}
+
+bool zircon_renderer_bgfx::get_editor_gpu_stats(
+	zircon_editor_gpu_stats_t& out_stats) const noexcept
+{
+	if (this->m_p_render_resource_manager == nullptr)
+	{
+		out_stats = {};
+		return false;
+	}
+
+	return this->m_p_render_resource_manager->Get_GpuStats(out_stats);
 }
 
 bool zircon_is_render_pass_essential(const char* p_pass_name) noexcept
@@ -926,6 +989,7 @@ void zircon_renderer_bgfx::shutdown_render_graph_passes(
 		// itself, exactly as before the split
 		info.graph.Shutdown();
 	}
+
 }
 
 void zircon_renderer_bgfx::process_pending_render_graph_rebuilds(

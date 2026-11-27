@@ -1,4 +1,5 @@
 #include "zircon_render_graph_pass_editor_grid.h"
+#include "../../zircon_renderer.h"
 
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
@@ -205,25 +206,8 @@ namespace no_streaming
 			float* p_out_projection, float aspect_ratio,
 			bool homogeneous_depth) noexcept
 	{
-		KOTEK_ASSERT(p_out_view, "must be valid storage");
-		KOTEK_ASSERT(p_out_projection, "must be valid storage");
-		KOTEK_ASSERT(aspect_ratio > 0.0f, "must be positive");
-
-		if (p_out_view == nullptr || p_out_projection == nullptr ||
-			aspect_ratio <= 0.0f)
-		{
-			return;
-		}
-
-		// TODO(zircon): editor camera controller — until one drives the
-		// editor camera, a world without an sdk_camera component renders
-		// the grid through this fixed orbit (mirrors the game
-		// model_static pass's default)
-		bx::mtxLookAt(p_out_view, bx::Vec3(4.0f, 3.0f, 4.0f),
-			bx::Vec3(0.0f, 0.0f, 0.0f), bx::Vec3(0.0f, 1.0f, 0.0f));
-
-		bx::mtxProj(p_out_projection, 60.0f, aspect_ratio, 0.1f, 100.0f,
-			homogeneous_depth);
+		zircon_build_default_orbit_view_projection(p_out_view, p_out_projection,
+			aspect_ratio, homogeneous_depth);
 	}
 
 	void zircon_render_graph_pass_editor_grid_bgfx::

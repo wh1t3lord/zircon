@@ -8,17 +8,10 @@
 #include "../../ecs/zircon_component_transform.h"
 #include "../../ecs/zircon_component_sdk_camera.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
-#include "../commands/zircon_command_history.h"
+#include "../../core/zircon_session_editor_interface.h"
+#include "../../core/zircon_editor_command_history_interface.h"
 #include "../commands/zircon_gizmo_edit_commit.h"
-#include "../../render/bgfx/zircon_renderer.h"
-
-// the default-orbit fallback camera + the inverse-VP helpers are the grid
-// pass's public statics (same reuse the own gizmo makes); the editor
-// camera scan itself is replicated below per the pass-independence
-// pattern
-#include "../../render/bgfx/passes/no_streaming/zircon_render_graph_pass_editor_grid.h"
+#include "../../core/zircon_editor_renderer_interface.h"
 
 // the vendored ImGuizmo (task Z3 P2f — the sanctioned third-party
 // exception, passes-project-local under src/render/bgfx/passes/imguizmo/).
@@ -26,12 +19,12 @@
 // include dir the editor.ui target carries for exactly this consumer
 #include "../../render/bgfx/passes/imguizmo/ImGuizmo.h"
 
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 
 zircon_editor_ui_window_gizmo_imguizmo::
 	zircon_editor_ui_window_gizmo_imguizmo(
-		zircon_session_editor_manager* p_manager_session_editor,
-		zircon_renderer_bgfx* p_renderer_bgfx) :
+		zircon_session_editor_manager_interface* p_manager_session_editor,
+		zircon_editor_renderer_interface* p_renderer_bgfx) :
 	m_is_show_window{true},
 	m_p_manager_session_editor{p_manager_session_editor},
 	m_p_renderer_bgfx{p_renderer_bgfx},
@@ -90,15 +83,21 @@ void zircon_editor_ui_window_gizmo_imguizmo::Draw(
 		if (render_graph_id <
 			this->m_p_renderer_bgfx->get_render_graph_count())
 		{
-			const zircon_render_graph_simplified_bgfx_info_t& info =
-				this->m_p_renderer_bgfx->get_render_graph_info(
+			const kotek::uint8_t pass_count =
+				this->m_p_renderer_bgfx->get_render_graph_pass_count(
 					render_graph_id);
 
-			for (kotek::ktk::size_t i = 0; i < info.pass_names.size(); ++i)
+			for (kotek::uint8_t i = 0; i < pass_count; ++i)
 			{
-				if (info.pass_enabled[i] &&
-					info.pass_names[i] ==
-						kZirconConfig_RenderPassEditorGizmoImguizmoName)
+				const char* p_pass_name =
+					this->m_p_renderer_bgfx->get_render_graph_pass_name(
+						render_graph_id, i);
+
+				if (p_pass_name &&
+					this->m_p_renderer_bgfx->is_render_graph_pass_enabled(
+						render_graph_id, i) &&
+					std::strcmp(p_pass_name,
+						kZirconConfig_RenderPassEditorGizmoImguizmoName) == 0)
 				{
 					is_variant_active = true;
 					break;
@@ -107,7 +106,7 @@ void zircon_editor_ui_window_gizmo_imguizmo::Draw(
 		}
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor->get_current_session_id());
 
@@ -180,7 +179,7 @@ void zircon_editor_ui_window_gizmo_imguizmo::Draw(
 	zircon_ecs_context_t* p_ecs_context =
 		p_factory ? p_world->get_ecs_context() : nullptr;
 
-	zircon_editor_ui_state* p_ui_state = p_session->get_ui_state();
+	zircon_editor_ui_state_interface* p_ui_state = p_session->get_ui_state();
 
 	zircon_component_transform* p_transform = nullptr;
 	kotek::entity_t selected_entity{kotek::ktk::kInvalidECSEntity};
@@ -253,9 +252,8 @@ void zircon_editor_ui_window_gizmo_imguizmo::Draw(
 		if (io.DisplaySize.x > 0.0f && io.DisplaySize.y > 0.0f)
 			aspect_ratio = io.DisplaySize.x / io.DisplaySize.y;
 
-		no_streaming::zircon_render_graph_pass_editor_grid_bgfx::
-			build_default_orbit_view_projection(view, projection,
-				aspect_ratio, bgfx::getCaps()->homogeneousDepth);
+		this->m_p_renderer_bgfx->build_default_orbit_view_projection(
+			view, projection, aspect_ratio);
 	}
 
 	// the drag-start capture source: the component's TRS BEFORE this
@@ -591,7 +589,7 @@ bool zircon_editor_ui_window_gizmo_imguizmo::decompose_trs_matrix(
 }
 
 bool zircon_editor_ui_window_gizmo_imguizmo::resolve_editor_camera(
-	zircon_session_editor* p_session, float* p_out_view,
+	zircon_session_editor_interface* p_session, float* p_out_view,
 	float* p_out_projection) noexcept
 {
 	KOTEK_ASSERT(p_out_view, "must be valid storage");
@@ -682,9 +680,9 @@ void zircon_editor_ui_window_gizmo_imguizmo::cancel_drag(
 }
 
 void zircon_editor_ui_window_gizmo_imguizmo::publish_overlay_state(
-	zircon_session_editor* p_session, bool is_gizmo_active) noexcept
+	zircon_session_editor_interface* p_session, bool is_gizmo_active) noexcept
 {
-	zircon_editor_ui_state* p_ui_state =
+	zircon_editor_ui_state_interface* p_ui_state =
 		p_session ? p_session->get_ui_state() : nullptr;
 
 	if (p_ui_state == nullptr)

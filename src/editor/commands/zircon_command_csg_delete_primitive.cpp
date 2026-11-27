@@ -7,7 +7,7 @@
 
 zircon_command_csg_delete_primitive::
 	zircon_command_csg_delete_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t compound_id,
 		kotek::entity_t primitive_id
@@ -26,7 +26,7 @@ zircon_command_csg_delete_primitive::
 
 zircon_command_csg_delete_primitive::
 	zircon_command_csg_delete_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) :
 	m_compound_id{kotek::ktk::kInvalidECSEntity},
@@ -55,7 +55,7 @@ void zircon_command_csg_delete_primitive::Execute(void)
 		return;
 	}
 
-	zircon_session_editor* p_session = nullptr;
+	zircon_session_editor_interface* p_session = nullptr;
 	zircon_world* p_world = nullptr;
 	zircon_factory* p_factory = nullptr;
 
@@ -91,7 +91,7 @@ void zircon_command_csg_delete_primitive::Execute(void)
 		p_compound->mark_dirty();
 	}
 
-	zircon_editor_ui_state* p_ui_state = p_session->get_ui_state();
+	zircon_editor_ui_state_interface* p_ui_state = p_session->get_ui_state();
 
 	if (p_ui_state &&
 		p_ui_state->get_selected_entity().id ==
@@ -116,7 +116,7 @@ void zircon_command_csg_delete_primitive::Undo(void)
 		return;
 	}
 
-	zircon_session_editor* p_session = nullptr;
+	zircon_session_editor_interface* p_session = nullptr;
 	zircon_world* p_world = nullptr;
 	zircon_factory* p_factory = nullptr;
 
@@ -292,11 +292,10 @@ void zircon_command_csg_delete_primitive::capture_primitive_state(
 		return;
 	}
 
-	kotek::ktk::json::value serialized_state =
-		zircon_serialize_component(p_component);
+	zircon_command_text_state serialized_state;
+	serialized_state.capture(p_component);
 
-	auto serialized_string =
-		kotek::ktk::json::serialize(serialized_state);
+	const auto serialized_string = serialized_state.text();
 
 	if (serialized_string.size() >= this->m_state_buffer.capacity())
 	{

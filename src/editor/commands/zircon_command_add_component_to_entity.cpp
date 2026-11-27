@@ -1,12 +1,11 @@
 #include "zircon_command_add_component_to_entity.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
 #include "../../world/zircon_world.h"
 #include "../../ecs/zircon_factory.h"
 
 zircon_command_add_component_to_entity::
 	zircon_command_add_component_to_entity(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		kotek::entity_t id,
 		const char* component_string
 	) :
@@ -31,7 +30,7 @@ zircon_command_add_component_to_entity::
 
 zircon_command_add_component_to_entity::
 	zircon_command_add_component_to_entity(
-		zircon_session_editor_manager* p_manager_session_editor
+		zircon_session_editor_manager_interface* p_manager_session_editor
 	) :
 	m_is_serialized{}, m_id{kotek::ktk::kInvalidECSEntity},
 	m_component_name{},
@@ -70,7 +69,7 @@ void zircon_command_add_component_to_entity::Execute(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -140,10 +139,8 @@ void zircon_command_add_component_to_entity::Execute(void)
 
 			if (this->m_is_serialized)
 			{
-				p_factory->DeserializeComponent(
-					p_raw_data_of_component,
-					this->m_serialized_state_of_deleted_component
-				);
+				this->m_serialized_state_of_deleted_component.apply(
+					p_factory, p_raw_data_of_component);
 			}
 
 			KOTEK_ASSERT(
@@ -157,8 +154,7 @@ void zircon_command_add_component_to_entity::Execute(void)
 				// capture the state eagerly so the journal entry
 				// is complete even if this command object gets
 				// evicted from the live pool later
-				this->m_serialized_state_of_deleted_component =
-					zircon_serialize_component(
+				this->m_serialized_state_of_deleted_component .capture(
 						p_raw_data_of_component
 					);
 
@@ -193,7 +189,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -255,8 +251,7 @@ void zircon_command_add_component_to_entity::Undo(void)
 
 			if (p_raw_data_of_component)
 			{
-				this->m_serialized_state_of_deleted_component =
-					zircon_serialize_component(
+				this->m_serialized_state_of_deleted_component .capture(
 						p_raw_data_of_component
 					);
 
@@ -340,9 +335,8 @@ bool zircon_command_add_component_to_entity::Serialize_Delta(
 
 	if (this->m_is_serialized)
 	{
-		auto state_string = kotek::ktk::json::serialize(
-			this->m_serialized_state_of_deleted_component
-		);
+		const auto state_string =
+			this->m_serialized_state_of_deleted_component.text();
 
 		status = status && writer.write_u32(1) &&
 			writer.write_string(
@@ -400,8 +394,7 @@ bool zircon_command_add_component_to_entity::Deserialize_Delta(
 	{
 		kotek::ktk::json::error_code parse_error;
 
-		this->m_serialized_state_of_deleted_component =
-			kotek::ktk::json::parse(
+		this->m_serialized_state_of_deleted_component.assign_text(
 				kotek::cstring_view_t(
 					state_buffer.data(), strlen(state_buffer.data())
 				),
@@ -446,7 +439,7 @@ void zircon_command_add_component_to_entity::serialize_state()
 			return;
 		}
 
-		zircon_session_editor* p_session =
+		zircon_session_editor_interface* p_session =
 			this->m_p_manager_session_editor->get_session(
 				this->m_p_manager_session_editor
 					->get_current_session_id()
@@ -497,8 +490,7 @@ void zircon_command_add_component_to_entity::serialize_state()
 
 				if (p_raw_data_of_component)
 				{
-					this->m_serialized_state_of_deleted_component =
-						zircon_serialize_component(
+					this->m_serialized_state_of_deleted_component .capture(
 							p_raw_data_of_component
 						);
 
@@ -530,7 +522,7 @@ zircon_command_add_component_to_entity::get_component_type()
 		return eZirconComponentType::kunknown;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()

@@ -8,7 +8,7 @@
 
 class zircon_world;
 class zircon_factory;
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 
 /// @brief \~english one node of the history tree: a journaled
 /// command with branch links. Node 0 is the root sentinel (the
@@ -66,14 +66,14 @@ struct zircon_history_tree_node
 /// accelerate restore_node; plain undo/redo never needs them because
 /// command inverses are always available.
 class zircon_editor_command_history
-	: public kotek::core::ktkISDKCommandHistoryManager
+	: public zircon_editor_command_history_interface
 {
 public:
 	zircon_editor_command_history(void);
 	~zircon_editor_command_history(void);
 
 	void initialize(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		kotek::core::ktkIFileSystem* p_filesystem,
 		const char* p_streaming_folder_name = "current"
 	);
@@ -88,13 +88,8 @@ public:
 	void set_changed(bool status) noexcept;
 	bool is_changed() const noexcept;
 
-	/// @brief \~english the live command pool (last executed
-	/// commands around the cursor), kept for compatibility with the
-	/// history log window
-	const kotek::array_t<
-		kotek::core::ktkISDKRedoUndo*,
-		zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
-	GetCommands(void) const noexcept;
+	kotek::core::ktkISDKRedoUndo* get_command_at_slot(
+		kotek::uint8_t slot_index) const noexcept override;
 
 	/// @brief \~english called by commands when the ecs backend
 	/// hands them a different entity id than the recorded one
@@ -244,7 +239,7 @@ private:
 private:
 	bool m_is_changed;
 	bool m_is_scratch_in_use;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 	kotek::Core::ktkIFileSystem* m_p_filesystem;
 
 	kotek::uint32_t m_cursor_node_id;

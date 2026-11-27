@@ -5,7 +5,7 @@
 #include "../../ecs/zircon_component_interface.h"
 
 class zircon_factory;
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 
 class zircon_command_add_component_to_entity
 	: public kotek::core::ktkISDKRedoUndo,
@@ -13,11 +13,11 @@ class zircon_command_add_component_to_entity
 {
 public:
 	zircon_command_add_component_to_entity(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		kotek::entity_t id, const char* component_string);
 	// for command history (journal reconstruction)
 	zircon_command_add_component_to_entity(
-		zircon_session_editor_manager* p_manager_session_editor);
+		zircon_session_editor_manager_interface* p_manager_session_editor);
 
 	~zircon_command_add_component_to_entity();
 
@@ -52,6 +52,6 @@ private:
 	kotek::entity_t m_id;
 	kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>
 		m_component_name;
-	zircon_session_editor_manager* m_p_manager_session_editor;
-	kotek::ktk::json::value m_serialized_state_of_deleted_component;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
+	zircon_command_text_state m_serialized_state_of_deleted_component;
 };

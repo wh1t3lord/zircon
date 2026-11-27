@@ -5,9 +5,9 @@
 #include "../../ecs/zircon_factory_definitions.h"
 
 class zircon_factory;
-class zircon_editor_command_history;
+class zircon_editor_command_history_interface;
 class zircon_world;
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 struct zircon_ecs_context_t;
 
 enum eZirconComponentType;
@@ -35,7 +35,7 @@ class zircon_command_delete_entity
 {
 public:
 	zircon_command_delete_entity(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t entity_to_delete
 	);
@@ -76,7 +76,7 @@ private:
 private:
 	kotek::entity_t m_entity_created;
 	kotek::entity_t m_entity_previous_id;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 	zircon_factory* m_p_factory;
 	kotek::static_vector_t<
 		eZirconComponentType,

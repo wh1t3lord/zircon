@@ -1,6 +1,6 @@
 #pragma once
 
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 
 /// @brief \~english the own-gizmo's live overlay (task Z3 P2e): a pinned,
 /// non-interactive imgui overlay that shows the gizmo pass's published
@@ -16,7 +16,7 @@ class zircon_editor_ui_window_gizmo_overlay
 {
 public:
 	zircon_editor_ui_window_gizmo_overlay(
-		zircon_session_editor_manager* p_manager_session_editor);
+		zircon_session_editor_manager_interface* p_manager_session_editor);
 	~zircon_editor_ui_window_gizmo_overlay(void);
 
 	void Initialize(void) override;
@@ -31,5 +31,5 @@ public:
 
 private:
 	bool m_is_show_window;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 };

@@ -5,8 +5,8 @@
 class zircon_component_csg;
 class zircon_component_csg_primitive;
 class zircon_factory;
-class zircon_session_editor;
-class zircon_session_editor_manager;
+class zircon_session_editor_interface;
+class zircon_session_editor_manager_interface;
 class zircon_ui_test_widget_registry;
 class zircon_world;
 
@@ -17,7 +17,7 @@ class zircon_editor_ui_window_csg : public kotek::core::ktkISDKUIElement
 {
 public:
 	zircon_editor_ui_window_csg(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		kotek::core::ktkConsole* p_console,
 		zircon_factory* p_factory,
 		zircon_ui_test_widget_registry* p_widget_registry = nullptr);
@@ -33,7 +33,7 @@ public:
 	bool Is_Shown(void) const override;
 
 private:
-	zircon_session_editor* get_session(void) const noexcept;
+	zircon_session_editor_interface* get_session(void) const noexcept;
 	zircon_world* get_world(void) const noexcept;
 	zircon_component_csg* get_selected_compound(void) const noexcept;
 	zircon_component_csg_primitive* get_selected_primitive(void) const noexcept;
@@ -48,7 +48,7 @@ private:
 private:
 	bool m_is_show_window;
 	kotek::entity_t m_selected_primitive_id;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 	kotek::core::ktkConsole* m_p_console;
 	zircon_factory* m_p_factory;
 	kotek::core::ktkIImguiWrapper* m_p_imgui_wrapper;

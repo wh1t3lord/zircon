@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../core/zircon_editor_command_history_interface.h"
+
 #define zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON 4096
 #define _zircon_FINAL_STR(x) #x
 #define _zircon_STR(x) _zircon_FINAL_STR(x)
@@ -9,11 +11,6 @@
 	sizeof(_zircon_STR(zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON)) - 1
 #define zircon_DEF_DEFAULT_SYMBOL_DELIMITER_WHEN_WRITE_SIZE_OF_ENTRY '|'
 #define zircon_DEF_MAXIMUM_COMMAND_SIZE 65536
-
-// amount of live command objects that the history keeps in RAM for
-// instant undo/redo of the most recent actions; older commands are
-// reconstructed from the journal on demand
-#define zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE 64
 
 // xxxxxx_y where x count of file on disk like 999999 means literally 999999
 // numbers, but y means write line 10 interprets from 0 to 9 and thus only one

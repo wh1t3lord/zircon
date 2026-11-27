@@ -27,6 +27,6 @@ kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CX
 
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
-kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor.ui)
-kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor.commands)
+# session publicly carries commands + UI; keeping one aggregate edge makes
+# the acyclic DLL order explicit: core/ecs/world -> commands -> UI -> session
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor.session)

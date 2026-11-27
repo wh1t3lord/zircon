@@ -180,7 +180,7 @@ jobs:
           path: build/**/*.log
           retention-days: 7
 
-  # the full matrix: Debug/Release x {default, static, dynamic} — nightly +
+  # the full matrix: Debug/Release x {default, static, dynamic, zircon-shared} — nightly +
   # manual only (quota, see the header note)
   windows_full:
     name: windows-full (${{ matrix.config }}, ${{ matrix.linkage.name }})
@@ -202,6 +202,11 @@ jobs:
           - name: dynamic
             flags: "-DKOTEK_LINKAGE=SHARED -DKOTEK_DEVELOPMENT_TYPE=SHARED"
             experimental: true
+          # kotek stays static; every zircon module (including the formerly
+          # cyclic editor cluster) is an implicitly-linked DLL (Z9/K18)
+          - name: zircon-shared
+            flags: '-DKOTEK_ASSERT_STDERR_ROUTING=ON -DKOTEK_LINKAGE_FORCE_SHARED="zircon.core;zircon.ecs;zircon.editor;zircon.editor.commands;zircon.editor.session;zircon.editor.ui;zircon.game;zircon.game.session;zircon.render;zircon.world"'
+            experimental: false
 
     steps:
       - uses: actions/checkout@v4
@@ -244,6 +249,14 @@ jobs:
           }
           if ("${{ matrix.linkage.name }}" -ne "static" -and -not (Test-Path "build/bin/${{ matrix.config }}/game.ktk")) {
             throw "game.ktk was not produced"
+          }
+          if ("${{ matrix.linkage.name }}" -eq "zircon-shared") {
+            $modules = @("zircon.core", "zircon.ecs", "zircon.editor", "zircon.editor.commands", "zircon.editor.session", "zircon.editor.ui", "zircon.game", "zircon.game.session", "zircon.render", "zircon.world")
+            foreach ($module in $modules) {
+              if (-not (Test-Path "build/bin/${{ matrix.config }}/$module.dll")) {
+                throw "$module.dll was not produced"
+              }
+            }
           }
 
       - name: emit badge

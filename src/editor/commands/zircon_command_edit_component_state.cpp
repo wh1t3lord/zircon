@@ -1,12 +1,11 @@
 #include "zircon_command_edit_component_state.h"
 #include "../../ecs/zircon_factory.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
 
 zircon_command_edit_component_state::
 	zircon_command_edit_component_state(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t id,
 		const char* p_component_name,
@@ -17,8 +16,10 @@ zircon_command_edit_component_state::
 	m_p_factory{p_factory},
 	m_component_name{p_component_name},
 	m_state_before{},
-	m_state_after{state_after}
+	m_state_after{}
 {
+	this->m_state_after.assign_json(state_after);
+
 	KOTEK_ASSERT(
 		p_manager_session_editor,
 		"you must pass a valid pointer editor session manager!"
@@ -39,7 +40,37 @@ zircon_command_edit_component_state::
 
 zircon_command_edit_component_state::
 	zircon_command_edit_component_state(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
+		zircon_factory* p_factory,
+		kotek::entity_t id,
+		const char* p_component_name,
+		const zircon_command_text_state& state_after
+	) :
+	m_id{id},
+	m_p_manager_session_editor{p_manager_session_editor},
+	m_p_factory{p_factory},
+	m_component_name{p_component_name},
+	m_state_before{},
+	m_state_after{state_after}
+{
+	KOTEK_ASSERT(
+		p_manager_session_editor,
+		"you must pass a valid pointer editor session manager!"
+	);
+	KOTEK_ASSERT(p_factory, "passed invalid factory!");
+	KOTEK_ASSERT(
+		p_component_name,
+		"you can't pass an invalid component name!"
+	);
+	KOTEK_ASSERT(
+		strlen(p_component_name),
+		"you can't pass an empty component name!"
+	);
+}
+
+zircon_command_edit_component_state::
+	zircon_command_edit_component_state(
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) :
 	m_id{kotek::ktk::kInvalidECSEntity},
@@ -84,7 +115,7 @@ void zircon_command_edit_component_state::Execute(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -170,12 +201,9 @@ void zircon_command_edit_component_state::Execute(void)
 	// the previous state is captured eagerly so the journal entry
 	// is complete even if this object gets evicted from the live
 	// pool later
-	this->m_state_before =
-		zircon_serialize_component(p_component);
+	this->m_state_before .capture(p_component);
 
-	this->m_p_factory->DeserializeComponent(
-		p_component, this->m_state_after
-	);
+	this->m_state_after.apply(this->m_p_factory, p_component);
 
 	KOTEK_MESSAGE(
 		"[history] edited component by name: {} in entity {}",
@@ -199,7 +227,7 @@ void zircon_command_edit_component_state::Undo(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -263,9 +291,7 @@ void zircon_command_edit_component_state::Undo(void)
 
 	if (p_component)
 	{
-		this->m_p_factory->DeserializeComponent(
-			p_component, this->m_state_before
-		);
+		this->m_state_before.apply(this->m_p_factory, p_component);
 
 		KOTEK_MESSAGE(
 			"[history][undo] restored component state by "
@@ -332,10 +358,10 @@ bool zircon_command_edit_component_state::Serialize_Delta(
 		);
 
 	auto before_string =
-		kotek::ktk::json::serialize(this->m_state_before);
+		this->m_state_before.text();
 
 	auto after_string =
-		kotek::ktk::json::serialize(this->m_state_after);
+		this->m_state_after.text();
 
 	status = status &&
 		writer.write_string(
@@ -388,7 +414,7 @@ bool zircon_command_edit_component_state::Deserialize_Delta(
 	{
 		kotek::ktk::json::error_code parse_error;
 
-		this->m_state_before = kotek::ktk::json::parse(
+		this->m_state_before.assign_text(
 			kotek::cstring_view_t(
 				state_buffer, strlen(state_buffer)
 			),
@@ -416,7 +442,7 @@ bool zircon_command_edit_component_state::Deserialize_Delta(
 	{
 		kotek::ktk::json::error_code parse_error;
 
-		this->m_state_after = kotek::ktk::json::parse(
+		this->m_state_after.assign_text(
 			kotek::cstring_view_t(
 				state_buffer, strlen(state_buffer)
 			),

@@ -3,9 +3,9 @@
 #include "zircon_command_registry.h"
 
 class zircon_world;
-class zircon_editor_command_history;
-class zircon_session_editor;
-class zircon_session_editor_manager;
+class zircon_editor_command_history_interface;
+class zircon_session_editor_interface;
+class zircon_session_editor_manager_interface;
 class zircon_factory;
 
 class zircon_command_create_entity
@@ -14,7 +14,7 @@ class zircon_command_create_entity
 {
 public:
 	zircon_command_create_entity(
-		zircon_session_editor_manager* p_session_manager_editor,
+		zircon_session_editor_manager_interface* p_session_manager_editor,
 		zircon_factory* p_factory
 	);
 	~zircon_command_create_entity();
@@ -45,6 +45,6 @@ public:
 private:
 	kotek::entity_t m_created_entity;
 	kotek::entity_t m_entity_previous_id;
-	zircon_session_editor_manager* m_p_editor_session_manager;
+	zircon_session_editor_manager_interface* m_p_editor_session_manager;
 	zircon_factory* m_p_factory;
 };

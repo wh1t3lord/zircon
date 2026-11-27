@@ -6,7 +6,7 @@
 #include "zircon_command_csg_utils.h"
 
 zircon_command_csg_edit_primitive::zircon_command_csg_edit_primitive(
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	zircon_factory* p_factory,
 	kotek::entity_t compound_id,
 	kotek::entity_t primitive_id,
@@ -17,8 +17,10 @@ zircon_command_csg_edit_primitive::zircon_command_csg_edit_primitive(
 	m_p_manager_session_editor{p_manager_session_editor},
 	m_p_factory{p_factory},
 	m_state_before{},
-	m_state_after{state_after}
+	m_state_after{}
 {
+	this->m_state_after.assign_json(state_after);
+
 	KOTEK_ASSERT(p_manager_session_editor,
 		"must pass a valid editor session manager");
 
@@ -26,7 +28,26 @@ zircon_command_csg_edit_primitive::zircon_command_csg_edit_primitive(
 }
 
 zircon_command_csg_edit_primitive::zircon_command_csg_edit_primitive(
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
+	zircon_factory* p_factory,
+	kotek::entity_t compound_id,
+	kotek::entity_t primitive_id,
+	const zircon_command_text_state& state_after
+) :
+	m_compound_id{compound_id},
+	m_primitive_id{primitive_id},
+	m_p_manager_session_editor{p_manager_session_editor},
+	m_p_factory{p_factory},
+	m_state_before{},
+	m_state_after{state_after}
+{
+	KOTEK_ASSERT(p_manager_session_editor,
+		"must pass a valid editor session manager");
+	KOTEK_ASSERT(p_factory, "factory must be valid!");
+}
+
+zircon_command_csg_edit_primitive::zircon_command_csg_edit_primitive(
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	zircon_factory* p_factory
 ) :
 	m_compound_id{kotek::ktk::kInvalidECSEntity},
@@ -55,7 +76,7 @@ void zircon_command_csg_edit_primitive::Execute(void)
 		return;
 	}
 
-	zircon_session_editor* p_session = nullptr;
+	zircon_session_editor_interface* p_session = nullptr;
 	zircon_world* p_world = nullptr;
 	zircon_factory* p_factory = nullptr;
 
@@ -96,11 +117,9 @@ void zircon_command_csg_edit_primitive::Execute(void)
 	// the previous state is captured eagerly so the journal entry
 	// is complete even if this object gets evicted from the live
 	// pool later (the edit_component_state contract)
-	this->m_state_before =
-		zircon_serialize_component(p_component);
+	this->m_state_before .capture(p_component);
 
-	p_factory->DeserializeComponent(
-		p_component, this->m_state_after);
+	this->m_state_after.apply(p_factory, p_component);
 
 	zircon_component_csg* p_compound =
 		zircon_command_csg_resolve_compound(p_session, p_factory,
@@ -125,7 +144,7 @@ void zircon_command_csg_edit_primitive::Undo(void)
 		return;
 	}
 
-	zircon_session_editor* p_session = nullptr;
+	zircon_session_editor_interface* p_session = nullptr;
 	zircon_world* p_world = nullptr;
 	zircon_factory* p_factory = nullptr;
 
@@ -163,8 +182,7 @@ void zircon_command_csg_edit_primitive::Undo(void)
 		return;
 	}
 
-	p_factory->DeserializeComponent(
-		p_component, this->m_state_before);
+	this->m_state_before.apply(p_factory, p_component);
 
 	zircon_component_csg* p_compound =
 		zircon_command_csg_resolve_compound(p_session, p_factory,
@@ -231,10 +249,10 @@ bool zircon_command_csg_edit_primitive::Serialize_Delta(
 			static_cast<kotek::uint32_t>(this->m_primitive_id.id));
 
 	auto before_string =
-		kotek::ktk::json::serialize(this->m_state_before);
+		this->m_state_before.text();
 
 	auto after_string =
-		kotek::ktk::json::serialize(this->m_state_after);
+		this->m_state_after.text();
 
 	status = status &&
 		writer.write_string(
@@ -277,7 +295,7 @@ bool zircon_command_csg_edit_primitive::Deserialize_Delta(
 	{
 		kotek::ktk::json::error_code parse_error;
 
-		this->m_state_before = kotek::ktk::json::parse(
+		this->m_state_before.assign_text(
 			kotek::cstring_view_t(
 				state_buffer, strlen(state_buffer)),
 			parse_error);
@@ -300,7 +318,7 @@ bool zircon_command_csg_edit_primitive::Deserialize_Delta(
 	{
 		kotek::ktk::json::error_code parse_error;
 
-		this->m_state_after = kotek::ktk::json::parse(
+		this->m_state_after.assign_text(
 			kotek::cstring_view_t(
 				state_buffer, strlen(state_buffer)),
 			parse_error);

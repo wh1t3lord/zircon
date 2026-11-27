@@ -32,10 +32,11 @@ public:
 
 	zircon_world* get_world(void) const noexcept;
 
-	void set_imgui_ui_elements(
-		const zircon_imgui_elements_t& imgui_elements) noexcept;
-	const zircon_imgui_elements_t&
-	get_imgui_ui_elements(void) const noexcept;
+	void register_imgui_ui_element(
+		kotek::core::ktkISDKUIElement* p_element) noexcept;
+	kotek::uint8_t get_imgui_ui_element_count(void) const noexcept;
+	kotek::core::ktkISDKUIElement* get_imgui_ui_element_at(
+		kotek::uint8_t index) const noexcept;
 
 private:
 	void try_to_initialize_render_graph(void) noexcept;

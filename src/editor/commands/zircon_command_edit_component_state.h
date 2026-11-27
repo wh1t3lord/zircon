@@ -4,7 +4,7 @@
 #include "zircon_command_registry.h"
 #include "../../ecs/zircon_component_interface.h"
 
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 class zircon_factory;
 
 /// @brief \~english applies a new serialized state to an existing
@@ -20,16 +20,24 @@ class zircon_command_edit_component_state
 {
 public:
 	zircon_command_edit_component_state(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t id,
 		const char* p_component_name,
 		const kotek::ktk::json::value& state_after
 	);
 
+	zircon_command_edit_component_state(
+		zircon_session_editor_manager_interface* p_manager_session_editor,
+		zircon_factory* p_factory,
+		kotek::entity_t id,
+		const char* p_component_name,
+		const zircon_command_text_state& state_after
+	);
+
 	// for command history (journal reconstruction)
 	zircon_command_edit_component_state(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	);
 
@@ -61,10 +69,10 @@ public:
 
 private:
 	kotek::entity_t m_id;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 	zircon_factory* m_p_factory;
 	kotek::static_cstring_t<zircon_DEF_MAX_COMPONENT_NAME_SIZE>
 		m_component_name;
-	kotek::ktk::json::value m_state_before;
-	kotek::ktk::json::value m_state_after;
+	zircon_command_text_state m_state_before;
+	zircon_command_text_state m_state_after;
 };

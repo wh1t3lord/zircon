@@ -2,6 +2,7 @@
 
 #include "../core/zircon_defs.h"
 #include "../core/zircon_config.h"
+#include "../core/zircon_editor_render_pass_baseline_interface.h"
 
 // task Z5 phase 2 (P4): the NRI frame-pass capacity define
 // (ZIRCON_DEF_RENDERER_NRI_MAX_FRAME_PASS_COUNT) the m_frame_passes_nri
@@ -62,7 +63,9 @@ void zircon_register_unit_tests_editor();
 	#endif
 #endif
 
-class zircon_game_manager : public kotek::core::ktkIGameManager
+class zircon_game_manager
+	: public kotek::core::ktkIGameManager,
+	  public zircon_editor_render_pass_baseline_interface
 {
 	union renderers_t
 	{
@@ -164,11 +167,12 @@ public:
 	/// The Render Passes window compares its "modified" marker against
 	/// this (not the raw config default — a level override must not
 	/// read as user-modified) and refreshes it on Save; mutable
-	/// precisely for that refresh. The pointed-to member never moves
-	/// (the game manager is a stable global), so the pointer stays
-	/// valid for the whole UI lifetime
-	kotek::static_cstring_t<ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
-	get_render_passes_game_resolved_baseline(void) noexcept;
+	/// precisely for that refresh. Only C text crosses the module boundary;
+	/// the owning static string stays private to this module (task Z9)
+	const char* get_render_passes_game_resolved_baseline_text(
+		void) const noexcept override;
+	void set_render_passes_game_resolved_baseline_text(
+		const char* p_text) noexcept override;
 
 	void initialize_render_graph(
 		kotek::uint8_t render_graph_id,
@@ -220,8 +224,9 @@ private:
 	void UpdateInput(void) noexcept;
 	void UpdateCamera(void) noexcept;
 
-	const zircon_imgui_elements_t&
-	get_ui_imgui_elements();
+	kotek::uint8_t get_ui_imgui_element_count(void) const noexcept;
+	kotek::core::ktkISDKUIElement* get_ui_imgui_element_at(
+		kotek::uint8_t index) const noexcept;
 
 	/// @brief \~english task Z3 P2h: the streaming folder of the
 	/// currently loaded scene (the current editor session's command
@@ -266,7 +271,6 @@ private:
 	kotek::core::ktkWindowConsole* m_p_window_console;
 	zircon_interface_session* m_p_current_session;
 	renderers_t m_renderers;
-	zircon_imgui_elements_t empty_ui_elements;
 #ifdef KOTEK_USE_SDK
 	void* m_p_window_handle;
 	sdk::ui::zircon_RenderWindow* m_p_sdk_render_window;

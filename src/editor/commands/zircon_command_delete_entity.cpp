@@ -1,12 +1,11 @@
 #include "zircon_command_delete_entity.h"
 #include "../../ecs/zircon_factory.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
 #include "../commands/zircon_command_history.h"
 
 zircon_command_delete_entity::zircon_command_delete_entity(
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	zircon_factory* p_factory,
 	kotek::entity_t entity_to_delete
 ) :
@@ -34,7 +33,7 @@ void zircon_command_delete_entity::Execute(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -119,7 +118,7 @@ void zircon_command_delete_entity::Execute(void)
 		// the selection must not outlive the entity (same rule as
 		// zircon_command_create_entity::Undo — stale selected ids reach
 		// per-frame pico consumers)
-		zircon_editor_ui_state* p_ui_state = p_session->get_ui_state();
+		zircon_editor_ui_state_interface* p_ui_state = p_session->get_ui_state();
 
 		if (p_ui_state &&
 			p_ui_state->get_selected_entity().id ==
@@ -155,7 +154,7 @@ void zircon_command_delete_entity::Undo(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -207,7 +206,7 @@ void zircon_command_delete_entity::Undo(void)
 		zircon_factory* p_factory = p_world->get_factory();
 
 		// NOTE: the entity id reincarnation is reported to the
-		// history by zircon_editor_command_history::Undo itself
+		// history by zircon_editor_command_history_interface::Undo itself
 		// (it observes GetEntityID before/after), the command must
 		// not call update_dependent_commands on its own: a
 		// journal-reconstructed command only knows its recorded id
@@ -489,11 +488,9 @@ void zircon_command_delete_entity::capture_component_states(
 
 		this->m_components.push_back(component_type);
 
-		kotek::ktk::json::value serialized_state =
-			zircon_serialize_component(p_component);
-
-		auto serialized_string =
-			kotek::ktk::json::serialize(serialized_state);
+		zircon_command_text_state serialized_state;
+		serialized_state.capture(p_component);
+		const auto serialized_string = serialized_state.text();
 
 		if (this->m_states_used + serialized_string.size() + 1 >
 		        sizeof(this->m_states_buffer) ||

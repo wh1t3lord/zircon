@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kotek.render.shared.bgfx/include/kotek_render_graph_simplified.h>
+#include "../../core/zircon_editor_renderer_interface.h"
 
 // the pass-library seam (task Z3 P3a): owns the hot-swappable passes DLL
 // in the graphics-development configuration and installs the create/
@@ -27,13 +28,6 @@ class zircon_session_game_manager;
 
 #define ZIRCON_DEF_RENDERER_BGFX_MAX_RENDER_GRAPH_COUNT 2
 
-/// one pass class name inside a graph slot's name list; measured: the
-/// longest registered name today is
-/// "no_streaming::zircon_render_graph_pass_editor_model_static_bgfx"
-/// (63 chars), 96 gives ~1.5x headroom (rule 9) — raise when a
-/// legitimately longer pass name registers
-#define ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH 96
-
 struct zircon_render_graph_simplified_bgfx_info_t
 {
 	bool in_use{};
@@ -46,27 +40,16 @@ struct zircon_render_graph_simplified_bgfx_info_t
 	/// draw() — never mid-pass from inside the imgui Draw call
 	bool rebuild_pending{};
 
-	/// the session's pass class-name list in execution order, aligned
-	/// with pass_enabled and with graph.Get_Passes(); the names live
-	/// here (not in the pass objects) so the editor window reads them
-	/// without touching passes — a pass library unload (P3 hot-reload)
-	/// can never dangle them
+	/// executor-owned pass metadata; UI reaches it through scalar/string
+	/// accessors on zircon_editor_renderer_interface, never by container ABI
 	kotek::static_vector_t<
 		kotek::static_cstring_t<
 			ZIRCON_DEF_RENDERER_BGFX_PASS_NAME_MAX_LENGTH>,
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 		pass_names;
-
-	/// per-pass skip flags aligned with pass_names (and the graph's
-	/// pass order): false = draw() skips that pass's OnUpdate/OnRender.
-	/// The window's enable checkbox flips these — instant, no
-	/// destroy/create. Default: every pass enabled
 	kotek::static_vector_t<bool,
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 		pass_enabled;
-
-	/// aligned with pass_names: an essential pass disabled through the
-	/// editor is restored by ESC, even when the disabled pass owns the UI
 	kotek::static_vector_t<bool,
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT>
 		pass_restore_on_escape;
@@ -80,7 +63,15 @@ kotek::uint8_t zircon_restore_essential_render_passes(
 	zircon_render_graph_simplified_bgfx_info_t* p_infos,
 	kotek::uint8_t info_count) noexcept;
 
-class zircon_renderer_bgfx : public kotek::core::ktkIRenderer
+/// shared fallback camera used by the grid pass and the editor renderer
+/// interface; kept in the executor so UI never links a concrete pass.
+void zircon_build_default_orbit_view_projection(float* p_out_view,
+	float* p_out_projection, float aspect_ratio,
+	bool homogeneous_depth) noexcept;
+
+class zircon_renderer_bgfx
+	: public kotek::core::ktkIRenderer,
+	  public zircon_editor_renderer_interface
 {
 public:
 	zircon_renderer_bgfx(kotek::core::ktkMainManager* p_main_manager);
@@ -176,49 +167,50 @@ public:
 	/// configuration: 0 / false forever (the window keeps its
 	/// compile-time ctor tables — zero behavior change)
 	kotek::uint32_t get_pass_library_registry_generation(
-		void) const noexcept;
+		void) const noexcept override;
 	bool get_pass_library_registry(
 		const char* const*& out_p_editor_pass_names,
 		kotek::uint8_t& out_editor_pass_count,
 		const char* const*& out_p_game_pass_names,
-		kotek::uint8_t& out_game_pass_count) const noexcept;
-
-#ifdef ZIRCON_USE_GRAPHICS_DEVELOPMENT
-	/// the user-visible pass-library reload status for the Render Passes
-	/// window (task Z3 P3b UX): a passthrough to the pass library
-	/// manager's state — false when there is nothing to show (kIdle: the
-	/// initial state, or the graphics_development feature is off and the
-	/// swap never runs)
+		kotek::uint8_t& out_game_pass_count) const noexcept override;
 	bool get_pass_library_status(
 		eZirconRenderPassLibraryStatus& out_status,
-		const char*& out_p_message) const noexcept;
-#endif
+		const char*& out_p_message) const noexcept override;
 
 	/// Render Passes window reads (Z3 P2a): slot count + read-only slot
 	/// state + the slot id of a session kind (returns
 	/// kotek::uint8_t(-1) when no such slot exists — compare against
 	/// get_render_graph_count())
-	kotek::uint8_t get_render_graph_count(void) const noexcept;
-	const zircon_render_graph_simplified_bgfx_info_t&
-	get_render_graph_info(kotek::uint8_t render_graph_id) const noexcept;
+	kotek::uint8_t get_render_graph_count(void) const noexcept override;
 	kotek::uint8_t get_render_graph_id_for_session_kind(
-		bool is_game_session) const noexcept;
+		bool is_game_session) const noexcept override;
+	kotek::uint8_t get_render_graph_pass_count(
+		kotek::uint8_t render_graph_id) const noexcept override;
+	const char* get_render_graph_pass_name(kotek::uint8_t render_graph_id,
+		kotek::uint8_t pass_index) const noexcept override;
+	bool is_render_graph_pass_enabled(kotek::uint8_t render_graph_id,
+		kotek::uint8_t pass_index) const noexcept override;
 
 	/// instant enable/disable: flips the slot's skip flag, applied from
 	/// the next frame — no pass destroy/create
 	void set_render_pass_enabled(kotek::uint8_t render_graph_id,
-		kotek::uint8_t pass_index, bool enabled) noexcept;
+		kotek::uint8_t pass_index, bool enabled) noexcept override;
 
 	/// structural edits: mutate the slot's name list and queue a
 	/// frame-boundary rebuild of that graph (processed at the top of
 	/// the next draw() — the window calls these from inside the imgui
 	/// pass's Draw, where graph surgery would delete the running pass)
 	void request_render_pass_add(kotek::uint8_t render_graph_id,
-		const char* p_pass_name) noexcept;
+		const char* p_pass_name) noexcept override;
 	void request_render_pass_remove(kotek::uint8_t render_graph_id,
-		kotek::uint8_t pass_index) noexcept;
+		kotek::uint8_t pass_index) noexcept override;
 	void request_render_pass_move(kotek::uint8_t render_graph_id,
-		kotek::uint8_t pass_index, bool move_up) noexcept;
+		kotek::uint8_t pass_index, bool move_up) noexcept override;
+
+	bool get_editor_gpu_stats(
+		zircon_editor_gpu_stats_t& out_stats) const noexcept override;
+	void build_default_orbit_view_projection(float* p_out_view,
+		float* p_out_projection, float aspect_ratio) const noexcept override;
 
 private:
 	void initialize_extensions(kotek::core::ktkConsole* p_console);

@@ -1,6 +1,6 @@
 #include "zircon_ui_window_render_stats.h"
-#include "zircon_editor_ui_state.h"
-#include "../../render/bgfx/zircon_renderer.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
+#include "../../core/zircon_editor_renderer_interface.h"
 
 zircon_editor_ui_window_render_stats::zircon_editor_ui_window_render_stats() :
 	m_is_show_window(false)
@@ -31,30 +31,36 @@ void zircon_editor_ui_window_render_stats::Draw(
 				{
 					if (p_wrapper_imgui->CollapsingHeader("GPU (bgfx)"))
 					{
-						const bgfx::Stats* p_stats = bgfx::getStats();
+						zircon_editor_renderer_interface* p_renderer = nullptr;
+						if (p_main_manager->GetGameManager())
+						{
+							p_renderer = dynamic_cast<zircon_editor_renderer_interface*>(
+								p_main_manager->GetGameManager()->GetRenderer());
+						}
 
-						if (p_stats)
+						zircon_editor_gpu_stats_t stats{};
+						if (p_renderer && p_renderer->get_editor_gpu_stats(stats))
 						{
 							constexpr float bytes_to_mib = 1.0f / (1024.0f * 1024.0f);
 
 							p_wrapper_imgui->Text("Texture memory: %.2f MiB",
-								static_cast<float>(p_stats->textureMemoryUsed) * bytes_to_mib);
+								static_cast<float>(stats.m_texture_memory_used) * bytes_to_mib);
 							p_wrapper_imgui->Text("Render-target memory: %.2f MiB",
-								static_cast<float>(p_stats->rtMemoryUsed) * bytes_to_mib);
+								static_cast<float>(stats.m_render_target_memory_used) * bytes_to_mib);
 							p_wrapper_imgui->Text("Transient vertex: %.2f MiB",
-								static_cast<float>(p_stats->transientVbUsed) * bytes_to_mib);
+								static_cast<float>(stats.m_transient_vertex_memory_used) * bytes_to_mib);
 							p_wrapper_imgui->Text("Transient index: %.2f MiB",
-								static_cast<float>(p_stats->transientIbUsed) * bytes_to_mib);
+								static_cast<float>(stats.m_transient_index_memory_used) * bytes_to_mib);
 							p_wrapper_imgui->Text("Dynamic VB/IB: %u / %u",
-								p_stats->numDynamicVertexBuffers,
-								p_stats->numDynamicIndexBuffers);
+								stats.m_dynamic_vertex_buffer_count,
+								stats.m_dynamic_index_buffer_count);
 							p_wrapper_imgui->Text("Vertex/index buffers: %u / %u",
-								p_stats->numVertexBuffers, p_stats->numIndexBuffers);
+								stats.m_vertex_buffer_count, stats.m_index_buffer_count);
 							p_wrapper_imgui->Text("Textures: %u | frame buffers: %u",
-								p_stats->numTextures, p_stats->numFrameBuffers);
+								stats.m_texture_count, stats.m_frame_buffer_count);
 							p_wrapper_imgui->Text("Programs: %u | shaders: %u | uniforms: %u",
-								p_stats->numPrograms, p_stats->numShaders,
-								p_stats->numUniforms);
+								stats.m_program_count, stats.m_shader_count,
+								stats.m_uniform_count);
 						}
 						else
 						{

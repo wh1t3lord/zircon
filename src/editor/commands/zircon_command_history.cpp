@@ -1,8 +1,7 @@
 #include "zircon_command_history.h"
 #include "../../world/zircon_world.h"
 #include "../../ecs/zircon_factory.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
 
 constexpr const char* _kJournalFileNameWithExtension =
 	"history.zjrnl";
@@ -43,7 +42,7 @@ zircon_editor_command_history::~zircon_editor_command_history(
 }
 
 void zircon_editor_command_history::initialize(
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	kotek::core::ktkIFileSystem* p_filesystem,
 	const char* p_streaming_folder_name
 )
@@ -532,12 +531,13 @@ bool zircon_editor_command_history::is_changed() const noexcept
 	return this->m_is_changed;
 }
 
-const kotek::array_t<
-	kotek::core::ktkISDKRedoUndo*,
-	zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE>&
-zircon_editor_command_history::GetCommands(void) const noexcept
+kotek::core::ktkISDKRedoUndo*
+zircon_editor_command_history::get_command_at_slot(
+	kotek::uint8_t slot_index) const noexcept
 {
-	return this->m_pool_commands;
+	return slot_index < this->m_pool_commands.size()
+		? this->m_pool_commands[slot_index]
+		: nullptr;
 }
 
 void zircon_editor_command_history::update_dependent_commands(
@@ -1394,7 +1394,7 @@ zircon_editor_command_history::get_current_world(void) noexcept
 
 	if (this->m_p_manager_session_editor)
 	{
-		zircon_session_editor* p_session =
+		zircon_session_editor_interface* p_session =
 			this->m_p_manager_session_editor->get_session(
 				this->m_p_manager_session_editor
 					->get_current_session_id()
@@ -1501,11 +1501,10 @@ void zircon_editor_command_history::capture_world_state(
 			if (p_component == nullptr)
 				continue;
 
-			kotek::ktk::json::value serialized_state =
-				zircon_serialize_component(p_component);
+			zircon_command_text_state serialized_state;
+			serialized_state.capture(p_component);
 
-			auto state_string =
-				kotek::ktk::json::serialize(serialized_state);
+			const auto state_string = serialized_state.text();
 
 			append_u32(static_cast<kotek::uint32_t>(
 				component_type

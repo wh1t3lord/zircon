@@ -33,7 +33,19 @@ cmake -S . -B build_cli -DKOTEK_ASSERT_STDERR_ROUTING=ON
 
 CLI mode routes CRT assertions/errors to stderr and fails fast without a modal
 dialog or debugger-triggered break; ordinary console logging stays enabled.
-`validate_all_configs.bat` compiles the native tree but boots only `build_cli`.
+`validate_all_configs.bat` compiles the native tree but boots only explicitly
+CLI-routed trees.
+
+To build every zircon module as an implicit DLL while keeping kotek static
+(the editor modules included, task Z9):
+
+```bash
+cmake -S . -B build-shared -DKOTEK_ASSERT_STDERR_ROUTING=ON -DKOTEK_LINKAGE_FORCE_SHARED="zircon.core;zircon.ecs;zircon.editor;zircon.editor.commands;zircon.editor.session;zircon.editor.ui;zircon.game;zircon.game.session;zircon.render;zircon.world"
+```
+
+The render-pass libraries remain static implementation details of `game.ktk`.
+Full `KOTEK_LINKAGE=SHARED` additionally requires breaking kotek's own module
+cycles and is tracked by K18, not Z9.
 
 kotek's `KOTEK_JSON_SHORT_KEYS=AUTO` keeps human-readable JSON keys in
 Debug and emits stable 4-character base32 keys in the other configurations

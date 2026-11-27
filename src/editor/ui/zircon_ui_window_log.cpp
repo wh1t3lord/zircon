@@ -1,5 +1,5 @@
 #include "zircon_ui_window_log.h"
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 
 zircon_editor_ui_window_log::zircon_editor_ui_window_log() : m_is_show_window(false)
 {

@@ -448,10 +448,13 @@ namespace no_streaming
 					this->m_p_manager_main);
 			}
 
-			auto& imgui_ui_elements = p_session->get_imgui_ui_elements();
+			const kotek::uint8_t element_count =
+				p_session->get_imgui_ui_element_count();
 
-			for (auto* p_element : imgui_ui_elements)
+			for (kotek::uint8_t i = 0; i < element_count; ++i)
 			{
+				kotek::core::ktkISDKUIElement* p_element =
+					p_session->get_imgui_ui_element_at(i);
 				if (p_element)
 				{
 					p_element->Draw(this->m_p_manager_main);

@@ -1,9 +1,9 @@
 #include "zircon_ui_test_harness.h"
 
 #include "../../core/zircon_config.h"
-#include "../../render/bgfx/zircon_renderer.h"
+#include "../../core/zircon_editor_renderer_interface.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
+#include "../../core/zircon_session_editor_interface.h"
 
 #include <kotek.core.filesystem/include/kotek_filesystem_helpers.h>
 #include <kotek.core.input/include/kotek_input.h>
@@ -297,7 +297,7 @@ zircon_ui_test_harness::get_widget_registry(void) noexcept
 
 void zircon_ui_test_harness::activate(const char* p_test_name,
 	kotek::core::ktkMainManager* p_main_manager,
-	zircon_session_editor* p_session) noexcept
+	zircon_session_editor_interface* p_session) noexcept
 {
 	KOTEK_ASSERT(p_test_name && p_test_name[0] != '\0',
 		"--ui_test= needs a value (--ui_test=all or a test name)");
@@ -315,11 +315,11 @@ void zircon_ui_test_harness::activate(const char* p_test_name,
 		"in editor boots) — the UI-press harness drives the editor's imgui "
 		"frame");
 
-	zircon_renderer_bgfx* p_renderer_bgfx = nullptr;
+	zircon_editor_renderer_interface* p_renderer_bgfx = nullptr;
 
 	if (p_main_manager->GetGameManager())
 	{
-		p_renderer_bgfx = dynamic_cast<zircon_renderer_bgfx*>(
+		p_renderer_bgfx = dynamic_cast<zircon_editor_renderer_interface*>(
 			p_main_manager->GetGameManager()->GetRenderer());
 
 		this->m_p_native_window_handle =
@@ -456,7 +456,7 @@ void zircon_ui_test_harness::activate(const char* p_test_name,
 
 void zircon_ui_test_harness::on_frame_pre_draw(
 	kotek::core::ktkIImguiWrapper* p_wrapper,
-	zircon_session_editor* p_session,
+	zircon_session_editor_interface* p_session,
 	kotek::core::ktkMainManager* p_main_manager) noexcept
 {
 	if (this->m_is_active == false || this->m_is_finished)

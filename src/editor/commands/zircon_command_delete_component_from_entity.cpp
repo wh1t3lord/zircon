@@ -1,12 +1,11 @@
 #include "zircon_command_delete_component_from_entity.h"
 #include "../../world/zircon_world.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
 #include "../../ecs/zircon_factory.h"
 
 zircon_command_delete_component_from_entity::
 	zircon_command_delete_component_from_entity(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t id,
 		const char* p_component_string
@@ -39,7 +38,7 @@ zircon_command_delete_component_from_entity::
 
 zircon_command_delete_component_from_entity::
 	zircon_command_delete_component_from_entity(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) :
 	m_id{kotek::ktk::kInvalidECSEntity},
@@ -76,7 +75,7 @@ void zircon_command_delete_component_from_entity::Execute(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -164,8 +163,7 @@ void zircon_command_delete_component_from_entity::Execute(void)
 				// the delta (state before deletion) is captured
 				// eagerly so the journal entry is complete even
 				// if this object gets evicted from the live pool
-				this->m_serialized_state_of_deleted_component =
-					zircon_serialize_component(p_component);
+				this->m_serialized_state_of_deleted_component .capture(p_component);
 
 				this->m_p_factory->remove_component(
 					p_world->get_ecs_context(),
@@ -200,7 +198,7 @@ void zircon_command_delete_component_from_entity::Undo(void)
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id()
@@ -274,10 +272,8 @@ void zircon_command_delete_component_from_entity::Undo(void)
 
 				if (p_component)
 				{
-					this->m_p_factory->DeserializeComponent(
-						p_component,
-						this->m_serialized_state_of_deleted_component
-					);
+					this->m_serialized_state_of_deleted_component.apply(
+						this->m_p_factory, p_component);
 				}
 
 				KOTEK_MESSAGE(
@@ -351,9 +347,8 @@ bool zircon_command_delete_component_from_entity::Serialize_Delta(
 			this->m_component_name.size()
 		);
 
-	auto state_string = kotek::ktk::json::serialize(
-		this->m_serialized_state_of_deleted_component
-	);
+	const auto state_string =
+		this->m_serialized_state_of_deleted_component.text();
 
 	status = status &&
 		writer.write_string(
@@ -397,8 +392,7 @@ bool zircon_command_delete_component_from_entity::
 
 	kotek::ktk::json::error_code parse_error;
 
-	this->m_serialized_state_of_deleted_component =
-		kotek::ktk::json::parse(
+	this->m_serialized_state_of_deleted_component.assign_text(
 			kotek::cstring_view_t(
 				state_buffer.data(), strlen(state_buffer.data())
 			),

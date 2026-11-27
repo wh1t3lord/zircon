@@ -1,4 +1,5 @@
 #include "zircon_session_editor.h"
+#include "zircon_session_editor_manager.h"
 #include "zircon_editor_sdk_camera.h"
 #include "../../world/zircon_world.h"
 #include "../../ecs/zircon_factory.h"
@@ -433,8 +434,17 @@ void zircon_session_editor::Serialize_Entities(text_t& output
 						p_context, id, component_type
 					);
 
-				entity[component_name] =
-					zircon_serialize_component(p_component);
+				kotek::array_t<char, zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON>
+					state_buffer{};
+				const kotek::size_t state_size =
+					zircon_serialize_component_to_buffer(
+						p_component, state_buffer.data(), state_buffer.size());
+				kotek::ktk::json::error_code parse_error;
+				entity[component_name] = kotek::ktk::json::parse(
+					kotek::cstring_view_t(state_buffer.data(), state_size),
+					parse_error);
+				KOTEK_ASSERT(state_size != 0 && !parse_error,
+					"failed to serialize a component to bounded JSON text");
 			}
 
 			all_entities.push_back(entity);
@@ -625,17 +635,38 @@ zircon_world* zircon_session_editor::get_world(void) const noexcept
 	return this->m_p_world;
 }
 
-void zircon_session_editor::set_imgui_ui_elements(
-	const zircon_imgui_elements_t& imgui_elements) noexcept
+void zircon_session_editor::register_imgui_ui_element(
+	kotek::core::ktkISDKUIElement* p_element) noexcept
 {
-	KOTEK_ASSERT(this->m_imgui_ui_elements.empty(), "already initialized!");
-	this->m_imgui_ui_elements = imgui_elements;
+	KOTEK_ASSERT(p_element, "must be valid");
+	KOTEK_ASSERT(
+		this->m_imgui_ui_elements.size() <
+			this->m_imgui_ui_elements.capacity(),
+		"too many imgui elements, raise ZIRCON_DEF_EDITOR_IMGUI_ELEMENTS_MAX");
+
+	if (p_element == nullptr ||
+		this->m_imgui_ui_elements.size() >=
+			this->m_imgui_ui_elements.capacity())
+	{
+		return;
+	}
+
+	this->m_imgui_ui_elements.push_back(p_element);
 }
 
-const zircon_imgui_elements_t&
-zircon_session_editor::get_imgui_ui_elements(void) const noexcept
+kotek::uint8_t zircon_session_editor::get_imgui_ui_element_count(
+	void) const noexcept
 {
-	return this->m_imgui_ui_elements;
+	return static_cast<kotek::uint8_t>(this->m_imgui_ui_elements.size());
+}
+
+kotek::core::ktkISDKUIElement*
+zircon_session_editor::get_imgui_ui_element_at(
+	kotek::uint8_t index) const noexcept
+{
+	return index < this->m_imgui_ui_elements.size()
+		? this->m_imgui_ui_elements[index]
+		: nullptr;
 }
 
 void zircon_session_editor::Deserialize(

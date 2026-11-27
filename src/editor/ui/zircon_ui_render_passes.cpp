@@ -3,12 +3,13 @@
 #include <cstring>
 
 #include "../../core/zircon_config.h"
-#include "../../render/bgfx/zircon_renderer.h"
+#include "../../core/zircon_editor_renderer_interface.h"
+#include "../../core/zircon_editor_render_pass_baseline_interface.h"
 #include "zircon_ui_test_harness.h"
 
 // eZirconWindowIDs (generated) arrives through this include chain,
 // same as the other editor windows
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 
 namespace
 {
@@ -153,13 +154,12 @@ namespace
 
 zircon_editor_ui_window_render_passes::
 	zircon_editor_ui_window_render_passes(zircon_config* p_config,
-		zircon_renderer_bgfx* p_renderer_bgfx,
+		zircon_editor_renderer_interface* p_renderer_bgfx,
 		const char* const* p_registry_editor_pass_names,
 		kotek::uint8_t registry_editor_pass_count,
 		const char* const* p_registry_game_pass_names,
 		kotek::uint8_t registry_game_pass_count,
-		kotek::static_cstring_t<
-			ZIRCON_DEF_CONFIG_RENDER_PASS_LIST_MAX_LENGTH>*
+		zircon_editor_render_pass_baseline_interface*
 			p_render_passes_game_resolved_baseline,
 		zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_window_show(false), m_dont_show_on_start(false),
@@ -408,15 +408,13 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 		return;
 	}
 
-	const zircon_render_graph_simplified_bgfx_info_t& info =
-		this->m_p_renderer_bgfx->get_render_graph_info(render_graph_id);
 
 	// the live set, in execution order; a structural edit (move/
 	// remove) stops the row pass immediately — the list it was drawn
 	// from just changed under it, and imgui redraws everything next
 	// frame anyway
 	const kotek::uint8_t pass_count =
-		static_cast<kotek::uint8_t>(info.pass_names.size());
+		this->m_p_renderer_bgfx->get_render_graph_pass_count(render_graph_id);
 
 	bool is_structure_changed = false;
 
@@ -424,7 +422,7 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 	{
 		p_wrapper_imgui->PushID(static_cast<int>(i));
 
-		bool is_enabled = info.pass_enabled[i];
+		bool is_enabled = this->m_p_renderer_bgfx->is_render_graph_pass_enabled(render_graph_id, i);
 
 		if (p_wrapper_imgui->Checkbox("##enabled", &is_enabled))
 		{
@@ -439,8 +437,9 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 			// on an enable)
 			if (is_enabled)
 			{
-				this->apply_gizmo_exclusion(render_graph_id, info,
-					info.pass_names[i].c_str());
+				this->apply_gizmo_exclusion(render_graph_id,
+					this->m_p_renderer_bgfx->get_render_graph_pass_name(
+						render_graph_id, i));
 			}
 		}
 
@@ -448,16 +447,16 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 		// "<verb>:<session>:<full pass name>"
 		zircon_render_pass_track_widget(p_wrapper_imgui,
 			this->m_p_widget_registry, "enabled", is_game_session,
-			info.pass_names[i].c_str());
+			this->m_p_renderer_bgfx->get_render_graph_pass_name(render_graph_id, i));
 
 		p_wrapper_imgui->SameLine();
 		p_wrapper_imgui->TextUnformatted(zircon_render_pass_display_name(
-			info.pass_names[i].c_str()));
+			this->m_p_renderer_bgfx->get_render_graph_pass_name(render_graph_id, i)));
 
 		p_wrapper_imgui->SameLine();
 
 		if (this->is_registered(
-				is_game_session, info.pass_names[i].c_str()))
+				is_game_session, this->m_p_renderer_bgfx->get_render_graph_pass_name(render_graph_id, i)))
 		{
 			p_wrapper_imgui->TextDisabled("[active]");
 		}
@@ -482,7 +481,7 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 
 			zircon_render_pass_track_widget(p_wrapper_imgui,
 				this->m_p_widget_registry, "move_up", is_game_session,
-				info.pass_names[i].c_str());
+				this->m_p_renderer_bgfx->get_render_graph_pass_name(render_graph_id, i));
 		}
 
 		if (!is_structure_changed && i + 1 < pass_count)
@@ -498,7 +497,7 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 
 			zircon_render_pass_track_widget(p_wrapper_imgui,
 				this->m_p_widget_registry, "move_down", is_game_session,
-				info.pass_names[i].c_str());
+				this->m_p_renderer_bgfx->get_render_graph_pass_name(render_graph_id, i));
 		}
 
 		if (!is_structure_changed)
@@ -514,7 +513,7 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 
 			zircon_render_pass_track_widget(p_wrapper_imgui,
 				this->m_p_widget_registry, "remove", is_game_session,
-				info.pass_names[i].c_str());
+				this->m_p_renderer_bgfx->get_render_graph_pass_name(render_graph_id, i));
 		}
 
 		p_wrapper_imgui->PopID();
@@ -542,9 +541,14 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 
 		bool is_in_live_set = false;
 
-		for (const auto& live_name : info.pass_names)
+		for (kotek::uint8_t live_index = 0; live_index < pass_count;
+		     ++live_index)
 		{
-			if (live_name == p_pass_name)
+			const char* p_live_name =
+				this->m_p_renderer_bgfx->get_render_graph_pass_name(
+					render_graph_id, live_index);
+
+			if (p_live_name && std::strcmp(p_live_name, p_pass_name) == 0)
 			{
 				is_in_live_set = true;
 				break;
@@ -582,7 +586,7 @@ void zircon_editor_ui_window_render_passes::draw_session_section(
 			// gizmo while the sibling is in the set disables the sibling
 			// now (its skip flag is instant, no rebuild needed)
 			this->apply_gizmo_exclusion(
-				render_graph_id, info, p_pass_name);
+				render_graph_id, p_pass_name);
 
 			p_wrapper_imgui->PopID();
 
@@ -645,7 +649,6 @@ int zircon_editor_ui_window_render_passes::compute_gizmo_exclusion(
 
 void zircon_editor_ui_window_render_passes::apply_gizmo_exclusion(
 	kotek::uint8_t render_graph_id,
-	const zircon_render_graph_simplified_bgfx_info_t& graph_info,
 	const char* p_just_enabled_pass_name) noexcept
 {
 	if (this->m_p_renderer_bgfx == nullptr)
@@ -654,8 +657,8 @@ void zircon_editor_ui_window_render_passes::apply_gizmo_exclusion(
 	const char* p_names
 		[KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT]{};
 
-	kotek::uint8_t name_count = static_cast<kotek::uint8_t>(
-		graph_info.pass_names.size());
+	kotek::uint8_t name_count =
+		this->m_p_renderer_bgfx->get_render_graph_pass_count(render_graph_id);
 
 	if (name_count >
 		KOTEK_DEF_RENDER_GL_RENDER_GRAPH_SIMPLIFIED_MAX_PASS_COUNT)
@@ -665,7 +668,10 @@ void zircon_editor_ui_window_render_passes::apply_gizmo_exclusion(
 	}
 
 	for (kotek::uint8_t i = 0; i < name_count; ++i)
-		p_names[i] = graph_info.pass_names[i].c_str();
+	{
+		p_names[i] = this->m_p_renderer_bgfx->get_render_graph_pass_name(
+			render_graph_id, i);
+	}
 
 	const int sibling_index = compute_gizmo_exclusion(
 		p_just_enabled_pass_name, p_names, name_count);
@@ -717,8 +723,6 @@ bool zircon_editor_ui_window_render_passes::is_session_dirty(
 		return false;
 	}
 
-	const zircon_render_graph_simplified_bgfx_info_t& info =
-		this->m_p_renderer_bgfx->get_render_graph_info(render_graph_id);
 
 	kotek::static_vector_t<
 		kotek::static_cstring_t<
@@ -738,24 +742,36 @@ bool zircon_editor_ui_window_render_passes::is_session_dirty(
 		is_game_session ? this->m_p_config->get_render_passes_game()
 		                : this->m_p_config->get_render_passes_editor();
 
-	if (is_game_session &&
-		this->m_p_render_passes_game_resolved_baseline &&
-		!this->m_p_render_passes_game_resolved_baseline->empty())
+	const char* p_resolved_baseline =
+		this->m_p_render_passes_game_resolved_baseline
+			? this->m_p_render_passes_game_resolved_baseline
+				  ->get_render_passes_game_resolved_baseline_text()
+			: nullptr;
+
+	if (is_game_session && p_resolved_baseline &&
+		p_resolved_baseline[0] != '\0')
 	{
-		p_saved_list =
-			this->m_p_render_passes_game_resolved_baseline->c_str();
+		p_saved_list = p_resolved_baseline;
 	}
 
 	zircon_split_render_pass_list(p_saved_list, saved_names);
 
-	if (saved_names.size() != info.pass_names.size())
+	const kotek::uint8_t live_pass_count =
+		this->m_p_renderer_bgfx->get_render_graph_pass_count(render_graph_id);
+
+	if (saved_names.size() != live_pass_count)
 	{
 		return true;
 	}
 
 	for (kotek::ktk::size_t i = 0; i < saved_names.size(); ++i)
 	{
-		if (!(saved_names[i] == info.pass_names[i]))
+		const char* p_live_name =
+			this->m_p_renderer_bgfx->get_render_graph_pass_name(
+				render_graph_id, static_cast<kotek::uint8_t>(i));
+
+		if (p_live_name == nullptr ||
+			std::strcmp(saved_names[i].c_str(), p_live_name) != 0)
 		{
 			return true;
 		}
@@ -795,8 +811,8 @@ void zircon_editor_ui_window_render_passes::save(
 				continue;
 			}
 
-			const zircon_render_graph_simplified_bgfx_info_t& info =
-				this->m_p_renderer_bgfx->get_render_graph_info(
+			const kotek::uint8_t pass_count =
+				this->m_p_renderer_bgfx->get_render_graph_pass_count(
 					render_graph_id);
 
 			kotek::static_cstring_t<
@@ -807,9 +823,13 @@ void zircon_editor_ui_window_render_passes::save(
 			// window must fail loudly but gracefully instead
 			kotek::ktk::size_t joined_length = 0;
 
-			for (const auto& name : info.pass_names)
+			for (kotek::uint8_t i = 0; i < pass_count; ++i)
 			{
-				joined_length += name.size() + 1; // +1 for ','/NUL
+				const char* p_name =
+					this->m_p_renderer_bgfx->get_render_graph_pass_name(
+						render_graph_id, i);
+				if (p_name)
+					joined_length += std::strlen(p_name) + 1; // ','/NUL
 			}
 
 			if (joined_length >
@@ -825,14 +845,20 @@ void zircon_editor_ui_window_render_passes::save(
 
 			bool is_first = true;
 
-			for (const auto& name : info.pass_names)
+			for (kotek::uint8_t i = 0; i < pass_count; ++i)
 			{
+				const char* p_name =
+					this->m_p_renderer_bgfx->get_render_graph_pass_name(
+						render_graph_id, i);
+				if (p_name == nullptr)
+					continue;
+
 				if (!is_first)
 				{
 					joined += ',';
 				}
 
-				joined += name.c_str();
+				joined += p_name;
 				is_first = false;
 			}
 
@@ -848,7 +874,8 @@ void zircon_editor_ui_window_render_passes::save(
 				if (this->m_p_render_passes_game_resolved_baseline)
 				{
 					this->m_p_render_passes_game_resolved_baseline
-						->assign(joined.c_str());
+						->set_render_passes_game_resolved_baseline_text(
+							joined.c_str());
 				}
 			}
 			else

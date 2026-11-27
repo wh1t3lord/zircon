@@ -1,13 +1,12 @@
 #include "zircon_ui_top_bar.h"
-#include "../session/zircon_session_editor.h"
-#include "zircon_editor_ui_state.h"
-#include "../session/zircon_session_editor_manager.h"
+#include "../../core/zircon_session_editor_interface.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 #include "zircon_ui_window_debug_input.h"
 #include "zircon_ui_test_harness.h"
 #include "../../core/zircon_console.h"
 
 zircon_editor_ui_window_top_bar::zircon_editor_ui_window_top_bar(
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_show_window(true), m_p_manager_session_editor{p_manager_session_editor},
 	m_p_widget_registry{p_widget_registry}
@@ -227,7 +226,7 @@ void zircon_editor_ui_window_top_bar::Draw(
 							if (p_game_manager &&
 								this->m_p_manager_session_editor)
 							{
-								zircon_session_editor* p_session =
+								zircon_session_editor_interface* p_session =
 									this->m_p_manager_session_editor
 										->get_session(
 											this->m_p_manager_session_editor
@@ -238,11 +237,17 @@ void zircon_editor_ui_window_top_bar::Draw(
 									this->m_p_manager_session_editor
 										->get_current_session_id());
 
-								const auto& imgui_elements =
-									p_session->get_imgui_ui_elements();
+								const kotek::uint8_t element_count =
+									p_session->get_imgui_ui_element_count();
 
-								for (const auto& p_element : imgui_elements)
+								for (kotek::uint8_t element_index = 0;
+									element_index < element_count; ++element_index)
 								{
+									kotek::core::ktkISDKUIElement* p_element =
+										p_session->get_imgui_ui_element_at(element_index);
+									if (p_element == nullptr)
+										continue;
+
 									const char* p_window_name =
 										Translate_ZirconWindowIDs(
 											static_cast<eZirconWindowIDs>(
@@ -314,7 +319,7 @@ void zircon_editor_ui_window_top_bar::Draw(
 								if (p_game_manager &&
 									this->m_p_manager_session_editor)
 								{
-									zircon_session_editor* p_session =
+									zircon_session_editor_interface* p_session =
 										this->m_p_manager_session_editor
 											->get_session(
 												this->m_p_manager_session_editor
@@ -326,8 +331,6 @@ void zircon_editor_ui_window_top_bar::Draw(
 										this->m_p_manager_session_editor
 											->get_current_session_id());
 
-									const auto& imgui_elements =
-										p_session->get_imgui_ui_elements();
 								}
 							}
 
@@ -377,7 +380,7 @@ void zircon_editor_ui_window_top_bar::update_modal_save_scene(
 
 		if (p_game_manager && this->m_p_manager_session_editor)
 		{
-			zircon_session_editor* p_session =
+			zircon_session_editor_interface* p_session =
 				this->m_p_manager_session_editor->get_session(
 					this->m_p_manager_session_editor->get_current_session_id());
 
@@ -389,7 +392,7 @@ void zircon_editor_ui_window_top_bar::update_modal_save_scene(
 				return;
 			}
 
-			zircon_editor_ui_state* p_state = p_session->get_ui_state();
+			zircon_editor_ui_state_interface* p_state = p_session->get_ui_state();
 
 			KOTEK_ASSERT(p_state, "ui state wasn't initialized");
 

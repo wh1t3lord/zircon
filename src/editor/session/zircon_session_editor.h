@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/zircon_defs.h"
-#include "../../core/zircon_session.h"
+#include "../../core/zircon_session_editor_interface.h"
 #include "../../core/zircon_cancel_arbiter.h"
 #include "../ui/zircon_editor_ui_state.h"
 #include "../ui/zircon_ui_test_harness.h"
@@ -21,11 +21,9 @@ class ktkConsole;
 KOTEK_END_NAMESPACE_CORE
 KOTEK_END_NAMESPACE_KOTEK
 
-// todo: probably you have to move session to separated project
-// because by design we don't have to have a circular
-// (recursive) dependency from linking and at the same time we
-// shouldn't share projects without direct connections
-class zircon_session_editor : public zircon_interface_session
+// the concrete session owns the editor services; cross-module consumers use
+// zircon_session_editor_interface so the DLL graph stays acyclic (task Z9)
+class zircon_session_editor : public zircon_session_editor_interface
 {
 	friend class zircon_session_editor_manager;
 
@@ -112,11 +110,11 @@ public:
 
 	zircon_world* get_world(void) const noexcept;
 
-	void set_imgui_ui_elements(
-		const zircon_imgui_elements_t& imgui_elements
-	) noexcept;
-	const zircon_imgui_elements_t&
-	get_imgui_ui_elements(void) const noexcept;
+	void register_imgui_ui_element(
+		kotek::core::ktkISDKUIElement* p_element) noexcept;
+	kotek::uint8_t get_imgui_ui_element_count(void) const noexcept override;
+	kotek::core::ktkISDKUIElement* get_imgui_ui_element_at(
+		kotek::uint8_t index) const noexcept override;
 
 private:
 	void update_editing_status(void) noexcept;

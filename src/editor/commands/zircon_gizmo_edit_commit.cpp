@@ -6,8 +6,8 @@
 #include "zircon_command_edit_component_state.h"
 
 bool zircon_gizmo_commit_transform_drag_edit(
-	zircon_session_editor_manager* p_manager_session_editor,
-	zircon_factory* p_factory, zircon_editor_command_history* p_history,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
+	zircon_factory* p_factory, zircon_editor_command_history_interface* p_history,
 	zircon_ecs_context_t* p_context, kotek::entity_t entity,
 	const float* p_start_position, const float* p_start_scale,
 	const float* p_start_rotation_quat) noexcept
@@ -40,8 +40,8 @@ bool zircon_gizmo_commit_transform_drag_edit(
 	// dance the Z6 stress suite does: serialize the after state, restore
 	// the start state, then let the command's Execute capture the true
 	// before and apply the after
-	kotek::ktk::json::value state_after =
-		zircon_serialize_component(p_transform);
+	zircon_command_text_state state_after;
+	state_after.capture(p_transform);
 
 	p_transform->set_position(kotek::math::vec3f_t(p_start_position[0],
 		p_start_position[1], p_start_position[2]));

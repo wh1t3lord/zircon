@@ -1,7 +1,4 @@
 #include "zircon_component_geometry.h"
-#include "../editor/ui/zircon_editor_ui_state.h"
-#include "../editor/session/zircon_session_editor.h"
-#include "../editor/session/zircon_session_editor_manager.h"
 #include <kotek.core.main_manager/include/kotek_core_main_manager.h>
 
 #include <cstring>

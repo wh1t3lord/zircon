@@ -42,13 +42,13 @@
 // appear a frame after their opener click are handled without fragile
 // fixed offsets).
 
-class zircon_session_editor;
-class zircon_editor_command_history;
-class zircon_editor_ui_state;
+class zircon_session_editor_interface;
+class zircon_editor_command_history_interface;
+class zircon_editor_ui_state_interface;
 class zircon_world;
 class zircon_factory;
 class zircon_config;
-class zircon_renderer_bgfx;
+class zircon_editor_renderer_interface;
 
 KOTEK_BEGIN_NAMESPACE_KOTEK
 KOTEK_BEGIN_NAMESPACE_CORE
@@ -285,15 +285,15 @@ struct zircon_ui_test_context_t
 {
 	kotek::core::ktkMainManager* p_main_manager;
 	kotek::core::ktkIImguiWrapper* p_imgui_wrapper;
-	zircon_session_editor* p_session;
-	zircon_editor_command_history* p_history;
-	zircon_editor_ui_state* p_ui_state;
+	zircon_session_editor_interface* p_session;
+	zircon_editor_command_history_interface* p_history;
+	zircon_editor_ui_state_interface* p_ui_state;
 	zircon_world* p_world;
 	zircon_factory* p_factory;
 	zircon_config* p_config;
 	/// nullptr on a non-bgfx backend (activation refuses non-bgfx boots,
 	/// so it is always set inside a run)
-	zircon_renderer_bgfx* p_renderer_bgfx;
+	zircon_editor_renderer_interface* p_renderer_bgfx;
 	zircon_ui_test_widget_registry* p_widgets;
 	/// the game_config.json bytes captured at activation + their size
 	/// (the Save test's byte-identical assertion)
@@ -331,7 +331,7 @@ public:
 	/// non-bgfx renderer (the editor graph exists on bgfx only)
 	void activate(const char* p_test_name,
 		kotek::core::ktkMainManager* p_main_manager,
-		zircon_session_editor* p_session) noexcept;
+		zircon_session_editor_interface* p_session) noexcept;
 
 	bool is_active(void) const noexcept;
 	bool is_finished(void) const noexcept;
@@ -340,7 +340,7 @@ public:
 	/// the editor imgui pass's per-frame hook (after NewFrame + the
 	/// cancel adapter, before the windows draw)
 	void on_frame_pre_draw(kotek::core::ktkIImguiWrapper* p_wrapper,
-		zircon_session_editor* p_session,
+		zircon_session_editor_interface* p_session,
 		kotek::core::ktkMainManager* p_main_manager) noexcept;
 
 	/// the widget sink the instrumented windows are constructed with
@@ -401,10 +401,10 @@ private:
 	kotek::uint32_t m_current_test_failures;
 	void* m_p_native_window_handle;
 	kotek::core::ktkMainManager* m_p_main_manager;
-	zircon_session_editor* p_session_cached;
+	zircon_session_editor_interface* p_session_cached;
 	/// the renderer the probes reach (cached at activate — stable for the
 	/// boot)
-	zircon_renderer_bgfx* m_p_renderer_bgfx_cached;
+	zircon_editor_renderer_interface* m_p_renderer_bgfx_cached;
 	zircon_ui_test_widget_registry m_widget_registry;
 	kotek::static_vector_t<const zircon_ui_test_case_t*,
 		ZIRCON_DEF_UI_TEST_MAX_RUN_TESTS>

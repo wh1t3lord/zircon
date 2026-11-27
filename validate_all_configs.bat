@@ -15,6 +15,7 @@ call :build_leg build       Debug   "native Debug"
 call :build_leg build_cli   Debug   "CLI Debug"
 call :build_leg build_cli   Release "CLI Release"
 call :build_leg build-gfxdev Debug  "graphics-development Debug"
+call :build_leg build-shared Debug  "all-zircon-DLL Debug"
 call :build_leg build-math-own Debug "math KOTEK_OWN Debug"
 call :build_leg build-math   Debug  "math DXM Debug"
 call :build_leg build-test-off Debug "tests-off Debug"
@@ -25,6 +26,7 @@ echo === validation: boots (the headless-capable configs) ===
 
 call :boot_leg build_cli   Debug "CLI Debug boot"
 call :boot_leg build-gfxdev Debug "graphics-development Debug boot"
+call :boot_leg build-shared Debug "all-zircon-DLL Debug boot"
 call :boot_leg build-test-off Debug "tests-off Debug boot"
 
 echo.

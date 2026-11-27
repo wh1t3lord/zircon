@@ -882,3 +882,24 @@ zircon_component_interface* zircon_factory::get_component_by_name(
 	return p_result;
 }
 #endif
+
+kotek::size_t zircon_serialize_component_to_buffer(
+	zircon_component_interface* p_data, char* p_output,
+	kotek::size_t output_capacity) noexcept
+{
+	if (p_data == nullptr || p_output == nullptr || output_capacity == 0)
+		return 0;
+
+	kotek::ktk::json::value serialized_state =
+		zircon_serialize_component(p_data);
+	const auto serialized_string =
+		kotek::ktk::json::serialize(serialized_state);
+
+	if (serialized_string.size() + 1 > output_capacity)
+		return 0;
+
+	kotek::ktk::memory::memcpy(p_output, serialized_string.data(),
+		serialized_string.size());
+	p_output[serialized_string.size()] = 0;
+	return serialized_string.size();
+}

@@ -1,8 +1,8 @@
 #pragma once
 
-class zircon_session_editor;
-class zircon_session_editor_manager;
-class zircon_renderer_bgfx;
+class zircon_session_editor_interface;
+class zircon_session_editor_manager_interface;
+class zircon_editor_renderer_interface;
 class zircon_world;
 class zircon_factory;
 class zircon_component_transform;
@@ -29,12 +29,12 @@ struct zircon_ecs_context_t;
 /// ImGuizmo::Manipulate runs HERE — a ui_element's Draw executes inside
 /// that frame (see zircon_render_graph_pass_editor_imgui_bgfx::OnUpdate).
 ///
-/// Activation: the window reads the editor render-graph slot's name list
-/// through zircon_renderer_bgfx::get_render_graph_info and Manipulates
+/// Activation: the window reads the editor render-graph slot's names through
+/// zircon_editor_renderer_interface's scalar pass accessors and Manipulates
 /// only while kZirconConfig_RenderPassEditorGizmoImguizmoName is in the
 /// set AND enabled AND a transform-bearing selection exists (the object
 /// list window / own-gizmo click-select drive
-/// zircon_editor_ui_state::set_selected_entity). Otherwise it draws
+/// zircon_editor_ui_state_interface::set_selected_entity). Otherwise it draws
 /// nothing and costs nothing.
 ///
 /// Hosting: Manipulate must draw into a current window's draw list, so
@@ -66,8 +66,8 @@ public:
 	/// bgfx (NRI) — the window then stays inert (the variant is a bgfx
 	/// editor pass)
 	zircon_editor_ui_window_gizmo_imguizmo(
-		zircon_session_editor_manager* p_manager_session_editor,
-		zircon_renderer_bgfx* p_renderer_bgfx);
+		zircon_session_editor_manager_interface* p_manager_session_editor,
+		zircon_editor_renderer_interface* p_renderer_bgfx);
 	~zircon_editor_ui_window_gizmo_imguizmo(void);
 
 	void Initialize(void) override;
@@ -140,7 +140,7 @@ private:
 	// replicated per the pass-independence pattern the grid/own-gizmo
 	// passes follow); false when the world or the camera is not there —
 	// the caller then falls back to the grid pass's default orbit
-	bool resolve_editor_camera(zircon_session_editor* p_session,
+	bool resolve_editor_camera(zircon_session_editor_interface* p_session,
 		float* p_out_view, float* p_out_projection) noexcept;
 
 	// restores the drag-start state into the transform and drops the drag
@@ -149,13 +149,13 @@ private:
 
 	// feeds the shared gizmo overlay POD the P2e overlay window draws
 	// (mode/snap always while active, delta+result while dragging)
-	void publish_overlay_state(zircon_session_editor* p_session,
+	void publish_overlay_state(zircon_session_editor_interface* p_session,
 		bool is_gizmo_active) noexcept;
 
 private:
 	bool m_is_show_window;
-	zircon_session_editor_manager* m_p_manager_session_editor;
-	zircon_renderer_bgfx* m_p_renderer_bgfx;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
+	zircon_editor_renderer_interface* m_p_renderer_bgfx;
 
 	eMode m_mode;
 	bool m_is_snap_enabled;

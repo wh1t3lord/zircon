@@ -7,7 +7,7 @@
 
 zircon_command_csg_create_primitive::
 	zircon_command_csg_create_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t compound_id,
 		eZirconCsgPrimitiveType primitive_type,
@@ -57,13 +57,12 @@ zircon_command_csg_create_primitive::
 			traits_t::from_double(p_rotation_xyzw[component]));
 	}
 
-	this->m_primitive_state =
-		zircon_serialize_component(&primitive);
+	this->m_primitive_state .capture(&primitive);
 }
 
 zircon_command_csg_create_primitive::
 	zircon_command_csg_create_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) :
 	m_compound_id{kotek::ktk::kInvalidECSEntity},
@@ -92,7 +91,7 @@ void zircon_command_csg_create_primitive::Execute(void)
 		return;
 	}
 
-	zircon_session_editor* p_session = nullptr;
+	zircon_session_editor_interface* p_session = nullptr;
 	zircon_world* p_world = nullptr;
 	zircon_factory* p_factory = nullptr;
 
@@ -106,15 +105,15 @@ void zircon_command_csg_create_primitive::Execute(void)
 	zircon_ecs_context_t* p_context = p_world->get_ecs_context();
 
 	// NOTE: the entity id reincarnation on re-execution is reported
-	// to the history by zircon_editor_command_history::execute_node
+	// to the history by zircon_editor_command_history_interface::execute_node
 	// itself (it observes GetEntityID before/after) — the command
 	// must not call update_dependent_commands on its own (a
 	// journal-reconstructed command only knows its recorded id)
 	this->m_created_entity = p_factory->create_entity(p_context);
 
-	if (p_factory->create_component(p_context, this->m_created_entity,
-			eZirconComponentType::kzircon_component_csg_primitive,
-			this->m_primitive_state) == false)
+	if (this->m_primitive_state.create_component(p_factory, p_context,
+			this->m_created_entity,
+			eZirconComponentType::kzircon_component_csg_primitive) == false)
 	{
 		KOTEK_MESSAGE_WARNING(
 			"[csg] create primitive: failed to install the "
@@ -151,7 +150,7 @@ void zircon_command_csg_create_primitive::Undo(void)
 		return;
 	}
 
-	zircon_session_editor* p_session = nullptr;
+	zircon_session_editor_interface* p_session = nullptr;
 	zircon_world* p_world = nullptr;
 	zircon_factory* p_factory = nullptr;
 
@@ -176,7 +175,7 @@ void zircon_command_csg_create_primitive::Undo(void)
 
 	// the selection must not outlive the entity (the same rule as
 	// zircon_command_create_entity::Undo)
-	zircon_editor_ui_state* p_ui_state = p_session->get_ui_state();
+	zircon_editor_ui_state_interface* p_ui_state = p_session->get_ui_state();
 
 	if (p_ui_state &&
 		p_ui_state->get_selected_entity().id ==
@@ -243,7 +242,7 @@ bool zircon_command_csg_create_primitive::Serialize_Delta(
 			static_cast<kotek::uint32_t>(this->m_created_entity.id));
 
 	auto primitive_string =
-		kotek::ktk::json::serialize(this->m_primitive_state);
+		this->m_primitive_state.text();
 
 	status = status &&
 		writer.write_string(
@@ -282,7 +281,7 @@ bool zircon_command_csg_create_primitive::Deserialize_Delta(
 	{
 		kotek::ktk::json::error_code parse_error;
 
-		this->m_primitive_state = kotek::ktk::json::parse(
+		this->m_primitive_state.assign_text(
 			kotek::cstring_view_t(
 				state_buffer, strlen(state_buffer)),
 			parse_error);

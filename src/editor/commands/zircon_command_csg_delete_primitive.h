@@ -16,7 +16,7 @@
 
 #include "../../ecs/zircon_csg_defs.h"
 
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 class zircon_factory;
 struct zircon_ecs_context_t;
 
@@ -26,7 +26,7 @@ class zircon_command_csg_delete_primitive
 {
 public:
 	zircon_command_csg_delete_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t compound_id,
 		kotek::entity_t primitive_id
@@ -34,7 +34,7 @@ public:
 
 	// for command history (journal reconstruction)
 	zircon_command_csg_delete_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	);
 
@@ -72,7 +72,7 @@ private:
 private:
 	kotek::entity_t m_compound_id;
 	kotek::entity_t m_primitive_id;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 	zircon_factory* m_p_factory;
 	kotek::static_cstring_t<zircon_DEF_COMMAND_SDK_ENTITY_SIZE_JSON>
 		m_state_buffer;

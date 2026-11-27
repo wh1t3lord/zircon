@@ -1,8 +1,9 @@
 #pragma once
 
 #include "zircon_command_definitions.h"
+#include "zircon_command_text_state.h"
 
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 class zircon_factory;
 
 /// @brief \~english bounds-checked byte writer used by commands to
@@ -85,7 +86,7 @@ public:
 using zircon_command_create_fn_t =
 	kotek::core::ktkISDKRedoUndo* (*)(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept;
 
@@ -133,7 +134,7 @@ private:
 
 /// @brief \~english registers the built-in command set
 /// (create/delete entity, add/delete component); called by
-/// zircon_editor_command_history::initialize
+/// zircon_editor_command_history_interface::initialize
 void zircon_register_builtin_command_types(
 	zircon_command_registry& registry
 ) noexcept;

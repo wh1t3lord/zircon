@@ -19,7 +19,7 @@
 
 #include "../../ecs/zircon_csg_defs.h"
 
-class zircon_session_editor_manager;
+class zircon_session_editor_manager_interface;
 class zircon_factory;
 struct zircon_ecs_context_t;
 
@@ -31,7 +31,7 @@ public:
 	// the UI-facing ctor: takes the creation parameters, builds the
 	// serialized component state the execute path installs
 	zircon_command_csg_create_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory,
 		kotek::entity_t compound_id,
 		eZirconCsgPrimitiveType primitive_type,
@@ -44,7 +44,7 @@ public:
 
 	// for command history (journal reconstruction)
 	zircon_command_csg_create_primitive(
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	);
 
@@ -74,7 +74,7 @@ public:
 private:
 	kotek::entity_t m_compound_id;
 	kotek::entity_t m_created_entity;
-	zircon_session_editor_manager* m_p_manager_session_editor;
+	zircon_session_editor_manager_interface* m_p_manager_session_editor;
 	zircon_factory* m_p_factory;
-	kotek::ktk::json::value m_primitive_state;
+	zircon_command_text_state m_primitive_state;
 };

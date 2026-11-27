@@ -284,7 +284,7 @@ namespace
 {
 	kotek::core::ktkISDKRedoUndo* zircon_create_command_create_entity(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{
@@ -295,7 +295,7 @@ namespace
 
 	kotek::core::ktkISDKRedoUndo* zircon_create_command_delete_entity(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{
@@ -309,7 +309,7 @@ namespace
 	kotek::core::ktkISDKRedoUndo*
 	zircon_create_command_add_component(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{
@@ -324,7 +324,7 @@ namespace
 	kotek::core::ktkISDKRedoUndo*
 	zircon_create_command_delete_component(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{
@@ -337,7 +337,7 @@ namespace
 	kotek::core::ktkISDKRedoUndo*
 	zircon_create_command_edit_component_state(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{
@@ -350,7 +350,7 @@ namespace
 	kotek::core::ktkISDKRedoUndo*
 	zircon_create_command_csg_create_primitive(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{
@@ -363,7 +363,7 @@ namespace
 	kotek::core::ktkISDKRedoUndo*
 	zircon_create_command_csg_delete_primitive(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{
@@ -376,7 +376,7 @@ namespace
 	kotek::core::ktkISDKRedoUndo*
 	zircon_create_command_csg_edit_primitive(
 		void* p_placement_memory,
-		zircon_session_editor_manager* p_manager_session_editor,
+		zircon_session_editor_manager_interface* p_manager_session_editor,
 		zircon_factory* p_factory
 	) noexcept
 	{

@@ -61,6 +61,8 @@ void zircon_deserialize_component(
 	zircon_component_interface* p_result
 ) noexcept;
 
+// Same-module DOM serialization only. DLL consumers use the bounded-text
+// overload below so no heap-owning JSON value crosses the CRT boundary.
 kotek::ktk::json::value zircon_serialize_component(
 	zircon_component_interface* p_data
 ) noexcept;
@@ -70,6 +72,12 @@ kotek::ktk::json::value zircon_serialize_component(
 	unsigned char* p_raw_memory,
 	kotek::size_t memory_size
 ) noexcept;
+
+/// Serializes and destroys every backend JSON object inside this module.
+/// Returns the text length excluding NUL, or 0 on invalid input/overflow.
+kotek::size_t zircon_serialize_component_to_buffer(
+	zircon_component_interface* p_data, char* p_output,
+	kotek::size_t output_capacity) noexcept;
 
 // todo: make entt in same design as pico and it is should be
 // same by method calling and etc

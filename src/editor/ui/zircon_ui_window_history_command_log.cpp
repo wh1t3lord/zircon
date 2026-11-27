@@ -1,13 +1,12 @@
 #include "zircon_ui_window_history_command_log.h"
-#include "../commands/zircon_command_history.h"
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_editor_command_history_interface.h"
+#include "../../core/zircon_session_editor_interface.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 #include "zircon_ui_test_harness.h"
 
 zircon_editor_ui_window_history_command_log::zircon_editor_ui_window_history_command_log(
-	zircon_editor_command_history* p_manager_history,
-	zircon_session_editor_manager* p_manager_session_editor,
+	zircon_editor_command_history_interface* p_manager_history,
+	zircon_session_editor_manager_interface* p_manager_session_editor,
 	zircon_ui_test_widget_registry* p_widget_registry) :
 	m_is_show_window(false), m_p_manager_history{p_manager_history},
 	m_p_manager_session_editor{p_manager_session_editor},
@@ -15,10 +14,10 @@ zircon_editor_ui_window_history_command_log::zircon_editor_ui_window_history_com
 {
 	KOTEK_ASSERT(this->m_p_manager_history,
 		"you can't pass an invalid pointer to instance "
-		"zircon_editor_command_history");
+		"zircon_editor_command_history_interface");
 	KOTEK_ASSERT(this->m_p_manager_session_editor,
 		"you can't pass an invalid pointer to instance "
-		"zircon_session_editor_manager");
+		"zircon_session_editor_manager_interface");
 }
 
 zircon_editor_ui_window_history_command_log::~zircon_editor_ui_window_history_command_log() {}
@@ -44,7 +43,7 @@ void zircon_editor_ui_window_history_command_log::Draw(
 
 			if (p_manager)
 			{
-				zircon_session_editor* p_session =
+				zircon_session_editor_interface* p_session =
 					this->m_p_manager_session_editor->get_session(
 						this->m_p_manager_session_editor
 							->get_current_session_id());
@@ -67,13 +66,12 @@ void zircon_editor_ui_window_history_command_log::Draw(
 
 				if (p_history)
 				{
-					const auto& commands = p_history->GetCommands();
-
 					kotek::array_t<char, 64> button_name{};
 					for (int i = 0;
 						i < zircon_DEF_STREAMING_COMMAND_STORAGE_SIZE; ++i)
 					{
-						auto* p_command = commands[i];
+						auto* p_command = p_history->get_command_at_slot(
+							static_cast<kotek::uint8_t>(i));
 
 						if (p_command)
 						{

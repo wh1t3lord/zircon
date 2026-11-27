@@ -43,3 +43,7 @@ kotek_target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CX
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.core)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.ecs)
 kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.world)
+# the session owns the concrete history, UI state and UI-press harness;
+# those modules call back only through zircon.core interfaces (Z9)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor.commands)
+kotek_target_link_libraries(${PROJECT_NAME} PUBLIC zircon.editor.ui)

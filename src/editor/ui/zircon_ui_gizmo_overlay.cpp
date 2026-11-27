@@ -1,12 +1,11 @@
 #include "zircon_ui_gizmo_overlay.h"
 
-#include "../session/zircon_session_editor.h"
-#include "../session/zircon_session_editor_manager.h"
-#include "zircon_editor_ui_state.h"
+#include "../../core/zircon_session_editor_interface.h"
+#include "../../core/zircon_editor_ui_state_interface.h"
 
 zircon_editor_ui_window_gizmo_overlay::
 	zircon_editor_ui_window_gizmo_overlay(
-		zircon_session_editor_manager* p_manager_session_editor) :
+		zircon_session_editor_manager_interface* p_manager_session_editor) :
 	m_is_show_window{true},
 	m_p_manager_session_editor{p_manager_session_editor}
 {
@@ -38,7 +37,7 @@ void zircon_editor_ui_window_gizmo_overlay::Draw(
 		return;
 	}
 
-	zircon_session_editor* p_session =
+	zircon_session_editor_interface* p_session =
 		this->m_p_manager_session_editor->get_session(
 			this->m_p_manager_session_editor
 				->get_current_session_id());
